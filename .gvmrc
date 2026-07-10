@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# shellcheck shell=bash
+gvm use go1.26.5

@@ -1,0 +1,28 @@
+{
+  "name": "@mopeyjellyfish-test/minimal-extension",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Private fixture used to verify the Pi package smoke-test harness.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
