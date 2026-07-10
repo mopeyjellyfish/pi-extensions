@@ -6,11 +6,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   discoverProductionPackages,
+  findForbiddenPackedPaths,
   loadFixturePackage,
   validatePackage,
   validateRootAggregate,
   type PackageDescriptor,
 } from "../../scripts/lib/packages.ts";
+import { validateReleaseConfiguration } from "../../scripts/lib/releases.ts";
 
 const temporaryRoots: string[] = [];
 
@@ -54,11 +56,42 @@ describe("package contracts", () => {
     await expect(validatePackage(await loadFixturePackage())).resolves.toEqual([]);
   });
 
-  it("accepts an empty production workspace with an aggregate glob", async () => {
+  it("discovers and validates the one installable Worktrunk package", async () => {
     expect.hasAssertions();
     const packages = await discoverProductionPackages();
-    expect(packages).toEqual([]);
+    expect(packages).toHaveLength(1);
+    const worktrunk = packages[0];
+    if (worktrunk === undefined) {
+      throw new Error("Worktrunk package was not discovered.");
+    }
+    expect(worktrunk.manifest["name"]).toBe("@mopeyjellyfish/pi-worktrunk");
+    await expect(validatePackage(worktrunk)).resolves.toEqual([]);
     await expect(validateRootAggregate(packages)).resolves.toEqual([]);
+    await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);
+  });
+
+  it("rejects runtime and development artifacts from packed packages", () => {
+    expect.hasAssertions();
+    expect(
+      findForbiddenPackedPaths([
+        "README.md",
+        ".pi/sessions/current.jsonl",
+        "src/.pi/sessions/current.jsonl",
+        ".pi-subagents/worker.json",
+        ".worktree/state.json",
+        ".worktrees/feature/session.json",
+        "coverage/lcov.info",
+        "sessions/old.jsonl",
+      ]),
+    ).toEqual([
+      ".pi/sessions/current.jsonl",
+      "src/.pi/sessions/current.jsonl",
+      ".pi-subagents/worker.json",
+      ".worktree/state.json",
+      ".worktrees/feature/session.json",
+      "coverage/lcov.info",
+      "sessions/old.jsonl",
+    ]);
   });
 
   it("requires package engines to match the minimum Node runtime", async () => {

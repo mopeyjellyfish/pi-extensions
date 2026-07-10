@@ -15,17 +15,38 @@ import {
 } from "./repository.ts";
 
 const HOST_PACKAGE = "@earendil-works/pi-coding-agent";
+const SUPPORTED_HOST_PACKAGE_RANGE = "^0.80.1";
 const REPOSITORY_URL = "git+https://github.com/mopeyjellyfish/pi-extensions.git";
 const MINIMUM_NODE_VERSION = "22.20.0";
 const REQUIRED_ENGINE = `>=${MINIMUM_NODE_VERSION}`;
 const REQUIRED_FILES = ["LICENSE", "README.md", "src/"];
 const REQUIRED_PRODUCTION_FILES = ["CHANGELOG.md"];
 const REQUIRED_KEYWORDS = ["pi-extension", "pi-package"];
+const FORBIDDEN_PACKED_PATH_COMPONENTS = new Set([
+  ".pi",
+  ".pi-subagents",
+  ".worktree",
+  ".worktrees",
+  "coverage",
+  "sessions",
+]);
 
 export interface PackageDescriptor {
   readonly kind: "fixture" | "production";
   readonly manifest: Record<string, unknown>;
   readonly root: string;
+}
+
+export function findForbiddenPackedPaths(paths: readonly string[]): string[] {
+  return paths.filter((path) => {
+    const normalized = toPosixPath(path).replace(/^\.\//u, "");
+    const components = normalized.split("/");
+    return (
+      normalized.startsWith("/") ||
+      /^[A-Za-z]:\//u.test(normalized) ||
+      components.some((component) => FORBIDDEN_PACKED_PATH_COMPONENTS.has(component))
+    );
+  });
 }
 
 export async function discoverProductionPackages(
@@ -104,8 +125,10 @@ function validateDependencyPlacement(manifest: Record<string, unknown>, errors: 
   }
 
   const peers = stringRecord(manifest["peerDependencies"]);
-  if (peers?.[HOST_PACKAGE] !== "*") {
-    errors.push(`${HOST_PACKAGE} must be declared as a peerDependency with the "*" range.`);
+  if (peers?.[HOST_PACKAGE] !== "*" && peers?.[HOST_PACKAGE] !== SUPPORTED_HOST_PACKAGE_RANGE) {
+    errors.push(
+      `${HOST_PACKAGE} must be declared as a peerDependency with either the "*" or ${SUPPORTED_HOST_PACKAGE_RANGE} range.`,
+    );
   }
 }
 

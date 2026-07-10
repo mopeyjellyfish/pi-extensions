@@ -23,7 +23,7 @@ The manifest validator requires:
 - `files` containing `src/`, `README.md`, `CHANGELOG.md`, and `LICENSE`;
 - `pi-package` and `pi-extension` keywords;
 - one or more existing `pi.extensions` entrypoints;
-- `@earendil-works/pi-coding-agent: "*"` in `peerDependencies`;
+- `@earendil-works/pi-coding-agent: "*"` or the repository-supported Pi API range in `peerDependencies`;
 - canonical Git repository metadata whose `directory` matches the workspace path;
 - package-local `test` and `typecheck` scripts;
 - no dependency duplicated across dependency sections;

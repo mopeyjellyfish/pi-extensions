@@ -2,6 +2,7 @@ import { relative } from "node:path";
 
 import {
   discoverProductionPackages,
+  findForbiddenPackedPaths,
   loadFixturePackage,
   resolvePackageEntrypoints,
   validatePackage,
@@ -65,9 +66,14 @@ async function validatePackedContents(descriptor: PackageDescriptor): Promise<st
         required.push(entrypoint.replace(/^\.\//, ""));
       }
     }
-    return required
+    const missing = required
       .filter((path) => !packed.has(path))
       .map((path) => `${relative(repositoryRoot, descriptor.root)}: npm pack omits ${path}.`);
+    const forbidden = findForbiddenPackedPaths([...packed]).map(
+      (path) =>
+        `${relative(repositoryRoot, descriptor.root)}: npm pack includes forbidden ${path}.`,
+    );
+    return [...missing, ...forbidden];
   } catch (error) {
     return [error instanceof Error ? error.message : String(error)];
   }

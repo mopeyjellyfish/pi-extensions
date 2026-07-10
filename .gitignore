@@ -15,6 +15,7 @@ tmp/
 
 # Pi and delegated-agent runtime artifacts
 .pi-subagents/
+.worktrees/
 .pi/npm/
 .pi/git/
 .pi/sessions/
