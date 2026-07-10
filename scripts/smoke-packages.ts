@@ -13,7 +13,7 @@ import {
 import {
   credentialFreeEnvironment,
   describeFailure,
-  resolveExecutable,
+  npmInvocation,
   runCommand,
 } from "./lib/process.ts";
 import { isRecord, repositoryRoot } from "./lib/repository.ts";
@@ -193,22 +193,30 @@ async function packAndInstall(descriptor: PackageDescriptor, tempRoot: string): 
   await mkdir(extractRoot, { recursive: true });
   await mkdir(npmHome, { recursive: true });
   const npmEnvironment = isolatedNpmEnvironment(npmHome);
-  const packed = await runCommand(
-    resolveExecutable("npm", "node-shim"),
+  const packInvocation = npmInvocation(
     ["pack", "--json", "--ignore-scripts", "--pack-destination", packRoot, descriptor.root],
-    { cwd: repositoryRoot, env: npmEnvironment, timeoutMs: 60_000 },
+    npmEnvironment,
   );
+  const packed = await runCommand(packInvocation.command, packInvocation.arguments, {
+    cwd: repositoryRoot,
+    env: npmEnvironment,
+    timeoutMs: 60_000,
+  });
   if (packed.code !== 0) {
     throw new Error(describeFailure(`npm pack ${descriptor.root}`, packed));
   }
   const { filename } = parsePackResult(packed.stdout);
   await extractTar({ cwd: extractRoot, file: join(packRoot, filename) });
   const installedRoot = join(extractRoot, "package");
-  const installed = await runCommand(
-    resolveExecutable("npm", "node-shim"),
+  const installInvocation = npmInvocation(
     ["install", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund", "--legacy-peer-deps"],
-    { cwd: installedRoot, env: npmEnvironment, timeoutMs: 120_000 },
+    npmEnvironment,
   );
+  const installed = await runCommand(installInvocation.command, installInvocation.arguments, {
+    cwd: installedRoot,
+    env: npmEnvironment,
+    timeoutMs: 120_000,
+  });
   if (installed.code !== 0) {
     throw new Error(describeFailure(`npm install ${installedRoot}`, installed));
   }

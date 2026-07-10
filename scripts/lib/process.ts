@@ -18,14 +18,23 @@ export interface RunOptions {
   readonly timeoutMs?: number;
 }
 
-export type ExecutableKind = "native" | "node-shim";
+export interface CommandInvocation {
+  readonly arguments: readonly string[];
+  readonly command: string;
+}
 
-export function resolveExecutable(
-  name: string,
-  kind: ExecutableKind,
-  platform: NodeJS.Platform = process.platform,
-): string {
-  return platform === "win32" && kind === "node-shim" ? `${name}.cmd` : name;
+export function npmInvocation(
+  arguments_: readonly string[],
+  environment: NodeJS.ProcessEnv = process.env,
+): CommandInvocation {
+  const npmExecPath = environment["npm_execpath"];
+  if (npmExecPath === undefined || npmExecPath === "") {
+    throw new Error("npm_execpath is unavailable; run this command through an npm script.");
+  }
+  return {
+    arguments: [npmExecPath, ...arguments_],
+    command: process.execPath,
+  };
 }
 
 export function credentialFreeEnvironment(

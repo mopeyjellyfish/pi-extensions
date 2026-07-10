@@ -1,13 +1,17 @@
-import { join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { discoverProductionPackages } from "./lib/packages.ts";
-import { describeFailure, resolveExecutable, runCommand } from "./lib/process.ts";
+import { describeFailure, runCommand } from "./lib/process.ts";
 import { repositoryRoot } from "./lib/repository.ts";
+
+const typescriptModulePath = fileURLToPath(import.meta.resolve("typescript"));
+const typescriptCliPath = resolve(dirname(typescriptModulePath), "../bin/tsc");
 
 async function checkProject(project: string, label: string): Promise<void> {
   const result = await runCommand(
-    resolveExecutable("tsc", "node-shim"),
-    ["--noEmit", "-p", project],
+    process.execPath,
+    [typescriptCliPath, "--noEmit", "-p", project],
     {
       cwd: repositoryRoot,
       env: process.env,

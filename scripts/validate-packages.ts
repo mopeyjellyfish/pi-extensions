@@ -8,7 +8,7 @@ import {
   validateRootAggregate,
   type PackageDescriptor,
 } from "./lib/packages.ts";
-import { describeFailure, resolveExecutable, runCommand } from "./lib/process.ts";
+import { describeFailure, npmInvocation, runCommand } from "./lib/process.ts";
 import { isRecord, repositoryRoot, stringArray, toPosixPath } from "./lib/repository.ts";
 
 interface PackFile {
@@ -33,11 +33,17 @@ function parsePackFiles(stdout: string): PackFile[] {
 }
 
 async function validatePackedContents(descriptor: PackageDescriptor): Promise<string[]> {
-  const result = await runCommand(
-    resolveExecutable("npm", "node-shim"),
-    ["pack", "--dry-run", "--json", "--ignore-scripts", descriptor.root],
-    { cwd: repositoryRoot, timeoutMs: 60_000 },
-  );
+  const invocation = npmInvocation([
+    "pack",
+    "--dry-run",
+    "--json",
+    "--ignore-scripts",
+    descriptor.root,
+  ]);
+  const result = await runCommand(invocation.command, invocation.arguments, {
+    cwd: repositoryRoot,
+    timeoutMs: 60_000,
+  });
   if (result.code !== 0) {
     return [describeFailure(`npm pack ${relative(repositoryRoot, descriptor.root)}`, result)];
   }
