@@ -3,10 +3,12 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { glob } from "glob";
 import { x as extractTar } from "tar";
 
 import {
   discoverProductionPackages,
+  findForbiddenPackedPaths,
   loadFixturePackage,
   type PackageDescriptor,
 } from "./lib/packages.ts";
@@ -24,6 +26,23 @@ const RPC_REQUEST_ID = "pi-extension-smoke";
 
 interface PackResult {
   readonly filename: string;
+}
+
+async function assertSafePackedArtifact(root: string): Promise<void> {
+  const files = await glob("**/*", { cwd: root, dot: true, nodir: true });
+  const forbidden = findForbiddenPackedPaths(files);
+  if (forbidden.length > 0) {
+    throw new Error(`Packed package includes forbidden paths: ${forbidden.join(", ")}.`);
+  }
+  const repositoryPath = resolve(repositoryRoot);
+  for (const file of files) {
+    const content = await readFile(join(root, file));
+    if (content.includes(repositoryPath)) {
+      throw new Error(
+        `Packed package ${file} contains the local repository path ${repositoryPath}.`,
+      );
+    }
+  }
 }
 
 function parsePackResult(stdout: string): PackResult {
@@ -208,6 +227,7 @@ async function packAndInstall(descriptor: PackageDescriptor, tempRoot: string): 
   const { filename } = parsePackResult(packed.stdout);
   await extractTar({ cwd: extractRoot, file: join(packRoot, filename) });
   const installedRoot = join(extractRoot, "package");
+  await assertSafePackedArtifact(installedRoot);
   const installInvocation = npmInvocation(
     ["install", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund", "--legacy-peer-deps"],
     npmEnvironment,

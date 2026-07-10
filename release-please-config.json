@@ -21,5 +21,9 @@
     { "type": "build", "section": "Build System" },
     { "type": "deps", "section": "Dependencies" }
   ],
-  "packages": {}
+  "packages": {
+    "packages/worktrunk": {
+      "release-type": "node"
+    }
+  }
 }

@@ -5,7 +5,11 @@ A strict npm-workspace monorepo for independently installable [Pi coding agent](
 > [!WARNING]
 > Pi extensions execute with the user's full system permissions. Review every extension and its dependencies before installing it. Never load code from an untrusted package or repository.
 
-No production extensions are included yet. The repository currently supplies the package contract, tooling, tests, and CI gates required before the first extension is added.
+The first production package is `@mopeyjellyfish/pi-worktrunk`, an independent
+adapter that uses Worktrunk for worktree lifecycle operations while Pi routes
+its tools into a selected linked worktree. It is not an official Worktrunk Pi
+integration; see its [package README](packages/worktrunk/README.md) for the
+separate `wt` prerequisite and safety model.
 
 ## Requirements
 
@@ -59,6 +63,12 @@ packages/<extension>/
 The private root package aggregates `packages/*/src/index.ts`, so `pi -e .` loads the full collection. A single package can be tested with `pi -e packages/<extension>`. Published packages remain independently installable.
 
 Each extension is versioned independently through a review-gated Release Please PR. Merging that PR creates extension-specific tags such as `pi-example-v0.1.0` and matching GitHub Releases; npm publication is not automated yet. Package-local `docs` and `chore` commits intentionally produce patch releases, including skill and documentation maintenance, while root-only changes do not release an extension.
+
+## Packages
+
+| Package                                                        | Purpose                                                                                                      |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md) | Delegate worktree lifecycle actions to Worktrunk and safely route Pi tools into a confirmed linked worktree. |
 
 See [the architecture](docs/architecture.md), [extension authoring guide](docs/authoring.md), and [package contract](packages/README.md) before adding code. Pi's authoritative [extension](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md) and [package](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md) documentation takes precedence over this repository's guidance.
 
