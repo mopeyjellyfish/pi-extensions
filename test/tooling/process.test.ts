@@ -4,20 +4,21 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  credentialFreeEnvironment,
-  resolveExecutable,
-  runCommand,
-} from "../../scripts/lib/process.ts";
+import { credentialFreeEnvironment, npmInvocation, runCommand } from "../../scripts/lib/process.ts";
 import { repositoryRoot } from "../../scripts/lib/repository.ts";
 
-describe("executable resolution", () => {
-  it("adds .cmd only for Node shims on Windows", () => {
+describe("npm invocation", () => {
+  it("runs npm's JavaScript CLI through the active Node executable", () => {
     expect.hasAssertions();
-    expect(resolveExecutable("npm", "node-shim", "win32")).toBe("npm.cmd");
-    expect(resolveExecutable("go", "native", "win32")).toBe("go");
-    expect(resolveExecutable("npm", "node-shim", "linux")).toBe("npm");
-    expect(resolveExecutable("go", "native", "darwin")).toBe("go");
+    expect(npmInvocation(["pack", "--json"], { npm_execpath: "C:\\npm\\npm-cli.js" })).toEqual({
+      arguments: ["C:\\npm\\npm-cli.js", "pack", "--json"],
+      command: process.execPath,
+    });
+  });
+
+  it("rejects execution outside an npm script", () => {
+    expect.hasAssertions();
+    expect(() => npmInvocation([], {})).toThrow(/npm_execpath is unavailable/u);
   });
 });
 

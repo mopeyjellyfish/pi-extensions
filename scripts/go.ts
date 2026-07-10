@@ -2,11 +2,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 
-import { describeFailure, resolveExecutable, runCommand } from "./lib/process.ts";
+import { describeFailure, runCommand } from "./lib/process.ts";
 import { findGoModules, repositoryRoot } from "./lib/repository.ts";
 
 function executable(name: string): string {
-  return resolveExecutable(name, "native");
+  return name;
 }
 
 const REQUIRED_GO_VERSION = "go1.26.5";
