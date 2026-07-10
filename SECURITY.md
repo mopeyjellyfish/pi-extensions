@@ -19,3 +19,9 @@ Avoid including real credentials, private source code, session transcripts, or u
 ## Security model
 
 Pi extensions execute arbitrary code with the user's permissions. Installing an extension is equivalent to trusting its source and dependency graph. This repository therefore treats package contents, lifecycle cleanup, process execution, network access, path handling, protocol output, secrets, and dependency updates as security-sensitive changes.
+
+## Dependency updates
+
+Routine dependency releases are quarantined for at least 14 days, checked monthly, and grouped into at most one pull request per ecosystem. Routine npm and GitHub Actions major upgrades are manual decisions rather than automated pull requests. Automated merging is not used.
+
+Dependabot vulnerability alerts remain enabled, but automatic security-update pull requests are disabled. Maintainers triage each alert and create a focused update manually. An urgent security fix may bypass the age gate only after reviewing the advisory, publisher and provenance, release contents, and transitive changes; the pull request must document the exception and pass every required check.

@@ -15,6 +15,7 @@
 - [ ] `npm run security:check` when dependencies or installation changed
 - [ ] Source and packed Pi smoke tests passed
 - [ ] No credentials, local paths, generated artifacts, or session data are included
+- [ ] Dependency changes passed the release-age gate, or a security exception is documented
 
 ## Evidence
 

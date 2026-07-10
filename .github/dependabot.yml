@@ -4,38 +4,56 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "06:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 14
+      semver-major-days: 30
+      semver-minor-days: 14
+      semver-patch-days: 14
+    open-pull-requests-limit: 1
     groups:
-      eslint:
+      routine:
         patterns:
-          - "@eslint/*"
-          - "@eslint-community/*"
-          - "eslint*"
-          - "typescript-eslint"
-      vitest:
-        patterns:
-          - "@vitest/*"
-          - "vitest"
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: gomod
     directories:
       - "/packages/*/go"
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "06:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 1
+    groups:
+      routine:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "06:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 1
+    groups:
+      routine:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major

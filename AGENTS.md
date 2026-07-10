@@ -26,3 +26,5 @@ Use Node from `.nvmrc` and Go from `.gvmrc`. Before handing off changes, run the
 ## Repository hygiene
 
 Use Conventional Commits. Do not stage or commit credentials, local absolute paths, environment files, generated artifacts, package archives, coverage, sessions, or delegated-agent runtime files. GitHub Actions use least privilege and immutable full-SHA action pins.
+
+Keep the dependency release-age gate and low-frequency grouped update policy intact. Routine major upgrades are manual. A security-driven age-gate exception requires explicit review and pull-request documentation.
