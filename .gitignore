@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build and test output
+coverage/
+dist/
+*.tsbuildinfo
+*.out
+
+# Temporary files
+.tmp/
+tmp/
+*.log
+.DS_Store
+
+# Pi and delegated-agent runtime artifacts
+.pi-subagents/
+.pi/npm/
+.pi/git/
+.pi/sessions/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+.vscode/
+
+# Go
+vendor/
+*.test
+
+# Package artifacts
+*.tgz

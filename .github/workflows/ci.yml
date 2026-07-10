@@ -1,0 +1,231 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check formatting
+        run: npm run format:check
+      - name: Lint TypeScript and JavaScript
+        run: npm run lint
+      - name: Lint Markdown
+        run: npm run markdownlint
+      - name: Check unused code and dependencies
+        run: npm run knip
+      - name: Type-check
+        run: npm run typecheck
+      - name: Run tests with coverage
+        run: npm run test:coverage
+      - name: Validate manifests and packed contents
+        run: npm run packages:check
+
+  compatibility:
+    name: Node ${{ matrix.node }} compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.19.0", "24.18.0"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Type-check
+        run: npm run typecheck
+      - name: Run deterministic tests
+        run: npm test
+      - name: Smoke-test source and packed artifacts
+        run: npm run smoke
+
+  runtime:
+    name: ${{ matrix.os }} runtime
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Smoke-test source and packed Pi lifecycle
+        run: npm run smoke
+
+  go:
+    name: Go quality and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: 1.26.5
+          cache: false
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install exact Go quality tools
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+          go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+      - name: Verify, format, lint, test, and scan every Go module
+        run: npm run go:check
+
+  workflow-security:
+    name: Workflow and secret security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: 1.26.5
+          cache: false
+      - name: Lint workflow semantics
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Audit workflow security
+        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        with:
+          advanced-security: false
+          annotations: true
+          inputs: .github/workflows
+          min-severity: low
+          online-audits: false
+          persona: pedantic
+          version: 1.26.1
+      - name: Scan files and Git history for secrets
+        run: |
+          go run github.com/zricethezav/gitleaks/v8@v8.30.1 dir . --redact --no-banner
+          go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+  required:
+    name: required
+    if: always()
+    needs:
+      - quality
+      - compatibility
+      - runtime
+      - go
+      - workflow-security
+      - dependency-audit
+      - dependency-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QUALITY_RESULT: ${{ needs.quality.result }}
+      COMPATIBILITY_RESULT: ${{ needs.compatibility.result }}
+      RUNTIME_RESULT: ${{ needs.runtime.result }}
+      GO_RESULT: ${{ needs.go.result }}
+      WORKFLOW_SECURITY_RESULT: ${{ needs.workflow-security.result }}
+      DEPENDENCY_AUDIT_RESULT: ${{ needs.dependency-audit.result }}
+      DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+    steps:
+      - name: Require all applicable jobs
+        run: |
+          for result in \
+            "$QUALITY_RESULT" \
+            "$COMPATIBILITY_RESULT" \
+            "$RUNTIME_RESULT" \
+            "$GO_RESULT" \
+            "$WORKFLOW_SECURITY_RESULT" \
+            "$DEPENDENCY_AUDIT_RESULT"; do
+            test "$result" = "success"
+          done
+          test "$DEPENDENCY_REVIEW_RESULT" = "success" || test "$DEPENDENCY_REVIEW_RESULT" = "skipped"

@@ -1,0 +1,335 @@
+import { readdir } from "node:fs/promises";
+import { basename, join, relative, resolve } from "node:path";
+
+import { glob } from "glob";
+import { SemVer } from "semver";
+
+import {
+  isRecord,
+  pathExists,
+  readJsonFile,
+  repositoryRoot,
+  stringArray,
+  stringRecord,
+  toPosixPath,
+} from "./repository.ts";
+
+const HOST_PACKAGE = "@earendil-works/pi-coding-agent";
+const REPOSITORY_URL = "git+https://github.com/mopeyjellyfish/pi-extensions.git";
+const REQUIRED_ENGINE = ">=22.19.0";
+const REQUIRED_FILES = ["LICENSE", "README.md", "src/"];
+const REQUIRED_KEYWORDS = ["pi-extension", "pi-package"];
+
+export interface PackageDescriptor {
+  readonly kind: "fixture" | "production";
+  readonly manifest: Record<string, unknown>;
+  readonly root: string;
+}
+
+export async function discoverProductionPackages(
+  root = repositoryRoot,
+): Promise<PackageDescriptor[]> {
+  const packagesRoot = join(root, "packages");
+  const entries = await readdir(packagesRoot, { withFileTypes: true });
+  const descriptors: PackageDescriptor[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const packageRoot = join(packagesRoot, entry.name);
+    const manifestPath = join(packageRoot, "package.json");
+    if (!pathExists(manifestPath)) {
+      throw new Error(`Workspace directory packages/${entry.name} is missing package.json.`);
+    }
+    const value = await readJsonFile(manifestPath);
+    if (!isRecord(value)) {
+      throw new Error(`packages/${entry.name}/package.json must contain a JSON object.`);
+    }
+    descriptors.push({ kind: "production", manifest: value, root: packageRoot });
+  }
+  return descriptors.sort((left, right) => left.root.localeCompare(right.root));
+}
+
+export async function loadFixturePackage(root = repositoryRoot): Promise<PackageDescriptor> {
+  const fixtureRoot = join(root, "test", "fixtures", "minimal-extension");
+  const value = await readJsonFile(join(fixtureRoot, "package.json"));
+  if (!isRecord(value)) {
+    throw new Error("The minimal extension fixture package.json must contain a JSON object.");
+  }
+  return { kind: "fixture", manifest: value, root: fixtureRoot };
+}
+
+function requireString(manifest: Record<string, unknown>, key: string, errors: string[]): string {
+  const value = manifest[key];
+  if (typeof value !== "string" || value.trim() === "") {
+    errors.push(`${key} must be a non-empty string.`);
+    return "";
+  }
+  return value;
+}
+
+function isSemanticVersion(value: string): boolean {
+  if (value.trim() !== value || !/^\d/u.test(value)) {
+    return false;
+  }
+  try {
+    return new SemVer(value).raw === value;
+  } catch {
+    return false;
+  }
+}
+
+function validateDependencyPlacement(manifest: Record<string, unknown>, errors: string[]): void {
+  const sections = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
+  const seen = new Map<string, string>();
+  for (const section of sections) {
+    const dependencies = stringRecord(manifest[section]);
+    if (manifest[section] !== undefined && dependencies === undefined) {
+      errors.push(`${section} must map package names to string versions.`);
+      continue;
+    }
+    for (const dependency of Object.keys(dependencies ?? {})) {
+      const previous = seen.get(dependency);
+      if (previous !== undefined) {
+        errors.push(`${dependency} is declared in both ${previous} and ${section}.`);
+      }
+      seen.set(dependency, section);
+      const hostProvided = dependency.startsWith("@earendil-works/pi-") || dependency === "typebox";
+      if (hostProvided && section !== "peerDependencies") {
+        errors.push(`${dependency} is host-provided and must be a peerDependency.`);
+      }
+    }
+  }
+
+  const peers = stringRecord(manifest["peerDependencies"]);
+  if (peers?.[HOST_PACKAGE] !== "*") {
+    errors.push(`${HOST_PACKAGE} must be declared as a peerDependency with the "*" range.`);
+  }
+}
+
+async function resolveExtensionPatterns(
+  packageRoot: string,
+  patterns: readonly string[],
+): Promise<string[]> {
+  const resolved: string[] = [];
+  for (const pattern of patterns) {
+    const matches = await glob(pattern, { cwd: packageRoot, nodir: true });
+    if (matches.length === 0) {
+      throw new Error(`${pattern} does not match an extension entrypoint.`);
+    }
+    for (const match of matches) {
+      const absolute = resolve(packageRoot, match);
+      const packageRelative = relative(packageRoot, absolute);
+      if (packageRelative.startsWith("..")) {
+        throw new Error(`${pattern} resolves outside its package.`);
+      }
+      resolved.push(toPosixPath(absolute));
+    }
+  }
+  return [...new Set(resolved)].sort((left, right) => left.localeCompare(right));
+}
+
+function validateIdentity(descriptor: PackageDescriptor, errors: string[]): void {
+  const { kind, manifest } = descriptor;
+  const name = requireString(manifest, "name", errors);
+  const version = requireString(manifest, "version", errors);
+  requireString(manifest, "description", errors);
+  if (!isSemanticVersion(version)) {
+    errors.push("version must be a semantic version.");
+  }
+  if (manifest["type"] !== "module") {
+    errors.push('type must be "module".');
+  }
+  if (manifest["license"] !== "MIT") {
+    errors.push('license must be "MIT".');
+  }
+  if (kind === "production" && manifest["private"] !== undefined && manifest["private"] !== false) {
+    errors.push("production package private must be absent or false.");
+  }
+  if (kind === "fixture" && manifest["private"] !== true) {
+    errors.push("test fixture packages must be private.");
+  }
+  if (kind === "production" && !name.startsWith("@mopeyjellyfish/pi-")) {
+    errors.push("production package names must start with @mopeyjellyfish/pi-.");
+  }
+  if (stringRecord(manifest["engines"])?.["node"] !== REQUIRED_ENGINE) {
+    errors.push(`engines.node must be ${REQUIRED_ENGINE}.`);
+  }
+}
+
+function validateManifestLists(manifest: Record<string, unknown>, errors: string[]): void {
+  const files = stringArray(manifest["files"]);
+  for (const requiredFile of REQUIRED_FILES) {
+    if (!files?.includes(requiredFile)) {
+      errors.push(`files must include ${requiredFile}.`);
+    }
+  }
+  const keywords = stringArray(manifest["keywords"]);
+  for (const keyword of REQUIRED_KEYWORDS) {
+    if (!keywords?.includes(keyword)) {
+      errors.push(`keywords must include ${keyword}.`);
+    }
+  }
+}
+
+async function validatePiEntrypoints(
+  descriptor: PackageDescriptor,
+  errors: string[],
+): Promise<void> {
+  const pi = descriptor.manifest["pi"];
+  const extensions = isRecord(pi) ? stringArray(pi["extensions"]) : undefined;
+  if (extensions === undefined || extensions.length === 0) {
+    errors.push("pi.extensions must contain at least one entrypoint.");
+    return;
+  }
+  try {
+    await resolveExtensionPatterns(descriptor.root, extensions);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function validateRequiredPaths(
+  descriptor: PackageDescriptor,
+  errors: string[],
+): Promise<void> {
+  const requiredPaths = ["LICENSE", "README.md", "package.json", "src/index.ts"];
+  if (descriptor.kind === "production") {
+    requiredPaths.push("test", "tsconfig.json");
+  }
+  for (const requiredPath of requiredPaths) {
+    if (!pathExists(join(descriptor.root, requiredPath))) {
+      errors.push(`${requiredPath} is required.`);
+    }
+  }
+  if (descriptor.kind === "production") {
+    const tests = await glob("test/**/*.test.ts", { cwd: descriptor.root, nodir: true });
+    if (tests.length === 0) {
+      errors.push("at least one test/**/*.test.ts file is required.");
+    }
+  }
+}
+
+function validateRepositoryMetadata(descriptor: PackageDescriptor, errors: string[]): void {
+  if (descriptor.kind !== "production") {
+    return;
+  }
+  const repository = descriptor.manifest["repository"];
+  if (!isRecord(repository) || repository["type"] !== "git") {
+    errors.push("repository.type must be git.");
+  }
+  if (!isRecord(repository) || repository["url"] !== REPOSITORY_URL) {
+    errors.push(`repository.url must be ${REPOSITORY_URL}.`);
+  }
+  const expectedDirectory = toPosixPath(relative(repositoryRoot, descriptor.root));
+  if (!isRecord(repository) || repository["directory"] !== expectedDirectory) {
+    errors.push(`repository.directory must be ${expectedDirectory}.`);
+  }
+  const scripts = stringRecord(descriptor.manifest["scripts"]);
+  for (const script of ["test", "typecheck"]) {
+    if (scripts?.[script] === undefined) {
+      errors.push(`scripts.${script} is required.`);
+    }
+  }
+}
+
+export async function validatePackage(descriptor: PackageDescriptor): Promise<string[]> {
+  const errors: string[] = [];
+  validateIdentity(descriptor, errors);
+  validateManifestLists(descriptor.manifest, errors);
+  await validatePiEntrypoints(descriptor, errors);
+  validateDependencyPlacement(descriptor.manifest, errors);
+  await validateRequiredPaths(descriptor, errors);
+  validateRepositoryMetadata(descriptor, errors);
+  return errors.map((error) => `${basename(descriptor.root)}: ${error}`);
+}
+
+export async function resolvePackageEntrypoints(descriptor: PackageDescriptor): Promise<string[]> {
+  const pi = descriptor.manifest["pi"];
+  const extensions = isRecord(pi) ? stringArray(pi["extensions"]) : undefined;
+  if (extensions === undefined) {
+    return [];
+  }
+  return await resolveExtensionPatterns(descriptor.root, extensions);
+}
+
+function validateRootManifest(value: Record<string, unknown>, errors: string[]): string[] {
+  if (value["private"] !== true) {
+    errors.push("Root package.json must remain private.");
+  }
+  const workspaces = stringArray(value["workspaces"]);
+  if (workspaces?.length !== 1 || workspaces[0] !== "packages/*") {
+    errors.push('Root workspaces must be exactly ["packages/*"].');
+  }
+  const pi = value["pi"];
+  const patterns = isRecord(pi) ? stringArray(pi["extensions"]) : undefined;
+  if (patterns === undefined || patterns.length === 0) {
+    errors.push("Root pi.extensions must contain the aggregate extension glob.");
+    return [];
+  }
+  return patterns;
+}
+
+async function collectAggregateEntrypoints(
+  root: string,
+  patterns: readonly string[],
+): Promise<Set<string>> {
+  const entrypoints = new Set<string>();
+  for (const pattern of patterns) {
+    const matches = await glob(pattern, { absolute: true, cwd: root, nodir: true });
+    for (const match of matches) {
+      entrypoints.add(toPosixPath(resolve(match)));
+    }
+  }
+  return entrypoints;
+}
+
+async function collectPackageEntrypoints(
+  packages: readonly PackageDescriptor[],
+): Promise<Set<string>> {
+  const entrypoints = new Set<string>();
+  for (const descriptor of packages) {
+    for (const entrypoint of await resolvePackageEntrypoints(descriptor)) {
+      entrypoints.add(entrypoint);
+    }
+  }
+  return entrypoints;
+}
+
+function compareAggregateEntrypoints(
+  root: string,
+  aggregate: ReadonlySet<string>,
+  packages: ReadonlySet<string>,
+): string[] {
+  const errors = [...packages]
+    .filter((path) => !aggregate.has(path))
+    .map((path) => `Root aggregate does not include ${toPosixPath(relative(root, path))}.`);
+  errors.push(
+    ...[...aggregate]
+      .filter((path) => !packages.has(path))
+      .map(
+        (path) =>
+          `Root aggregate includes unmanaged entrypoint ${toPosixPath(relative(root, path))}.`,
+      ),
+  );
+  return errors;
+}
+
+export async function validateRootAggregate(
+  packages: readonly PackageDescriptor[],
+  root = repositoryRoot,
+): Promise<string[]> {
+  const value = await readJsonFile(join(root, "package.json"));
+  if (!isRecord(value)) {
+    return ["Root package.json must contain a JSON object."];
+  }
+  const errors: string[] = [];
+  const patterns = validateRootManifest(value, errors);
+  if (patterns.length === 0) {
+    return errors;
+  }
+  const aggregate = await collectAggregateEntrypoints(root, patterns);
+  const packageEntrypoints = await collectPackageEntrypoints(packages);
+  errors.push(...compareAggregateEntrypoints(root, aggregate, packageEntrypoints));
+  return errors;
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "vitest.config.ts",
+    "knip.config.ts"
+  ],
+  "exclude": ["node_modules", "coverage", "dist"]
+}
