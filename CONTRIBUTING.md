@@ -14,6 +14,8 @@ npm ci --ignore-scripts
 
 Install golangci-lint `2.12.2` and govulncheck before working on Go code. The same exact versions run in CI.
 
+npm enforces a 14-day minimum release age when resolving new versions. Do not disable this for routine updates. If a newly released version is required to remediate an active vulnerability, use `npm install --min-release-age=0 <package>@<version>` only after the security review described in [`SECURITY.md`](SECURITY.md), and document the exception in the pull request.
+
 ## Changes
 
 1. Create a focused branch from `main`.
