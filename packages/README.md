@@ -6,6 +6,7 @@ Every direct child directory of `packages/` is treated as a production extension
 
 ```text
 packages/<name>/
+├── CHANGELOG.md
 ├── LICENSE
 ├── README.md
 ├── package.json
@@ -19,7 +20,7 @@ The manifest validator requires:
 - an independently publishable `@mopeyjellyfish/pi-<name>` package;
 - a non-empty version and description;
 - `license: "MIT"`, `type: "module"`, and `engines.node: ">=22.19.0"`;
-- `files` containing `src/`, `README.md`, and `LICENSE`;
+- `files` containing `src/`, `README.md`, `CHANGELOG.md`, and `LICENSE`;
 - `pi-package` and `pi-extension` keywords;
 - one or more existing `pi.extensions` entrypoints;
 - `@earendil-works/pi-coding-agent: "*"` in `peerDependencies`;
@@ -28,7 +29,15 @@ The manifest validator requires:
 - no dependency duplicated across dependency sections;
 - Pi host packages only in `peerDependencies`.
 
-The root aggregate must resolve to every package entrypoint and no unmanaged files. The standard aggregate glob covers `src/index.ts`; a package that deliberately declares additional entrypoints must add matching root `pi.extensions` patterns in the same change. `npm pack` must include each declared entrypoint, package manifest, README, and license.
+The root aggregate must resolve to every package entrypoint and no unmanaged files. The standard aggregate glob covers `src/index.ts`; a package that deliberately declares additional entrypoints must add matching root `pi.extensions` patterns in the same change. `npm pack` must include each declared entrypoint, package manifest, README, changelog, and license.
+
+## Releases
+
+Each production package must have exactly one matching entry in `release-please-config.json` and `.release-please-manifest.json`. Its release type is `node`, and its release-manifest version equals `package.json`. The Node release strategy derives the tag component as the unscoped package name (`pi-<name>`); identity overrides are not supported. Use `0.0.0` for a new package so its first feature release is `0.1.0`.
+
+Versions are independent. A consolidated Release PR can update several extensions to different versions; merging it creates a separate `<component>-v<version>` tag and GitHub Release for each. The `node-workspace` plugin keeps the root workspace lockfile synchronized without linking package versions. npm publication is not automated.
+
+Release Please assigns commits by changed package path. Breaking changes release a major version, `feat` releases a minor version, and visible non-feature types (`fix`, `perf`, `docs`, `chore`, `refactor`, `revert`, `build`, and `deps`) release a patch version. Package-local skill, documentation, or dependency maintenance therefore receives a patch release, while root-only maintenance does not release an extension.
 
 ## Dependency rules
 

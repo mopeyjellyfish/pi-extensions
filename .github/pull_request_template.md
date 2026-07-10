@@ -10,6 +10,7 @@
 
 ## Validation
 
+- [ ] Pull request title and every commit follow Conventional Commits
 - [ ] `npm run check`
 - [ ] `npm run workflows:check` when workflows changed
 - [ ] `npm run security:check` when dependencies or installation changed
