@@ -23,7 +23,7 @@ Extensions must remain correct in TUI, RPC, JSON, and print modes:
 
 ## TypeScript
 
-The repository targets the minimum runtime supported by the pinned Pi host: Node `22.19.0`, ES2022, and Node16 module semantics. Strict compiler options and type-aware ESLint rules apply to production, tests, fixtures, and tooling. Library declaration checking alone is skipped because the current host's transitive declarations contain unresolved optional types; repository source is never skipped.
+The repository's minimum runtime is Node `22.20.0`, a Jod LTS release, with ES2022 and Node16 module semantics. `.nvmrc` selects Node `24.18.0` for routine development, while CI also exercises the minimum runtime. The `@types/node` minor line tracks that minimum so type checking cannot silently admit APIs unavailable to supported users. Strict compiler options and type-aware ESLint rules apply to production, tests, fixtures, and tooling. Library declaration checking alone is skipped because the current host's transitive declarations contain unresolved optional types; repository source is never skipped.
 
 Prettier owns formatting. ESLint owns correctness, maintainability, dependency boundaries, promise safety, and protocol-specific restrictions. Knip detects unused files, exports, and dependencies.
 

@@ -24,6 +24,10 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      # Keep available Node APIs aligned with engines.node and minimum-runtime CI.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-minor
 
   - package-ecosystem: gomod
     directories:

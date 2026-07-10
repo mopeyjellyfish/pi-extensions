@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   discoverProductionPackages,
@@ -8,12 +12,40 @@ import {
   type PackageDescriptor,
 } from "../../scripts/lib/packages.ts";
 
+const temporaryRoots: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryRoots.splice(0).map(async (root) => {
+      await rm(root, { force: true, recursive: true });
+    }),
+  );
+});
+
 async function fixtureWith(
   changes: Record<string, unknown>,
   kind: PackageDescriptor["kind"] = "fixture",
 ): Promise<PackageDescriptor> {
   const fixture = await loadFixturePackage();
   return { ...fixture, kind, manifest: { ...fixture.manifest, ...changes } };
+}
+
+async function rootWithRuntime(node: string, nodeTypes: string): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), "pi-packages-test-"));
+  temporaryRoots.push(root);
+  await mkdir(join(root, "packages"));
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({
+      private: true,
+      workspaces: ["packages/*"],
+      engines: { node },
+      devDependencies: { "@types/node": nodeTypes },
+      pi: { extensions: ["./packages/*/src/index.ts"] },
+    }),
+    "utf8",
+  );
+  return root;
 }
 
 describe("package contracts", () => {
@@ -27,6 +59,38 @@ describe("package contracts", () => {
     const packages = await discoverProductionPackages();
     expect(packages).toEqual([]);
     await expect(validateRootAggregate(packages)).resolves.toEqual([]);
+  });
+
+  it("requires package engines to match the minimum Node runtime", async () => {
+    expect.hasAssertions();
+    const errors = await validatePackage(await fixtureWith({ engines: { node: ">=22.19.0" } }));
+    expect(errors).toContainEqual("minimal-extension: engines.node must be >=22.20.0.");
+  });
+
+  it("keeps root engines and Node types on the minimum runtime line", async () => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.19.0", "22.19.21");
+    const errors = await validateRootAggregate([], root);
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        "Root engines.node must be >=22.20.0.",
+        "Root @types/node must remain on the 22.20.x minimum-runtime line.",
+      ]),
+    );
+  });
+
+  it.each([
+    ["22.20.0", true],
+    ["22.20.7", true],
+    ["22.21.0", false],
+  ])("validates Node types line %s", async (nodeTypes, valid) => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.20.0", nodeTypes);
+    const errors = await validateRootAggregate([], root);
+    const typeErrors = errors.filter((error) => error.includes("@types/node"));
+    expect(typeErrors).toEqual(
+      valid ? [] : ["Root @types/node must remain on the 22.20.x minimum-runtime line."],
+    );
   });
 
   it("rejects publishing the private fixture as a production package", async () => {

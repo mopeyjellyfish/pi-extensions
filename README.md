@@ -10,14 +10,17 @@ No production extensions are included yet. The repository currently supplies the
 ## Requirements
 
 - [nvm](https://github.com/nvm-sh/nvm)
+- Node `24.18.0` from `.nvmrc` for routine development
+- Node `22.20.0` (Jod LTS) for minimum-runtime compatibility checks
 - [gvm](https://github.com/moovweb/gvm)
-- npm, included with the Node version in `.nvmrc`
+- npm, included with each Node installation
 - golangci-lint `2.12.2`
 - govulncheck for repositories containing Go modules
 - zizmor `1.26.1` when checking workflows locally
 
 ```sh
 nvm install
+nvm install 22.20.0
 nvm use
 gvm install go1.26.5 -B # only when the version is not already installed
 source .gvmrc
