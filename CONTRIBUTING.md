@@ -25,7 +25,11 @@ npm enforces a 14-day minimum release age when resolving new versions. Do not di
 5. Run `npm run workflows:check` for workflow changes and `npm run security:check` for dependency changes.
 6. Review `npm pack --dry-run --json` results and the final diff.
 
-Use [Conventional Commits](https://www.conventionalcommits.org/) for every commit, for example `feat(extension-name): add a command` or `chore(ci): update a pinned action`. Keep commits scoped and do not combine unrelated cleanup.
+Use [Conventional Commits](https://www.conventionalcommits.org/) for every commit, for example `feat(pi-example): add a command` or `chore(ci): update a pinned action`. Pull request titles must follow the same format. CI validates the title and every commit with a 100-character header limit.
+
+The repository uses rebase-only merges. Keep commits scoped and do not combine unrelated cleanup: preserving each commit lets Release Please attribute changed paths and semantic bump types independently when one pull request changes several extensions.
+
+For package-local commits, breaking changes (`!` or `BREAKING CHANGE`) bump major, `feat` bumps minor, and visible non-feature types (`fix`, `perf`, `docs`, `chore`, `refactor`, `revert`, `build`, and `deps`) bump patch. Root-only commits do not release an extension. Merges update a consolidated Release PR; merging that PR creates independent component tags and GitHub Releases. npm publication is not currently automated.
 
 ## Pull requests
 

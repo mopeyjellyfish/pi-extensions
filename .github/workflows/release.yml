@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Update or publish releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write # Dispatch required CI for the action-created release PR.
+      contents: write # Create release branches, commits, tags, and GitHub Releases.
+      issues: write # Manage the labels Release Please uses to track release PRs.
+      pull-requests: write # Create and update the review-gated release PR.
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Detect configured extension packages
+        id: packages
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+          import { readFileSync } from "node:fs";
+          const config = JSON.parse(readFileSync("release-please-config.json", "utf8"));
+          const count = Object.keys(config.packages ?? {}).length;
+          console.log(`present=${count > 0 ? "true" : "false"}`);
+          NODE
+      - name: Update release pull request or publish releases
+        id: release
+        if: steps.packages.outputs.present == 'true'
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ github.token }}
+      - name: Dispatch CI for release pull requests
+        if: steps.release.outputs.prs != '' && steps.release.outputs.prs != '[]'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PULL_REQUESTS: ${{ steps.release.outputs.prs }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          const pullRequests = JSON.parse(process.env.RELEASE_PULL_REQUESTS ?? "[]");
+          for (const pullRequest of pullRequests) {
+            const branch = pullRequest.headBranchName;
+            if (
+              typeof branch !== "string" ||
+              !/^release-please--branches--main(?:--components--[A-Za-z0-9._-]+)?$/.test(branch)
+            ) {
+              throw new Error("Release Please returned an unexpected branch name.");
+            }
+            execFileSync("gh", ["workflow", "run", "ci.yml", "--ref", branch], {
+              stdio: "inherit",
+            });
+          }
+          NODE

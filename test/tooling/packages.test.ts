@@ -37,6 +37,8 @@ describe("package contracts", () => {
       expect.arrayContaining([
         expect.stringContaining("production package private must be absent or false"),
         expect.stringContaining("production package names must start with @mopeyjellyfish/pi-"),
+        expect.stringContaining("files must include CHANGELOG.md"),
+        expect.stringContaining("CHANGELOG.md is required"),
         expect.stringContaining("test is required"),
         expect.stringContaining("tsconfig.json is required"),
       ]),

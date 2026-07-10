@@ -18,6 +18,7 @@
   },
   "scripts": {
     "check": "npm run format:check && npm run lint && npm run markdownlint && npm run knip && npm run typecheck && npm run test:coverage && npm run packages:check && npm run smoke && npm run go:check",
+    "commits:check": "commitlint --verbose",
     "fix": "npm run format && npm run lint:fix && npm run go:format",
     "format": "prettier --write --ignore-unknown .",
     "format:check": "prettier --check --ignore-unknown .",
@@ -47,6 +48,8 @@
     "security:check": "npm run security:audit && npm run security:secrets"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.1.0",
+    "@commitlint/config-conventional": "21.1.0",
     "@earendil-works/pi-coding-agent": "0.80.6",
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.2",
     "@eslint/js": "10.0.1",

@@ -35,9 +35,15 @@ The Go runner discovers every nested `go.mod`, verifies module tidiness and inte
 
 Shipping native binaries is an extension-specific design decision. Prebuilt platform packages, install-time compilation, and download-on-first-use have different security and portability tradeoffs and require explicit review.
 
+## Release model
+
+Release Please tracks each extension independently in manifest mode. It groups pending package bumps into one reviewable Release PR, but each package retains its own version and receives its own `pi-<name>-v<version>` tag and GitHub Release when that PR is merged. The `node-workspace` plugin updates the root lockfile while leaving versions unlinked. GitHub Releases do not currently publish packages to npm.
+
+Release attribution follows changed package paths and preserved Conventional Commits. Rebase-only merges retain every validated commit, so a pull request can make a breaking change to one extension and a patch change to another without collapsing their semantic types or file ownership. Breaking changes bump major versions, `feat` bumps minor versions, and visible non-feature types (`fix`, `perf`, `docs`, `chore`, `refactor`, `revert`, `build`, and `deps`) bump patch versions. Root-only changes do not bump extension versions.
+
 ## Verification layers
 
-1. Manifest validation checks package structure, dependency placement, Pi entrypoints, aggregate coverage, and npm pack contents.
+1. Manifest validation checks package structure, release metadata, dependency placement, Pi entrypoints, aggregate coverage, and npm pack contents.
 2. Unit and integration tests exercise extension logic deterministically.
 3. Source smoke tests load each extension with the real Pi CLI.
 4. Packed smoke tests install the exact npm artifact with production dependencies and repeat Pi loading.

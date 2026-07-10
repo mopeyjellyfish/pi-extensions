@@ -9,6 +9,7 @@ import {
   type PackageDescriptor,
 } from "./lib/packages.ts";
 import { describeFailure, npmInvocation, runCommand } from "./lib/process.ts";
+import { validateReleaseConfiguration } from "./lib/releases.ts";
 import { isRecord, repositoryRoot, stringArray, toPosixPath } from "./lib/repository.ts";
 
 interface PackFile {
@@ -51,6 +52,9 @@ async function validatePackedContents(descriptor: PackageDescriptor): Promise<st
   try {
     const packed = new Set(parsePackFiles(result.stdout).map((file) => file.path));
     const required = ["LICENSE", "README.md", "package.json"];
+    if (descriptor.kind === "production") {
+      required.push("CHANGELOG.md");
+    }
     const pi = isRecord(descriptor.manifest["pi"]) ? descriptor.manifest["pi"] : undefined;
     for (const entrypoint of stringArray(pi?.["extensions"]) ?? []) {
       if (entrypoint.includes("*")) {
@@ -73,7 +77,10 @@ async function main(): Promise<void> {
   const packages = await discoverProductionPackages();
   const fixture = await loadFixturePackage();
   const descriptors = [...packages, fixture];
-  const errors = await validateRootAggregate(packages);
+  const errors = [
+    ...(await validateRootAggregate(packages)),
+    ...(await validateReleaseConfiguration(packages)),
+  ];
   for (const descriptor of descriptors) {
     errors.push(
       ...(await validatePackage(descriptor)),
@@ -85,7 +92,7 @@ async function main(): Promise<void> {
     throw new Error(`Package validation failed:\n- ${errors.join("\n- ")}`);
   }
   console.log(
-    `Validated ${String(packages.length)} production package(s), the root aggregate, and the private fixture.`,
+    `Validated ${String(packages.length)} production package(s), release metadata, the root aggregate, and the private fixture.`,
   );
 }
 

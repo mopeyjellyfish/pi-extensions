@@ -18,6 +18,7 @@ const HOST_PACKAGE = "@earendil-works/pi-coding-agent";
 const REPOSITORY_URL = "git+https://github.com/mopeyjellyfish/pi-extensions.git";
 const REQUIRED_ENGINE = ">=22.19.0";
 const REQUIRED_FILES = ["LICENSE", "README.md", "src/"];
+const REQUIRED_PRODUCTION_FILES = ["CHANGELOG.md"];
 const REQUIRED_KEYWORDS = ["pi-extension", "pi-package"];
 
 export interface PackageDescriptor {
@@ -157,14 +158,18 @@ function validateIdentity(descriptor: PackageDescriptor, errors: string[]): void
   }
 }
 
-function validateManifestLists(manifest: Record<string, unknown>, errors: string[]): void {
-  const files = stringArray(manifest["files"]);
-  for (const requiredFile of REQUIRED_FILES) {
+function validateManifestLists(descriptor: PackageDescriptor, errors: string[]): void {
+  const files = stringArray(descriptor.manifest["files"]);
+  const requiredFiles =
+    descriptor.kind === "production"
+      ? [...REQUIRED_FILES, ...REQUIRED_PRODUCTION_FILES]
+      : REQUIRED_FILES;
+  for (const requiredFile of requiredFiles) {
     if (!files?.includes(requiredFile)) {
       errors.push(`files must include ${requiredFile}.`);
     }
   }
-  const keywords = stringArray(manifest["keywords"]);
+  const keywords = stringArray(descriptor.manifest["keywords"]);
   for (const keyword of REQUIRED_KEYWORDS) {
     if (!keywords?.includes(keyword)) {
       errors.push(`keywords must include ${keyword}.`);
@@ -195,7 +200,7 @@ async function validateRequiredPaths(
 ): Promise<void> {
   const requiredPaths = ["LICENSE", "README.md", "package.json", "src/index.ts"];
   if (descriptor.kind === "production") {
-    requiredPaths.push("test", "tsconfig.json");
+    requiredPaths.push("CHANGELOG.md", "test", "tsconfig.json");
   }
   for (const requiredPath of requiredPaths) {
     if (!pathExists(join(descriptor.root, requiredPath))) {
@@ -236,7 +241,7 @@ function validateRepositoryMetadata(descriptor: PackageDescriptor, errors: strin
 export async function validatePackage(descriptor: PackageDescriptor): Promise<string[]> {
   const errors: string[] = [];
   validateIdentity(descriptor, errors);
-  validateManifestLists(descriptor.manifest, errors);
+  validateManifestLists(descriptor, errors);
   await validatePiEntrypoints(descriptor, errors);
   validateDependencyPlacement(descriptor.manifest, errors);
   await validateRequiredPaths(descriptor, errors);

@@ -9,12 +9,12 @@ Create `packages/<name>/` using the contract in [`packages/README.md`](../packag
 ```json
 {
   "name": "@mopeyjellyfish/pi-example",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "A concise description.",
   "license": "MIT",
   "type": "module",
   "engines": { "node": ">=22.19.0" },
-  "files": ["src/", "README.md", "LICENSE"],
+  "files": ["src/", "README.md", "CHANGELOG.md", "LICENSE"],
   "keywords": ["pi-extension", "pi-package"],
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
@@ -35,6 +35,28 @@ Create `packages/<name>/` using the contract in [`packages/README.md`](../packag
 ```
 
 The package's `tsconfig.json` extends `../../tsconfig.base.json` and includes `src/**/*.ts` and `test/**/*.ts`. Tests use the shared Vitest configuration unless the package has a documented reason to specialize it.
+
+Create `CHANGELOG.md`, then register the package in both release files at the package's current version:
+
+In the `release-please-config.json` `packages` object:
+
+```json
+{
+  "packages/example": {
+    "release-type": "node"
+  }
+}
+```
+
+In `.release-please-manifest.json`:
+
+```json
+{
+  "packages/example": "0.0.0"
+}
+```
+
+Starting at `0.0.0` lets the first `feat(pi-example): ...` commit produce the intended `pi-example-v0.1.0` release. The Node release strategy derives both the scoped package identity and unscoped `pi-example` tag component from `package.json`; do not override them in release configuration. The package validator rejects missing, orphaned, mismatched, or unsupported release metadata.
 
 ## Extension checklist
 

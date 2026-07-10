@@ -20,6 +20,10 @@ Avoid including real credentials, private source code, session transcripts, or u
 
 Pi extensions execute arbitrary code with the user's permissions. Installing an extension is equivalent to trusting its source and dependency graph. This repository therefore treats package contents, lifecycle cleanup, process execution, network access, path handling, protocol output, secrets, and dependency updates as security-sensitive changes.
 
+## Releases
+
+Automated releases currently create Git tags and GitHub Releases only. They do not hold npm credentials or publish packages. Release pull requests use the repository-scoped `GITHUB_TOKEN`, and their required CI is explicitly dispatched from the trusted `main` release workflow.
+
 ## Dependency updates
 
 Routine dependency releases are quarantined for at least 14 days, checked monthly, and grouped into at most one pull request per ecosystem. Routine npm and GitHub Actions major upgrades are manual decisions rather than automated pull requests. Automated merging is not used.
