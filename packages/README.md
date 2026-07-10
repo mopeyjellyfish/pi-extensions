@@ -19,7 +19,7 @@ The manifest validator requires:
 
 - an independently publishable `@mopeyjellyfish/pi-<name>` package;
 - a non-empty version and description;
-- `license: "MIT"`, `type: "module"`, and `engines.node: ">=22.19.0"`;
+- `license: "MIT"`, `type: "module"`, and `engines.node: ">=22.20.0"`;
 - `files` containing `src/`, `README.md`, `CHANGELOG.md`, and `LICENSE`;
 - `pi-package` and `pi-extension` keywords;
 - one or more existing `pi.extensions` entrypoints;

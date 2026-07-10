@@ -6,13 +6,14 @@ Use the repository-pinned runtimes:
 
 ```sh
 nvm install
+nvm install 22.20.0 # minimum supported Jod LTS runtime
 nvm use
 gvm install go1.26.5 -B # first use only
 source .gvmrc
 npm ci --ignore-scripts
 ```
 
-Install golangci-lint `2.12.2` and govulncheck before working on Go code. The same exact versions run in CI.
+`.nvmrc` selects Node `24.18.0` for routine development; CI also runs against the minimum Node `22.20.0` runtime. The `@types/node` minor line deliberately follows that minimum and is raised only with the runtime contract. Install golangci-lint `2.12.2` and govulncheck before working on Go code. The same exact versions run in CI.
 
 npm enforces a 14-day minimum release age when resolving new versions. Do not disable this for routine updates. If a newly released version is required to remediate an active vulnerability, use `npm install --min-release-age=0 <package>@<version>` only after the security review described in [`SECURITY.md`](SECURITY.md), and document the exception in the pull request.
 

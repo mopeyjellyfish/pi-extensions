@@ -13,7 +13,7 @@ Create `packages/<name>/` using the contract in [`packages/README.md`](../packag
   "description": "A concise description.",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=22.19.0" },
+  "engines": { "node": ">=22.20.0" },
   "files": ["src/", "README.md", "CHANGELOG.md", "LICENSE"],
   "keywords": ["pi-extension", "pi-package"],
   "peerDependencies": {

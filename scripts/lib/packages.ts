@@ -16,7 +16,8 @@ import {
 
 const HOST_PACKAGE = "@earendil-works/pi-coding-agent";
 const REPOSITORY_URL = "git+https://github.com/mopeyjellyfish/pi-extensions.git";
-const REQUIRED_ENGINE = ">=22.19.0";
+const MINIMUM_NODE_VERSION = "22.20.0";
+const REQUIRED_ENGINE = `>=${MINIMUM_NODE_VERSION}`;
 const REQUIRED_FILES = ["LICENSE", "README.md", "src/"];
 const REQUIRED_PRODUCTION_FILES = ["CHANGELOG.md"];
 const REQUIRED_KEYWORDS = ["pi-extension", "pi-package"];
@@ -258,10 +259,33 @@ export async function resolvePackageEntrypoints(descriptor: PackageDescriptor): 
   return await resolveExtensionPatterns(descriptor.root, extensions);
 }
 
+function nodeTypesMatchMinimumRuntime(value: unknown): boolean {
+  if (typeof value !== "string" || !isSemanticVersion(value)) {
+    return false;
+  }
+  const minimum = new SemVer(MINIMUM_NODE_VERSION);
+  const nodeTypes = new SemVer(value);
+  return minimum.major === nodeTypes.major && minimum.minor === nodeTypes.minor;
+}
+
+function validateRootRuntime(value: Record<string, unknown>, errors: string[]): void {
+  if (stringRecord(value["engines"])?.["node"] !== REQUIRED_ENGINE) {
+    errors.push(`Root engines.node must be ${REQUIRED_ENGINE}.`);
+  }
+  const nodeTypes = stringRecord(value["devDependencies"])?.["@types/node"];
+  if (!nodeTypesMatchMinimumRuntime(nodeTypes)) {
+    const minimum = new SemVer(MINIMUM_NODE_VERSION);
+    errors.push(
+      `Root @types/node must remain on the ${String(minimum.major)}.${String(minimum.minor)}.x minimum-runtime line.`,
+    );
+  }
+}
+
 function validateRootManifest(value: Record<string, unknown>, errors: string[]): string[] {
   if (value["private"] !== true) {
     errors.push("Root package.json must remain private.");
   }
+  validateRootRuntime(value, errors);
   const workspaces = stringArray(value["workspaces"]);
   if (workspaces?.length !== 1 || workspaces[0] !== "packages/*") {
     errors.push('Root workspaces must be exactly ["packages/*"].');
