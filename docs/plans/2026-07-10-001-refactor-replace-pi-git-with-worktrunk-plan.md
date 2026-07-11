@@ -651,11 +651,10 @@ shipped resources are an installable public contract.
   `@mopeyjellyfish/pi-git` with `packages/worktrunk` and
   `@mopeyjellyfish/pi-worktrunk`, preserving package files, peer dependencies,
   `pi.extensions`, `pi.skills`, test/typecheck scripts, license, and first
-  release version `0.0.0`. Set both `@earendil-works/pi-coding-agent` and
-  `@earendil-works/pi-ai` peers to `^0.80.1`, the first release with the
-  required APIs that also clears the repository's 14-day dependency
-  release-age gate, and TypeBox to `^1.1.38`; wildcard peers cannot guarantee
-  the APIs used by this adapter.
+  release version `0.0.0`. Declare `@earendil-works/pi-coding-agent`,
+  `@earendil-works/pi-ai`, and TypeBox as `"*"` peers, as required for packages
+  bundled by the Pi host. Document Pi `0.80.1` as the adapter's minimum tested
+  host version rather than encoding a conflicting npm peer range.
 - Update the production-package contract assertion so it proves only the
   renamed package is discovered and validated; regenerate the lockfile through
   normal npm tooling rather than hand-editing it.

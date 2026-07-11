@@ -20,6 +20,12 @@ remove linked worktrees. The tool is sequential: after a successful create or
 activate, later normal file or agent-Bash calls in the same tool batch route to
 the selected worktree.
 
+Activation accepts a branch name, Worktrunk's previous-worktree shortcut (`-`),
+or a PR/MR reference such as `pr:123`, `mr:123`, or a supported forge URL.
+Removal remains deliberately exact-branch-only. List output is capped at 20
+worktrees; when it is truncated, use agent Bash to run
+`wt list --format=json` for the complete Worktrunk result.
+
 Create and activate preserve Worktrunk hooks and approval prompts. This package
 never adds `--yes` or retries hook-bearing operations. Review project hooks and
 approve them yourself with Worktrunk before retrying Pi's tool.

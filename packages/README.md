@@ -23,7 +23,7 @@ The manifest validator requires:
 - `files` containing `src/`, `README.md`, `CHANGELOG.md`, and `LICENSE`;
 - `pi-package` and `pi-extension` keywords;
 - one or more existing `pi.extensions` entrypoints;
-- `@earendil-works/pi-coding-agent: "*"` or the repository-supported Pi API range in `peerDependencies`;
+- `@earendil-works/pi-coding-agent: "*"` in `peerDependencies`;
 - canonical Git repository metadata whose `directory` matches the workspace path;
 - package-local `test` and `typecheck` scripts;
 - no dependency duplicated across dependency sections;
@@ -41,7 +41,7 @@ Release Please assigns commits by changed package path. Breaking changes release
 
 ## Dependency rules
 
-Pi installs distributed packages with production dependencies. Declare every third-party runtime import in the package's `dependencies`, even when the root happens to contain it. Pi's core packages and `typebox` are host-provided peers when imported. Package-specific build and test tools belong in `devDependencies`; prefer shared root tooling when possible.
+Pi installs distributed packages with production dependencies. Declare every third-party runtime import in the package's `dependencies`, even when the root happens to contain it. Pi's core packages and `typebox` are host-provided peers when imported and must use the `"*"` range required by Pi's package contract. Package-specific build and test tools belong in `devDependencies`; prefer shared root tooling when possible.
 
 Do not use workspace-only runtime links in a publishable extension unless the dependency is deliberately bundled and its installation behavior has been tested from the packed artifact.
 

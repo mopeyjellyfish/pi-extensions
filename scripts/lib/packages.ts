@@ -15,7 +15,6 @@ import {
 } from "./repository.ts";
 
 const HOST_PACKAGE = "@earendil-works/pi-coding-agent";
-const SUPPORTED_HOST_PACKAGE_RANGE = "^0.80.1";
 const REPOSITORY_URL = "git+https://github.com/mopeyjellyfish/pi-extensions.git";
 const MINIMUM_NODE_VERSION = "22.20.0";
 const REQUIRED_ENGINE = `>=${MINIMUM_NODE_VERSION}`;
@@ -102,6 +101,23 @@ function isSemanticVersion(value: string): boolean {
   }
 }
 
+function validateHostDependency(
+  dependency: string,
+  range: string,
+  section: string,
+  errors: string[],
+): void {
+  const hostProvided = dependency.startsWith("@earendil-works/pi-") || dependency === "typebox";
+  if (!hostProvided) {
+    return;
+  }
+  if (section !== "peerDependencies") {
+    errors.push(`${dependency} is host-provided and must be a peerDependency.`);
+  } else if (range !== "*") {
+    errors.push(`${dependency} must use the "*" peerDependency range.`);
+  }
+}
+
 function validateDependencyPlacement(manifest: Record<string, unknown>, errors: string[]): void {
   const sections = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
   const seen = new Map<string, string>();
@@ -117,18 +133,13 @@ function validateDependencyPlacement(manifest: Record<string, unknown>, errors: 
         errors.push(`${dependency} is declared in both ${previous} and ${section}.`);
       }
       seen.set(dependency, section);
-      const hostProvided = dependency.startsWith("@earendil-works/pi-") || dependency === "typebox";
-      if (hostProvided && section !== "peerDependencies") {
-        errors.push(`${dependency} is host-provided and must be a peerDependency.`);
-      }
+      validateHostDependency(dependency, dependencies?.[dependency] ?? "", section, errors);
     }
   }
 
   const peers = stringRecord(manifest["peerDependencies"]);
-  if (peers?.[HOST_PACKAGE] !== "*" && peers?.[HOST_PACKAGE] !== SUPPORTED_HOST_PACKAGE_RANGE) {
-    errors.push(
-      `${HOST_PACKAGE} must be declared as a peerDependency with either the "*" or ${SUPPORTED_HOST_PACKAGE_RANGE} range.`,
-    );
+  if (peers?.[HOST_PACKAGE] === undefined) {
+    errors.push(`${HOST_PACKAGE} must be declared as a peerDependency.`);
   }
 }
 

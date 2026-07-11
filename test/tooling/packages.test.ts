@@ -100,6 +100,25 @@ describe("package contracts", () => {
     expect(errors).toContainEqual("minimal-extension: engines.node must be >=22.20.0.");
   });
 
+  it("requires wildcard ranges for every Pi-hosted peer", async () => {
+    expect.hasAssertions();
+    const errors = await validatePackage(
+      await fixtureWith({
+        peerDependencies: {
+          "@earendil-works/pi-ai": "^0.80.1",
+          "@earendil-works/pi-coding-agent": "*",
+          typebox: "^1.1.38",
+        },
+      }),
+    );
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'minimal-extension: @earendil-works/pi-ai must use the "*" peerDependency range.',
+        'minimal-extension: typebox must use the "*" peerDependency range.',
+      ]),
+    );
+  });
+
   it("keeps root engines and Node types on the minimum runtime line", async () => {
     expect.hasAssertions();
     const root = await rootWithRuntime(">=22.19.0", "22.19.21");
