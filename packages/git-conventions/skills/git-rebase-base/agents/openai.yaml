@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Rebase Base"
+  short_description: "Safely rebase a branch onto its remote base"
+  default_prompt: "Use $git-rebase-base to fetch origin and safely rebase my current branch onto its base branch."

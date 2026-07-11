@@ -10,6 +10,7 @@ import {
   discoverProductionPackages,
   findForbiddenPackedPaths,
   loadFixturePackage,
+  resolvePackageSkills,
   type PackageDescriptor,
 } from "./lib/packages.ts";
 import {
@@ -117,7 +118,7 @@ async function assertRpcLifecycle(
   extensionPath: string,
   cwd: string,
   environment: NodeJS.ProcessEnv,
-  expectFixtureCommand: boolean,
+  expectedCommands: readonly string[],
 ): Promise<void> {
   const input = `${JSON.stringify({ id: RPC_REQUEST_ID, type: "get_commands" })}\n`;
   const result = await runCommand(
@@ -147,16 +148,29 @@ async function assertRpcLifecycle(
   if (response?.["success"] !== true) {
     throw new Error(`Pi RPC did not return a successful get_commands response: ${result.stdout}`);
   }
-  if (expectFixtureCommand) {
-    const data = response["data"];
-    const commands = isRecord(data) ? data["commands"] : undefined;
+  const data = response["data"];
+  const commands = isRecord(data) ? data["commands"] : undefined;
+  for (const expected of expectedCommands) {
     const found =
       Array.isArray(commands) &&
-      commands.some((command) => isRecord(command) && command["name"] === "fixture-health");
+      commands.some((command) => isRecord(command) && command["name"] === expected);
     if (!found) {
-      throw new Error("The fixture command was absent from the Pi RPC response.");
+      throw new Error(`The ${expected} command was absent from the Pi RPC response.`);
     }
   }
+}
+
+async function expectedSkillCommands(descriptor: PackageDescriptor): Promise<string[]> {
+  const commands: string[] = [];
+  for (const path of await resolvePackageSkills(descriptor)) {
+    const skill = await readFile(path, "utf8");
+    const match = /^name:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s*$/mu.exec(skill);
+    if (match?.[1] === undefined) {
+      throw new Error(`Skill ${path} has no valid name for smoke testing.`);
+    }
+    commands.push(`skill:${match[1]}`);
+  }
+  return commands.sort((left, right) => left.localeCompare(right));
 }
 
 async function assertFixtureLifecycle(
@@ -188,11 +202,15 @@ async function smokePath(
   await mkdir(listModelsHome, { recursive: true });
   await mkdir(rpcHome, { recursive: true });
   await assertListModels(extensionPath, cwd, isolatedEnvironment(listModelsHome, listModelsMarker));
+  const expectedCommands = [
+    ...(descriptor.kind === "fixture" ? ["fixture-health"] : []),
+    ...(await expectedSkillCommands(descriptor)),
+  ];
   await assertRpcLifecycle(
     extensionPath,
     cwd,
     isolatedEnvironment(rpcHome, rpcMarker),
-    descriptor.kind === "fixture",
+    expectedCommands,
   );
   if (descriptor.kind === "fixture") {
     await assertFixtureLifecycle(listModelsMarker, ["factory"], "list-models");

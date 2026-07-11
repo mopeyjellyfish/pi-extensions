@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -10,9 +10,11 @@ import {
   loadFixturePackage,
   validatePackage,
   validateRootAggregate,
+  resolvePackageSkills,
   type PackageDescriptor,
 } from "../../scripts/lib/packages.ts";
 import { validateReleaseConfiguration } from "../../scripts/lib/releases.ts";
+import { repositoryRoot, toPosixPath } from "../../scripts/lib/repository.ts";
 
 const temporaryRoots: string[] = [];
 
@@ -50,22 +52,122 @@ async function rootWithRuntime(node: string, nodeTypes: string): Promise<string>
   return root;
 }
 
+async function rootWithSkillAggregate(includeSkills: boolean): Promise<{
+  readonly descriptor: PackageDescriptor;
+  readonly root: string;
+}> {
+  const root = await mkdtemp(join(tmpdir(), "pi-skill-aggregate-test-"));
+  temporaryRoots.push(root);
+  const packageRoot = join(root, "packages", "skills");
+  await mkdir(join(packageRoot, "skills", "example"), { recursive: true });
+  await writeFile(
+    join(packageRoot, "skills", "example", "SKILL.md"),
+    "---\nname: example\ndescription: Example skill.\n---\n\n# Example\n",
+    "utf8",
+  );
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({
+      private: true,
+      workspaces: ["packages/*"],
+      engines: { node: ">=22.20.0" },
+      devDependencies: { "@types/node": "22.20.0" },
+      pi: {
+        extensions: ["./packages/*/src/index.ts"],
+        ...(includeSkills ? { skills: ["./packages/*/skills"] } : {}),
+      },
+    }),
+    "utf8",
+  );
+  return {
+    descriptor: {
+      kind: "production",
+      manifest: { pi: { skills: ["./skills"] } },
+      root: packageRoot,
+    },
+    root,
+  };
+}
+
+async function skillOnlyPackage(): Promise<PackageDescriptor> {
+  const temporaryParent = join(repositoryRoot, ".tmp");
+  await mkdir(temporaryParent, { recursive: true });
+  const root = await mkdtemp(join(temporaryParent, "pi-skill-package-"));
+  temporaryRoots.push(root);
+  await mkdir(join(root, "skills", "example"), { recursive: true });
+  await mkdir(join(root, "test"));
+  const manifest = {
+    name: "@mopeyjellyfish/pi-skill-probe",
+    version: "0.0.0",
+    description: "A production skill-only package fixture.",
+    license: "MIT",
+    type: "module",
+    engines: { node: ">=22.20.0" },
+    files: ["skills/", "README.md", "CHANGELOG.md", "LICENSE"],
+    keywords: ["pi-package", "pi-skill"],
+    pi: { skills: ["./skills"] },
+    repository: {
+      type: "git",
+      url: "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+      directory: toPosixPath(relative(repositoryRoot, root)),
+    },
+    scripts: { test: "vitest run" },
+  };
+  await Promise.all([
+    writeFile(join(root, "package.json"), JSON.stringify(manifest), "utf8"),
+    writeFile(join(root, "README.md"), "# Skill package\n", "utf8"),
+    writeFile(join(root, "CHANGELOG.md"), "# Changelog\n", "utf8"),
+    writeFile(join(root, "LICENSE"), "MIT\n", "utf8"),
+    writeFile(
+      join(root, "skills", "example", "SKILL.md"),
+      "---\nname: example\ndescription: Example skill.\n---\n\n# Example\n",
+      "utf8",
+    ),
+    writeFile(join(root, "test", "skills.test.ts"), "export {};\n", "utf8"),
+  ]);
+  return { kind: "production", manifest, root };
+}
+
 describe("package contracts", () => {
   it("accepts the private lifecycle fixture", async () => {
     expect.hasAssertions();
     await expect(validatePackage(await loadFixturePackage())).resolves.toEqual([]);
   });
 
-  it("discovers and validates the one installable Worktrunk package", async () => {
+  it("accepts a production skill-only package without extension scaffolding", async () => {
+    expect.hasAssertions();
+    await expect(validatePackage(await skillOnlyPackage())).resolves.toEqual([]);
+  });
+
+  it("requires the root Pi package to aggregate production skills", async () => {
+    expect.hasAssertions();
+    const missing = await rootWithSkillAggregate(false);
+    await expect(validateRootAggregate([missing.descriptor], missing.root)).resolves.toContainEqual(
+      "Root pi.skills must contain the aggregate skill glob.",
+    );
+    const aggregated = await rootWithSkillAggregate(true);
+    await expect(validateRootAggregate([aggregated.descriptor], aggregated.root)).resolves.toEqual(
+      [],
+    );
+  });
+
+  it("discovers and validates every installable Pi package and skill", async () => {
     expect.hasAssertions();
     const packages = await discoverProductionPackages();
-    expect(packages).toHaveLength(1);
-    const worktrunk = packages[0];
-    if (worktrunk === undefined) {
-      throw new Error("Worktrunk package was not discovered.");
+    expect(packages.map((descriptor) => descriptor.manifest["name"])).toEqual([
+      "@mopeyjellyfish/pi-git-conventions",
+      "@mopeyjellyfish/pi-worktrunk",
+    ]);
+    for (const descriptor of packages) {
+      await expect(validatePackage(descriptor)).resolves.toEqual([]);
     }
-    expect(worktrunk.manifest["name"]).toBe("@mopeyjellyfish/pi-worktrunk");
-    await expect(validatePackage(worktrunk)).resolves.toEqual([]);
+    const gitConventions = packages.find(
+      (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-git-conventions",
+    );
+    if (gitConventions === undefined) {
+      throw new Error("Git conventions package was not discovered.");
+    }
+    await expect(resolvePackageSkills(gitConventions)).resolves.toHaveLength(2);
     await expect(validateRootAggregate(packages)).resolves.toEqual([]);
     await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);
   });

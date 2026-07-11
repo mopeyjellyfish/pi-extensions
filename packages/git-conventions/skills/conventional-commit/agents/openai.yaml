@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit and Branch"
+  short_description: "Create commits and valid branch names"
+  default_prompt: "Use $conventional-commit to suggest a valid branch name or create a validated Conventional Commit."

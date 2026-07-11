@@ -5,6 +5,7 @@ import {
   findForbiddenPackedPaths,
   loadFixturePackage,
   resolvePackageEntrypoints,
+  resolvePackageSkills,
   validatePackage,
   validateRootAggregate,
   type PackageDescriptor,
@@ -65,6 +66,9 @@ async function validatePackedContents(descriptor: PackageDescriptor): Promise<st
       } else {
         required.push(entrypoint.replace(/^\.\//, ""));
       }
+    }
+    for (const skill of await resolvePackageSkills(descriptor)) {
+      required.push(toPosixPath(relative(descriptor.root, skill)));
     }
     const missing = required
       .filter((path) => !packed.has(path))
