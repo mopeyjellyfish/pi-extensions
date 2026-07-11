@@ -290,7 +290,7 @@ describe("pi-worktrunk extension", () => {
     expect(userBashFailure).toBeInstanceOf(Error);
   });
 
-  it("accepts Worktrunk's documented previous-worktree base shortcut", async () => {
+  it("accepts Worktrunk's documented previous-worktree shortcuts", async () => {
     expect.hasAssertions();
     const harness = createHarness([
       { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
@@ -316,6 +316,36 @@ describe("pi-worktrunk extension", () => {
       2,
       "wt",
       ["switch", "--create", "--base", "-", "--no-cd", "--format=json", "feature/adapter"],
+      { cwd: MAIN_PATH, timeout: 300_000 },
+    );
+
+    const activate = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify({
+          action: "existing",
+          branch: "feature/adapter",
+          path: ACTIVE_PATH,
+        }),
+      },
+      { code: 0, killed: false, stderr: "", stdout: worktreeList() },
+    ]);
+    await expect(
+      activate.tool.execute(
+        "activate",
+        { action: "activate", identifier: "-" },
+        undefined,
+        undefined,
+        context(activate),
+      ),
+    ).resolves.toMatchObject({ details: { action: "activate", activePath: ACTIVE_PATH } });
+    expect(activate.exec).toHaveBeenNthCalledWith(
+      2,
+      "wt",
+      ["switch", "--no-cd", "--format=json", "-"],
       { cwd: MAIN_PATH, timeout: 300_000 },
     );
   });
@@ -438,7 +468,9 @@ describe("pi-worktrunk extension", () => {
       undefined,
       context(harness),
     );
-    expect(result.content[0]?.text).toContain("[Worktree list truncated.]");
+    expect(result.content[0]?.text).toContain(
+      "[Worktree list truncated; use agent Bash to run `wt list --format=json`",
+    );
     const worktrees: unknown = result.details["worktrees"];
     if (!Array.isArray(worktrees)) {
       throw new TypeError("worktree list details were absent");

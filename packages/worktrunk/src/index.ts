@@ -49,7 +49,8 @@ export const WorktreeParameters = Type.Object(
     ),
     identifier: Type.Optional(
       Type.String({
-        description: "Exact branch identifier for activate or remove",
+        description:
+          "Branch name, previous-worktree shortcut (-), or PR/MR reference for activate; exact branch for remove",
         maxLength: 4096,
       }),
     ),
@@ -179,6 +180,10 @@ function requiredText(value: string | undefined, field: string): string {
   return value;
 }
 
+function activationTarget(value: string | undefined): string {
+  return value === "-" ? value : requiredText(value, "identifier");
+}
+
 function optionalBase(value: string | undefined): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -241,7 +246,9 @@ function listText(list: WorktrunkList): {
   const truncated = list.worktrees.length > visible.length || lines.some((line) => line.truncated);
   return {
     text: `${lines.map((line) => line.text).join("\n") || "No Worktrunk worktrees found."}${
-      truncated ? "\n[Worktree list truncated.]" : ""
+      truncated
+        ? "\n[Worktree list truncated; use agent Bash to run `wt list --format=json` for the complete result.]"
+        : ""
     }`,
     truncated,
     visible: visible.map(({ worktree }) => worktree),
@@ -402,7 +409,7 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     activate: async (input, signal, ctx) => {
       try {
         const selection = await client.activate(
-          requiredText(input.identifier, "identifier"),
+          activationTarget(input.identifier),
           ctx.cwd,
           signal,
         );
@@ -475,13 +482,14 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     name: "worktree",
     label: "Worktrunk worktree",
     description:
-      "Inspect, create, activate, deactivate, or safely remove Worktrunk worktrees. Create and activate keep Worktrunk hooks and approvals intact, then route Pi file and agent Bash tools to the confirmed linked worktree. Removal is branch-preserving, no-hook, foreground, and requires an interactive user confirmation. This tool never commits, pushes, merges, rebases, deletes branches, or runs arbitrary Worktrunk commands.",
+      "Inspect, create, activate, deactivate, or safely remove Worktrunk worktrees. Create and activate keep Worktrunk hooks and approvals intact, then route Pi file and agent Bash tools to the confirmed linked worktree. Lists return at most 20 worktrees and mark truncated fields. Removal is branch-preserving, no-hook, foreground, and requires an interactive user confirmation. This tool never commits, pushes, merges, rebases, deletes branches, or runs arbitrary Worktrunk commands.",
     executionMode: "sequential",
     promptSnippet: "Manage a safely routed Worktrunk worktree",
     promptGuidelines: [
       "worktree is sequential: a successful create or activate can be followed by normal file or Bash tools in the same assistant tool batch.",
       "If create or activate fails, the current batch is aborted before any later tool can fall back to Pi's session checkout.",
       "Never ask this tool to bypass Worktrunk hook approval with --yes; a human must review and approve hooks directly.",
+      "For activate, use a branch name, Worktrunk's previous-worktree shortcut (-), or a PR/MR reference; remove always requires the exact branch identifier.",
       "Only request remove with confirm:true after explicit user approval and the exact HEAD reported by worktree list.",
     ],
     parameters: WorktreeParameters,
