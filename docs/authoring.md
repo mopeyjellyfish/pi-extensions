@@ -1,8 +1,8 @@
-# Extension authoring
+# Package authoring
 
-Read Pi's official extension and package documentation completely before implementing an extension. Follow linked TUI, RPC, session, compaction, provider, or theme documentation when the extension uses those APIs.
+Read Pi's official package documentation and the documentation for every resource type being shipped. Follow linked extension, skill, TUI, RPC, session, compaction, provider, or theme documentation when the package uses those APIs.
 
-## Create a package
+## Create an extension package
 
 Create `packages/<name>/` using the contract in [`packages/README.md`](../packages/README.md). Use a package name of `@mopeyjellyfish/pi-<name>` and declare the canonical host as a peer:
 
@@ -35,6 +35,34 @@ Create `packages/<name>/` using the contract in [`packages/README.md`](../packag
 ```
 
 The package's `tsconfig.json` extends `../../tsconfig.base.json` and includes `src/**/*.ts` and `test/**/*.ts`. Tests use the shared Vitest configuration unless the package has a documented reason to specialize it.
+
+## Create a skill-only package
+
+Pi packages may ship skills without a production extension. Declare
+`pi.skills`, include `skills/` in `files`, use the `pi-package` and `pi-skill`
+keywords, and provide package-local tests. Do not add a no-op `src/index.ts`, a
+Pi runtime peer, or `tsconfig.json` merely to imitate an extension package.
+
+```json
+{
+  "name": "@mopeyjellyfish/pi-example-skills",
+  "version": "0.0.0",
+  "description": "Focused Agent Skills for Pi.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22.20.0" },
+  "files": ["skills/", "README.md", "CHANGELOG.md", "LICENSE"],
+  "keywords": ["pi-package", "pi-skill"],
+  "devDependencies": { "vitest": "4.1.10" },
+  "pi": { "skills": ["./skills"] },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/example-skills"
+  },
+  "scripts": { "test": "vitest run --root ../.. packages/example-skills/test" }
+}
+```
 
 Create `CHANGELOG.md`, then register the package in both release files at the package's current version:
 

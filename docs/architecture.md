@@ -4,11 +4,11 @@
 
 The root package is private and exists only for shared development tooling and aggregate source loading. Each directory under `packages/` is an independent npm package with its own Pi manifest, runtime dependencies, documentation, tests, and optional native helper.
 
-A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies`; third-party modules needed while an extension runs belong in `dependencies`; development-only tools belong in `devDependencies`. Root tooling does not become available when Pi installs a package with production dependencies only.
+A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.
 
 ## Runtime model
 
-Pi loads extension TypeScript directly. Production packages therefore publish reviewed TypeScript source rather than a generated build directory. The package manifest identifies every entrypoint under `pi.extensions`, and the root aggregate glob must resolve to exactly the same production entrypoints.
+Pi loads extension TypeScript and Agent Skills directly. Extension packages therefore publish reviewed TypeScript source rather than a generated build directory, while skill-only packages publish their Markdown resources without fake extension scaffolding. Package manifests identify resources under `pi.extensions` and `pi.skills`; the root aggregate globs must resolve to exactly the same production resources.
 
 Extension factories perform registration and bounded initialization only. Long-lived processes, sockets, watchers, and timers start from `session_start` or from the command or tool that needs them. Every session-scoped resource has idempotent cleanup in `session_shutdown`.
 
@@ -37,16 +37,16 @@ Shipping native binaries is an extension-specific design decision. Prebuilt plat
 
 ## Release model
 
-Release Please tracks each extension independently in manifest mode. It groups pending package bumps into one reviewable Release PR, but each package retains its own version and receives its own `pi-<name>-v<version>` tag and GitHub Release when that PR is merged. The `node-workspace` plugin updates the root lockfile while leaving versions unlinked. GitHub Releases do not currently publish packages to npm.
+Release Please tracks each package independently in manifest mode. It groups pending package bumps into one reviewable Release PR, but each package retains its own version and receives its own `pi-<name>-v<version>` tag and GitHub Release when that PR is merged. The `node-workspace` plugin updates the root lockfile while leaving versions unlinked. GitHub Releases do not currently publish packages to npm.
 
-Release attribution follows changed package paths and preserved Conventional Commits. Rebase-only merges retain every validated commit, so a pull request can make a breaking change to one extension and a patch change to another without collapsing their semantic types or file ownership. Breaking changes bump major versions, `feat` bumps minor versions, and visible non-feature types (`fix`, `perf`, `docs`, `chore`, `refactor`, `revert`, `build`, and `deps`) bump patch versions. Root-only changes do not bump extension versions.
+Release attribution follows changed package paths and preserved Conventional Commits. Rebase-only merges retain every validated commit, so a pull request can make a breaking change to one package and a patch change to another without collapsing their semantic types or file ownership. Breaking changes bump major versions, `feat` bumps minor versions, and visible non-feature types (`fix`, `perf`, `docs`, `chore`, `refactor`, `revert`, `build`, and `deps`) bump patch versions. Root-only changes do not bump package versions.
 
 ## Verification layers
 
-1. Manifest validation checks package structure, release metadata, dependency placement, Pi entrypoints, aggregate coverage, and npm pack contents.
-2. Unit and integration tests exercise extension logic deterministically.
-3. Source smoke tests load each extension with the real Pi CLI.
+1. Manifest validation checks package structure, release metadata, dependency placement, Pi resources, aggregate coverage, and npm pack contents.
+2. Unit and integration tests exercise extension logic and skill contracts deterministically.
+3. Source smoke tests load each package with the real Pi CLI.
 4. Packed smoke tests install the exact npm artifact with production dependencies and repeat Pi loading.
-5. RPC smoke tests exercise factory initialization, `session_start`, command discovery, EOF shutdown, and `session_shutdown` in an isolated environment.
+5. RPC smoke tests verify extension lifecycle behavior and skill command discovery in an isolated environment.
 
 Pi lifecycle subprocesses do not send a model prompt, use user settings, persist sessions, expose credentials, or permit network access. Packed-artifact setup may contact the public npm registry to install runtime dependencies, but it runs with an isolated home and no ambient credentials, proxy settings, or npm configuration.

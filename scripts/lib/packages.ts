@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
 
 import { glob } from "glob";
@@ -18,9 +18,9 @@ const HOST_PACKAGE = "@earendil-works/pi-coding-agent";
 const REPOSITORY_URL = "git+https://github.com/mopeyjellyfish/pi-extensions.git";
 const MINIMUM_NODE_VERSION = "22.20.0";
 const REQUIRED_ENGINE = `>=${MINIMUM_NODE_VERSION}`;
-const REQUIRED_FILES = ["LICENSE", "README.md", "src/"];
+const REQUIRED_FILES = ["LICENSE", "README.md"];
 const REQUIRED_PRODUCTION_FILES = ["CHANGELOG.md"];
-const REQUIRED_KEYWORDS = ["pi-extension", "pi-package"];
+const REQUIRED_KEYWORDS = ["pi-package"];
 const FORBIDDEN_PACKED_PATH_COMPONENTS = new Set([
   ".pi",
   ".pi-subagents",
@@ -34,6 +34,19 @@ export interface PackageDescriptor {
   readonly kind: "fixture" | "production";
   readonly manifest: Record<string, unknown>;
   readonly root: string;
+}
+
+interface PackageResources {
+  readonly extensions: readonly string[];
+  readonly skills: readonly string[];
+}
+
+function packageResources(manifest: Record<string, unknown>): PackageResources {
+  const pi = manifest["pi"];
+  return {
+    extensions: (isRecord(pi) ? stringArray(pi["extensions"]) : undefined) ?? [],
+    skills: (isRecord(pi) ? stringArray(pi["skills"]) : undefined) ?? [],
+  };
 }
 
 export function findForbiddenPackedPaths(paths: readonly string[]): string[] {
@@ -118,7 +131,11 @@ function validateHostDependency(
   }
 }
 
-function validateDependencyPlacement(manifest: Record<string, unknown>, errors: string[]): void {
+function validateDependencyPlacement(
+  manifest: Record<string, unknown>,
+  resources: PackageResources,
+  errors: string[],
+): void {
   const sections = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
   const seen = new Map<string, string>();
   for (const section of sections) {
@@ -138,7 +155,7 @@ function validateDependencyPlacement(manifest: Record<string, unknown>, errors: 
   }
 
   const peers = stringRecord(manifest["peerDependencies"]);
-  if (peers?.[HOST_PACKAGE] === undefined) {
+  if (resources.extensions.length > 0 && peers?.[HOST_PACKAGE] === undefined) {
     errors.push(`${HOST_PACKAGE} must be declared as a peerDependency.`);
   }
 }
@@ -194,36 +211,77 @@ function validateIdentity(descriptor: PackageDescriptor, errors: string[]): void
 }
 
 function validateManifestLists(descriptor: PackageDescriptor, errors: string[]): void {
+  const resources = packageResources(descriptor.manifest);
   const files = stringArray(descriptor.manifest["files"]);
-  const requiredFiles =
-    descriptor.kind === "production"
-      ? [...REQUIRED_FILES, ...REQUIRED_PRODUCTION_FILES]
-      : REQUIRED_FILES;
+  const requiredFiles = [
+    ...REQUIRED_FILES,
+    ...(descriptor.kind === "production" ? REQUIRED_PRODUCTION_FILES : []),
+    ...(resources.extensions.length > 0 ? ["src/"] : []),
+    ...(resources.skills.length > 0 ? ["skills/"] : []),
+  ];
   for (const requiredFile of requiredFiles) {
     if (!files?.includes(requiredFile)) {
       errors.push(`files must include ${requiredFile}.`);
     }
   }
   const keywords = stringArray(descriptor.manifest["keywords"]);
-  for (const keyword of REQUIRED_KEYWORDS) {
+  const requiredKeywords = [
+    ...REQUIRED_KEYWORDS,
+    ...(resources.extensions.length > 0 ? ["pi-extension"] : []),
+  ];
+  for (const keyword of requiredKeywords) {
     if (!keywords?.includes(keyword)) {
       errors.push(`keywords must include ${keyword}.`);
     }
   }
 }
 
-async function validatePiEntrypoints(
-  descriptor: PackageDescriptor,
-  errors: string[],
-): Promise<void> {
-  const pi = descriptor.manifest["pi"];
-  const extensions = isRecord(pi) ? stringArray(pi["extensions"]) : undefined;
-  if (extensions === undefined || extensions.length === 0) {
-    errors.push("pi.extensions must contain at least one entrypoint.");
+async function resolveSkillPatterns(
+  packageRoot: string,
+  patterns: readonly string[],
+): Promise<string[]> {
+  const resolved: string[] = [];
+  for (const pattern of patterns) {
+    const matches = await glob(pattern, { cwd: packageRoot, nodir: false });
+    if (matches.length === 0) {
+      throw new Error(`${pattern} does not match a skill entrypoint.`);
+    }
+    for (const match of matches) {
+      const absolute = resolve(packageRoot, match);
+      const packageRelative = relative(packageRoot, absolute);
+      if (packageRelative.startsWith("..")) {
+        throw new Error(`${pattern} resolves outside its package.`);
+      }
+      const information = await stat(absolute);
+      if (information.isDirectory()) {
+        const skills = await glob(["*.md", "**/SKILL.md"], { absolute: true, cwd: absolute });
+        resolved.push(...skills.map((skill) => toPosixPath(resolve(skill))));
+      } else if (absolute.endsWith(".md")) {
+        resolved.push(toPosixPath(absolute));
+      }
+    }
+  }
+  if (resolved.length === 0) {
+    throw new Error("pi.skills must resolve to at least one Markdown skill entrypoint.");
+  }
+  return [...new Set(resolved)].sort((left, right) => left.localeCompare(right));
+}
+
+async function validatePiResources(descriptor: PackageDescriptor, errors: string[]): Promise<void> {
+  const resources = packageResources(descriptor.manifest);
+  if (resources.extensions.length === 0 && resources.skills.length === 0) {
+    errors.push("pi must declare at least one extension or skill entrypoint.");
     return;
   }
   try {
-    await resolveExtensionPatterns(descriptor.root, extensions);
+    await Promise.all([
+      ...(resources.extensions.length === 0
+        ? []
+        : [resolveExtensionPatterns(descriptor.root, resources.extensions)]),
+      ...(resources.skills.length === 0
+        ? []
+        : [resolveSkillPatterns(descriptor.root, resources.skills)]),
+    ]);
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
   }
@@ -233,9 +291,19 @@ async function validateRequiredPaths(
   descriptor: PackageDescriptor,
   errors: string[],
 ): Promise<void> {
-  const requiredPaths = ["LICENSE", "README.md", "package.json", "src/index.ts"];
+  const resources = packageResources(descriptor.manifest);
+  const requiredPaths = [
+    "LICENSE",
+    "README.md",
+    "package.json",
+    ...(resources.extensions.length > 0 ? ["src/index.ts"] : []),
+    ...(resources.skills.length > 0 ? ["skills"] : []),
+  ];
   if (descriptor.kind === "production") {
-    requiredPaths.push("CHANGELOG.md", "test", "tsconfig.json");
+    requiredPaths.push("CHANGELOG.md", "test");
+    if (resources.extensions.length > 0) {
+      requiredPaths.push("tsconfig.json");
+    }
   }
   for (const requiredPath of requiredPaths) {
     if (!pathExists(join(descriptor.root, requiredPath))) {
@@ -266,7 +334,9 @@ function validateRepositoryMetadata(descriptor: PackageDescriptor, errors: strin
     errors.push(`repository.directory must be ${expectedDirectory}.`);
   }
   const scripts = stringRecord(descriptor.manifest["scripts"]);
-  for (const script of ["test", "typecheck"]) {
+  const resources = packageResources(descriptor.manifest);
+  const requiredScripts = ["test", ...(resources.extensions.length > 0 ? ["typecheck"] : [])];
+  for (const script of requiredScripts) {
     if (scripts?.[script] === undefined) {
       errors.push(`scripts.${script} is required.`);
     }
@@ -275,22 +345,30 @@ function validateRepositoryMetadata(descriptor: PackageDescriptor, errors: strin
 
 export async function validatePackage(descriptor: PackageDescriptor): Promise<string[]> {
   const errors: string[] = [];
+  const resources = packageResources(descriptor.manifest);
   validateIdentity(descriptor, errors);
   validateManifestLists(descriptor, errors);
-  await validatePiEntrypoints(descriptor, errors);
-  validateDependencyPlacement(descriptor.manifest, errors);
+  await validatePiResources(descriptor, errors);
+  validateDependencyPlacement(descriptor.manifest, resources, errors);
   await validateRequiredPaths(descriptor, errors);
   validateRepositoryMetadata(descriptor, errors);
   return errors.map((error) => `${basename(descriptor.root)}: ${error}`);
 }
 
 export async function resolvePackageEntrypoints(descriptor: PackageDescriptor): Promise<string[]> {
-  const pi = descriptor.manifest["pi"];
-  const extensions = isRecord(pi) ? stringArray(pi["extensions"]) : undefined;
-  if (extensions === undefined) {
+  const extensions = packageResources(descriptor.manifest).extensions;
+  if (extensions.length === 0) {
     return [];
   }
   return await resolveExtensionPatterns(descriptor.root, extensions);
+}
+
+export async function resolvePackageSkills(descriptor: PackageDescriptor): Promise<string[]> {
+  const skills = packageResources(descriptor.manifest).skills;
+  if (skills.length === 0) {
+    return [];
+  }
+  return await resolveSkillPatterns(descriptor.root, skills);
 }
 
 function nodeTypesMatchMinimumRuntime(value: unknown): boolean {
@@ -315,7 +393,7 @@ function validateRootRuntime(value: Record<string, unknown>, errors: string[]): 
   }
 }
 
-function validateRootManifest(value: Record<string, unknown>, errors: string[]): string[] {
+function validateRootManifest(value: Record<string, unknown>, errors: string[]): PackageResources {
   if (value["private"] !== true) {
     errors.push("Root package.json must remain private.");
   }
@@ -324,13 +402,11 @@ function validateRootManifest(value: Record<string, unknown>, errors: string[]):
   if (workspaces?.length !== 1 || workspaces[0] !== "packages/*") {
     errors.push('Root workspaces must be exactly ["packages/*"].');
   }
-  const pi = value["pi"];
-  const patterns = isRecord(pi) ? stringArray(pi["extensions"]) : undefined;
-  if (patterns === undefined || patterns.length === 0) {
+  const resources = packageResources(value);
+  if (resources.extensions.length === 0) {
     errors.push("Root pi.extensions must contain the aggregate extension glob.");
-    return [];
   }
-  return patterns;
+  return resources;
 }
 
 async function collectAggregateEntrypoints(
@@ -357,6 +433,16 @@ async function collectPackageEntrypoints(
     }
   }
   return entrypoints;
+}
+
+async function collectPackageSkills(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
+  const skills = new Set<string>();
+  for (const descriptor of packages) {
+    for (const skill of await resolvePackageSkills(descriptor)) {
+      skills.add(skill);
+    }
+  }
+  return skills;
 }
 
 function compareAggregateEntrypoints(
@@ -387,12 +473,31 @@ export async function validateRootAggregate(
     return ["Root package.json must contain a JSON object."];
   }
   const errors: string[] = [];
-  const patterns = validateRootManifest(value, errors);
-  if (patterns.length === 0) {
+  const resources = validateRootManifest(value, errors);
+  if (resources.extensions.length === 0) {
     return errors;
   }
-  const aggregate = await collectAggregateEntrypoints(root, patterns);
+  const aggregate = await collectAggregateEntrypoints(root, resources.extensions);
   const packageEntrypoints = await collectPackageEntrypoints(packages);
   errors.push(...compareAggregateEntrypoints(root, aggregate, packageEntrypoints));
+  const packageSkills = await collectPackageSkills(packages);
+  if (packageSkills.size > 0 && resources.skills.length === 0) {
+    errors.push("Root pi.skills must contain the aggregate skill glob.");
+  } else if (resources.skills.length > 0) {
+    const aggregateSkills = new Set(await resolveSkillPatterns(root, resources.skills));
+    errors.push(
+      ...[...packageSkills]
+        .filter((path) => !aggregateSkills.has(path))
+        .map(
+          (path) => `Root skill aggregate does not include ${toPosixPath(relative(root, path))}.`,
+        ),
+      ...[...aggregateSkills]
+        .filter((path) => !packageSkills.has(path))
+        .map(
+          (path) =>
+            `Root skill aggregate includes unmanaged skill ${toPosixPath(relative(root, path))}.`,
+        ),
+    );
+  }
   return errors;
 }

@@ -14,6 +14,9 @@
   "pi": {
     "extensions": [
       "./packages/*/src/index.ts"
+    ],
+    "skills": [
+      "./packages/*/skills"
     ]
   },
   "scripts": {
