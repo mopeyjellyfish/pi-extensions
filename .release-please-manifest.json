@@ -1,4 +1,4 @@
 {
-  "packages/git-conventions": "0.0.0",
-  "packages/worktrunk": "0.0.0"
+  "packages/git-conventions": "1.0.0",
+  "packages/worktrunk": "1.0.0"
 }
