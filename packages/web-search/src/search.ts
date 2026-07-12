@@ -93,6 +93,23 @@ function anthropicThinkingBudget(thinkingLevel: SearchThinkingLevel): number {
   return budgets[thinkingLevel];
 }
 
+function googleThinkingBudget(model: Model<Api>, thinkingLevel: SearchThinkingLevel): number {
+  const id = model.id.toLowerCase();
+  const requested = thinkingLevel === "max" ? "xhigh" : thinkingLevel;
+  const level = clampThinkingLevel(undefined, requested);
+  const high = id.includes("2.5-pro") ? 32_768 : 24_576;
+  const minimal = id.includes("2.5-flash-lite") ? 512 : 128;
+  const budgets: Readonly<Record<ProviderThinkingLevel, number>> = {
+    high,
+    low: 2048,
+    medium: 8192,
+    minimal,
+    off: 0,
+    xhigh: high,
+  };
+  return budgets[level];
+}
+
 function object(value: unknown): JsonObject | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as JsonObject)
@@ -417,6 +434,7 @@ export async function searchOpenAi(
     model: model.id,
     store: false,
     stream: true,
+    tool_choice: "required",
     tools: [{ type: "web_search" }],
   };
   if (model.reasoning) {
@@ -426,7 +444,6 @@ export async function searchOpenAi(
   if (isCodex) {
     body["instructions"] = "Answer the user's request using web search.";
     body["parallel_tool_calls"] = true;
-    body["tool_choice"] = "required";
   }
   const response = await fetch(resolveOpenAiUrl(model), {
     body: JSON.stringify(body),
@@ -452,6 +469,9 @@ function googleText(event: JsonObject): string {
   let text = "";
   for (const partValue of array(content?.["parts"])) {
     const part = object(partValue);
+    if (part?.["thought"] === true) {
+      continue;
+    }
     text += string(part?.["text"]) ?? "";
   }
   return text;
@@ -513,9 +533,15 @@ export async function searchGoogle(
     tools: [{ google_search: {} }],
   };
   if (model.reasoning) {
-    const effort = mappedThinkingEffort(model, thinkingLevel);
+    const thinkingConfig: JsonObject = {};
+    if (model.id.toLowerCase().includes("gemini-2.5-")) {
+      thinkingConfig["thinkingBudget"] = googleThinkingBudget(model, thinkingLevel);
+    } else {
+      const effort = mappedThinkingEffort(model, thinkingLevel);
+      thinkingConfig["thinkingLevel"] = effort.toUpperCase();
+    }
     body["generationConfig"] = {
-      thinkingConfig: { includeThoughts: true, thinkingLevel: effort.toUpperCase() },
+      thinkingConfig,
     };
   }
   const response = await fetch(url, {
@@ -746,21 +772,21 @@ function addAnthropicThinking(
   if (!model.reasoning) {
     return;
   }
-  if (thinkingLevel === "off") {
-    const map = model.thinkingLevelMap as Readonly<Record<string, string | null>> | undefined;
-    if (map?.["off"] !== null) {
-      body["thinking"] = { type: "disabled" };
-    }
+  const map = model.thinkingLevelMap as Readonly<Record<string, string | null>> | undefined;
+  const requested = thinkingLevel === "max" ? "xhigh" : thinkingLevel;
+  const effectiveLevel = clampThinkingLevel(map, requested);
+  if (effectiveLevel === "off") {
+    body["thinking"] = { type: "disabled" };
     return;
   }
-  const effort = mappedThinkingEffort(model, thinkingLevel);
+  const effort = map?.[effectiveLevel] ?? effectiveLevel;
   if (object(model.compat)?.["forceAdaptiveThinking"] === true) {
     body["thinking"] = { type: "adaptive" };
     body["output_config"] = { effort };
     return;
   }
   body["thinking"] = {
-    budget_tokens: anthropicThinkingBudget(thinkingLevel),
+    budget_tokens: anthropicThinkingBudget(effectiveLevel),
     type: "enabled",
   };
 }

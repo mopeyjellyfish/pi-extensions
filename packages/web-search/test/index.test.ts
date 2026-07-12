@@ -189,6 +189,7 @@ describe("pi-web-search extension", () => {
           model: "gpt-5.6",
           reasoning: { effort: "high" },
           stream: true,
+          tool_choice: "required",
           tools: [{ type: "web_search" }],
         }),
       );
@@ -682,7 +683,7 @@ describe("pi-web-search extension", () => {
       expect(init?.headers).toEqual(expect.objectContaining({ "x-goog-api-key": "gemini-key" }));
       expect(requestJson(init)).toEqual({
         contents: [{ parts: [{ text: "Find Pi documentation" }], role: "user" }],
-        generationConfig: { thinkingConfig: { includeThoughts: true, thinkingLevel: "HIGH" } },
+        generationConfig: { thinkingConfig: { thinkingLevel: "HIGH" } },
         tools: [{ google_search: {} }],
       });
       return Promise.resolve(
@@ -690,7 +691,12 @@ describe("pi-web-search extension", () => {
           {
             candidates: [
               {
-                content: { parts: [{ text: "Pi documentation is available online." }] },
+                content: {
+                  parts: [
+                    { text: "I should inspect the official documentation.", thought: true },
+                    { text: "Pi documentation is available online." },
+                  ],
+                },
               },
             ],
           },
@@ -721,6 +727,7 @@ describe("pi-web-search extension", () => {
       id: "gemini-3-pro",
       provider: "google",
       reasoning: true,
+      thinkingLevelMap: { high: "HIGH", low: "LOW" },
     });
     registryMocks(ctx).getAuth.mockResolvedValue({
       apiKey: "gemini-key",
@@ -736,6 +743,7 @@ describe("pi-web-search extension", () => {
     );
 
     expect(result.content[0]?.text).toContain("Pi documentation is available online.");
+    expect(result.content[0]?.text).not.toContain("I should inspect");
     expect(result.content[0]?.text).toContain("https://pi.dev/docs/latest");
     expect(result.details).toEqual(
       expect.objectContaining({
@@ -745,6 +753,42 @@ describe("pi-web-search extension", () => {
         sources: [{ title: "Pi documentation", url: "https://pi.dev/docs/latest" }],
       }),
     );
+  });
+
+  it("uses a thinking budget for Gemini 2.5 models", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      const body = requestJson(init);
+      expect(body).toHaveProperty("generationConfig.thinkingConfig.thinkingBudget", 32_768);
+      expect(body).not.toHaveProperty("generationConfig.thinkingConfig.thinkingLevel");
+      return Promise.resolve(
+        sseResponse([
+          {
+            candidates: [{ content: { parts: [{ text: "Gemini 2.5 grounded answer." }] } }],
+          },
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      api: "google-generative-ai",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      id: "gemini-2.5-pro",
+      provider: "google",
+      reasoning: true,
+      thinkingLevelMap: { off: null },
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({ apiKey: "gemini-key", ok: true });
+
+    const result = await registerTool("high").execute(
+      "search-gemini-2-5",
+      { query: "Research with Gemini 2.5" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Gemini 2.5 grounded answer.");
   });
 
   it("uses Anthropic server-side web search for an Anthropic Messages model", async () => {
@@ -864,6 +908,48 @@ describe("pi-web-search extension", () => {
     );
 
     expect(result.content[0]?.text).toContain("Direct answer.");
+  });
+
+  it("clamps thinking off for an Anthropic model that cannot disable thinking", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      expect(requestJson(init)).toEqual(
+        expect.objectContaining({
+          output_config: { effort: "minimal" },
+          thinking: { type: "adaptive" },
+        }),
+      );
+      return Promise.resolve(
+        sseResponse([
+          {
+            delta: { text: "Clamped Anthropic answer.", type: "text_delta" },
+            type: "content_block_delta",
+          },
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      api: "anthropic-messages",
+      baseUrl: "https://api.anthropic.com",
+      compat: { forceAdaptiveThinking: true },
+      id: "claude-fable-5",
+      maxTokens: 128_000,
+      provider: "anthropic",
+      reasoning: true,
+      thinkingLevelMap: { off: null, xhigh: "xhigh" },
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool("off").execute(
+      "search-anthropic-thinking-clamp",
+      { query: "Use the nearest supported Anthropic thinking level" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Clamped Anthropic answer.");
   });
 
   it("uses Pi's thinking budget for an Anthropic model without adaptive thinking", async () => {
