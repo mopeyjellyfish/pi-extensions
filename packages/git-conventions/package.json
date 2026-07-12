@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-git-conventions",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Reusable Pi skills for Conventional Commits and safe branch rebasing.",
   "license": "MIT",
   "type": "module",
