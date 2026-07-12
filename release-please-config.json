@@ -25,6 +25,9 @@
     "packages/git-conventions": {
       "release-type": "node"
     },
+    "packages/todo": {
+      "release-type": "node"
+    },
     "packages/web-search": {
       "release-type": "node"
     },
