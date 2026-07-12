@@ -174,6 +174,17 @@ provider-native headers the selected API requires. Provider transports must:
 - deduplicate and validate sources before rendering them;
 - bound both streaming updates and final output to Pi's tool limits.
 
+Keep the Pi tool schema provider-neutral unless a control has portable meaning
+across every supported API. Prefer conservative documented defaults for search
+count, reasoning, and output size over exposing provider-specific knobs that
+agents cannot use consistently. Reserve final-output budget for citations so a
+long answer cannot truncate every source.
+
+Treat versioned provider tools as behavior contracts, not date upgrades. Before
+adopting a newer tool version, verify its default caller, compatibility, cost,
+and streaming semantics against every supported model family; do not infer
+support from model names alone.
+
 Mock the provider network boundary in automated tests. Cover API-key and OAuth
 paths when both are supported, completed and incremental citation events,
 invalid configuration before fetch, cancellation, provider errors, and output
