@@ -11,6 +11,30 @@ not an official upstream Pi integration; see its
 [package README](packages/worktrunk/README.md) for the separate `wt`
 prerequisite and safety model.
 
+## Quick start
+
+Install every extension and skill in this repository as one global Pi package:
+
+```sh
+pi install git:github.com/mopeyjellyfish/pi-extensions
+```
+
+### Update
+
+Update this repository package:
+
+```sh
+pi update --extension git:github.com/mopeyjellyfish/pi-extensions
+```
+
+### Remove
+
+Remove this repository package and all of its extensions and skills:
+
+```sh
+pi remove git:github.com/mopeyjellyfish/pi-extensions
+```
+
 ## Requirements
 
 - [nvm](https://github.com/nvm-sh/nvm)
@@ -32,11 +56,11 @@ source .gvmrc
 npm ci --ignore-scripts
 ```
 
-## Install the packages
+## Install from a local checkout
 
-npm publication is not automated yet. Install from a trusted local checkout;
-Pi records the path without copying it, so keep the checkout available while
-the package is installed.
+For development or local review, install from a trusted checkout instead. Pi
+records the path without copying it, so keep the checkout available while the
+package is installed.
 
 Install the root aggregate to make every extension and skill available in all
 projects:
