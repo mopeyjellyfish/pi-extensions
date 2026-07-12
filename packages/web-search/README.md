@@ -52,17 +52,27 @@ Start with one search. Search again only when the first answer leaves a
 specific information gap; this avoids repeated provider calls and gives the
 model a clearer retrieval target.
 
-The extension uses provider-conscious efficiency defaults:
+The search request preserves the experience selected in Pi:
 
-- reasoning-capable OpenAI Responses models use low reasoning effort;
-- Anthropic searches allow at most five searches and 4,096 output tokens;
-- provider output, errors, and streaming updates stay within Pi's limits;
-- final output keeps a visible source section even when a long answer is
-  truncated, showing up to 20 sources and reporting omissions.
+- it uses the current conversation model unless an explicit search model is
+  configured;
+- it reads Pi's current thinking level and maps it through the selected model's
+  provider metadata instead of forcing a cheaper reasoning level;
+- OpenAI and Codex searches keep that reasoning level and use the provider's
+  normal response verbosity and balanced search-context defaults;
+- Anthropic searches use the model's adaptive or token-budget thinking mode,
+  allow up to 15 searches for research, and continue a paused server-tool turn
+  with its original content;
+- Gemini grounding receives the selected thinking level when the model supports
+  reasoning;
+- provider errors and streaming updates stay within Pi's limits, while final
+  output reserves room for up to 20 visible sources and reports omissions.
 
-These defaults target normal coding-agent lookups. Break broad research into
-focused follow-up questions when one search cannot cover it reliably. See the
-official [OpenAI web-search guide](https://developers.openai.com/api/docs/guides/tools-web-search)
+Higher thinking levels can take longer and cost more, just as they do for the
+conversation itself. Choose the Pi model and thinking level appropriate for the
+research task, then break unusually broad investigations into focused follow-up
+questions when useful. See the official
+[OpenAI web-search guide](https://developers.openai.com/api/docs/guides/tools-web-search)
 and [Anthropic web-search guide](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool)
 for the underlying provider behavior.
 

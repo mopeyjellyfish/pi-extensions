@@ -175,10 +175,18 @@ provider-native headers the selected API requires. Provider transports must:
 - bound both streaming updates and final output to Pi's tool limits.
 
 Keep the Pi tool schema provider-neutral unless a control has portable meaning
-across every supported API. Prefer conservative documented defaults for search
-count, reasoning, and output size over exposing provider-specific knobs that
-agents cannot use consistently. Reserve final-output budget for citations so a
-long answer cannot truncate every source.
+across every supported API. A provider-backed tool that makes another request
+with the current or configured model must preserve `pi.getThinkingLevel()` and
+map it through the target model's metadata; never force a lower reasoning level
+or response verbosity merely to reduce search cost. Keep cost and latency
+tradeoffs under the user's Pi model and thinking selection.
+
+Use documented research-capable provider limits rather than lookup-only limits
+for tools advertised for research. Bound transport errors, updates, retries,
+and rendered output without starving the model's reasoning or provider-tool
+loop. Continue resumable provider stop states such as Anthropic `pause_turn`
+with the original content and a strict continuation bound. Reserve final-output
+budget for citations so a long answer cannot truncate every source.
 
 Treat versioned provider tools as behavior contracts, not date upgrades. Before
 adopting a newer tool version, verify its default caller, compatibility, cost,

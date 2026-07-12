@@ -74,9 +74,14 @@ function requestJson(init: RequestInit | undefined): unknown {
   return JSON.parse(init.body) as unknown;
 }
 
-function registerTool(): RegisteredTool {
+function registerTool(
+  thinkingLevel: ReturnType<ExtensionAPI["getThinkingLevel"]> = "high",
+): RegisteredTool {
   let tool: RegisteredTool | undefined;
   webSearchExtension({
+    getThinkingLevel() {
+      return thinkingLevel;
+    },
     registerTool(definition: RegisteredTool) {
       tool = definition;
     },
@@ -176,11 +181,12 @@ describe("pi-web-search extension", () => {
     const fetch = vi.fn((input: string | URL | Request, init?: RequestInit) => {
       expect(requestUrl(input)).toBe("https://api.openai.com/v1/responses");
       expect(init?.headers).toEqual(expect.objectContaining({ authorization: "Bearer test-key" }));
-      expect(requestJson(init)).toEqual(
+      const body = requestJson(init);
+      expect(body).toEqual(
         expect.objectContaining({
           input: "What is the current Pi release?",
           model: "gpt-5.6",
-          reasoning: { effort: "low" },
+          reasoning: { effort: "high" },
           stream: true,
           tools: [{ type: "web_search" }],
         }),
@@ -242,6 +248,87 @@ describe("pi-web-search extension", () => {
         ],
       }),
     );
+  });
+
+  it("maps Pi's selected thinking level through the current OpenAI model metadata", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      expect(requestJson(init)).toEqual(expect.objectContaining({ reasoning: { effort: "none" } }));
+      return Promise.resolve(
+        sseResponse([{ delta: "Search without reasoning.", type: "response.output_text.delta" }]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      ...providerModel("openai-responses"),
+      reasoning: true,
+      thinkingLevelMap: { off: "none", xhigh: "xhigh" },
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool("off").execute(
+      "search-openai-thinking-map",
+      { query: "Search without reasoning" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Search without reasoning.");
+  });
+
+  it("clamps Pi's thinking level when a dedicated search model does not support it", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      expect(requestJson(init)).toEqual(expect.objectContaining({ reasoning: { effort: "low" } }));
+      return Promise.resolve(
+        sseResponse([{ delta: "Clamped-model answer.", type: "response.output_text.delta" }]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      ...providerModel("openai-responses"),
+      reasoning: true,
+      thinkingLevelMap: { minimal: null, xhigh: "xhigh" },
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool("minimal").execute(
+      "search-openai-thinking-clamp",
+      { query: "Use the closest supported thinking level" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Clamped-model answer.");
+  });
+
+  it("maps Pi's max thinking request to the highest level supported by the search model", async () => {
+    expect.hasAssertions();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+        expect(requestJson(init)).toEqual(
+          expect.objectContaining({ reasoning: { effort: "high" } }),
+        );
+        return Promise.resolve(
+          sseResponse([{ delta: "Highest supported answer.", type: "response.output_text.delta" }]),
+        );
+      }),
+    );
+    const ctx = context({ ...providerModel("openai-responses"), reasoning: true });
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool("max").execute(
+      "search-openai-thinking-max",
+      { query: "Use the highest supported thinking level" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Highest supported answer.");
   });
 
   it("uses Pi's provider environment fallback for direct web-search requests", async () => {
@@ -564,6 +651,7 @@ describe("pi-web-search extension", () => {
       expect(init?.headers).toEqual(expect.objectContaining({ "x-goog-api-key": "gemini-key" }));
       expect(requestJson(init)).toEqual({
         contents: [{ parts: [{ text: "Find Pi documentation" }], role: "user" }],
+        generationConfig: { thinkingConfig: { includeThoughts: true, thinkingLevel: "HIGH" } },
         tools: [{ google_search: {} }],
       });
       return Promise.resolve(
@@ -601,13 +689,14 @@ describe("pi-web-search extension", () => {
       baseUrl: "https://generativelanguage.googleapis.com/v1beta",
       id: "gemini-3-pro",
       provider: "google",
+      reasoning: true,
     });
     registryMocks(ctx).getAuth.mockResolvedValue({
       apiKey: "gemini-key",
       ok: true,
     });
 
-    const result = await registerTool().execute(
+    const result = await registerTool("high").execute(
       "search-4",
       { query: "Find Pi documentation" },
       undefined,
@@ -632,13 +721,16 @@ describe("pi-web-search extension", () => {
     const fetch = vi.fn((input: string | URL | Request, init?: RequestInit) => {
       expect(requestUrl(input)).toBe("https://api.anthropic.com/v1/messages");
       expect(init?.headers).toEqual(expect.objectContaining({ "x-api-key": "anthropic-key" }));
-      expect(requestJson(init)).toEqual(
+      const body = requestJson(init);
+      expect(body).toEqual(
         expect.objectContaining({
-          max_tokens: 4096,
+          max_tokens: 64_000,
           messages: [{ content: "Find Pi releases", role: "user" }],
           model: "claude-sonnet-5",
+          output_config: { effort: "xhigh" },
           stream: true,
-          tools: [{ max_uses: 5, name: "web_search", type: "web_search_20250305" }],
+          thinking: { type: "adaptive" },
+          tools: [{ max_uses: 15, name: "web_search", type: "web_search_20250305" }],
         }),
       );
       return Promise.resolve(
@@ -677,16 +769,19 @@ describe("pi-web-search extension", () => {
     const ctx = context({
       api: "anthropic-messages",
       baseUrl: "https://api.anthropic.com",
+      compat: { forceAdaptiveThinking: true },
       id: "claude-sonnet-5",
       maxTokens: 64_000,
       provider: "anthropic",
+      reasoning: true,
+      thinkingLevelMap: { xhigh: "xhigh" },
     });
     registryMocks(ctx).getAuth.mockResolvedValue({
       apiKey: "anthropic-key",
       ok: true,
     });
 
-    const result = await registerTool().execute(
+    const result = await registerTool("xhigh").execute(
       "search-5",
       { query: "Find Pi releases" },
       undefined,
@@ -703,6 +798,81 @@ describe("pi-web-search extension", () => {
         provider: "anthropic",
       }),
     );
+  });
+
+  it("honors thinking off for an Anthropic model that allows disabling it", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      const body = requestJson(init);
+      expect(body).toEqual(expect.objectContaining({ thinking: { type: "disabled" } }));
+      expect(body).not.toHaveProperty("output_config");
+      return Promise.resolve(
+        sseResponse([
+          { delta: { text: "Direct answer.", type: "text_delta" }, type: "content_block_delta" },
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      api: "anthropic-messages",
+      baseUrl: "https://api.anthropic.com",
+      compat: { forceAdaptiveThinking: true },
+      id: "claude-sonnet-5",
+      maxTokens: 64_000,
+      provider: "anthropic",
+      reasoning: true,
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool("off").execute(
+      "search-anthropic-thinking-off",
+      { query: "Find one fact" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Direct answer.");
+  });
+
+  it("uses Pi's thinking budget for an Anthropic model without adaptive thinking", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      expect(requestJson(init)).toEqual(
+        expect.objectContaining({
+          max_tokens: 64_000,
+          thinking: { budget_tokens: 16_384, type: "enabled" },
+        }),
+      );
+      return Promise.resolve(
+        sseResponse([
+          {
+            delta: { text: "Researched answer.", type: "text_delta" },
+            type: "content_block_delta",
+          },
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      api: "anthropic-messages",
+      baseUrl: "https://api.anthropic.com",
+      id: "claude-opus-4-5",
+      maxTokens: 64_000,
+      provider: "anthropic",
+      reasoning: true,
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool("high").execute(
+      "search-anthropic-budget-thinking",
+      { query: "Research a difficult question" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("Researched answer.");
   });
 
   it("uses Anthropic OAuth headers for the newest Claude models", async () => {
@@ -763,7 +933,8 @@ describe("pi-web-search extension", () => {
           originator: "codex_cli_rs",
         }),
       );
-      expect(requestJson(init)).toEqual(
+      const body = requestJson(init);
+      expect(body).toEqual(
         expect.objectContaining({
           input: [
             {
@@ -772,9 +943,11 @@ describe("pi-web-search extension", () => {
             },
           ],
           model: "gpt-5.3-codex",
+          reasoning: { effort: "xhigh" },
           tool_choice: "required",
         }),
       );
+      expect(body).not.toHaveProperty("text");
       return Promise.resolve(
         sseResponse([
           { type: "response.output_text.delta", delta: "Codex search answer." },
@@ -788,13 +961,15 @@ describe("pi-web-search extension", () => {
       baseUrl: "https://chatgpt.com/backend-api",
       id: "gpt-5.3-codex",
       provider: "openai-codex",
+      reasoning: true,
+      thinkingLevelMap: { xhigh: "xhigh" },
     });
     registryMocks(ctx).getAuth.mockResolvedValue({
       apiKey: token,
       ok: true,
     });
 
-    const result = await registerTool().execute(
+    const result = await registerTool("xhigh").execute(
       "search-6",
       { query: "Search with Codex" },
       undefined,
@@ -1012,7 +1187,128 @@ describe("pi-web-search extension", () => {
     ).rejects.toThrow("Anthropic web search failed: too_many_requests");
   });
 
-  it("reports an Anthropic paused search instead of returning an empty answer", async () => {
+  it("continues an Anthropic paused search with the provider's preserved content", async () => {
+    expect.hasAssertions();
+    const responses = [
+      sseResponse([
+        { content_block: { text: "", type: "text" }, index: 0, type: "content_block_start" },
+        {
+          delta: { text: "Partial research. ", type: "text_delta" },
+          index: 0,
+          type: "content_block_delta",
+        },
+        {
+          delta: {
+            citation: {
+              title: "Paused source",
+              type: "web_search_result_location",
+              url: "https://example.com/paused",
+            },
+            type: "citations_delta",
+          },
+          index: 0,
+          type: "content_block_delta",
+        },
+        { index: 0, type: "content_block_stop" },
+        {
+          content_block: {
+            id: "srvtoolu_1",
+            input: {},
+            name: "web_search",
+            type: "server_tool_use",
+          },
+          index: 1,
+          type: "content_block_start",
+        },
+        {
+          delta: { partial_json: '{"query":"Run a long search"}', type: "input_json_delta" },
+          index: 1,
+          type: "content_block_delta",
+        },
+        { index: 1, type: "content_block_stop" },
+        {
+          content_block: { signature: "", thinking: "", type: "thinking" },
+          index: 2,
+          type: "content_block_start",
+        },
+        {
+          delta: { thinking: "Checked the sources.", type: "thinking_delta" },
+          index: 2,
+          type: "content_block_delta",
+        },
+        {
+          delta: { signature: "signed-thinking", type: "signature_delta" },
+          index: 2,
+          type: "content_block_delta",
+        },
+        { delta: { type: "unknown_delta" }, index: 99, type: "content_block_delta" },
+        { delta: null, index: 99, type: "content_block_delta" },
+        { delta: { stop_reason: "pause_turn" }, type: "message_delta" },
+      ]),
+      sseResponse([
+        {
+          delta: { text: "Completed research.", type: "text_delta" },
+          index: 0,
+          type: "content_block_delta",
+        },
+      ]),
+    ];
+    const requestBodies: unknown[] = [];
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      requestBodies.push(requestJson(init));
+      return Promise.resolve(responses.shift() ?? new Response(null));
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context(providerModel("anthropic-messages"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool().execute(
+      "search-anthropic-paused",
+      { query: "Run a long search" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(requestBodies[1]).toEqual(
+      expect.objectContaining({
+        messages: [
+          { content: "Run a long search", role: "user" },
+          {
+            content: [
+              {
+                citations: [
+                  {
+                    title: "Paused source",
+                    type: "web_search_result_location",
+                    url: "https://example.com/paused",
+                  },
+                ],
+                text: "Partial research. ",
+                type: "text",
+              },
+              {
+                id: "srvtoolu_1",
+                input: { query: "Run a long search" },
+                name: "web_search",
+                type: "server_tool_use",
+              },
+              {
+                signature: "signed-thinking",
+                thinking: "Checked the sources.",
+                type: "thinking",
+              },
+            ],
+            role: "assistant",
+          },
+        ],
+      }),
+    );
+    expect(result.content[0]?.text).toContain("Partial research. Completed research.");
+  });
+
+  it("rejects an Anthropic pause that has no resumable provider content", async () => {
     expect.hasAssertions();
     vi.stubGlobal(
       "fetch",
@@ -1027,13 +1323,43 @@ describe("pi-web-search extension", () => {
 
     await expect(
       registerTool().execute(
-        "search-anthropic-paused",
-        { query: "Run a long search" },
+        "search-anthropic-empty-pause",
+        { query: "Pause without content" },
         undefined,
         undefined,
         ctx,
       ),
-    ).rejects.toThrow(/paused.*narrower.*retry/iu);
+    ).rejects.toThrow(/paused.*without resumable content/iu);
+  });
+
+  it("bounds repeated Anthropic pause continuations", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn(() =>
+      Promise.resolve(
+        sseResponse([
+          {
+            content_block: { text: "Still researching. ", type: "text" },
+            index: 0,
+            type: "content_block_start",
+          },
+          { delta: { stop_reason: "pause_turn" }, type: "message_delta" },
+        ]),
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context(providerModel("anthropic-messages"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    await expect(
+      registerTool().execute(
+        "search-anthropic-repeated-pause",
+        { query: "Keep researching forever" },
+        undefined,
+        undefined,
+        ctx,
+      ),
+    ).rejects.toThrow(/remained paused after two continuation requests/iu);
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 
   it("propagates cancellation while reading a provider stream", async () => {

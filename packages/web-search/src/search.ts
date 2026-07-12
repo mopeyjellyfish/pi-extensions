@@ -3,6 +3,7 @@ import {
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
   type AgentToolUpdateCallback,
+  type ExtensionAPI,
   type ExtensionContext,
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
@@ -20,6 +21,9 @@ export interface NativeSearchResult {
 }
 
 type JsonObject = Record<string, unknown>;
+type SearchThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
+const PROVIDER_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
+type ProviderThinkingLevel = (typeof PROVIDER_THINKING_LEVELS)[number];
 
 interface SearchAuth {
   readonly apiKey?: string;
@@ -29,6 +33,64 @@ interface SearchAuth {
 
 interface SearchState {
   text: string;
+}
+
+interface AnthropicAttemptState {
+  readonly blocks: (JsonObject | undefined)[];
+  readonly partialJson: Map<number, string>;
+  paused: boolean;
+}
+
+function supportsThinkingLevel(
+  map: Readonly<Record<string, string | null>> | undefined,
+  level: ProviderThinkingLevel,
+): boolean {
+  const mapped = map?.[level];
+  return level === "xhigh" ? mapped !== undefined && mapped !== null : mapped !== null;
+}
+
+function clampThinkingLevel(
+  map: Readonly<Record<string, string | null>> | undefined,
+  requested: ProviderThinkingLevel,
+): ProviderThinkingLevel {
+  const requestedIndex = PROVIDER_THINKING_LEVELS.indexOf(requested);
+  for (const level of PROVIDER_THINKING_LEVELS.slice(requestedIndex)) {
+    if (supportsThinkingLevel(map, level)) {
+      return level;
+    }
+  }
+  const lowerLevels = PROVIDER_THINKING_LEVELS.slice(0, requestedIndex);
+  while (lowerLevels.length > 0) {
+    const level = lowerLevels.pop() ?? "off";
+    if (supportsThinkingLevel(map, level)) {
+      return level;
+    }
+  }
+  return "off";
+}
+
+function mappedThinkingEffort(model: Model<Api>, thinkingLevel: SearchThinkingLevel): string {
+  const map = model.thinkingLevelMap as Readonly<Record<string, string | null>> | undefined;
+  const direct = map?.[thinkingLevel];
+  if (typeof direct === "string") {
+    return direct;
+  }
+  const requested = thinkingLevel === "max" ? "xhigh" : thinkingLevel;
+  const clamped = clampThinkingLevel(map, requested);
+  return map?.[clamped] ?? (clamped === "off" ? "none" : clamped);
+}
+
+function anthropicThinkingBudget(thinkingLevel: SearchThinkingLevel): number {
+  const budgets: Readonly<Record<SearchThinkingLevel, number>> = {
+    high: 16_384,
+    low: 2048,
+    max: 16_384,
+    medium: 8192,
+    minimal: 1024,
+    off: 0,
+    xhigh: 16_384,
+  };
+  return budgets[thinkingLevel];
 }
 
 function object(value: unknown): JsonObject | undefined {
@@ -341,6 +403,7 @@ export async function searchOpenAi(
   signal: AbortSignal | undefined,
   update: AgentToolUpdateCallback | undefined,
   ctx: ExtensionContext,
+  thinkingLevel: SearchThinkingLevel,
 ): Promise<NativeSearchResult> {
   const auth = await resolveAuth(ctx, model);
   const isCodex = model.api === "openai-codex-responses";
@@ -356,13 +419,13 @@ export async function searchOpenAi(
     stream: true,
     tools: [{ type: "web_search" }],
   };
-  if (model.reasoning && !isCodex) {
-    body["reasoning"] = { effort: "low" };
+  if (model.reasoning) {
+    const effort = mappedThinkingEffort(model, thinkingLevel);
+    body["reasoning"] = { effort };
   }
   if (isCodex) {
     body["instructions"] = "Answer the user's request using web search.";
     body["parallel_tool_calls"] = true;
-    body["text"] = { verbosity: "low" };
     body["tool_choice"] = "required";
   }
   const response = await fetch(resolveOpenAiUrl(model), {
@@ -431,6 +494,7 @@ export async function searchGoogle(
   signal: AbortSignal | undefined,
   update: AgentToolUpdateCallback | undefined,
   ctx: ExtensionContext,
+  thinkingLevel: SearchThinkingLevel,
 ): Promise<NativeSearchResult> {
   const auth = await resolveAuth(ctx, model);
   const headerBag = new Headers({
@@ -444,11 +508,18 @@ export async function searchGoogle(
   }
   const baseUrl = model.baseUrl.replace(/\/+$/u, "");
   const url = `${baseUrl}/models/${encodeURIComponent(model.id)}:streamGenerateContent?alt=sse`;
+  const body: Record<string, unknown> = {
+    contents: [{ parts: [{ text: query }], role: "user" }],
+    tools: [{ google_search: {} }],
+  };
+  if (model.reasoning) {
+    const effort = mappedThinkingEffort(model, thinkingLevel);
+    body["generationConfig"] = {
+      thinkingConfig: { includeThoughts: true, thinkingLevel: effort.toUpperCase() },
+    };
+  }
   const response = await fetch(url, {
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: query }], role: "user" }],
-      tools: [{ google_search: {} }],
-    }),
+    body: JSON.stringify(body),
     headers: Object.fromEntries(headerBag.entries()),
     method: "POST",
     ...(signal === undefined ? {} : { signal }),
@@ -498,38 +569,247 @@ function collectAnthropicCitation(value: unknown, sources: SearchSource[]): void
   }
 }
 
+function anthropicEventIndex(event: JsonObject): number | undefined {
+  const index = event["index"];
+  return typeof index === "number" && Number.isInteger(index) && index >= 0 ? index : undefined;
+}
+
+function updateAnthropicContinuationBlock(
+  event: JsonObject,
+  delta: JsonObject,
+  attempt: AnthropicAttemptState,
+): void {
+  const index = anthropicEventIndex(event);
+  if (index === undefined) {
+    return;
+  }
+  if (delta["type"] === "input_json_delta") {
+    attempt.partialJson.set(
+      index,
+      `${attempt.partialJson.get(index) ?? ""}${string(delta["partial_json"]) ?? ""}`,
+    );
+    return;
+  }
+  const block = attempt.blocks[index];
+  if (block === undefined) {
+    return;
+  }
+  switch (delta["type"]) {
+    case "text_delta":
+      block["text"] = `${string(block["text"]) ?? ""}${string(delta["text"]) ?? ""}`;
+      break;
+    case "thinking_delta":
+      block["thinking"] = `${string(block["thinking"]) ?? ""}${string(delta["thinking"]) ?? ""}`;
+      break;
+    case "signature_delta":
+      block["signature"] = string(delta["signature"]) ?? "";
+      break;
+    case "citations_delta":
+      block["citations"] = [...array(block["citations"]), delta["citation"]];
+      break;
+    default:
+  }
+}
+
+function startAnthropicBlock(
+  event: JsonObject,
+  state: SearchState,
+  attempt: AnthropicAttemptState,
+  sources: SearchSource[],
+  update: AgentToolUpdateCallback | undefined,
+): void {
+  const block = object(event["content_block"]);
+  const index = anthropicEventIndex(event);
+  if (block !== undefined && index !== undefined) {
+    attempt.blocks[index] = { ...block };
+    if (block["type"] === "text") {
+      state.text += string(block["text"]) ?? "";
+      emitUpdate(state.text, update);
+    }
+  }
+  collectAnthropicResults(block, sources);
+}
+
+function stopAnthropicBlock(event: JsonObject, attempt: AnthropicAttemptState): void {
+  const index = anthropicEventIndex(event);
+  if (index === undefined) {
+    return;
+  }
+  const partialJson = attempt.partialJson.get(index);
+  const block = attempt.blocks[index];
+  if (partialJson === undefined || block === undefined) {
+    return;
+  }
+  block["input"] = JSON.parse(partialJson) as unknown;
+  attempt.partialJson.delete(index);
+}
+
+function applyAnthropicDelta(
+  event: JsonObject,
+  state: SearchState,
+  attempt: AnthropicAttemptState,
+  sources: SearchSource[],
+  update: AgentToolUpdateCallback | undefined,
+): void {
+  const delta = object(event["delta"]);
+  if (delta === undefined) {
+    return;
+  }
+  updateAnthropicContinuationBlock(event, delta, attempt);
+  switch (delta["type"]) {
+    case "text_delta":
+      state.text += string(delta["text"]) ?? "";
+      emitUpdate(state.text, update);
+      break;
+    case "citations_delta":
+      collectAnthropicCitation(delta["citation"], sources);
+      break;
+    default:
+  }
+}
+
 function handleAnthropicEvent(
   event: JsonObject,
   state: SearchState,
+  attempt: AnthropicAttemptState,
   sources: SearchSource[],
   update: AgentToolUpdateCallback | undefined,
 ): void {
   const type = string(event["type"]);
-  if (type === "error") {
-    const error = object(event["error"]);
-    throw new Error(string(error?.["message"]) ?? "Anthropic web search failed.");
+  switch (type) {
+    case "error": {
+      const error = object(event["error"]);
+      throw new Error(string(error?.["message"]) ?? "Anthropic web search failed.");
+    }
+    case "message_delta": {
+      const delta = object(event["delta"]);
+      if (delta?.["stop_reason"] === "pause_turn") {
+        attempt.paused = true;
+      }
+      break;
+    }
+    case "content_block_start":
+      startAnthropicBlock(event, state, attempt, sources, update);
+      break;
+    case "content_block_stop":
+      stopAnthropicBlock(event, attempt);
+      break;
+    case "content_block_delta":
+      applyAnthropicDelta(event, state, attempt, sources, update);
+      break;
+    case undefined:
+    default:
   }
-  if (type === "message_delta") {
-    const delta = object(event["delta"]);
-    if (delta?.["stop_reason"] === "pause_turn") {
-      throw new Error("Anthropic paused the web search; use a narrower query and retry.");
+}
+
+function anthropicHeaders(model: Model<Api>, auth: SearchAuth): Headers {
+  const headers = new Headers({
+    accept: "text/event-stream",
+    "anthropic-version": "2023-06-01",
+    "content-type": "application/json",
+    ...model.headers,
+    ...auth.headers,
+  });
+  const isOAuth = auth.apiKey?.includes("sk-ant-oat") === true;
+  if (auth.apiKey === undefined) {
+    return headers;
+  }
+  if (!isOAuth) {
+    if (!headers.has("x-api-key")) {
+      headers.set("x-api-key", auth.apiKey);
+    }
+    return headers;
+  }
+  if (!headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${auth.apiKey}`);
+  }
+  const oauthBetas = ["claude-code-20250219", "oauth-2025-04-20"];
+  const existingBetas = headers.get("anthropic-beta");
+  headers.set(
+    "anthropic-beta",
+    existingBetas === null ? oauthBetas.join(",") : `${existingBetas},${oauthBetas.join(",")}`,
+  );
+  if (!headers.has("user-agent")) {
+    headers.set("user-agent", "claude-cli/2.1.75");
+  }
+  if (!headers.has("x-app")) {
+    headers.set("x-app", "cli");
+  }
+  return headers;
+}
+
+function addAnthropicThinking(
+  body: JsonObject,
+  model: Model<Api>,
+  thinkingLevel: SearchThinkingLevel,
+): void {
+  if (!model.reasoning) {
+    return;
+  }
+  if (thinkingLevel === "off") {
+    const map = model.thinkingLevelMap as Readonly<Record<string, string | null>> | undefined;
+    if (map?.["off"] !== null) {
+      body["thinking"] = { type: "disabled" };
     }
     return;
   }
-  if (type === "content_block_start") {
-    collectAnthropicResults(event["content_block"], sources);
+  const effort = mappedThinkingEffort(model, thinkingLevel);
+  if (object(model.compat)?.["forceAdaptiveThinking"] === true) {
+    body["thinking"] = { type: "adaptive" };
+    body["output_config"] = { effort };
     return;
   }
-  if (type !== "content_block_delta") {
-    return;
+  body["thinking"] = {
+    budget_tokens: anthropicThinkingBudget(thinkingLevel),
+    type: "enabled",
+  };
+}
+
+async function runAnthropicSearch(
+  model: Model<Api>,
+  query: string,
+  signal: AbortSignal | undefined,
+  update: AgentToolUpdateCallback | undefined,
+  headers: Headers,
+  body: JsonObject,
+): Promise<NativeSearchResult> {
+  const initialMessage = { content: query, role: "user" };
+  const state: SearchState = { text: "" };
+  const sources: SearchSource[] = [];
+  const pausedContent: JsonObject[] = [];
+  for (let continuation = 0; continuation <= 2; continuation += 1) {
+    body["messages"] =
+      pausedContent.length === 0
+        ? [initialMessage]
+        : [initialMessage, { content: pausedContent, role: "assistant" }];
+    const response = await fetch(resolveAnthropicUrl(model.baseUrl), {
+      body: JSON.stringify(body),
+      headers: Object.fromEntries(headers.entries()),
+      method: "POST",
+      ...(signal === undefined ? {} : { signal }),
+    });
+    if (!response.ok) {
+      throw await providerFailure("Anthropic", response);
+    }
+    const attempt: AnthropicAttemptState = {
+      blocks: [],
+      partialJson: new Map(),
+      paused: false,
+    };
+    await readSseJson(response, signal, (event) => {
+      handleAnthropicEvent(event, state, attempt, sources, update);
+    });
+    if (!attempt.paused) {
+      return { sources, text: state.text === "" ? "No answer was returned." : state.text };
+    }
+    pausedContent.push(
+      ...attempt.blocks.filter((block): block is JsonObject => block !== undefined),
+    );
+    if (pausedContent.length === 0) {
+      throw new Error("Anthropic paused the web search without resumable content.");
+    }
   }
-  const delta = object(event["delta"]);
-  if (delta?.["type"] === "text_delta") {
-    state.text += string(delta["text"]) ?? "";
-    emitUpdate(state.text, update);
-  } else if (delta?.["type"] === "citations_delta") {
-    collectAnthropicCitation(delta["citation"], sources);
-  }
+  throw new Error("Anthropic web search remained paused after two continuation requests.");
 }
 
 export async function searchAnthropic(
@@ -538,56 +818,22 @@ export async function searchAnthropic(
   signal: AbortSignal | undefined,
   update: AgentToolUpdateCallback | undefined,
   ctx: ExtensionContext,
+  thinkingLevel: SearchThinkingLevel,
 ): Promise<NativeSearchResult> {
   const auth = await resolveAuth(ctx, model);
-  const headerBag = new Headers({
-    accept: "text/event-stream",
-    "anthropic-version": "2023-06-01",
-    "content-type": "application/json",
-    ...model.headers,
-    ...auth.headers,
-  });
-  const isOAuth = auth.apiKey?.includes("sk-ant-oat") === true;
-  if (auth.apiKey !== undefined && isOAuth) {
-    if (!headerBag.has("authorization")) {
-      headerBag.set("authorization", `Bearer ${auth.apiKey}`);
-    }
-    const oauthBetas = ["claude-code-20250219", "oauth-2025-04-20"];
-    const existingBetas = headerBag.get("anthropic-beta");
-    headerBag.set(
-      "anthropic-beta",
-      existingBetas === null ? oauthBetas.join(",") : `${existingBetas},${oauthBetas.join(",")}`,
-    );
-    if (!headerBag.has("user-agent")) {
-      headerBag.set("user-agent", "claude-cli/2.1.75");
-    }
-    if (!headerBag.has("x-app")) {
-      headerBag.set("x-app", "cli");
-    }
-  } else if (auth.apiKey !== undefined && !headerBag.has("x-api-key")) {
-    headerBag.set("x-api-key", auth.apiKey);
-  }
-  const maximumTokens = Math.min(Math.max(Math.floor(model.maxTokens / 3), 1024), 4096);
-  const response = await fetch(resolveAnthropicUrl(model.baseUrl), {
-    body: JSON.stringify({
-      max_tokens: maximumTokens,
-      messages: [{ content: query, role: "user" }],
-      model: model.id,
-      stream: true,
-      tools: [{ max_uses: 5, name: "web_search", type: "web_search_20250305" }],
-    }),
-    headers: Object.fromEntries(headerBag.entries()),
-    method: "POST",
-    ...(signal === undefined ? {} : { signal }),
-  });
-  if (!response.ok) {
-    throw await providerFailure("Anthropic", response);
-  }
-
-  const state: SearchState = { text: "" };
-  const sources: SearchSource[] = [];
-  await readSseJson(response, signal, (event) => {
-    handleAnthropicEvent(event, state, sources, update);
-  });
-  return { sources, text: state.text === "" ? "No answer was returned." : state.text };
+  const body: Record<string, unknown> = {
+    max_tokens: model.maxTokens,
+    model: model.id,
+    stream: true,
+    tools: [{ max_uses: 15, name: "web_search", type: "web_search_20250305" }],
+  };
+  addAnthropicThinking(body, model, thinkingLevel);
+  return await runAnthropicSearch(
+    model,
+    query,
+    signal,
+    update,
+    anthropicHeaders(model, auth),
+    body,
+  );
 }
