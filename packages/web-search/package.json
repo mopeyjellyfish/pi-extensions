@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-web-search",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Provider-native web search for Pi using the current or a configured model.",
   "license": "MIT",
   "type": "module",
