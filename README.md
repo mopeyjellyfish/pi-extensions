@@ -26,9 +26,75 @@ nvm install
 nvm install 22.20.0
 nvm use
 gvm install go1.26.5 -B # only when the version is not already installed
+source "$HOME/.gvm/scripts/gvm"
 source .gvmrc
 npm ci --ignore-scripts
 ```
+
+## Install the packages
+
+npm publication is not automated yet. Install from a trusted local checkout;
+Pi records the path without copying it, so keep the checkout available while
+the package is installed.
+
+Install the root aggregate to make every extension and skill available in all
+projects:
+
+```sh
+git clone https://github.com/mopeyjellyfish/pi-extensions.git
+cd pi-extensions
+pi install "$(pwd)"
+pi list
+```
+
+Install one package instead by passing its package directory:
+
+```sh
+pi install "$(pwd)/packages/worktrunk"
+pi install "$(pwd)/packages/git-conventions"
+```
+
+To scope an installation to another project, run the command from that project
+with `-l` and an absolute path:
+
+```sh
+cd /path/to/project
+pi install -l /path/to/pi-extensions/packages/worktrunk
+```
+
+Pi writes global installs to `~/.pi/agent/settings.json` and project installs
+to `.pi/settings.json`. Review the checkout before trusting either scope;
+extensions and skills run with the user's permissions.
+
+## Develop with hot reload
+
+This repository commits [`.pi/settings.json`](.pi/settings.json), which loads
+the private root aggregate from `..` relative to that settings file. From the
+repository root:
+
+```sh
+nvm use
+npm ci --ignore-scripts
+pi
+```
+
+Approve Pi's project-trust prompt after reviewing the checkout. Edit an
+extension or skill, then run `/reload` inside Pi. Reload shuts down the old
+extension runtime, rereads the live TypeScript and skill sources, and starts a
+fresh runtime; reinstalling the package is unnecessary. Restart Pi after
+changing dependencies or startup-only CLI flags.
+
+For a one-shot check without the project settings, load the aggregate or one
+package explicitly:
+
+```sh
+pi -e .
+pi -e packages/worktrunk
+pi -e packages/git-conventions
+```
+
+`-e` is useful for quick tests, while the committed project setting plus
+`/reload` is the normal edit-test loop.
 
 ## Commands
 
@@ -59,7 +125,8 @@ packages/<package>/
 └── go/                  # optional independent Go module
 ```
 
-The private root package aggregates package extensions and skills, so `pi -e .` loads the full collection. A single package can be tested with `pi -e packages/<package>`. Published packages remain independently installable.
+The private root package aggregates package extensions and skills. Published
+packages remain independently installable.
 
 Each package is versioned independently through a review-gated Release Please PR. Merging that PR creates package-specific tags such as `pi-example-v0.1.0` and matching GitHub Releases; npm publication is not automated yet. Package-local `docs` and `chore` commits intentionally produce patch releases, including skill and documentation maintenance, while root-only changes do not release a package.
 

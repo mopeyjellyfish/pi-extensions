@@ -4,7 +4,12 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { findGoModules, toPosixPath } from "../../scripts/lib/repository.ts";
+import {
+  findGoModules,
+  readJsonFile,
+  repositoryRoot,
+  toPosixPath,
+} from "../../scripts/lib/repository.ts";
 
 const temporaryRoots: string[] = [];
 
@@ -17,6 +22,13 @@ afterEach(async () => {
 });
 
 describe("repository discovery", () => {
+  it("loads the live repository aggregate for project-local Pi development", async () => {
+    expect.hasAssertions();
+    await expect(readJsonFile(join(repositoryRoot, ".pi", "settings.json"))).resolves.toEqual({
+      packages: [".."],
+    });
+  });
+
   it("normalizes Windows path separators", () => {
     expect.hasAssertions();
     expect(toPosixPath("packages\\sample\\src\\index.ts")).toBe("packages/sample/src/index.ts");
