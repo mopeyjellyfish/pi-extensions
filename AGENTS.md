@@ -160,8 +160,8 @@ model or provider.
 Read project-local provider configuration only when `ctx.isProjectTrusted()` is
 true. Resolve it relative to `ctx.cwd`, which is also what makes configuration
 worktree-specific when Pi starts inside a linked worktree. Configuration files
-select models only; credentials remain in Pi's auth storage and must never be
-written to a repository file.
+may select a model and a provider-neutral thinking level only; credentials
+remain in Pi's auth storage and must never be written to a repository file.
 
 Obtain request authentication with `ctx.modelRegistry.getApiKeyAndHeaders()`.
 Preserve model and registry headers case-insensitively, then add only the
@@ -176,10 +176,12 @@ provider-native headers the selected API requires. Provider transports must:
 
 Keep the Pi tool schema provider-neutral unless a control has portable meaning
 across every supported API. A provider-backed tool that makes another request
-with the current or configured model must preserve `pi.getThinkingLevel()` and
-map it through the target model's metadata; never force a lower reasoning level
-or response verbosity merely to reduce search cost. Keep cost and latency
-tradeoffs under the user's Pi model and thinking selection.
+with the current or configured model must preserve the selected execution
+profile: use an explicit tool-specific thinking-level override when configured,
+otherwise use `pi.getThinkingLevel()`, then map or clamp it through the target
+model's metadata. Never force a lower reasoning level or response verbosity
+merely to reduce search cost. Keep cost and latency tradeoffs under the user's
+Pi model and thinking selection.
 
 Use documented research-capable provider limits rather than lookup-only limits
 for tools advertised for research. Bound transport errors, updates, retries,

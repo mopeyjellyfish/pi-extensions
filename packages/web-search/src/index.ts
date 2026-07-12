@@ -6,7 +6,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
-import { resolveSearchModel } from "./model.ts";
+import { resolveSearchSelection } from "./model.ts";
 import { searchAnthropic, searchGoogle, searchOpenAi } from "./search.ts";
 
 const MAX_SOURCE_BYTES = 8192;
@@ -68,18 +68,25 @@ export default function webSearchExtension(pi: ExtensionAPI): void {
     ],
     parameters: WebSearchParameters,
     async execute(_id, input, signal, update, ctx) {
-      const model = await resolveSearchModel(ctx);
+      const selection = await resolveSearchSelection(ctx);
+      const model = selection.model;
+      const thinkingLevel = selection.thinkingLevel ?? pi.getThinkingLevel();
       update?.({
         content: [{ text: `Searching the web with ${model.provider}/${model.id}…`, type: "text" }],
-        details: { model: model.id, provider: model.provider, searching: true },
+        details: {
+          model: model.id,
+          provider: model.provider,
+          searching: true,
+          thinkingLevel,
+        },
       });
       const result =
         model.api === "anthropic-messages"
-          ? await searchAnthropic(model, input.query, signal, update, ctx, pi.getThinkingLevel())
+          ? await searchAnthropic(model, input.query, signal, update, ctx, thinkingLevel)
           : model.api === "google-generative-ai"
-            ? await searchGoogle(model, input.query, signal, update, ctx, pi.getThinkingLevel())
+            ? await searchGoogle(model, input.query, signal, update, ctx, thinkingLevel)
             : model.api === "openai-responses" || model.api === "openai-codex-responses"
-              ? await searchOpenAi(model, input.query, signal, update, ctx, pi.getThinkingLevel())
+              ? await searchOpenAi(model, input.query, signal, update, ctx, thinkingLevel)
               : undefined;
       if (result === undefined) {
         throw new Error("Native web search is not implemented for this model yet.");
@@ -105,6 +112,7 @@ export default function webSearchExtension(pi: ExtensionAPI): void {
           provider: model.provider,
           sourceCount: result.sources.length,
           sources: result.sources,
+          thinkingLevel,
           truncated: truncation.truncated || sources.omitted > 0,
           visibleSourceCount: result.sources.length - sources.omitted,
         },
