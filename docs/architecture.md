@@ -41,6 +41,8 @@ Release Please tracks each package independently in manifest mode. It groups pen
 
 Release attribution follows changed package paths and preserved Conventional Commits. Rebase-only merges retain every validated commit, so a pull request can make a breaking change to one package and a patch change to another without collapsing their semantic types or file ownership. Breaking changes bump major versions, `feat` bumps minor versions, and visible non-feature types (`fix`, `perf`, `docs`, `chore`, `refactor`, `revert`, `build`, and `deps`) bump patch versions. Root-only changes do not bump package versions.
 
+Once registered, package changelogs are generator-owned release artifacts. Release Please's Markdown renderer does not follow this repository's Prettier and markdownlint styles, so those tools narrowly exclude `packages/*/CHANGELOG.md`; all other Markdown remains checked. Release PR review verifies the generated notes semantically instead of reformatting content that the next automation update would replace.
+
 ## Verification layers
 
 1. Manifest validation checks package structure, release metadata, dependency placement, Pi resources, aggregate coverage, and npm pack contents.

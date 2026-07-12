@@ -168,6 +168,12 @@ package-owned changes so Release Please can attribute them, and preserve
 validated commits with rebase-only merges. Root-only changes do not release a
 package; package-local features, fixes, docs, dependencies, and chores do.
 
+Release Please owns package changelog updates after a package is registered.
+Its generated Markdown intentionally remains outside Prettier and markdownlint
+because rewriting it in a release branch would be overwritten by the next
+automation update. Review generated release notes for accuracy, but do not
+hand-format them or weaken repository-wide Markdown rules to accommodate them.
+
 Do not stage or commit credentials, local absolute paths, environment files,
 generated artifacts, package archives, coverage, sessions, trust state, or
 delegated-agent runtime files. GitHub Actions use least privilege and immutable
