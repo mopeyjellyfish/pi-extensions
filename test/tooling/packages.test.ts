@@ -156,6 +156,7 @@ describe("package contracts", () => {
     const packages = await discoverProductionPackages();
     expect(packages.map((descriptor) => descriptor.manifest["name"])).toEqual([
       "@mopeyjellyfish/pi-git-conventions",
+      "@mopeyjellyfish/pi-question",
       "@mopeyjellyfish/pi-todo",
       "@mopeyjellyfish/pi-web-search",
       "@mopeyjellyfish/pi-worktrunk",
