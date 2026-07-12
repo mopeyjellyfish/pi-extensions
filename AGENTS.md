@@ -148,6 +148,38 @@ a check passed unless it ran against the current worktree after the final edit.
 - Test registration, reload cleanup, cancellation, failures, state restoration,
   truncation, and useful non-interactive behavior where applicable.
 
+## Provider-backed tools
+
+Treat Pi's model registry and pinned provider contracts as the source of truth.
+Prefer capability checks on `model.api` over model-name allowlists so compatible
+new models work when Pi adds them. Use `ctx.model` as the default when behavior
+should follow the conversation, and resolve explicit provider/model selections
+through `ctx.modelRegistry.find()` without silently falling back to another
+model or provider.
+
+Read project-local provider configuration only when `ctx.isProjectTrusted()` is
+true. Resolve it relative to `ctx.cwd`, which is also what makes configuration
+worktree-specific when Pi starts inside a linked worktree. Configuration files
+select models only; credentials remain in Pi's auth storage and must never be
+written to a repository file.
+
+Obtain request authentication with `ctx.modelRegistry.getApiKeyAndHeaders()`.
+Preserve model and registry headers case-insensitively, then add only the
+provider-native headers the selected API requires. Provider transports must:
+
+- pass Pi's abort signal through fetch and streaming reads;
+- surface bounded provider errors without leaking credentials;
+- parse streaming data defensively and tolerate unknown event fields;
+- treat result text, titles, and URLs as untrusted external input;
+- deduplicate and validate sources before rendering them;
+- bound both streaming updates and final output to Pi's tool limits.
+
+Mock the provider network boundary in automated tests. Cover API-key and OAuth
+paths when both are supported, completed and incremental citation events,
+invalid configuration before fetch, cancellation, provider errors, and output
+truncation. Real-provider acceptance uses the developer's existing Pi auth and
+must never print, fixture, or commit credentials or responses containing them.
+
 ## Go
 
 - Each extension owns an independent module under its package.
