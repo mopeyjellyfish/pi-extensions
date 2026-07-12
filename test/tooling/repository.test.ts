@@ -1,15 +1,10 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  findGoModules,
-  readJsonFile,
-  repositoryRoot,
-  toPosixPath,
-} from "../../scripts/lib/repository.ts";
+import { findGoModules, repositoryRoot, toPosixPath } from "../../scripts/lib/repository.ts";
 
 const temporaryRoots: string[] = [];
 
@@ -22,10 +17,10 @@ afterEach(async () => {
 });
 
 describe("repository discovery", () => {
-  it("loads the live repository aggregate for project-local Pi development", async () => {
+  it("does not auto-load the aggregate alongside a globally installed copy", async () => {
     expect.hasAssertions();
-    await expect(readJsonFile(join(repositoryRoot, ".pi", "settings.json"))).resolves.toEqual({
-      packages: [".."],
+    await expect(access(join(repositoryRoot, ".pi", "settings.json"))).rejects.toMatchObject({
+      code: "ENOENT",
     });
   });
 

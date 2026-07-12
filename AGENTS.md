@@ -41,11 +41,15 @@ when dependency metadata changes.
 
 ## Live Pi development
 
-The committed `.pi/settings.json` loads `..`, the private root package, as a
-project-local Pi package. The root manifest aggregates every production
-extension matching `packages/*/src/index.ts` and every package skill directory.
-No separate hot-reload marker is needed for a package that follows that
-contract; Pi reevaluates the root manifest globs during `/reload`.
+The repository deliberately does not commit a `.pi/settings.json` that loads
+`..`. A developer may already have the Git aggregate installed globally, and
+automatic project loading would register the same tools, commands, and skills
+twice. Do not add an automatic project package entry for the working copy.
+
+The private root manifest aggregates every production extension matching
+`packages/*/src/index.ts` and every package skill directory. No separate
+hot-reload marker is needed for a package that follows that contract; Pi
+reevaluates the root manifest globs during `/reload`.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash
@@ -147,6 +151,59 @@ a check passed unless it ran against the current worktree after the final edit.
 - Never write production extension output to standard output.
 - Test registration, reload cleanup, cancellation, failures, state restoration,
   truncation, and useful non-interactive behavior where applicable.
+
+## Provider-backed tools
+
+Treat Pi's model registry and pinned provider contracts as the source of truth.
+Prefer capability checks on `model.api` over model-name allowlists so compatible
+new models work when Pi adds them. Use `ctx.model` as the default when behavior
+should follow the conversation, and resolve explicit provider/model selections
+through `ctx.modelRegistry.find()` without silently falling back to another
+model or provider.
+
+Read project-local provider configuration only when `ctx.isProjectTrusted()` is
+true. Resolve it relative to `ctx.cwd`, which is also what makes configuration
+worktree-specific when Pi starts inside a linked worktree. Configuration files
+may select a model and a provider-neutral thinking level only; credentials
+remain in Pi's auth storage and must never be written to a repository file.
+
+Obtain request authentication with `ctx.modelRegistry.getApiKeyAndHeaders()`.
+Preserve model and registry headers case-insensitively, then add only the
+provider-native headers the selected API requires. Provider transports must:
+
+- pass Pi's abort signal through fetch and streaming reads;
+- surface bounded provider errors without leaking credentials;
+- parse streaming data defensively and tolerate unknown event fields;
+- treat result text, titles, and URLs as untrusted external input;
+- deduplicate and validate sources before rendering them;
+- bound both streaming updates and final output to Pi's tool limits.
+
+Keep the Pi tool schema provider-neutral unless a control has portable meaning
+across every supported API. A provider-backed tool that makes another request
+with the current or configured model must preserve the selected execution
+profile: use an explicit tool-specific thinking-level override when configured,
+otherwise use `pi.getThinkingLevel()`, then map or clamp it through the target
+model's metadata. Never force a lower reasoning level or response verbosity
+merely to reduce search cost. Keep cost and latency tradeoffs under the user's
+Pi model and thinking selection.
+
+Use documented research-capable provider limits rather than lookup-only limits
+for tools advertised for research. Bound transport errors, updates, retries,
+and rendered output without starving the model's reasoning or provider-tool
+loop. Continue resumable provider stop states such as Anthropic `pause_turn`
+with the original content and a strict continuation bound. Reserve final-output
+budget for citations so a long answer cannot truncate every source.
+
+Treat versioned provider tools as behavior contracts, not date upgrades. Before
+adopting a newer tool version, verify its default caller, compatibility, cost,
+and streaming semantics against every supported model family; do not infer
+support from model names alone.
+
+Mock the provider network boundary in automated tests. Cover API-key and OAuth
+paths when both are supported, completed and incremental citation events,
+invalid configuration before fetch, cancellation, provider errors, and output
+truncation. Real-provider acceptance uses the developer's existing Pi auth and
+must never print, fixture, or commit credentials or responses containing them.
 
 ## Go
 

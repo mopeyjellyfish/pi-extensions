@@ -5,10 +5,11 @@ A strict npm-workspace monorepo for independently installable [Pi coding agent](
 > [!WARNING]
 > Pi extensions execute with the user's full system permissions, and skills can direct agents to run commands. Review every package and its dependencies before installing it. Never load resources from an untrusted package or repository.
 
-The production packages provide an independent Worktrunk adapter plus focused
-Git convention skills. The Worktrunk package is not an official upstream Pi
-integration; see its [package README](packages/worktrunk/README.md) for the
-separate `wt` prerequisite and safety model.
+The production packages provide provider-native web search, an independent
+Worktrunk adapter, and focused Git convention skills. The Worktrunk package is
+not an official upstream Pi integration; see its
+[package README](packages/worktrunk/README.md) for the separate `wt`
+prerequisite and safety model.
 
 ## Quick start
 
@@ -76,6 +77,7 @@ Install one package instead by passing its package directory:
 ```sh
 pi install "$(pwd)/packages/worktrunk"
 pi install "$(pwd)/packages/git-conventions"
+pi install "$(pwd)/packages/web-search"
 ```
 
 To scope an installation to another project, run the command from that project
@@ -92,14 +94,22 @@ extensions and skills run with the user's permissions.
 
 ## Develop with hot reload
 
-This repository commits [`.pi/settings.json`](.pi/settings.json), which loads
-the private root aggregate from `..` relative to that settings file. From the
-repository root:
+This repository deliberately does not auto-load its root aggregate through
+`.pi/settings.json`. Auto-loading the working copy would register each tool
+twice when the Git aggregate is also installed globally.
+
+From the repository root, start an isolated development session that disables
+installed resources and explicitly loads the working copy:
 
 ```sh
 nvm use
 npm ci --ignore-scripts
-pi
+npm exec -- pi \
+  --no-extensions \
+  --no-skills \
+  --no-prompt-templates \
+  --no-themes \
+  -e .
 ```
 
 Approve Pi's project-trust prompt after reviewing the checkout. Edit an
@@ -108,17 +118,22 @@ extension runtime, rereads the live TypeScript and skill sources, and starts a
 fresh runtime; reinstalling the package is unnecessary. Restart Pi after
 changing dependencies or startup-only CLI flags.
 
-For a one-shot check without the project settings, load the aggregate or one
-package explicitly:
+To develop one package instead of the aggregate, replace `.` with its package
+directory:
 
 ```sh
-pi -e .
-pi -e packages/worktrunk
-pi -e packages/git-conventions
+npm exec -- pi \
+  --no-extensions \
+  --no-skills \
+  --no-prompt-templates \
+  --no-themes \
+  -e packages/web-search
 ```
 
-`-e` is useful for quick tests, while the committed project setting plus
-`/reload` is the normal edit-test loop.
+Keep the discovery-disabling flags for local development. They prevent a
+globally or project-installed copy from registering the same tools, commands,
+or skills as the explicit `-e` working copy. A normal `pi` session continues
+to use the installed copy.
 
 ## Commands
 
@@ -159,6 +174,7 @@ Each package is versioned independently through a review-gated Release Please PR
 | Package                                                                    | Purpose                                                                                                      |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md) | Provide repository-aware Conventional Commit and safe base-branch rebase skills.                             |
+| [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)           | Search the live web through the current or a configured model's provider-native search API.                  |
 | [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)             | Delegate worktree lifecycle actions to Worktrunk and safely route Pi tools into a confirmed linked worktree. |
 
 See [the architecture](docs/architecture.md), [package authoring guide](docs/authoring.md), and [package contract](packages/README.md) before adding resources. Pi's authoritative [extension](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md), [skill](https://pi.dev/docs/latest/skills), and [package](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md) documentation takes precedence over this repository's guidance.
