@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { CURSOR_MARKER, visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it } from "vitest";
 
 import questionExtension, {
@@ -247,5 +247,101 @@ describe("final review regressions", () => {
     expect(lines.at(-2)).toContain("navigate");
     expect(lines.at(-1)).toMatch(/^─+$/u);
     expect(lines.every((line) => visibleWidth(line) <= 24)).toBe(true);
+  });
+
+  it.each([
+    ["Other", ["DOWN", "DOWN", "\r"]],
+    ["Chat", ["DOWN", "DOWN", "DOWN", "\r"]],
+    ["note", ["n"]],
+  ] as const)("keeps the IME cursor visible for long %s editor input", (_mode, actions) => {
+    expect.hasAssertions();
+    const editorQuestion: QuestionDefinition = {
+      ...question,
+      options: [{ ...options[0], preview: "**Preview**" }, options[1]],
+    };
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 10 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      {
+        matches(data: string, id: string) {
+          return (
+            (id === "tui.select.confirm" && data === "\r") ||
+            (id === "tui.select.down" && data === "DOWN")
+          );
+        },
+      },
+      [editorQuestion],
+      createInitialState([editorQuestion]),
+      () => {
+        return;
+      },
+    );
+    dialog.focused = true;
+    for (const action of actions) dialog.handleInput(action);
+    for (const character of "long editor input ".repeat(20)) dialog.handleInput(character);
+
+    const lines = dialog.render(24);
+    expect(lines).toHaveLength(10);
+    expect(lines.join("\n")).toContain(CURSOR_MARKER);
+    expect(lines.every((line) => visibleWidth(line) <= 24)).toBe(true);
+  });
+
+  it("sanitizes RPC question titles for single- and multi-select dialogs", async () => {
+    expect.hasAssertions();
+    const titles: string[] = [];
+    const unsafeQuestion: QuestionDefinition = {
+      ...question,
+      question: "Choose\u{1B}[31m scope\u{0}",
+    };
+    const unsafeMulti: QuestionDefinition = { ...unsafeQuestion, id: "checks", multiSelect: true };
+    const choices = ["A", "Submit answers", "[ ] A", "Next →", "Submit answers"];
+    const context = rpcContext(choices);
+    context.ui.select = (title: string) => {
+      titles.push(title);
+      return Promise.resolve(choices.shift());
+    };
+
+    await tool().execute(
+      "single-title",
+      { questions: [unsafeQuestion] },
+      undefined,
+      undefined,
+      context,
+    );
+    await tool().execute(
+      "multi-title",
+      { questions: [unsafeMulti] },
+      undefined,
+      undefined,
+      context,
+    );
+
+    expect(titles.some((title) => title.includes("�[31m") && title.includes("scope�"))).toBe(true);
+    expect(titles.join("\n")).not.toContain("\u{0}");
+    expect(titles.join("\n")).not.toContain("\u{1B}");
+  });
+
+  it("does not echo raw controls in duplicate validation errors", () => {
+    expect.hasAssertions();
+    const badId = "duplicate\u{1B}";
+    const badLabel = "duplicate\u{0}";
+    const errors = validateQuestions([
+      {
+        ...question,
+        options: [
+          { ...options[0], id: badId, label: badLabel },
+          { ...options[1], id: badId, label: badLabel },
+        ],
+      },
+    ]);
+    expect(errors.join("\n")).toContain("duplicate option id");
+    expect(errors.join("\n")).toContain("duplicate option label");
+    expect(errors.join("\n")).not.toContain("\u{0}");
+    expect(errors.join("\n")).not.toContain("\u{1B}");
   });
 });

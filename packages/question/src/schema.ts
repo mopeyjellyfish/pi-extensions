@@ -1,6 +1,6 @@
 import { Type } from "typebox";
 
-import { hasStructuralControl } from "./bounds.ts";
+import { hasStructuralControl, sanitizeText } from "./bounds.ts";
 
 import type { QuestionDefinition } from "./types.ts";
 
@@ -51,6 +51,10 @@ const QuestionSchema = Type.Object(
   { additionalProperties: false },
 );
 
+function quoted(value: string): string {
+  return JSON.stringify(sanitizeText(value));
+}
+
 export const QuestionParameters = Type.Object(
   {
     continuationId: Type.Optional(
@@ -72,13 +76,13 @@ function validateOption(
   labels: Set<string>,
 ): string[] {
   const errors: string[] = [];
-  if (ids.has(option.id)) errors.push(`${prefix} has duplicate option id "${option.id}"`);
+  if (ids.has(option.id)) errors.push(`${prefix} has duplicate option id ${quoted(option.id)}`);
   ids.add(option.id);
   if (labels.has(option.label))
-    errors.push(`${prefix} has duplicate option label "${option.label}"`);
+    errors.push(`${prefix} has duplicate option label ${quoted(option.label)}`);
   labels.add(option.label);
   if ((RESERVED_LABELS as readonly string[]).includes(option.label)) {
-    errors.push(`${prefix} option label "${option.label}" is reserved`);
+    errors.push(`${prefix} option label ${quoted(option.label)} is reserved`);
   }
   if (!option.id.trim()) errors.push(`${prefix} option id must not be empty`);
   if (hasStructuralControl(option.id)) {
@@ -121,7 +125,7 @@ export function validateQuestions(questions: readonly QuestionDefinition[]): str
     questions.length < 1 || questions.length > 4 ? ["questions must contain 1 to 4 questions"] : [];
   const ids = new Set<string>();
   for (const [index, question] of questions.entries()) {
-    if (ids.has(question.id)) errors.push(`duplicate question id "${question.id}"`);
+    if (ids.has(question.id)) errors.push(`duplicate question id ${quoted(question.id)}`);
     ids.add(question.id);
     errors.push(...validateQuestion(question, index));
   }

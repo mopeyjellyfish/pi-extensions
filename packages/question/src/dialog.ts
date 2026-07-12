@@ -1,5 +1,6 @@
 import { getMarkdownTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import {
+  CURSOR_MARKER,
   Editor,
   type EditorTheme,
   Key,
@@ -440,11 +441,12 @@ export class QuestionDialog implements Component, Focusable {
       : [this.theme.fg("accent", this.theme.bold("Review your answers"))];
     const body = question ? this.renderQuestion(question, safeWidth) : this.renderReview(safeWidth);
     const top = [border, ...tabs, ...heading, ""];
+    const editorLines = this.editMode ? this.editor.render(safeWidth) : [];
     const editLines = this.editMode
       ? [
           "",
           this.theme.fg("muted", this.editMode.kind === "note" ? "Note:" : "Your message:"),
-          ...this.editor.render(safeWidth),
+          ...editorLines,
         ]
       : [];
     const hints = this.editMode
@@ -453,7 +455,11 @@ export class QuestionDialog implements Component, Focusable {
     const all = [...top, ...body.lines, ...editLines, "", this.theme.fg("dim", hints), border].map(
       (line) => truncateToWidth(line, safeWidth, ""),
     );
-    const editFocus = editLines.length > 0 ? top.length + body.lines.length + 2 : undefined;
+    const cursorRow = editorLines.findIndex((line) => line.includes(CURSOR_MARKER));
+    const editFocus =
+      editLines.length > 0
+        ? top.length + body.lines.length + 2 + Math.max(0, cursorRow)
+        : undefined;
     const fitted = fitDialogToRows(all, {
       rows: Math.max(1, this.tui.terminal.rows),
       topRows: top.length,
