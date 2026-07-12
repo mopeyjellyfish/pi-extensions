@@ -1,4 +1,5 @@
 {
   "packages/git-conventions": "1.0.0",
+  "packages/web-search": "0.0.0",
   "packages/worktrunk": "1.0.0"
 }

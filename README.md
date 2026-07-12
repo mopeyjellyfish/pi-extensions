@@ -5,10 +5,11 @@ A strict npm-workspace monorepo for independently installable [Pi coding agent](
 > [!WARNING]
 > Pi extensions execute with the user's full system permissions, and skills can direct agents to run commands. Review every package and its dependencies before installing it. Never load resources from an untrusted package or repository.
 
-The production packages provide an independent Worktrunk adapter plus focused
-Git convention skills. The Worktrunk package is not an official upstream Pi
-integration; see its [package README](packages/worktrunk/README.md) for the
-separate `wt` prerequisite and safety model.
+The production packages provide provider-native web search, an independent
+Worktrunk adapter, and focused Git convention skills. The Worktrunk package is
+not an official upstream Pi integration; see its
+[package README](packages/worktrunk/README.md) for the separate `wt`
+prerequisite and safety model.
 
 ## Requirements
 
@@ -52,6 +53,7 @@ Install one package instead by passing its package directory:
 ```sh
 pi install "$(pwd)/packages/worktrunk"
 pi install "$(pwd)/packages/git-conventions"
+pi install "$(pwd)/packages/web-search"
 ```
 
 To scope an installation to another project, run the command from that project
@@ -91,6 +93,7 @@ package explicitly:
 pi -e .
 pi -e packages/worktrunk
 pi -e packages/git-conventions
+pi -e packages/web-search
 ```
 
 `-e` is useful for quick tests, while the committed project setting plus
@@ -135,6 +138,7 @@ Each package is versioned independently through a review-gated Release Please PR
 | Package                                                                    | Purpose                                                                                                      |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md) | Provide repository-aware Conventional Commit and safe base-branch rebase skills.                             |
+| [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)           | Search the live web through the current or a configured model's provider-native search API.                  |
 | [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)             | Delegate worktree lifecycle actions to Worktrunk and safely route Pi tools into a confirmed linked worktree. |
 
 See [the architecture](docs/architecture.md), [package authoring guide](docs/authoring.md), and [package contract](packages/README.md) before adding resources. Pi's authoritative [extension](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md), [skill](https://pi.dev/docs/latest/skills), and [package](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md) documentation takes precedence over this repository's guidance.
