@@ -28,6 +28,9 @@
     "packages/todo": {
       "release-type": "node"
     },
+    "packages/question": {
+      "release-type": "node"
+    },
     "packages/web-search": {
       "release-type": "node"
     },
