@@ -1,3 +1,4 @@
+import { sanitizeText } from "./bounds.ts";
 import { applyAction, firstUnansweredTab } from "./state.ts";
 
 import type { QuestionDefinition, QuestionnaireState } from "./types.ts";
@@ -27,6 +28,10 @@ function dialogOptions(signal: AbortSignal | undefined): { signal?: AbortSignal 
 
 function cancelled(state: QuestionnaireState, signal: AbortSignal | undefined): WalkerOutcome {
   return { kind: "cancelled", state, reason: signal?.aborted ? "abort" : "escape" };
+}
+
+function questionTitle(question: QuestionDefinition): string {
+  return `${sanitizeText(question.header)}: ${sanitizeText(question.question)}`;
 }
 
 function nestedAbort(result: Intermediate, signal: AbortSignal | undefined): Intermediate {
@@ -75,7 +80,7 @@ async function walkSingle(
   signal: AbortSignal | undefined,
 ): Promise<Intermediate> {
   const choice = await ctx.ui.select(
-    `${question.header}: ${question.question}`,
+    questionTitle(question),
     [...question.options.map((option) => option.label), OTHER, CHAT],
     dialogOptions(signal),
   );
@@ -135,7 +140,7 @@ async function walkMulti(
       (option) => `${selected.includes(option.id) ? "[x]" : "[ ]"} ${option.label}`,
     );
     const choice = await ctx.ui.select(
-      `${question.header}: ${question.question}`,
+      questionTitle(question),
       [...labels, OTHER, CHAT, NEXT],
       dialogOptions(signal),
     );
