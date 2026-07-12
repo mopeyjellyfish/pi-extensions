@@ -75,11 +75,11 @@ export default function webSearchExtension(pi: ExtensionAPI): void {
       });
       const result =
         model.api === "anthropic-messages"
-          ? await searchAnthropic(model, input.query, signal, update, ctx)
+          ? await searchAnthropic(model, input.query, signal, update, ctx, pi.getThinkingLevel())
           : model.api === "google-generative-ai"
-            ? await searchGoogle(model, input.query, signal, update, ctx)
+            ? await searchGoogle(model, input.query, signal, update, ctx, pi.getThinkingLevel())
             : model.api === "openai-responses" || model.api === "openai-codex-responses"
-              ? await searchOpenAi(model, input.query, signal, update, ctx)
+              ? await searchOpenAi(model, input.query, signal, update, ctx, pi.getThinkingLevel())
               : undefined;
       if (result === undefined) {
         throw new Error("Native web search is not implemented for this model yet.");
