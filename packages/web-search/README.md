@@ -56,8 +56,9 @@ The search request preserves the experience selected in Pi:
 
 - it uses the current conversation model unless an explicit search model is
   configured;
-- it reads Pi's current thinking level and maps it through the selected model's
-  provider metadata instead of forcing a cheaper reasoning level;
+- it uses an explicit search thinking level when configured, otherwise Pi's
+  current thinking level, and maps it through the selected model's provider
+  metadata instead of forcing a cheaper reasoning level;
 - OpenAI and Codex searches keep that reasoning level and use the provider's
   normal response verbosity and balanced search-context defaults;
 - Anthropic searches use the model's adaptive or token-budget thinking mode,
@@ -84,14 +85,21 @@ should use a different model from the conversation:
 ```json
 {
   "provider": "anthropic",
-  "model": "claude-sonnet-5"
+  "model": "claude-sonnet-5",
+  "thinkingLevel": "xhigh"
 }
 ```
 
 The `provider` and `model` values must identify a model in Pi's model registry.
+`thinkingLevel` is optional and accepts `off`, `minimal`, `low`, `medium`,
+`high`, `xhigh`, or `max`. When present, it overrides Pi's conversation
+thinking level for every request and continuation made by `web_search`. When it
+is omitted, the configured model uses Pi's current thinking level, clamped to
+that model's supported levels.
+
 This project-local file is read only after Pi trusts the project. Because it is
 resolved from Pi's starting directory, linked worktrees can choose independent
-search models; start Pi inside the worktree being tested.
+search models and thinking levels; start Pi inside the worktree being tested.
 
 For a user-wide default, put the same JSON shape in
 `~/.pi/agent/web-search.json`. Configuration precedence is:
@@ -103,8 +111,9 @@ For a user-wide default, put the same JSON shape in
 
 `PI_WEB_SEARCH_CONFIG` is intended for automation and isolated testing. A
 configured file must exist and contain only non-empty `provider` and `model`
-strings. Invalid, missing, unknown, or unsupported explicit selections stop
-the tool before it sends a provider request.
+strings plus the optional `thinkingLevel`. Invalid, missing, unknown, or
+unsupported explicit selections stop the tool before it sends a provider
+request.
 
 ## Develop with reload
 

@@ -37,6 +37,7 @@ interface RegisteredTool {
       readonly provider: string;
       readonly sourceCount?: number;
       readonly sources: readonly { readonly title: string; readonly url: string }[];
+      readonly thinkingLevel?: string;
       readonly truncated?: boolean;
       readonly visibleSourceCount?: number;
     };
@@ -436,17 +437,28 @@ describe("pi-web-search extension", () => {
       baseUrl: "https://search.example/v1",
       id: "search-model",
       provider: "search-provider",
+      reasoning: true,
+      thinkingLevelMap: { xhigh: "xhigh" },
     };
     const previousConfigPath = process.env["PI_WEB_SEARCH_CONFIG"];
     try {
       await writeFile(
         configPath,
-        JSON.stringify({ model: "search-model", provider: "search-provider" }),
+        JSON.stringify({
+          model: "search-model",
+          provider: "search-provider",
+          thinkingLevel: "xhigh",
+        }),
         "utf8",
       );
       process.env["PI_WEB_SEARCH_CONFIG"] = configPath;
       const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
-        expect(requestJson(init)).toEqual(expect.objectContaining({ model: "search-model" }));
+        expect(requestJson(init)).toEqual(
+          expect.objectContaining({
+            model: "search-model",
+            reasoning: { effort: "xhigh" },
+          }),
+        );
         return Promise.resolve(
           sseResponse([{ type: "response.output_text.delta", delta: "Configured model answer." }]),
         );
@@ -471,7 +483,11 @@ describe("pi-web-search extension", () => {
 
       expect(registryMocks(ctx).find).toHaveBeenCalledWith("search-provider", "search-model");
       expect(result.details).toEqual(
-        expect.objectContaining({ model: "search-model", provider: "search-provider" }),
+        expect.objectContaining({
+          model: "search-model",
+          provider: "search-provider",
+          thinkingLevel: "xhigh",
+        }),
       );
     } finally {
       if (previousConfigPath === undefined) {
@@ -563,7 +579,7 @@ describe("pi-web-search extension", () => {
             provider: "openai",
           }),
         ),
-      ).rejects.toThrow(/expected only non-empty provider and model strings/iu);
+      ).rejects.toThrow(/expected non-empty provider and model strings/iu);
       expect(fetch).not.toHaveBeenCalled();
     } finally {
       if (previousConfigPath === undefined) {
@@ -608,6 +624,21 @@ describe("pi-web-search extension", () => {
       await expect(
         registerTool().execute("search-array", { query: "Array" }, undefined, undefined, ctx),
       ).rejects.toThrow("expected a JSON object");
+
+      await writeFile(
+        configPath,
+        JSON.stringify({ model: "gpt-5.6", provider: "openai", thinkingLevel: "ultra" }),
+        "utf8",
+      );
+      await expect(
+        registerTool().execute(
+          "search-invalid-thinking",
+          { query: "Invalid thinking" },
+          undefined,
+          undefined,
+          ctx,
+        ),
+      ).rejects.toThrow(/optional valid thinkingLevel/iu);
 
       await writeFile(
         configPath,
