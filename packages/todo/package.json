@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-todo",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Session-aware todo tracking for Pi agents.",
   "license": "MIT",
   "type": "module",
