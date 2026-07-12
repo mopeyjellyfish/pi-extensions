@@ -41,11 +41,15 @@ when dependency metadata changes.
 
 ## Live Pi development
 
-The committed `.pi/settings.json` loads `..`, the private root package, as a
-project-local Pi package. The root manifest aggregates every production
-extension matching `packages/*/src/index.ts` and every package skill directory.
-No separate hot-reload marker is needed for a package that follows that
-contract; Pi reevaluates the root manifest globs during `/reload`.
+The repository deliberately does not commit a `.pi/settings.json` that loads
+`..`. A developer may already have the Git aggregate installed globally, and
+automatic project loading would register the same tools, commands, and skills
+twice. Do not add an automatic project package entry for the working copy.
+
+The private root manifest aggregates every production extension matching
+`packages/*/src/index.ts` and every package skill directory. No separate
+hot-reload marker is needed for a package that follows that contract; Pi
+reevaluates the root manifest globs during `/reload`.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash

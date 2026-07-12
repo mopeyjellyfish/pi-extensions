@@ -70,14 +70,22 @@ extensions and skills run with the user's permissions.
 
 ## Develop with hot reload
 
-This repository commits [`.pi/settings.json`](.pi/settings.json), which loads
-the private root aggregate from `..` relative to that settings file. From the
-repository root:
+This repository deliberately does not auto-load its root aggregate through
+`.pi/settings.json`. Auto-loading the working copy would register each tool
+twice when the Git aggregate is also installed globally.
+
+From the repository root, start an isolated development session that disables
+installed resources and explicitly loads the working copy:
 
 ```sh
 nvm use
 npm ci --ignore-scripts
-pi
+npm exec -- pi \
+  --no-extensions \
+  --no-skills \
+  --no-prompt-templates \
+  --no-themes \
+  -e .
 ```
 
 Approve Pi's project-trust prompt after reviewing the checkout. Edit an
@@ -86,18 +94,22 @@ extension runtime, rereads the live TypeScript and skill sources, and starts a
 fresh runtime; reinstalling the package is unnecessary. Restart Pi after
 changing dependencies or startup-only CLI flags.
 
-For a one-shot check without the project settings, load the aggregate or one
-package explicitly:
+To develop one package instead of the aggregate, replace `.` with its package
+directory:
 
 ```sh
-pi -e .
-pi -e packages/worktrunk
-pi -e packages/git-conventions
-pi -e packages/web-search
+npm exec -- pi \
+  --no-extensions \
+  --no-skills \
+  --no-prompt-templates \
+  --no-themes \
+  -e packages/web-search
 ```
 
-`-e` is useful for quick tests, while the committed project setting plus
-`/reload` is the normal edit-test loop.
+Keep the discovery-disabling flags for local development. They prevent a
+globally or project-installed copy from registering the same tools, commands,
+or skills as the explicit `-e` working copy. A normal `pi` session continues
+to use the installed copy.
 
 ## Commands
 
