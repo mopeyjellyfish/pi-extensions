@@ -1,10 +1,15 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { validateReleaseState } from "../../scripts/lib/releases.ts";
+import { repositoryRoot } from "../../scripts/lib/repository.ts";
 
 import type { PackageDescriptor } from "../../scripts/lib/packages.ts";
 
 const root = "/repository";
+const generatedChangelogPattern = "packages/*/CHANGELOG.md";
 
 function descriptor(name: string, version: string): PackageDescriptor {
   return {
@@ -48,6 +53,21 @@ function packageConfig(): Record<string, unknown> {
 }
 
 describe("release configuration", () => {
+  it("excludes Release Please changelogs from human formatting gates", async () => {
+    expect.hasAssertions();
+    const [prettierIgnore, markdownlintConfiguration] = await Promise.all([
+      readFile(join(repositoryRoot, ".prettierignore"), "utf8"),
+      readFile(join(repositoryRoot, ".markdownlint-cli2.mjs"), "utf8"),
+    ]);
+    const prettierPatterns = prettierIgnore
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("#"));
+
+    expect(prettierPatterns).toContain(generatedChangelogPattern);
+    expect(markdownlintConfiguration).toContain(`"!${generatedChangelogPattern}"`);
+  });
+
   it("accepts the empty pre-extension state", () => {
     expect.hasAssertions();
     expect(validateReleaseState([], configuration(), {}, root)).toEqual([]);

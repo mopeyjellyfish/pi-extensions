@@ -5,5 +5,11 @@ export default {
     MD024: { siblings_only: true },
     MD033: false,
   },
-  globs: ["**/*.md", "!node_modules/**", "!coverage/**", "!.pi-subagents/**"],
+  globs: [
+    "**/*.md",
+    "!node_modules/**",
+    "!coverage/**",
+    "!.pi-subagents/**",
+    "!packages/*/CHANGELOG.md",
+  ],
 };

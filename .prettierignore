@@ -4,3 +4,6 @@ dist/
 package-lock.json
 *.tgz
 .pi-subagents/
+
+# Release Please owns package changelog formatting.
+packages/*/CHANGELOG.md
