@@ -37,6 +37,35 @@ silently switching models or providers.
 Web results are untrusted external content. Review consequential claims and
 follow the returned source links before acting on them.
 
+## Write effective searches
+
+Give `web_search` one focused, self-contained question. Include constraints the
+provider needs in that query, such as the relevant date, region, preferred
+domains, or source-quality requirements:
+
+```text
+Find the current stable Pi release as of July 2026. Prefer the official Pi
+repository and documentation.
+```
+
+Start with one search. Search again only when the first answer leaves a
+specific information gap; this avoids repeated provider calls and gives the
+model a clearer retrieval target.
+
+The extension uses provider-conscious efficiency defaults:
+
+- reasoning-capable OpenAI Responses models use low reasoning effort;
+- Anthropic searches allow at most five searches and 4,096 output tokens;
+- provider output, errors, and streaming updates stay within Pi's limits;
+- final output keeps a visible source section even when a long answer is
+  truncated, showing up to 20 sources and reporting omissions.
+
+These defaults target normal coding-agent lookups. Break broad research into
+focused follow-up questions when one search cannot cover it reliably. See the
+official [OpenAI web-search guide](https://developers.openai.com/api/docs/guides/tools-web-search)
+and [Anthropic web-search guide](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool)
+for the underlying provider behavior.
+
 ## Choose a dedicated search model
 
 Create `.pi/web-search.json` in a trusted project or worktree when web search

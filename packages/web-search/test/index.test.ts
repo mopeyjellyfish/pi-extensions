@@ -9,7 +9,13 @@ import webSearchExtension from "../src/index.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 interface RegisteredTool {
+  readonly description: string;
   readonly name: string;
+  readonly parameters: {
+    readonly properties?: {
+      readonly query?: { readonly description?: string };
+    };
+  };
   readonly promptGuidelines?: readonly string[];
   readonly promptSnippet?: string;
   execute(
@@ -29,8 +35,10 @@ interface RegisteredTool {
       readonly api: string;
       readonly model: string;
       readonly provider: string;
+      readonly sourceCount?: number;
       readonly sources: readonly { readonly title: string; readonly url: string }[];
       readonly truncated?: boolean;
+      readonly visibleSourceCount?: number;
     };
   }>;
 }
@@ -143,6 +151,10 @@ describe("pi-web-search extension", () => {
     expect(tool.promptGuidelines).toEqual(
       expect.arrayContaining([expect.stringMatching(/^Use web_search /u)]),
     );
+    expect(tool.parameters.properties?.query?.description).toMatch(/focused.*self-contained/iu);
+    expect(tool.promptGuidelines).toEqual(
+      expect.arrayContaining([expect.stringMatching(/one focused.*search again only/iu)]),
+    );
 
     await expect(
       tool.execute(
@@ -168,6 +180,7 @@ describe("pi-web-search extension", () => {
         expect.objectContaining({
           input: "What is the current Pi release?",
           model: "gpt-5.6",
+          reasoning: { effort: "low" },
           stream: true,
           tools: [{ type: "web_search" }],
         }),
@@ -194,21 +207,26 @@ describe("pi-web-search extension", () => {
       baseUrl: "https://api.openai.com/v1",
       id: "gpt-5.6",
       provider: "openai",
+      reasoning: true,
     });
     registryMocks(ctx).getAuth.mockResolvedValue({
       apiKey: "test-key",
       ok: true,
     });
+    const updates: string[] = [];
 
     const result = await registerTool().execute(
       "search-2",
       { query: "What is the current Pi release?" },
       undefined,
-      undefined,
+      (update) => {
+        updates.push(update.content[0]?.text ?? "");
+      },
       ctx,
     );
 
     expect(fetch).toHaveBeenCalledOnce();
+    expect(updates[0]).toBe("Searching the web with openai/gpt-5.6…");
     expect(result.content[0]?.text).toContain("Pi 0.80.6 is current.");
     expect(result.content[0]?.text).toContain("https://github.com/earendil-works/pi/releases");
     expect(result.details).toEqual(
@@ -616,10 +634,11 @@ describe("pi-web-search extension", () => {
       expect(init?.headers).toEqual(expect.objectContaining({ "x-api-key": "anthropic-key" }));
       expect(requestJson(init)).toEqual(
         expect.objectContaining({
+          max_tokens: 4096,
           messages: [{ content: "Find Pi releases", role: "user" }],
           model: "claude-sonnet-5",
           stream: true,
-          tools: [{ max_uses: 10, name: "web_search", type: "web_search_20250305" }],
+          tools: [{ max_uses: 5, name: "web_search", type: "web_search_20250305" }],
         }),
       );
       return Promise.resolve(
@@ -862,6 +881,7 @@ describe("pi-web-search extension", () => {
                     { title: "Duplicate", url: "https://example.com/nested" },
                     { title: "", url: "https://example.com/fallback" },
                     { title: "Broken", url: "not a url" },
+                    { title: "Oversized", url: `https://example.com/${"x".repeat(2100)}` },
                   ],
                 },
                 type: "web_search_call",
@@ -955,6 +975,65 @@ describe("pi-web-search extension", () => {
         ctx,
       ),
     ).rejects.toThrow(/stream failed/iu);
+  });
+
+  it("surfaces Anthropic server-side web search tool errors", async () => {
+    expect.hasAssertions();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          sseResponse([
+            {
+              content_block: {
+                content: {
+                  error_code: "too_many_requests",
+                  type: "web_search_tool_result_error",
+                },
+                type: "web_search_tool_result",
+              },
+              type: "content_block_start",
+            },
+          ]),
+        ),
+      ),
+    );
+    const ctx = context(providerModel("anthropic-messages"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    await expect(
+      registerTool().execute(
+        "search-anthropic-tool-error",
+        { query: "Hit the provider limit" },
+        undefined,
+        undefined,
+        ctx,
+      ),
+    ).rejects.toThrow("Anthropic web search failed: too_many_requests");
+  });
+
+  it("reports an Anthropic paused search instead of returning an empty answer", async () => {
+    expect.hasAssertions();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          sseResponse([{ delta: { stop_reason: "pause_turn" }, type: "message_delta" }]),
+        ),
+      ),
+    );
+    const ctx = context(providerModel("anthropic-messages"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    await expect(
+      registerTool().execute(
+        "search-anthropic-paused",
+        { query: "Run a long search" },
+        undefined,
+        undefined,
+        ctx,
+      ),
+    ).rejects.toThrow(/paused.*narrower.*retry/iu);
   });
 
   it("propagates cancellation while reading a provider stream", async () => {
@@ -1140,7 +1219,17 @@ describe("pi-web-search extension", () => {
       "fetch",
       vi.fn(() =>
         Promise.resolve(
-          sseResponse([{ type: "response.output_text.delta", delta: "x".repeat(60_000) }]),
+          sseResponse([
+            { type: "response.output_text.delta", delta: "x".repeat(60_000) },
+            {
+              annotation: {
+                title: "Required citation",
+                type: "url_citation",
+                url: "https://example.com/required-citation",
+              },
+              type: "response.output_text.annotation.added",
+            },
+          ]),
         ),
       ),
     );
@@ -1162,6 +1251,124 @@ describe("pi-web-search extension", () => {
 
     expect(Buffer.byteLength(result.content[0]?.text ?? "", "utf8")).toBeLessThanOrEqual(51_200);
     expect(result.content[0]?.text).toContain("[Output truncated");
+    expect(result.content[0]?.text).toContain("## Sources");
+    expect(result.content[0]?.text).toContain("https://example.com/required-citation");
+    expect(result.details.sourceCount).toBe(1);
+    expect(result.details.visibleSourceCount).toBe(1);
     expect(result.details.truncated).toBe(true);
+  });
+
+  it("caps visible sources while retaining complete structured source details", async () => {
+    expect.hasAssertions();
+    const annotations = Array.from({ length: 25 }, (_, index) => ({
+      annotation: {
+        title: `Source ${String(index + 1)}`,
+        type: "url_citation",
+        url: `https://example.com/source-${String(index + 1)}`,
+      },
+      type: "response.output_text.annotation.added",
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          sseResponse([
+            { delta: "Answer with many sources.", type: "response.output_text.delta" },
+            ...annotations,
+          ]),
+        ),
+      ),
+    );
+    const ctx = context(providerModel("openai-responses"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool().execute(
+      "search-many-sources",
+      { query: "Find many sources" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("5 additional sources omitted");
+    expect(result.details.sourceCount).toBe(25);
+    expect(result.details.visibleSourceCount).toBe(20);
+    expect(result.details.sources).toHaveLength(25);
+    expect(result.details.truncated).toBe(true);
+  });
+
+  it("uses singular wording when exactly one source is omitted", async () => {
+    expect.hasAssertions();
+    const annotations = Array.from({ length: 21 }, (_, index) => ({
+      annotation: {
+        title: `Source ${String(index + 1)}`,
+        type: "url_citation",
+        url: `https://example.com/source-${String(index + 1)}`,
+      },
+      type: "response.output_text.annotation.added",
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          sseResponse([
+            { delta: "Answer with one hidden source.", type: "response.output_text.delta" },
+            ...annotations,
+          ]),
+        ),
+      ),
+    );
+    const ctx = context(providerModel("openai-responses"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool().execute(
+      "search-one-omitted-source",
+      { query: "Find twenty-one sources" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.content[0]?.text).toContain("1 additional source omitted");
+    expect(result.details.visibleSourceCount).toBe(20);
+    expect(result.details.truncated).toBe(true);
+  });
+
+  it("bounds the rendered source section even when source URLs are long", async () => {
+    expect.hasAssertions();
+    const annotations = Array.from({ length: 5 }, (_, index) => ({
+      annotation: {
+        title: `Long source ${String(index + 1)}`,
+        type: "url_citation",
+        url: `https://example.com/${String(index)}/${"a".repeat(2000)}`,
+      },
+      type: "response.output_text.annotation.added",
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          sseResponse([
+            { delta: "Answer with long source URLs.", type: "response.output_text.delta" },
+            ...annotations,
+          ]),
+        ),
+      ),
+    );
+    const ctx = context(providerModel("openai-responses"));
+    registryMocks(ctx).getAuth.mockResolvedValue({ ok: true });
+
+    const result = await registerTool().execute(
+      "search-long-source-urls",
+      { query: "Find sources with long URLs" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.details.sourceCount).toBe(5);
+    expect(result.details.visibleSourceCount).toBeLessThan(5);
+    expect(result.content[0]?.text).toMatch(/additional sources omitted/u);
+    expect(Buffer.byteLength(result.content[0]?.text ?? "", "utf8")).toBeLessThan(8192);
   });
 });

@@ -117,6 +117,9 @@ function appendSource(sources: SearchSource[], candidate: SearchSource): void {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     return;
   }
+  if (Buffer.byteLength(parsed.href, "utf8") > 2048) {
+    return;
+  }
   let title = "";
   for (const character of candidate.title.trim()) {
     const codePoint = character.codePointAt(0) ?? 0;
@@ -353,6 +356,9 @@ export async function searchOpenAi(
     stream: true,
     tools: [{ type: "web_search" }],
   };
+  if (model.reasoning && !isCodex) {
+    body["reasoning"] = { effort: "low" };
+  }
   if (isCodex) {
     body["instructions"] = "Answer the user's request using web search.";
     body["parallel_tool_calls"] = true;
@@ -469,7 +475,13 @@ function collectAnthropicResults(value: unknown, sources: SearchSource[]): void 
   if (block?.["type"] !== "web_search_tool_result") {
     return;
   }
-  for (const resultValue of array(block["content"])) {
+  const content = block["content"];
+  const providerError = object(content);
+  if (providerError?.["type"] === "web_search_tool_result_error") {
+    const errorCode = string(providerError["error_code"]) ?? "unknown_error";
+    throw new Error(`Anthropic web search failed: ${errorCode}`);
+  }
+  for (const resultValue of array(content)) {
     const result = object(resultValue);
     const url = string(result?.["url"]);
     if (url !== undefined) {
@@ -496,6 +508,13 @@ function handleAnthropicEvent(
   if (type === "error") {
     const error = object(event["error"]);
     throw new Error(string(error?.["message"]) ?? "Anthropic web search failed.");
+  }
+  if (type === "message_delta") {
+    const delta = object(event["delta"]);
+    if (delta?.["stop_reason"] === "pause_turn") {
+      throw new Error("Anthropic paused the web search; use a narrower query and retry.");
+    }
+    return;
   }
   if (type === "content_block_start") {
     collectAnthropicResults(event["content_block"], sources);
@@ -548,14 +567,14 @@ export async function searchAnthropic(
   } else if (auth.apiKey !== undefined && !headerBag.has("x-api-key")) {
     headerBag.set("x-api-key", auth.apiKey);
   }
-  const maximumTokens = Math.min(Math.max(Math.floor(model.maxTokens / 3), 1024), 8192);
+  const maximumTokens = Math.min(Math.max(Math.floor(model.maxTokens / 3), 1024), 4096);
   const response = await fetch(resolveAnthropicUrl(model.baseUrl), {
     body: JSON.stringify({
       max_tokens: maximumTokens,
       messages: [{ content: query, role: "user" }],
       model: model.id,
       stream: true,
-      tools: [{ max_uses: 10, name: "web_search", type: "web_search_20250305" }],
+      tools: [{ max_uses: 5, name: "web_search", type: "web_search_20250305" }],
     }),
     headers: Object.fromEntries(headerBag.entries()),
     method: "POST",
