@@ -11,7 +11,21 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 
 interface ToolResult {
   readonly content: readonly { readonly text: string; readonly type: "text" }[];
-  readonly details: { readonly snapshot: unknown };
+  readonly details: {
+    readonly action: string;
+    readonly changedIds: readonly number[];
+    readonly snapshot: unknown;
+  };
+}
+
+interface TestComponent {
+  invalidate(): void;
+  render(width: number): string[];
+}
+
+interface TestTheme {
+  bold(text: string): string;
+  fg(color: string, text: string): string;
 }
 
 interface RegisteredTool {
@@ -21,6 +35,17 @@ interface RegisteredTool {
   readonly parameters: { readonly additionalProperties?: boolean };
   readonly promptGuidelines?: readonly string[];
   readonly promptSnippet?: string;
+  renderCall?(
+    input: Record<string, unknown>,
+    theme: TestTheme,
+    context: Record<string, unknown>,
+  ): TestComponent;
+  renderResult?(
+    result: ToolResult,
+    options: { readonly expanded: boolean; readonly isPartial: boolean },
+    theme: TestTheme,
+    context: Record<string, unknown>,
+  ): TestComponent;
   execute(
     id: string,
     input: Record<string, unknown>,
@@ -56,6 +81,11 @@ interface Harness {
   readonly widgets: unknown[];
 }
 
+const testTheme: TestTheme = {
+  bold: (text) => `<bold>${text}</bold>`,
+  fg: (color, text) => `<${color}>${text}</${color}>`,
+};
+
 function createHarness(): Harness {
   const commands = new Map<string, RegisteredCommand>();
   const entries: Entry[] = [];
@@ -83,14 +113,15 @@ function createHarness(): Harness {
   return { commands, entries, events, notifications, statuses, tool, widgets };
 }
 
-function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionContext {
+function context(harness: Harness, mode: "print" | "rpc" | "tui" = "tui"): ExtensionContext {
   return {
     cwd: "/projects/example",
-    hasUI: mode === "tui",
+    hasUI: mode === "rpc" || mode === "tui",
     mode,
     sessionManager: { getBranch: () => harness.entries },
     ui: {
       notify: (message: string) => harness.notifications.push(message),
+      theme: testTheme,
       setStatus: (_key: string, value: string | undefined) => harness.statuses.push(value),
       setWidget: (_key: string, value: unknown) => harness.widgets.push(value),
     },
@@ -99,6 +130,32 @@ function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionCont
 
 async function emit(harness: Harness, name: string, ctx: ExtensionContext): Promise<void> {
   await Promise.all((harness.events.get(name) ?? []).map((handler) => handler({}, ctx)));
+}
+
+function widgetComponent(value: unknown, theme: TestTheme = testTheme): TestComponent {
+  if (typeof value !== "function") throw new TypeError("Expected a widget factory.");
+  return (value as (tui: unknown, theme: TestTheme) => TestComponent)({}, theme);
+}
+
+function renderWidget(value: unknown): string[] {
+  return widgetComponent(value)
+    .render(500)
+    .map((line) => line.trimEnd());
+}
+
+function renderToolResult(
+  harness: Harness,
+  result: ToolResult,
+  options: { readonly expanded?: boolean; readonly isError?: boolean } = {},
+): string {
+  if (harness.tool.renderResult === undefined) throw new Error("Missing tool result renderer.");
+  return harness.tool
+    .renderResult(result, { expanded: options.expanded ?? false, isPartial: false }, testTheme, {
+      isError: options.isError ?? false,
+    })
+    .render(500)
+    .map((line) => line.trimEnd())
+    .join("\n");
 }
 
 function record(harness: Harness, result: ToolResult): void {
@@ -125,6 +182,8 @@ describe("pi-todo extension", () => {
     expect(harness.tool.promptGuidelines).toEqual(
       expect.arrayContaining([expect.stringMatching(/^Use todo /u)]),
     );
+    expect(typeof harness.tool.renderCall).toBe("function");
+    expect(typeof harness.tool.renderResult).toBe("function");
     expect(harness.commands.has("todos")).toBe(true);
   });
 
@@ -363,7 +422,8 @@ describe("pi-todo extension", () => {
       tui,
     );
     await harness.commands.get("todos")?.handler("", tui);
-    expect(harness.notifications.at(-1)).toContain("#1 Visible task");
+    expect(harness.notifications.at(-1)).toBe("<dim>○</dim> Visible task");
+    expect(harness.notifications.at(-1)).not.toMatch(/#\d+/u);
 
     const print = context(harness, "print");
     const controller = new AbortController();
@@ -548,28 +608,178 @@ describe("pi-todo extension", () => {
     ).toMatchObject({ changedIds: [], message: "Todo list is already empty." });
   });
 
-  it("bounds the TUI widget and shows the all-closed state", async () => {
+  it("renders status-coloured, title-only rows for humans while preserving machine IDs", async () => {
     expect.hasAssertions();
     const harness = createHarness();
     const ctx = context(harness);
-    const items = Array.from({ length: 10 }, (_, index) => `Task ${String(index + 1)}`);
-    await harness.tool.execute("add", { action: "add", items }, undefined, undefined, ctx);
-    expect(harness.widgets.at(-1)).toEqual(expect.arrayContaining(["… 2 more"]));
-
     await harness.tool.execute(
-      "close",
+      "add",
+      { action: "add", items: ["Pending", "Active", "Done", "Cancelled"] },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const result = await harness.tool.execute(
+      "statuses",
       {
         action: "update",
-        updates: items.map((_item, index) => ({
-          id: index + 1,
-          status: index === items.length - 1 ? "cancelled" : "completed",
-        })),
+        updates: [
+          { id: 2, status: "in_progress" },
+          { id: 3, status: "completed" },
+          { id: 4, status: "cancelled" },
+        ],
       },
       undefined,
       undefined,
       ctx,
     );
-    expect(harness.widgets.at(-1)).toEqual(["✓ All todos closed"]);
-    expect(harness.statuses.at(-1)).toBe("todo 10/10");
+
+    expect(result.content[0]?.text).toContain("Updated #2, #3, #4");
+    expect(result.details.changedIds).toEqual([2, 3, 4]);
+    const rendered = renderToolResult(harness, result);
+    expect(rendered).toContain("<dim>○</dim> Pending");
+    expect(rendered).toContain("<warning>◉</warning> Active");
+    expect(rendered).toContain("<success>✓</success> Done");
+    expect(rendered).toContain("<error>×</error> Cancelled");
+    expect(rendered).not.toMatch(/#\d+/u);
+
+    if (harness.tool.renderCall === undefined) throw new Error("Missing tool call renderer.");
+    const call = harness.tool
+      .renderCall({ action: "remove", ids: [2, 4] }, testTheme, {})
+      .render(500)
+      .join("\n");
+    expect(call).toContain("remove");
+    expect(call).not.toMatch(/#\d+/u);
+    const partialCall = harness.tool.renderCall({}, testTheme, {}).render(500).join("\n");
+    expect(partialCall).toContain("…");
+    expect(partialCall).not.toContain("undefined");
+  });
+
+  it("expands bounded tool results to show every todo", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const items = Array.from({ length: 10 }, (_, index) => `Task ${String(index + 1)}`);
+    const result = await harness.tool.execute(
+      "add",
+      { action: "add", items },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    const collapsed = renderToolResult(harness, result);
+    expect(collapsed).toContain("<dim>… 2 more</dim>");
+    expect(collapsed).not.toContain("Task 10");
+    const expanded = renderToolResult(harness, result, { expanded: true });
+    expect(expanded).toContain("Task 10");
+    expect(expanded).not.toContain("… 2 more");
+    expect(expanded).not.toMatch(/#\d+/u);
+  });
+
+  it("renders bounded actionable errors without exposing internal IDs", () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const failed = {
+      content: [{ text: `Todo #99 not found. ${"x".repeat(400)}`, type: "text" as const }],
+      details: { action: "update", changedIds: [], snapshot: {} },
+    };
+    const renderedError = renderToolResult(harness, failed, { isError: true });
+    expect(renderedError).toContain("Todo item not found.");
+    expect(renderedError).toContain("…");
+    expect(renderedError).not.toContain("#99");
+    expect(renderedError).toHaveLength(315);
+
+    const malformed = {
+      content: [{ text: "Restored #12 snapshot is invalid.", type: "text" as const }],
+      details: { action: "list", changedIds: [], snapshot: { version: 99 } },
+    };
+    expect(renderToolResult(harness, malformed)).toBe(
+      "<error>Restored item snapshot is invalid.</error>",
+    );
+
+    const empty = {
+      content: [],
+      details: { action: "list", changedIds: [], snapshot: null },
+    };
+    expect(renderToolResult(harness, empty)).toBe("<error>Todo operation failed.</error>");
+  });
+
+  it("orders and bounds every status in the persistent TUI widget without IDs", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const items = Array.from({ length: 10 }, (_, index) => `Task ${String(index + 1)}`);
+    await harness.tool.execute("add", { action: "add", items }, undefined, undefined, ctx);
+    await harness.tool.execute(
+      "status",
+      {
+        action: "update",
+        updates: [
+          { id: 1, status: "in_progress" },
+          { id: 4, status: "completed" },
+          { id: 5, status: "completed" },
+          ...Array.from({ length: 5 }, (_, index) => ({
+            id: index + 6,
+            status: "cancelled" as const,
+          })),
+        ],
+      },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    const widget = renderWidget(harness.widgets.at(-1));
+    expect(widget).toEqual([
+      "<warning>◉</warning> Task 1",
+      "<dim>○</dim> Task 2",
+      "<dim>○</dim> Task 3",
+      "<success>✓</success> Task 4",
+      "<success>✓</success> Task 5",
+      "<error>×</error> Task 6",
+      "<error>×</error> Task 7",
+      "<error>×</error> Task 8",
+      "<dim>… 2 more</dim>",
+    ]);
+    expect(widget.join("\n")).not.toMatch(/#\d+/u);
+    expect(harness.statuses.at(-1)).toBe("todo 7/10");
+
+    let palette = "before";
+    const mutableTheme: TestTheme = {
+      bold: (text) => testTheme.bold(text),
+      fg: (color, text) => `<${palette}-${color}>${text}</${palette}-${color}>`,
+    };
+    const component = widgetComponent(harness.widgets.at(-1), mutableTheme);
+    expect(component.render(500)[0]).toContain("<before-warning>◉</before-warning>");
+    palette = "after";
+    component.invalidate();
+    expect(component.render(500)[0]).toContain("<after-warning>◉</after-warning>");
+    expect(component.render(500)[0]).not.toContain("before-warning");
+  });
+
+  it("keeps RPC /todos plain, status-distinct, and free of human-facing IDs", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const rpc = context(harness, "rpc");
+    await harness.tool.execute(
+      "add",
+      { action: "add", items: ["Pending", "Done"] },
+      undefined,
+      undefined,
+      rpc,
+    );
+    await harness.tool.execute(
+      "done",
+      { action: "update", updates: [{ id: 2, status: "completed" }] },
+      undefined,
+      undefined,
+      rpc,
+    );
+    await harness.commands.get("todos")?.handler("", rpc);
+
+    expect(harness.notifications.at(-1)).toBe("○ Pending\n✓ Done");
+    expect(harness.notifications.at(-1)).not.toMatch(/#\d+|<(?:dim|success)>/u);
+    expect(harness.widgets).toEqual([]);
   });
 });

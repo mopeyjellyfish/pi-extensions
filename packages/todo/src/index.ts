@@ -1,7 +1,8 @@
 import { StringEnum } from "@earendil-works/pi-ai";
+import { Text, type Component } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
 
 const MAX_ITEMS = 100;
 const MAX_TEXT_LENGTH = 300;
@@ -91,6 +92,19 @@ const EMPTY_SNAPSHOT: TodoSnapshot = {
 };
 
 const STATUSES = new Set<TodoStatus>(["pending", "in_progress", "completed", "cancelled"]);
+const STATUS_ORDER: readonly TodoStatus[] = ["in_progress", "pending", "completed", "cancelled"];
+const STATUS_PRESENTATION = {
+  cancelled: { color: "error", glyph: "×" },
+  completed: { color: "success", glyph: "✓" },
+  in_progress: { color: "warning", glyph: "◉" },
+  pending: { color: "dim", glyph: "○" },
+} as const satisfies Record<
+  TodoStatus,
+  { readonly color: "dim" | "error" | "success" | "warning"; readonly glyph: string }
+>;
+
+type TodoThemeColor = (typeof STATUS_PRESENTATION)[TodoStatus]["color"];
+type Colorize = (color: TodoThemeColor, text: string) => string;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -390,6 +404,57 @@ function formatTodos(snapshot: TodoSnapshot): string {
     .join("\n");
 }
 
+function orderedItems(snapshot: TodoSnapshot): TodoItem[] {
+  return STATUS_ORDER.flatMap((status) => snapshot.items.filter((item) => item.status === status));
+}
+
+function formatHumanRows(
+  snapshot: TodoSnapshot,
+  options: { readonly colorize?: Colorize; readonly limit?: number } = {},
+): string[] {
+  const ordered = orderedItems(snapshot);
+  const visible = options.limit === undefined ? ordered : ordered.slice(0, options.limit);
+  const rows = visible.map((item) => {
+    const presentation = STATUS_PRESENTATION[item.status];
+    const glyph = options.colorize?.(presentation.color, presentation.glyph) ?? presentation.glyph;
+    return `${glyph} ${item.text}`;
+  });
+  if (visible.length < ordered.length) {
+    const overflow = `… ${String(ordered.length - visible.length)} more`;
+    rows.push(options.colorize?.("dim", overflow) ?? overflow);
+  }
+  return rows;
+}
+
+function themedRows(snapshot: TodoSnapshot, theme: Theme, limit?: number): string[] {
+  return formatHumanRows(snapshot, {
+    colorize: (color, text) => theme.fg(color, text),
+    ...(limit === undefined ? {} : { limit }),
+  });
+}
+
+function todoRowsComponent(snapshot: TodoSnapshot, theme: Theme, limit?: number): Component {
+  return {
+    invalidate() {
+      // Stateless: render recomputes themed rows after every invalidation.
+    },
+    render(width) {
+      return new Text(themedRows(snapshot, theme, limit).join("\n"), 0, 0).render(width);
+    },
+  };
+}
+
+function humanErrorMessage(
+  content: readonly { readonly text?: string; readonly type: string }[],
+): string {
+  const raw = content.find((item) => item.type === "text")?.text?.trim();
+  if (raw === undefined || raw.length === 0) return "Todo operation failed.";
+  const sanitized = raw.replaceAll(/#\d+/gu, "item").replaceAll(/\s+/gu, " ");
+  return sanitized.length <= MAX_TEXT_LENGTH
+    ? sanitized
+    : `${sanitized.slice(0, MAX_TEXT_LENGTH - 1)}…`;
+}
+
 function updateUi(ctx: ExtensionContext, snapshot: TodoSnapshot): void {
   if (ctx.mode !== "tui") return;
   if (snapshot.items.length === 0) {
@@ -402,22 +467,7 @@ function updateUi(ctx: ExtensionContext, snapshot: TodoSnapshot): void {
     (item) => item.status === "completed" || item.status === "cancelled",
   ).length;
   ctx.ui.setStatus(TODO_UI_KEY, `todo ${String(closed)}/${String(snapshot.items.length)}`);
-  const unfinished = snapshot.items.filter(
-    (item) => item.status === "in_progress" || item.status === "pending",
-  );
-  const ordered = [
-    ...unfinished.filter((item) => item.status === "in_progress"),
-    ...unfinished.filter((item) => item.status === "pending"),
-  ];
-  const visible = ordered.slice(0, 8).map((item) => {
-    const marker = item.status === "in_progress" ? "◉" : "○";
-    return `${marker} #${String(item.id)} ${item.text}`;
-  });
-  if (ordered.length > visible.length) {
-    visible.push(`… ${String(ordered.length - visible.length)} more`);
-  }
-  if (visible.length === 0) visible.push("✓ All todos closed");
-  ctx.ui.setWidget(TODO_UI_KEY, visible);
+  ctx.ui.setWidget(TODO_UI_KEY, (_tui, theme) => todoRowsComponent(snapshot, theme, 8));
 }
 
 function clearUi(ctx: ExtensionContext): void {
@@ -476,12 +526,30 @@ export default function todoExtension(pi: ExtensionAPI): void {
         } satisfies TodoResultDetails,
       };
     },
+    renderCall(input, theme) {
+      const action = typeof input.action === "string" ? input.action : "…";
+      return new Text(theme.fg("toolTitle", theme.bold("todo ")) + theme.fg("muted", action), 0, 0);
+    },
+    renderResult(result, { expanded, isPartial }, theme, renderContext) {
+      if (isPartial) return new Text(theme.fg("warning", "Updating todos…"), 0, 0);
+      const details = result.details as TodoResultDetails | undefined;
+      if (renderContext.isError || !isTodoSnapshot(details?.snapshot)) {
+        return new Text(theme.fg("error", humanErrorMessage(result.content)), 0, 0);
+      }
+      const rows = themedRows(details.snapshot, theme, expanded ? undefined : 8);
+      const text = rows.length === 0 ? theme.fg("dim", "No todos.") : rows.join("\n");
+      return new Text(text, 0, 0);
+    },
   });
 
   pi.registerCommand("todos", {
     description: "Show todos on the current session branch",
     handler: (_arguments, ctx) => {
-      if (ctx.hasUI) ctx.ui.notify(formatTodos(snapshot), "info");
+      if (!ctx.hasUI) return Promise.resolve();
+      const rows =
+        ctx.mode === "tui" ? themedRows(snapshot, ctx.ui.theme) : formatHumanRows(snapshot);
+      const text = rows.length === 0 ? "No todos." : rows.join("\n");
+      ctx.ui.notify(text, "info");
       return Promise.resolve();
     },
   });

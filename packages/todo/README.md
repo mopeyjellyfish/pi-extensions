@@ -44,7 +44,7 @@ updates to reduce tool and token overhead.
 
 | Action   | Fields           | Behavior                                                         |
 | -------- | ---------------- | ---------------------------------------------------------------- |
-| `list`   | none             | Show every item and its stable numeric ID.                       |
+| `list`   | none             | Show every item and its stable numeric ID to the agent.          |
 | `add`    | `items`          | Append one or more pending items in execution order.             |
 | `update` | `updates`        | Atomically change text and/or status by ID.                      |
 | `remove` | `ids`            | Remove selected items.                                           |
@@ -53,7 +53,9 @@ updates to reduce tool and token overhead.
 Statuses are `pending`, `in_progress`, `completed`, and `cancelled`. Starting an
 item automatically returns any other in-progress item to pending, so a
 single-agent list has at most one active item. IDs remain monotonic after clear
-and are not reused in the same session branch.
+and are not reused in the same session branch. Tool content and snapshot details
+retain those IDs for reliable agent updates even though human-facing rows omit
+them.
 
 The schema limits a list to 100 items and item text to 300 characters. Calls
 reject duplicate text, duplicate IDs, unknown IDs, action-specific extra
@@ -62,11 +64,26 @@ patch does not partially update the list.
 
 ## User interface
 
-In interactive mode, unfinished work appears in a bounded widget and the footer
-shows closed/total progress. The `/todos` command shows the complete list in
-interactive and RPC UI clients. The agent-facing `list` action remains useful
-in print, JSON, and other non-interactive modes where commands or TUI widgets
-are unavailable.
+Human-facing rows show a status pip and the todo title without exposing the
+agent's numeric ID:
+
+| Status        | Pip | Theme colour  |
+| ------------- | --- | ------------- |
+| `pending`     | ○   | grey/dim      |
+| `in_progress` | ◉   | amber/warning |
+| `completed`   | ✓   | green/success |
+| `cancelled`   | ×   | red/error     |
+
+In interactive mode, the tool transcript and persistent widget use the active
+Pi theme. The widget shows up to eight items ordered by in-progress, pending,
+completed, then cancelled, followed by an overflow count when needed. The
+footer shows closed/total progress.
+
+The `/todos` command shows the complete ID-free list in TUI and RPC UI clients.
+RPC uses the same distinct glyphs without terminal colour codes. The
+agent-facing `list` action remains useful in print, JSON, and other
+non-interactive modes where commands or TUI widgets are unavailable, and its
+machine-facing output continues to include stable IDs.
 
 ## Persistence and scope
 
