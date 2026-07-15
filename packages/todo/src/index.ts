@@ -9,6 +9,7 @@ const MAX_TEXT_LENGTH = 300;
 const SNAPSHOT_VERSION = 1;
 const TODO_TOOL_NAME = "todo";
 const TODO_UI_KEY = "mopeyjellyfish-pi-todo";
+export const TODO_SUMMARY_EVENT = "mopeyjellyfish:pi-todo:summary:v1";
 
 const TodoStatusSchema = StringEnum(["pending", "in_progress", "completed", "cancelled"] as const);
 
@@ -69,6 +70,16 @@ export interface TodoSnapshot {
   readonly items: readonly TodoItem[];
   readonly nextId: number;
   readonly revision: number;
+  readonly version: 1;
+}
+
+export interface TodoSummaryEventV1 {
+  readonly closed: number;
+  readonly current?: {
+    readonly status: "in_progress" | "pending";
+    readonly text: string;
+  };
+  readonly total: number;
   readonly version: 1;
 }
 
@@ -455,7 +466,29 @@ function humanErrorMessage(
     : `${sanitized.slice(0, MAX_TEXT_LENGTH - 1)}…`;
 }
 
-function updateUi(ctx: ExtensionContext, snapshot: TodoSnapshot): void {
+function publishSummary(pi: ExtensionAPI, snapshot: TodoSnapshot): void {
+  if (snapshot.items.length === 0) {
+    pi.events.emit(TODO_SUMMARY_EVENT, undefined);
+    return;
+  }
+  const current =
+    snapshot.items.find((item) => item.status === "in_progress") ??
+    snapshot.items.find((item) => item.status === "pending");
+  const closed = snapshot.items.filter(
+    (item) => item.status === "completed" || item.status === "cancelled",
+  ).length;
+  pi.events.emit(TODO_SUMMARY_EVENT, {
+    closed,
+    ...(current?.status === "in_progress" || current?.status === "pending"
+      ? { current: { status: current.status, text: current.text } }
+      : {}),
+    total: snapshot.items.length,
+    version: 1,
+  } satisfies TodoSummaryEventV1);
+}
+
+function updateUi(pi: ExtensionAPI, ctx: ExtensionContext, snapshot: TodoSnapshot): void {
+  publishSummary(pi, snapshot);
   if (ctx.mode !== "tui") return;
   if (snapshot.items.length === 0) {
     ctx.ui.setStatus(TODO_UI_KEY, undefined);
@@ -470,7 +503,8 @@ function updateUi(ctx: ExtensionContext, snapshot: TodoSnapshot): void {
   ctx.ui.setWidget(TODO_UI_KEY, (_tui, theme) => todoRowsComponent(snapshot, theme, 8));
 }
 
-function clearUi(ctx: ExtensionContext): void {
+function clearUi(pi: ExtensionAPI, ctx: ExtensionContext): void {
+  pi.events.emit(TODO_SUMMARY_EVENT, undefined);
   if (ctx.mode !== "tui") return;
   ctx.ui.setStatus(TODO_UI_KEY, undefined);
   ctx.ui.setWidget(TODO_UI_KEY, undefined);
@@ -481,7 +515,7 @@ export default function todoExtension(pi: ExtensionAPI): void {
 
   const restore = (ctx: ExtensionContext): void => {
     snapshot = snapshotFromBranch(ctx);
-    updateUi(ctx, snapshot);
+    updateUi(pi, ctx, snapshot);
   };
 
   pi.on("session_start", (_event, ctx) => {
@@ -494,7 +528,7 @@ export default function todoExtension(pi: ExtensionAPI): void {
     restore(ctx);
   });
   pi.on("session_shutdown", (_event, ctx) => {
-    clearUi(ctx);
+    clearUi(pi, ctx);
   });
 
   pi.registerTool({
@@ -516,7 +550,7 @@ export default function todoExtension(pi: ExtensionAPI): void {
       signal?.throwIfAborted();
       const applied = applyTodoAction(snapshot, input);
       snapshot = applied.snapshot;
-      updateUi(ctx, snapshot);
+      updateUi(pi, ctx, snapshot);
       return {
         content: [{ type: "text", text: applied.message }],
         details: {

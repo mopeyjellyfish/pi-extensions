@@ -28,6 +28,9 @@
     "packages/todo": {
       "release-type": "node"
     },
+    "packages/status-line": {
+      "release-type": "node"
+    },
     "packages/question": {
       "release-type": "node"
     },
