@@ -4,6 +4,7 @@ import { WorktrunkClient } from "../src/worktrunk.ts";
 
 const MAIN_PATH = "/projects/example";
 const FEATURE_PATH = "/projects/example-feature";
+const PRUNABLE_PATH = "/projects/example-prunable";
 
 function listDocument(): string {
   return JSON.stringify({
@@ -56,7 +57,9 @@ function worktreeItem(
   path: string,
   options: {
     readonly branch?: string | null;
+    readonly branchMismatch?: boolean;
     readonly changes?: Record<string, unknown>;
+    readonly changesValue?: unknown;
     readonly current?: boolean;
     readonly head?: Record<string, unknown> | null;
     readonly main?: boolean;
@@ -69,15 +72,19 @@ function worktreeItem(
         ? { sha: "2222222222222222222222222222222222222222" }
         : options.head,
     worktree: {
-      changes: {
-        conflicted: false,
-        deleted: false,
-        modified: false,
-        renamed: false,
-        staged: false,
-        untracked: false,
-        ...options.changes,
-      },
+      branch_mismatch: options.branchMismatch ?? false,
+      changes:
+        options.changesValue === undefined
+          ? {
+              conflicted: false,
+              deleted: false,
+              modified: false,
+              renamed: false,
+              staged: false,
+              untracked: false,
+              ...options.changes,
+            }
+          : options.changesValue,
       current: options.current ?? false,
       main: options.main ?? false,
       path,
@@ -136,6 +143,75 @@ describe("WorktrunkClient", () => {
       ["--config-set", "list.json-schema=2", "list", "--format=json"],
       { cwd: MAIN_PATH, signal, timeout: 30_000 },
     );
+  });
+
+  it("keeps prunable worktrees with unknown changes listable and fails their clean state closed", async () => {
+    expect.hasAssertions();
+    const document = schema2([
+      worktreeItem(MAIN_PATH, { branch: "main", current: true, main: true }),
+      worktreeItem(PRUNABLE_PATH, { changesValue: null }),
+    ]);
+    const client = new WorktrunkClient(
+      runnerWith(
+        { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+        { code: 0, killed: false, stderr: "", stdout: document },
+      ),
+    );
+
+    await expect(client.list(MAIN_PATH, undefined)).resolves.toEqual({
+      mainPath: MAIN_PATH,
+      worktrees: [
+        {
+          branch: "main",
+          clean: true,
+          current: true,
+          head: "2222222222222222222222222222222222222222",
+          main: true,
+          path: MAIN_PATH,
+        },
+        {
+          branch: "feature/adapter",
+          clean: false,
+          current: false,
+          head: "2222222222222222222222222222222222222222",
+          main: false,
+          path: PRUNABLE_PATH,
+        },
+      ],
+    });
+  });
+
+  it("activates an externally created linked worktree despite unrelated prunable entries", async () => {
+    expect.hasAssertions();
+    const confirmation = schema2([
+      worktreeItem(MAIN_PATH, { branch: "main", current: true, main: true }),
+      worktreeItem(FEATURE_PATH, { branch: "feat/dice-load", branchMismatch: true }),
+      worktreeItem(PRUNABLE_PATH, { changesValue: null }),
+    ]);
+    const client = new WorktrunkClient(
+      runnerWith(
+        { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+        {
+          code: 0,
+          killed: false,
+          stderr: "",
+          stdout: JSON.stringify({ path: FEATURE_PATH }),
+        },
+        { code: 0, killed: false, stderr: "", stdout: confirmation },
+      ),
+    );
+
+    await expect(client.activate("feat/dice-load", MAIN_PATH, undefined)).resolves.toEqual({
+      mainPath: MAIN_PATH,
+      worktree: {
+        branch: "feat/dice-load",
+        clean: true,
+        current: false,
+        head: "2222222222222222222222222222222222222222",
+        main: false,
+        path: FEATURE_PATH,
+      },
+    });
   });
 
   it("keeps detached or unborn linked worktrees listable without inventing branch state", async () => {
@@ -298,6 +374,37 @@ describe("WorktrunkClient", () => {
         main: true,
       }),
     ]);
+    const missingChanges = schema2([
+      {
+        branch: "main",
+        head: { sha: "2222222222222222222222222222222222222222" },
+        worktree: { current: true, main: true, path: MAIN_PATH },
+      },
+    ]);
+    const invalidDirtyChanges = schema2([
+      worktreeItem(MAIN_PATH, {
+        branch: "main",
+        changes: { modified: "yes", staged: true },
+        current: true,
+        main: true,
+      }),
+    ]);
+    const malformedChanges = schema2([
+      worktreeItem(MAIN_PATH, {
+        branch: "main",
+        changesValue: "unknown",
+        current: true,
+        main: true,
+      }),
+    ]);
+    const missingChangesFlag = schema2([
+      worktreeItem(MAIN_PATH, {
+        branch: "main",
+        changesValue: { modified: false },
+        current: true,
+        main: true,
+      }),
+    ]);
     const cases: readonly (readonly [string, string])[] = [
       ["{", "malformed JSON"],
       [JSON.stringify({ schema: 1, items: [] }), "unsupported list schema"],
@@ -306,7 +413,11 @@ describe("WorktrunkClient", () => {
       [duplicatePath, "duplicate worktree path"],
       [missingMain, "exactly one main"],
       [invalidHead, "missing items[0].head"],
+      [missingChanges, "missing items[0].worktree.changes"],
+      [malformedChanges, "missing items[0].worktree.changes"],
+      [missingChangesFlag, "changes.staged"],
       [invalidChanges, "changes.modified"],
+      [invalidDirtyChanges, "changes.modified"],
     ];
 
     for (const [stdout, message] of cases) {
