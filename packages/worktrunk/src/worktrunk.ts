@@ -99,11 +99,15 @@ function optionalHead(value: unknown, description: string): string | undefined {
 }
 
 function cleanWorktree(value: unknown, description: string): boolean {
+  if (value === null) {
+    return false;
+  }
   if (!isRecord(value)) {
     throw new WorktrunkError(`Worktrunk returned schema-2 JSON with a missing ${description}.`);
   }
   const flags = ["staged", "modified", "untracked", "renamed", "deleted", "conflicted"] as const;
-  return flags.every((flag) => !requiredBoolean(value[flag], `${description}.${flag}`));
+  const changes = flags.map((flag) => requiredBoolean(value[flag], `${description}.${flag}`));
+  return changes.every((changed) => !changed);
 }
 
 function parseVersion(output: string): Version | undefined {
