@@ -44,6 +44,18 @@ For a fully native Pi session rooted in a new worktree, run the user-owned
 command `wt switch --create -x pi <branch>` directly. This extension never
 spawns nested Pi processes.
 
+## Status-line integration
+
+The extension publishes its active route on the versioned Pi event-bus channel
+`mopeyjellyfish:pi-worktrunk:route:v1`. The optional
+[`@mopeyjellyfish/pi-status-line`](../status-line/README.md) package uses the
+routed path and branch as its effective directory and Git branch, replacing the
+session checkout's branch instead of appending a second Worktrunk label.
+
+The existing `setStatus()` label remains as a standalone fallback when the
+first-party status line is not installed. Deactivation, stale-route cleanup,
+and session shutdown clear both representations.
+
 See the bundled `pi-worktrunk` skill and the upstream
 [Worktrunk documentation](https://worktrunk.dev/docs) for configuration and
 hook details.

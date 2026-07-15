@@ -85,6 +85,13 @@ agent-facing `list` action remains useful in print, JSON, and other
 non-interactive modes where commands or TUI widgets are unavailable, and its
 machine-facing output continues to include stable IDs.
 
+The extension also publishes a structured summary on the versioned Pi event-bus
+channel `mopeyjellyfish:pi-todo:summary:v1`. The optional
+[`@mopeyjellyfish/pi-status-line`](../status-line/README.md) package renders it
+as `todo 2/5 · Current item`, selecting the in-progress item before the next
+pending item. The compact `setStatus()` value remains available as a standalone
+fallback when that status line is not installed.
+
 ## Persistence and scope
 
 Todo state belongs to the current Pi session branch:

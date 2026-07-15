@@ -19,6 +19,7 @@ import {
 
 const STATE_TYPE = "mopeyjellyfish-pi-worktrunk-state";
 const STATUS_KEY = "mopeyjellyfish-pi-worktrunk";
+export const WORKTREE_ROUTE_EVENT = "mopeyjellyfish:pi-worktrunk:route:v1";
 const OUTPUT_WORKTREE_LIMIT = 20;
 const OUTPUT_IDENTIFIER_LIMIT = 200;
 const OUTPUT_HEAD_LIMIT = 128;
@@ -85,8 +86,17 @@ type WorktreeActionHandler = (
   ctx: ExtensionContext,
 ) => Promise<WorktreeToolResult>;
 
+export interface WorktreeRouteEventV1 {
+  readonly activePath: string;
+  readonly branch: string | undefined;
+  readonly head: string | undefined;
+  readonly version: 1;
+}
+
 interface ActiveRoute {
   readonly activePath: string;
+  readonly branch: string | undefined;
+  readonly head: string | undefined;
   readonly mainPath: string;
 }
 
@@ -255,25 +265,45 @@ function listText(list: WorktrunkList): {
   };
 }
 
-function setStatus(ctx: ExtensionContext, active: ActiveRoute | undefined): void {
+function publishRoute(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+  active: ActiveRoute | undefined,
+): void {
+  pi.events.emit(
+    WORKTREE_ROUTE_EVENT,
+    active === undefined
+      ? undefined
+      : ({
+          activePath: active.activePath,
+          branch: active.branch,
+          head: active.head,
+          version: 1,
+        } satisfies WorktreeRouteEventV1),
+  );
   if (!ctx.hasUI) {
     return;
   }
+  const label =
+    active?.branch ??
+    (active === undefined
+      ? undefined
+      : (active.activePath.split(/[\\/]/u).at(-1) ?? active.activePath));
   ctx.ui.setStatus(
     STATUS_KEY,
-    active === undefined
+    label === undefined
       ? undefined
-      : `worktree: ${
-          outputText(
-            active.activePath.split(/[\\/]/u).at(-1) ?? active.activePath,
-            OUTPUT_IDENTIFIER_LIMIT,
-          ).text
-        }`,
+      : `worktree: ${outputText(label, OUTPUT_IDENTIFIER_LIMIT).text}`,
   );
 }
 
 function routeFromSelection(selection: WorktrunkSelection): ActiveRoute {
-  return { activePath: selection.worktree.path, mainPath: selection.mainPath };
+  return {
+    activePath: selection.worktree.path,
+    branch: selection.worktree.branch,
+    head: selection.worktree.head,
+    mainPath: selection.mainPath,
+  };
 }
 
 function matchedWorktree(list: WorktrunkList, identifier: string): WorktrunkWorktree | undefined {
@@ -326,13 +356,13 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     active = routeFromSelection(selection);
     lastMainPath = active.mainPath;
     persist(ctx);
-    setStatus(ctx, active);
+    publishRoute(pi, ctx, active);
   };
 
   const deactivate = (ctx: ExtensionContext): void => {
     active = undefined;
     persist(ctx);
-    setStatus(ctx, active);
+    publishRoute(pi, ctx, active);
   };
 
   const toolResult = (text: string, details: WorktreeToolDetails): WorktreeToolResult => ({
@@ -347,11 +377,20 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
       let current: ActiveRoute | undefined;
       if (route === undefined) {
         current = undefined;
-      } else if (
-        list.mainPath === route.mainPath &&
-        list.worktrees.some((worktree) => !worktree.main && worktree.path === route.activePath)
-      ) {
-        current = route;
+      } else {
+        const found = list.worktrees.find(
+          (worktree) => !worktree.main && worktree.path === route.activePath,
+        );
+        if (list.mainPath === route.mainPath && found !== undefined) {
+          current = {
+            activePath: found.path,
+            branch: found.branch,
+            head: found.head,
+            mainPath: list.mainPath,
+          };
+          active = current;
+          publishRoute(pi, ctx, current);
+        }
       }
       if (route !== undefined && current === undefined) {
         deactivate(ctx);
@@ -534,7 +573,7 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     active = undefined;
     lastMainPath = state?.mainPath;
     if (state?.activePath === undefined) {
-      setStatus(ctx, active);
+      publishRoute(pi, ctx, active);
       return;
     }
     try {
@@ -543,19 +582,24 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
         (worktree) => !worktree.main && worktree.path === state.activePath,
       );
       if (list.mainPath === state.mainPath && found !== undefined) {
-        active = { activePath: found.path, mainPath: list.mainPath };
+        active = {
+          activePath: found.path,
+          branch: found.branch,
+          head: found.head,
+          mainPath: list.mainPath,
+        };
         lastMainPath = list.mainPath;
       }
     } catch {
       // Worktrunk is optional until a user invokes the extension tool.
     }
-    setStatus(ctx, active);
+    publishRoute(pi, ctx, active);
   };
 
   pi.on("session_start", async (_event, ctx) => restore(ctx));
   pi.on("session_tree", async (_event, ctx) => restore(ctx));
   pi.on("session_shutdown", (_event, ctx) => {
-    setStatus(ctx, undefined);
+    publishRoute(pi, ctx, undefined);
   });
 
   pi.on("tool_call", (event) => {

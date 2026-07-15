@@ -1,0 +1,43 @@
+{
+  "name": "@mopeyjellyfish/pi-status-line",
+  "version": "0.0.0",
+  "description": "A Powerlevel10k-style status line with first-party Pi extension integrations.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "powerlevel10k",
+    "status-line"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/status-line"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/status-line/test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

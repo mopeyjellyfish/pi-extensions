@@ -17,6 +17,7 @@ its own README with setup and usage details.
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md) | Helps write Conventional Commits and safely rebase a branch onto its base.          |
 | [`@mopeyjellyfish/pi-question`](packages/question/README.md)               | Gives agents a structured way to ask clear questions.                               |
+| [`@mopeyjellyfish/pi-status-line`](packages/status-line/README.md)         | Shows a worktree-aware Powerlevel10k-style footer with todo progress.               |
 | [`@mopeyjellyfish/pi-todo`](packages/todo/README.md)                       | Keeps a small task list for the current Pi session.                                 |
 | [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)           | Searches the web through the selected model provider.                               |
 | [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)             | Creates and selects Worktrunk worktrees, then routes Pi tools to the selected path. |
@@ -57,10 +58,10 @@ cd pi-extensions
 Then install the package you want:
 
 ```sh
-pi install "$(pwd)/packages/question"
+pi install "$(pwd)/packages/status-line"
 ```
 
-Replace `question` with any package directory shown above.
+Replace `status-line` with any package directory shown above.
 
 Pi keeps the path to your checkout instead of copying it. Keep the checkout in
 place while the package is installed. Run `pi list` to see what Pi has loaded.
@@ -68,7 +69,7 @@ place while the package is installed. Run `pi list` to see what Pi has loaded.
 To install it only for one project, run this from that project:
 
 ```sh
-pi install -l /path/to/pi-extensions/packages/question
+pi install -l /path/to/pi-extensions/packages/status-line
 ```
 
 ## Work on the repository
@@ -116,7 +117,7 @@ npm exec -- pi \
   --no-skills \
   --no-prompt-templates \
   --no-themes \
-  -e packages/web-search
+  -e packages/status-line
 ```
 
 ## Repository layout

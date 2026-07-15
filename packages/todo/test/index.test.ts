@@ -76,6 +76,7 @@ interface Harness {
     ((event: Record<string, unknown>, context: ExtensionContext) => unknown)[]
   >;
   readonly notifications: string[];
+  readonly publishedSummaries: unknown[];
   readonly statuses: (string | undefined)[];
   readonly tool: RegisteredTool;
   readonly widgets: unknown[];
@@ -94,10 +95,19 @@ function createHarness(): Harness {
     ((event: Record<string, unknown>, context: ExtensionContext) => unknown)[]
   >();
   const notifications: string[] = [];
+  const publishedSummaries: unknown[] = [];
   const statuses: (string | undefined)[] = [];
   const widgets: unknown[] = [];
   let tool: RegisteredTool | undefined;
   const pi = {
+    events: {
+      emit(channel: string, data: unknown) {
+        if (channel === "mopeyjellyfish:pi-todo:summary:v1") publishedSummaries.push(data);
+      },
+      on: () => {
+        throw new Error("Unexpected event-bus subscription.");
+      },
+    },
     on(name: string, handler: (event: Record<string, unknown>, ctx: ExtensionContext) => unknown) {
       events.set(name, [...(events.get(name) ?? []), handler]);
     },
@@ -110,7 +120,16 @@ function createHarness(): Harness {
   } as unknown as ExtensionAPI;
   todoExtension(pi);
   if (tool === undefined) throw new Error("todo tool was not registered");
-  return { commands, entries, events, notifications, statuses, tool, widgets };
+  return {
+    commands,
+    entries,
+    events,
+    notifications,
+    publishedSummaries,
+    statuses,
+    tool,
+    widgets,
+  };
 }
 
 function context(harness: Harness, mode: "print" | "rpc" | "tui" = "tui"): ExtensionContext {
@@ -201,6 +220,12 @@ describe("pi-todo extension", () => {
 
     expect(added.content[0]?.text).toContain("Added #1, #2, #3");
     expect(added.details.snapshot).toMatchObject({ nextId: 4, revision: 1, version: 1 });
+    expect(harness.publishedSummaries.at(-1)).toEqual({
+      closed: 0,
+      current: { status: "pending", text: "Inspect code" },
+      total: 3,
+      version: 1,
+    });
     record(harness, added);
 
     const startedFirst = await harness.tool.execute(
@@ -226,6 +251,12 @@ describe("pi-todo extension", () => {
         { id: 3, status: "pending" },
       ],
       revision: 3,
+    });
+    expect(harness.publishedSummaries.at(-1)).toEqual({
+      closed: 0,
+      current: { status: "in_progress", text: "Run tests" },
+      total: 3,
+      version: 1,
     });
   });
 
@@ -408,6 +439,7 @@ describe("pi-todo extension", () => {
     await emit(harness, "session_shutdown", ctx);
     expect(harness.widgets.at(-1)).toBeUndefined();
     expect(harness.statuses.at(-1)).toBeUndefined();
+    expect(harness.publishedSummaries.at(-1)).toBeUndefined();
   });
 
   it("shows /todos in TUI mode and stays useful without UI", async () => {
@@ -633,7 +665,6 @@ describe("pi-todo extension", () => {
       undefined,
       ctx,
     );
-
     expect(result.content[0]?.text).toContain("Updated #2, #3, #4");
     expect(result.details.changedIds).toEqual([2, 3, 4]);
     const rendered = renderToolResult(harness, result);
@@ -781,5 +812,42 @@ describe("pi-todo extension", () => {
     expect(harness.notifications.at(-1)).toBe("○ Pending\n✓ Done");
     expect(harness.notifications.at(-1)).not.toMatch(/#\d+|<(?:dim|success)>/u);
     expect(harness.widgets).toEqual([]);
+  });
+
+  it("publishes all-closed summaries alongside themed human rows", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    await harness.tool.execute(
+      "add",
+      { action: "add", items: ["Done", "Cancelled"] },
+      undefined,
+      undefined,
+      ctx,
+    );
+    await harness.tool.execute(
+      "close",
+      {
+        action: "update",
+        updates: [
+          { id: 1, status: "completed" },
+          { id: 2, status: "cancelled" },
+        ],
+      },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(harness.statuses.at(-1)).toBe("todo 2/2");
+    expect(harness.publishedSummaries.at(-1)).toEqual({
+      closed: 2,
+      total: 2,
+      version: 1,
+    });
+    expect(renderWidget(harness.widgets.at(-1))).toEqual([
+      "<success>✓</success> Done",
+      "<error>×</error> Cancelled",
+    ]);
   });
 });

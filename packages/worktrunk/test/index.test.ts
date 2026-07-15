@@ -49,6 +49,7 @@ interface Harness {
   >;
   readonly exec: ReturnType<typeof vi.fn>;
   readonly notifications: { readonly level: string; readonly message: string }[];
+  readonly publishedRoutes: unknown[];
   readonly statuses: (string | undefined)[];
   readonly tool: RegisteredTool;
 }
@@ -101,6 +102,15 @@ function worktreeList(
   });
 }
 
+function detachedWorktreeList(): string {
+  const parsed = JSON.parse(worktreeList()) as { items: Record<string, unknown>[] };
+  const feature = parsed.items[1];
+  if (feature === undefined) throw new Error("Feature worktree fixture is missing.");
+  delete feature["branch"];
+  delete feature["head"];
+  return JSON.stringify(parsed);
+}
+
 function context(
   harness: Harness,
   options: {
@@ -141,6 +151,7 @@ function createHarness(results: readonly (CommandResult | Error)[]): Harness {
     ((event: Record<string, unknown>, ctx: ExtensionContext) => unknown)[]
   >();
   const notifications: { readonly level: string; readonly message: string }[] = [];
+  const publishedRoutes: unknown[] = [];
   const statuses: (string | undefined)[] = [];
   const queued = [...results];
   const exec = vi.fn(() => {
@@ -151,6 +162,12 @@ function createHarness(results: readonly (CommandResult | Error)[]): Harness {
   const pi = {
     appendEntry(customType: string, data: unknown) {
       entries.push({ customType, data, type: "custom" });
+    },
+    events: {
+      emit(channel: string, data: unknown) {
+        if (channel === "mopeyjellyfish:pi-worktrunk:route:v1") publishedRoutes.push(data);
+      },
+      on: vi.fn(() => vi.fn()),
     },
     exec,
     on(name: string, handler: (event: Record<string, unknown>, ctx: ExtensionContext) => unknown) {
@@ -167,7 +184,17 @@ function createHarness(results: readonly (CommandResult | Error)[]): Harness {
   if (tool === undefined) {
     throw new Error("worktree tool was not registered");
   }
-  return { commands, confirmations, entries, events, exec, notifications, statuses, tool };
+  return {
+    commands,
+    confirmations,
+    entries,
+    events,
+    exec,
+    notifications,
+    publishedRoutes,
+    statuses,
+    tool,
+  };
 }
 
 async function emit(
@@ -249,6 +276,12 @@ describe("pi-worktrunk extension", () => {
       data: { activePath: ACTIVE_PATH, mainPath: MAIN_PATH, version: 1 },
       type: "custom",
     });
+    expect(harness.publishedRoutes.at(-1)).toEqual({
+      activePath: ACTIVE_PATH,
+      branch: "feature/adapter",
+      head: "2222222222222222222222222222222222222222",
+      version: 1,
+    });
 
     const bash = { input: { command: "pwd" }, toolCallId: "bash", toolName: "bash" };
     await emit(harness, "tool_call", bash, ctx);
@@ -288,6 +321,36 @@ describe("pi-worktrunk extension", () => {
       userBashFailure = error;
     }
     expect(userBashFailure).toBeInstanceOf(Error);
+  });
+
+  it("publishes path fallbacks for detached or unborn linked worktrees", async () => {
+    expect.hasAssertions();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify({ action: "existing", path: ACTIVE_PATH }),
+      },
+      { code: 0, killed: false, stderr: "", stdout: detachedWorktreeList() },
+    ]);
+
+    const result = await harness.tool.execute(
+      "activate-detached",
+      { action: "activate", identifier: "detached" },
+      undefined,
+      undefined,
+      context(harness),
+    );
+    expect(result.content[0]?.text).toContain(ACTIVE_PATH);
+    expect(harness.statuses.at(-1)).toBe("worktree: example-feature");
+    expect(harness.publishedRoutes.at(-1)).toEqual({
+      activePath: ACTIVE_PATH,
+      branch: undefined,
+      head: undefined,
+      version: 1,
+    });
   });
 
   it("accepts Worktrunk's documented previous-worktree shortcuts", async () => {
@@ -407,6 +470,7 @@ describe("pi-worktrunk extension", () => {
     await expect(
       harness.tool.execute("deactivate", { action: "deactivate" }, undefined, undefined, ctx),
     ).resolves.toMatchObject({ details: { action: "deactivate" } });
+    expect(harness.publishedRoutes.at(-1)).toBeUndefined();
     await expect(
       harness.tool.execute(
         "remove",
@@ -609,12 +673,19 @@ describe("pi-worktrunk extension", () => {
 
     await emit(harness, "session_start", {}, ctx);
     await emit(harness, "session_tree", {}, ctx);
-    expect(harness.statuses).toContain("worktree: example-feature");
+    expect(harness.statuses).toContain("worktree: feature/adapter");
+    expect(harness.publishedRoutes.at(-1)).toEqual({
+      activePath: ACTIVE_PATH,
+      branch: "feature/adapter",
+      head: "2222222222222222222222222222222222222222",
+      version: 1,
+    });
     const bash = { input: { command: "pwd" }, toolCallId: "bash", toolName: "bash" };
     await emit(harness, "tool_call", bash, ctx);
     expect(bash.input.command).toBe(`cd -- '${ACTIVE_PATH}' && pwd`);
     await emit(harness, "session_shutdown", {}, ctx);
     expect(harness.statuses.at(-1)).toBeUndefined();
+    expect(harness.publishedRoutes.at(-1)).toBeUndefined();
 
     const stale = createHarness([
       { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
