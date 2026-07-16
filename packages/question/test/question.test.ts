@@ -368,7 +368,6 @@ describe("TUI dialog", () => {
             };
             expect(component.render(40).every((line) => visibleWidth(line) <= 40)).toBe(true);
             component.handleInput("\r");
-            component.handleInput("\r");
           });
         },
       },
@@ -376,6 +375,91 @@ describe("TUI dialog", () => {
     const result = await register().execute("id", { questions: single }, undefined, undefined, ctx);
     expect(result.details.status).toBe("submitted");
     expect(result.details.answers[0]?.selections[0]?.optionId).toBe("small");
+  });
+
+  it("submits single questions without a review step", () => {
+    expect.hasAssertions();
+    const keybindings = {
+      matches(data: string, id: string) {
+        return (
+          (id === "tui.select.confirm" && data === "\r") ||
+          (id === "tui.select.down" && data === "DOWN")
+        );
+      },
+    };
+    let singleOutcome: unknown;
+    const singleDialog = new QuestionDialog(
+      {
+        terminal: { rows: 20 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      keybindings,
+      single,
+      createInitialState(single),
+      (value) => {
+        singleOutcome = value;
+      },
+    );
+    singleDialog.handleInput("\r");
+    expect(singleOutcome).toMatchObject({ kind: "submitted", state: { complete: true } });
+
+    let multiSelectOutcome: unknown;
+    const multiSelectDialog = new QuestionDialog(
+      {
+        terminal: { rows: 20 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      keybindings,
+      [checksQuestion],
+      createInitialState([checksQuestion]),
+      (value) => {
+        multiSelectOutcome = value;
+      },
+    );
+    multiSelectDialog.handleInput("\r");
+    expect(multiSelectOutcome).toBeUndefined();
+    for (let index = 0; index < 4; index++) multiSelectDialog.handleInput("DOWN");
+    multiSelectDialog.handleInput("\r");
+    expect(multiSelectOutcome).toMatchObject({ kind: "submitted", state: { complete: true } });
+  });
+
+  it("keeps the final review step for multiple questions", () => {
+    expect.hasAssertions();
+    const multiple = [
+      scopeQuestion,
+      { ...scopeQuestion, id: "priority", header: "Priority", question: "Which priority?" },
+    ];
+    let outcome: unknown;
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 20 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      {
+        matches(data: string, id: string) {
+          return id === "tui.select.confirm" && data === "\r";
+        },
+      },
+      multiple,
+      createInitialState(multiple),
+      (value) => {
+        outcome = value;
+      },
+    );
+    dialog.handleInput("\r");
+    dialog.handleInput("\r");
+    expect(outcome).toBeUndefined();
+    dialog.handleInput("\r");
+    expect(outcome).toMatchObject({ kind: "submitted", state: { complete: true } });
   });
 
   it("is terminal-row-bounded with sticky borders and safe invalidation", () => {
@@ -524,8 +608,6 @@ describe("TUI dialog", () => {
     other.handleInput("\r");
     for (const character of "custom") other.handleInput(character);
     other.handleInput("\r");
-    other.handleInput("\t");
-    other.handleInput("\r");
     expect(submitted).toMatchObject({ kind: "submitted", state: { complete: true } });
   });
 
@@ -541,6 +623,15 @@ describe("TUI dialog", () => {
         );
       },
     };
+    const reviewQuestions = [
+      scopeQuestion,
+      { ...scopeQuestion, id: "priority", header: "Priority", question: "Which priority?" },
+    ];
+    let reviewState = createInitialState(reviewQuestions);
+    reviewState = applyAction(reviewState, { kind: "select", optionId: "small" }, reviewQuestions);
+    reviewState = applyAction(reviewState, { kind: "tab", tab: 1 }, reviewQuestions);
+    reviewState = applyAction(reviewState, { kind: "select", optionId: "small" }, reviewQuestions);
+    reviewState = applyAction(reviewState, { kind: "tab", tab: 2 }, reviewQuestions);
     let outcome: unknown;
     const dialog = new QuestionDialog(
       {
@@ -551,8 +642,8 @@ describe("TUI dialog", () => {
       },
       theme as never,
       keybindings,
-      single,
-      createInitialState(single),
+      reviewQuestions,
+      reviewState,
       (value) => {
         outcome = value;
       },
@@ -560,9 +651,6 @@ describe("TUI dialog", () => {
     dialog.focused = true;
     expect(dialog.focused).toBe(true);
     dialog.handleInput("UP");
-    dialog.handleInput("DOWN");
-    dialog.handleInput("\r");
-    dialog.handleInput("DOWN");
     dialog.handleInput("\r");
     for (const character of "review clarification") dialog.handleInput(character);
     dialog.handleInput("\r");
@@ -685,6 +773,26 @@ describe("tool execution modes", () => {
     ).toEqual([["small"], ["unit"]]);
   });
 
+  it("submits a single RPC question without prompting for review", async () => {
+    expect.hasAssertions();
+    const choices = ["Small"];
+    const ctx = context("rpc", {
+      ui: {
+        select: () => Promise.resolve(choices.shift()),
+        input: () => Promise.resolve(undefined),
+      },
+    } as unknown as Partial<ExtensionContext>);
+    const result = await register().execute(
+      "id",
+      { questions: [scopeQuestion] },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(result.details.status).toBe("submitted");
+    expect(choices).toEqual([]);
+  });
+
   it("supports RPC Other, review Chat, and cancellation", async () => {
     expect.hasAssertions();
     const choices = ["Other…", "[ ] Unit", "Next →", "Chat about this…"];
@@ -751,9 +859,9 @@ describe("tool execution modes", () => {
     expect(
       (await executeWith([checksQuestion], ["Chat about this…"], [undefined])).details.status,
     ).toBe("cancelled");
-    expect((await executeWith([scopeQuestion], ["Small", undefined])).details.reason).toBe(
-      "escape",
-    );
+    expect(
+      (await executeWith(questions, ["Small", "[ ] Unit", "Next →", undefined])).details.reason,
+    ).toBe("escape");
     const controller = new AbortController();
     controller.abort();
     expect(
