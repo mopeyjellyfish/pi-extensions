@@ -7,7 +7,8 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 - One to four questions in a tabbed bottom dialog.
 - Single- and multi-select options with persistent selections.
 - Responsive Markdown previews, stacked below 100 columns and side-by-side at wider widths.
-- Per-option notes, an **Other…** free-text answer, and a review/Submit tab.
+- Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
+- Immediate submission after a single question is answered, without a redundant review step.
 - **Chat about this…** redirects the conversation, then lets the model reopen revised questions with an opaque continuation ID while preserving compatible draft answers.
 - Terminal-row-aware scrolling with sticky chrome and clipping indicators.
 - A sequential dialog fallback for RPC clients and explicit unavailable results in JSON/print modes.
@@ -49,7 +50,7 @@ question({
 });
 ````
 
-The UI supplies **Other…**, **Chat about this…**, **Next →**, and Submit controls. Do not include these as options.
+The UI supplies **Other…**, **Chat about this…**, **Next →**, and, for multi-question dialogs, Submit controls. Do not include these as options.
 
 A redirected result contains `continuationId`, the bounded clarification, structured answers, and a compact continuation snapshot in tool details. The snapshot stores stable IDs plus SHA-256 semantic hashes for question text/selection mode and option labels/descriptions; it does not duplicate those strings, raw UI state, or previews. After addressing the clarification, call `question` again with that ID and the revised questions. Drafts are restored only from `question` results on the current session branch. Each continuation ID is one-use: the consuming result records `continuedFrom`, and later reuse fails as stale. Rewritten questions, changed selection modes, or changed option labels/descriptions clear affected selections and notes; preview-only changes do not. Removed options and their notes are dropped.
 
@@ -62,11 +63,11 @@ A redirected result contains `continuationId`, the bounded clarification, struct
 - `n`: edit the note for a focused option with a preview.
 - `Esc` or the configured `tui.select.cancel` binding: leave an editor or cancel the dialog.
 
-Submitting an empty note or **Other…** editor clears its existing value. Empty **Chat about this…** text is not submitted. Submit remains disabled until every current question has an answer.
+Submitting an empty note or **Other…** editor clears its existing value. Empty **Chat about this…** text is not submitted. A one-question single-select dialog submits when an option or non-empty **Other…** answer is confirmed; a one-question multi-select dialog submits through **Next →**. Multiple questions retain the final review step, where Submit remains disabled until every current question has an answer.
 
 ## Modes
 
-The complete dialog requires TUI mode. RPC mode walks the same questions through Pi's `select` and `input` UI protocol and uses the documented **Next →** sentinel. JSON and print modes return a structured `unavailable` result rather than inventing an answer; continuation IDs are deliberately not resolved in those modes.
+The complete dialog requires TUI mode. RPC mode walks the same questions through Pi's `select` and `input` UI protocol and uses the documented **Next →** sentinel. In both modes, a single question submits from its answer while multiple questions retain final review. JSON and print modes return a structured `unavailable` result rather than inventing an answer; continuation IDs are deliberately not resolved in those modes.
 
 ## Bounds
 
