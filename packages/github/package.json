@@ -1,0 +1,40 @@
+{
+  "name": "@mopeyjellyfish/pi-github",
+  "version": "0.0.0",
+  "description": "Focused GitHub CLI workflows for pull requests, Actions, issues, labels, repositories, and releases.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "skills/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "github",
+    "github-cli",
+    "pull-requests",
+    "github-actions"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/github"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/github/test"
+  }
+}

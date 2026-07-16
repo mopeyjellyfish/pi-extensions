@@ -156,6 +156,7 @@ describe("package contracts", () => {
     const packages = await discoverProductionPackages();
     expect(packages.map((descriptor) => descriptor.manifest["name"])).toEqual([
       "@mopeyjellyfish/pi-git-conventions",
+      "@mopeyjellyfish/pi-github",
       "@mopeyjellyfish/pi-question",
       "@mopeyjellyfish/pi-status-line",
       "@mopeyjellyfish/pi-todo",
@@ -172,6 +173,13 @@ describe("package contracts", () => {
       throw new Error("Git conventions package was not discovered.");
     }
     await expect(resolvePackageSkills(gitConventions)).resolves.toHaveLength(2);
+    const github = packages.find(
+      (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-github",
+    );
+    if (github === undefined) {
+      throw new Error("GitHub package was not discovered.");
+    }
+    await expect(resolvePackageSkills(github)).resolves.toHaveLength(1);
     await expect(validateRootAggregate(packages)).resolves.toEqual([]);
     await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);
   });

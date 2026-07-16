@@ -25,6 +25,9 @@
     "packages/git-conventions": {
       "release-type": "node"
     },
+    "packages/github": {
+      "release-type": "node"
+    },
     "packages/todo": {
       "release-type": "node"
     },
