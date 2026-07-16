@@ -1,0 +1,48 @@
+{
+  "name": "@mopeyjellyfish/pi-lsp",
+  "version": "0.0.0",
+  "description": "LSP-aware Pi file mutations with compact diagnostics and semantic file renames.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "lsp",
+    "language-server"
+  ],
+  "dependencies": {
+    "diff": "8.0.4",
+    "vscode-jsonrpc": "8.2.1"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10",
+    "vscode-languageserver-protocol": "3.17.5"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/lsp"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/lsp/test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
