@@ -108,12 +108,16 @@ describe("final review regressions", () => {
     );
     expect(multi.details).toMatchObject({ status: "cancelled", reason: "abort" });
 
+    const reviewQuestions = [
+      question,
+      { ...question, id: "priority", header: "Priority", question: "Choose priority" },
+    ];
     const review = await tool().execute(
       "review-nested",
-      { questions: [question] },
-      abortOnRead(4),
+      { questions: reviewQuestions },
+      abortOnRead(5),
       undefined,
-      rpcContext(["A", "Submit answers"]),
+      rpcContext(["A", "A", "Submit answers"]),
     );
     expect(review.details).toMatchObject({ status: "cancelled", reason: "abort" });
   });
@@ -299,7 +303,7 @@ describe("final review regressions", () => {
       question: "Choose\u{1B}[31m scope\u{0}",
     };
     const unsafeMulti: QuestionDefinition = { ...unsafeQuestion, id: "checks", multiSelect: true };
-    const choices = ["A", "Submit answers", "[ ] A", "Next →", "Submit answers"];
+    const choices = ["A", "[ ] A", "Next →"];
     const context = rpcContext(choices);
     context.ui.select = (title: string) => {
       titles.push(title);

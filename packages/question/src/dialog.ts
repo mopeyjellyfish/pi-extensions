@@ -126,6 +126,20 @@ export class QuestionDialog implements Component, Focusable {
     this.tui.requestRender();
   }
 
+  private submitSingleQuestion(): boolean {
+    if (this.questions.length !== 1 || !this.state.complete) return false;
+    this.finish({ kind: "submitted", state: this.state });
+    return true;
+  }
+
+  private advanceOrSubmit(): void {
+    if (this.submitSingleQuestion()) return;
+    if (this.questions.length > 1) {
+      this.state = applyAction(this.state, { kind: "next" }, this.questions);
+    }
+    this.refresh();
+  }
+
   private beginEditing(mode: Exclude<EditMode, undefined>, prefill = ""): void {
     this.editMode = mode;
     this.editor.setText(prefill);
@@ -147,6 +161,8 @@ export class QuestionDialog implements Component, Focusable {
         ? ({ kind: "other", text } as const)
         : ({ kind: "note", optionId: mode.optionId, text } as const);
     this.state = applyAction(this.state, action, this.questions);
+    const question = this.questions[this.state.tab];
+    if (mode.kind === "other" && !question?.multiSelect && this.submitSingleQuestion()) return;
     this.editMode = undefined;
     this.editor.setText("");
     this.editor.focused = false;
@@ -154,7 +170,7 @@ export class QuestionDialog implements Component, Focusable {
   }
 
   private moveTab(delta: number): void {
-    const count = this.questions.length + 1;
+    const count = this.questions.length === 1 ? 1 : this.questions.length + 1;
     this.state = applyAction(
       this.state,
       { kind: "tab", tab: (this.state.tab + delta + count) % count },
@@ -257,7 +273,8 @@ export class QuestionDialog implements Component, Focusable {
       this.questions,
     );
     if (!question.multiSelect) {
-      this.state = applyAction(this.state, { kind: "next" }, this.questions);
+      this.advanceOrSubmit();
+      return;
     }
     this.refresh();
   }
@@ -268,8 +285,7 @@ export class QuestionDialog implements Component, Focusable {
       this.beginEditing({ kind: "other" }, this.state.drafts[question.id]?.custom ?? "");
     } else if (cursor === otherIndex + 1) this.beginEditing({ kind: "chat" });
     else {
-      this.state = applyAction(this.state, { kind: "next" }, this.questions);
-      this.refresh();
+      this.advanceOrSubmit();
     }
   }
 

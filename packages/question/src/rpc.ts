@@ -202,6 +202,7 @@ export async function walkRpc(
       if (firstUnansweredTab(state, questions) !== tab) break;
     }
   }
+  if (questions.length === 1 && state.complete) return { kind: "submitted", state };
   state = applyAction(state, { kind: "tab", tab: questions.length }, questions);
   return nestedOutcomeAbort(await review(state, ctx, signal), signal);
 }
