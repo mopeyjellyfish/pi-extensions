@@ -28,6 +28,9 @@
     "packages/github": {
       "release-type": "node"
     },
+    "packages/lsp": {
+      "release-type": "node"
+    },
     "packages/todo": {
       "release-type": "node"
     },
