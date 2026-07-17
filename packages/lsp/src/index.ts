@@ -18,6 +18,7 @@ import { renderValidationOutcome } from "./validation.ts";
 
 import type {
   CodeActionOutcome,
+  FileLifecycleOutcome,
   LspService,
   MutationSnapshot,
   RenameOutcome,
@@ -119,6 +120,19 @@ const RenameSymbolParameters = Type.Object(
     newName: Type.String({ description: "New semantic symbol name", maxLength: 256, minLength: 1 }),
     path: Type.String({ description: "File containing the symbol" }),
   },
+  { additionalProperties: false },
+);
+
+const CreateFileParameters = Type.Object(
+  {
+    content: Type.String({ description: "Initial UTF-8 file content" }),
+    path: Type.String({ description: "New file path" }),
+  },
+  { additionalProperties: false },
+);
+
+const DeleteFileParameters = Type.Object(
+  { path: Type.String({ description: "Existing file path to delete" }) },
   { additionalProperties: false },
 );
 
@@ -224,6 +238,25 @@ function symbolRenameSummary(cwd: string, outcome: SymbolRenameOutcome): string 
   for (const change of outcome.changes) {
     lines.push(
       `${relative(cwd, change.path)}: ${String(change.editCount)} edit${change.editCount === 1 ? "" : "s"}, ${String(change.beforeBytes)} → ${String(change.afterBytes)} bytes`,
+    );
+  }
+  if (outcome.warning) lines.push(`Warning: ${outcome.warning}`);
+  for (const group of outcome.diagnostics) {
+    const rendered = renderDiagnostics(group.diagnostics);
+    if (rendered) lines.push(`Diagnostics for ${relative(cwd, group.path)}:\n${rendered}`);
+  }
+  return truncateHead(lines.join("\n"), { maxBytes: MAX_RENAME_OUTPUT_BYTES, maxLines: 120 })
+    .content;
+}
+
+function fileLifecycleSummary(cwd: string, outcome: FileLifecycleOutcome): string {
+  const lines = [
+    `${outcome.operation === "created" ? "Created" : "Deleted"} ${relative(cwd, outcome.path)} with ${outcome.serverName}.`,
+    `Applied semantic edits to ${String(outcome.changes.length)} file${outcome.changes.length === 1 ? "" : "s"}.`,
+  ];
+  for (const change of outcome.changes) {
+    lines.push(
+      `${relative(cwd, change.path)}: ${String(change.editCount)} edit${change.editCount === 1 ? "" : "s"}`,
     );
   }
   if (outcome.warning) lines.push(`Warning: ${outcome.warning}`);
@@ -591,6 +624,69 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
               (count, group) => count + group.diagnostics.length,
               0,
             ),
+            serverName: outcome.serverName,
+            ...(outcome.warning ? { warning: outcome.warning } : {}),
+          },
+        };
+      },
+    });
+
+    pi.registerTool({
+      name: "lsp_create_file",
+      label: "LSP Create File",
+      description:
+        "Create a file through workspace/willCreateFiles and workspace/didCreateFiles with validated transactional semantic edits.",
+      executionMode: "sequential",
+      promptSnippet: "Create files with language-server lifecycle notifications",
+      promptGuidelines: [
+        "Use lsp_create_file when creating a source file whose language server may update workspace metadata or related files.",
+      ],
+      parameters: CreateFileParameters,
+      async execute(_toolCallId, input, signal, _onUpdate, ctx) {
+        if (!ctx.isProjectTrusted()) throw new Error("lsp_create_file requires a trusted project.");
+        const outcome = await ensureService(ctx).createFile(
+          normalizePath(ctx.cwd, input.path),
+          input.content,
+          signal,
+        );
+        return {
+          content: [{ text: fileLifecycleSummary(ctx.cwd, outcome), type: "text" }],
+          details: {
+            changedFiles: outcome.changedFiles.slice(0, 64),
+            changes: outcome.changes.slice(0, 64),
+            operation: outcome.operation,
+            path: outcome.path,
+            serverName: outcome.serverName,
+            ...(outcome.warning ? { warning: outcome.warning } : {}),
+          },
+        };
+      },
+    });
+
+    pi.registerTool({
+      name: "lsp_delete_file",
+      label: "LSP Delete File",
+      description:
+        "Delete a file through workspace/willDeleteFiles and workspace/didDeleteFiles with validated transactional semantic edits.",
+      executionMode: "sequential",
+      promptSnippet: "Delete files with language-server lifecycle notifications",
+      promptGuidelines: [
+        "Use lsp_delete_file when deleting a source file whose language server may update workspace metadata or related files.",
+      ],
+      parameters: DeleteFileParameters,
+      async execute(_toolCallId, input, signal, _onUpdate, ctx) {
+        if (!ctx.isProjectTrusted()) throw new Error("lsp_delete_file requires a trusted project.");
+        const outcome = await ensureService(ctx).deleteFile(
+          normalizePath(ctx.cwd, input.path),
+          signal,
+        );
+        return {
+          content: [{ text: fileLifecycleSummary(ctx.cwd, outcome), type: "text" }],
+          details: {
+            changedFiles: outcome.changedFiles.slice(0, 64),
+            changes: outcome.changes.slice(0, 64),
+            operation: outcome.operation,
+            path: outcome.path,
             serverName: outcome.serverName,
             ...(outcome.warning ? { warning: outcome.warning } : {}),
           },

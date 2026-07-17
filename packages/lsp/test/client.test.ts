@@ -64,16 +64,25 @@ describe("LspClient", () => {
     expect(client.diagnostics(synchronization.uri)).toHaveLength(1);
     expect(client.documentText(synchronization.uri)).toBe("BROKEN\n");
 
+    expect(client.supportsWillCreateFiles()).toBe(true);
+    expect(client.supportsWillDeleteFiles()).toBe(true);
     expect(client.supportsWillRenameFiles()).toBe(true);
     const workspaceEdit = await client.willRenameFiles(file, join(root, "new.ts"));
     expect(workspaceEdit?.changes?.[pathToFileURL(importFile).href]).toHaveLength(1);
+    const createdPath = join(root, "created.ts");
+    await expect(client.willCreateFiles(createdPath)).resolves.toBeNull();
+    await client.didCreateFiles(createdPath);
     await client.didRenameFiles(file, join(root, "new.ts"));
+    await expect(client.willDeleteFiles(join(root, "new.ts"))).resolves.toBeNull();
+    await client.didDeleteFiles(join(root, "new.ts"));
     await client.shutdown();
     await client.shutdown();
 
     const calls = await readFile(log, "utf8");
     expect(calls).toContain("initialize");
     expect(calls).toContain("textDocument/didOpen");
+    expect(calls).toContain("workspace/willCreateFiles");
+    expect(calls).toContain("workspace/willDeleteFiles");
     expect(calls).toContain("workspace/willRenameFiles");
     expect(calls).toContain("workspace/didRenameFiles");
     expect(calls).toContain("textDocument/didClose");
@@ -81,7 +90,7 @@ describe("LspClient", () => {
     expect(calls).toContain("workspace/applyEdit");
     expect(calls).not.toContain("BAD_RESOURCE_OPERATIONS");
     expect(calls).not.toContain("MISSING_DOCUMENT_CHANGES");
-    expect(calls).not.toContain("BAD_FILE_OPERATION_CAPABILITIES");
+    expect(calls).not.toContain("MISSING_FILE_OPERATION_CAPABILITIES");
     expect(calls).toContain("shutdown");
   });
 

@@ -156,6 +156,22 @@ function fakeService(overrides: Partial<LspService> = {}): LspService {
       diagnostics: [],
       serverName: "fake",
     }),
+    createFile: vi.fn().mockResolvedValue({
+      changedFiles: [],
+      changes: [],
+      diagnostics: [],
+      operation: "created",
+      path: "",
+      serverName: "fake",
+    }),
+    deleteFile: vi.fn().mockResolvedValue({
+      changedFiles: [],
+      changes: [],
+      diagnostics: [],
+      operation: "deleted",
+      path: "",
+      serverName: "fake",
+    }),
     diagnoseMutation: vi.fn().mockResolvedValue([error()]),
     query: vi.fn().mockResolvedValue({
       items: [],
@@ -568,6 +584,73 @@ describe("Pi LSP extension", () => {
       tool.execute(
         "rename-symbol-untrusted",
         { column: 7, line: 1, newName: "newName", path: "symbol.ts" },
+        undefined,
+        undefined,
+        context(cwd, false),
+      ),
+    ).rejects.toThrow("trusted project");
+  });
+
+  it("delegates semantic file creation and deletion", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-file-lifecycle-tool-"));
+    const path = join(cwd, "created.ts");
+    const createFile = vi.fn().mockResolvedValue({
+      changedFiles: [path],
+      changes: [{ afterBytes: 4, beforeBytes: 3, editCount: 1, path }],
+      diagnostics: [{ diagnostics: [error()], path }],
+      operation: "created",
+      path,
+      serverName: "Fake LSP",
+      warning: "lifecycle warning",
+    });
+    const deleteFile = vi.fn().mockResolvedValue({
+      changedFiles: [path],
+      changes: [{ afterBytes: 2, beforeBytes: 4, editCount: 2, path }],
+      diagnostics: [{ diagnostics: [], path }],
+      operation: "deleted",
+      path,
+      serverName: "Fake LSP",
+    });
+    const state = harness(fakeService({ createFile, deleteFile }));
+    const ctx = context(cwd);
+    await emit(state, "session_start", {}, ctx);
+    const createTool = requiredTool(state, "lsp_create_file");
+    const created = await createTool.execute(
+      "create-1",
+      { content: "content\n", path: "created.ts" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(createFile).toHaveBeenCalledWith(path, "content\n", undefined);
+    expect(created.content[0]?.text).toContain("Created created.ts");
+    expect(created.content[0]?.text).toContain("lifecycle warning");
+    expect(created.content[0]?.text).toContain("1 new errors");
+
+    const deleteTool = requiredTool(state, "lsp_delete_file");
+    const deleted = await deleteTool.execute(
+      "delete-1",
+      { path: "created.ts" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(deleteFile).toHaveBeenCalledWith(path, undefined);
+    expect(deleted.content[0]?.text).toContain("Deleted created.ts");
+    await expect(
+      createTool.execute(
+        "create-untrusted",
+        { content: "", path: "created.ts" },
+        undefined,
+        undefined,
+        context(cwd, false),
+      ),
+    ).rejects.toThrow("trusted project");
+    await expect(
+      deleteTool.execute(
+        "delete-untrusted",
+        { path: "created.ts" },
         undefined,
         undefined,
         context(cwd, false),

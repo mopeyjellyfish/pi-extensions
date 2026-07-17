@@ -33,6 +33,8 @@ export interface ApplyWorkspaceEditOptions {
     path: string,
   ) => Promise<WorkspaceDocumentState | undefined> | WorkspaceDocumentState | undefined;
   readonly signal?: AbortSignal;
+  readonly validateAdditionalQueuePath?: (path: string) => Promise<void> | void;
+  readonly validateTextEditPath?: (path: string) => Promise<void> | void;
   readonly whileApplied?: (changedFiles: readonly string[]) => Promise<void>;
 }
 
@@ -278,6 +280,7 @@ async function prepareWorkspaceFiles(
   const replacements = new Map<string, string>();
   const changes: WorkspaceEditFileChange[] = [];
   for (const path of paths) {
+    await options.validateTextEditPath?.(path);
     if (!isInside(canonicalRoot, path)) {
       throw new Error(`LSP workspace edit targets a file outside the LSP workspace: ${path}`);
     }
@@ -352,6 +355,9 @@ export async function applyWorkspaceEdit(
     if (!options.dryRun) {
       await withQueues(queuePaths, async () => {
         options.signal?.throwIfAborted();
+        for (const path of canonicalAdditionalPaths) {
+          await options.validateAdditionalQueuePath?.(path);
+        }
         await options.whileApplied?.([]);
       });
     }
@@ -386,6 +392,9 @@ export async function applyWorkspaceEdit(
 
   await withQueues(queuePaths, async () => {
     options.signal?.throwIfAborted();
+    for (const path of canonicalAdditionalPaths) {
+      await options.validateAdditionalQueuePath?.(path);
+    }
     const prepared = await prepareWorkspaceFiles(
       paths,
       canonicalGrouped,

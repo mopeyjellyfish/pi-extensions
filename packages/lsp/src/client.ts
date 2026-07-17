@@ -71,7 +71,13 @@ interface OpenDocument {
   readonly version: number;
 }
 
-type FileOperationMethod = "workspace/didRenameFiles" | "workspace/willRenameFiles";
+type FileOperationMethod =
+  | "workspace/didCreateFiles"
+  | "workspace/didDeleteFiles"
+  | "workspace/didRenameFiles"
+  | "workspace/willCreateFiles"
+  | "workspace/willDeleteFiles"
+  | "workspace/willRenameFiles";
 
 interface FileOperationFilterShape {
   readonly pattern: {
@@ -435,8 +441,12 @@ export class LspClient {
               diagnostics: { refreshSupport: true },
               configuration: true,
               fileOperations: {
+                didCreate: true,
+                didDelete: true,
                 didRename: true,
                 dynamicRegistration: true,
+                willCreate: true,
+                willDelete: true,
                 willRename: true,
               },
               symbol: { dynamicRegistration: true },
@@ -564,8 +574,25 @@ export class LspClient {
     return false;
   }
 
+  supportsWillCreateFiles(path?: string): boolean {
+    return this.#supportsFileOperation(
+      "workspace/willCreateFiles",
+      path === undefined ? [] : [path],
+    );
+  }
+
+  supportsWillDeleteFiles(path?: string): boolean {
+    return this.#supportsFileOperation(
+      "workspace/willDeleteFiles",
+      path === undefined ? [] : [path],
+    );
+  }
+
   supportsWillRenameFiles(oldPath?: string, newPath?: string): boolean {
-    return this.#supportsFileOperation("workspace/willRenameFiles", oldPath, newPath);
+    return this.#supportsFileOperation(
+      "workspace/willRenameFiles",
+      oldPath === undefined || newPath === undefined ? [] : [oldPath, newPath],
+    );
   }
 
   get diagnosticRefreshSequence(): number {
@@ -604,8 +631,25 @@ export class LspClient {
     return undefined;
   }
 
+  supportsDidCreateFiles(path?: string): boolean {
+    return this.#supportsFileOperation(
+      "workspace/didCreateFiles",
+      path === undefined ? [] : [path],
+    );
+  }
+
+  supportsDidDeleteFiles(path?: string): boolean {
+    return this.#supportsFileOperation(
+      "workspace/didDeleteFiles",
+      path === undefined ? [] : [path],
+    );
+  }
+
   supportsDidRenameFiles(oldPath?: string, newPath?: string): boolean {
-    return this.#supportsFileOperation("workspace/didRenameFiles", oldPath, newPath);
+    return this.#supportsFileOperation(
+      "workspace/didRenameFiles",
+      oldPath === undefined || newPath === undefined ? [] : [oldPath, newPath],
+    );
   }
 
   supportsQuery(operation: LspQueryOperation): boolean {
@@ -652,12 +696,9 @@ export class LspClient {
     await this.#connection.sendNotification(method, params);
   }
 
-  #supportsFileOperation(method: FileOperationMethod, oldPath?: string, newPath?: string): boolean {
+  #supportsFileOperation(method: FileOperationMethod, paths: readonly string[]): boolean {
     const registrations: FileOperationRegistrationOptions[] = [];
-    const staticOptions =
-      method === "workspace/willRenameFiles"
-        ? this.#capabilities?.workspace?.fileOperations?.willRename
-        : this.#capabilities?.workspace?.fileOperations?.didRename;
+    const staticOptions = this.#staticFileOperationOptions(method);
     if (staticOptions) registrations.push(staticOptions);
     for (const registration of this.#dynamicRegistrations.values()) {
       if (
@@ -667,14 +708,28 @@ export class LspClient {
         registrations.push(registration.registerOptions);
       }
     }
-    if (oldPath === undefined || newPath === undefined) return registrations.length > 0;
+    if (paths.length === 0) return registrations.length > 0;
     return registrations.some((registration) =>
-      registration.filters.some(
-        (filter) =>
-          matchesFileOperationFilter(this.root, filter, oldPath) ||
-          matchesFileOperationFilter(this.root, filter, newPath),
+      registration.filters.some((filter) =>
+        paths.some((path) => matchesFileOperationFilter(this.root, filter, path)),
       ),
     );
+  }
+
+  #staticFileOperationOptions(
+    method: FileOperationMethod,
+  ): FileOperationRegistrationOptions | undefined {
+    const operations = this.#capabilities?.workspace?.fileOperations;
+    if (operations === undefined) return undefined;
+    const options = {
+      "workspace/didCreateFiles": operations.didCreate,
+      "workspace/didDeleteFiles": operations.didDelete,
+      "workspace/didRenameFiles": operations.didRename,
+      "workspace/willCreateFiles": operations.willCreate,
+      "workspace/willDeleteFiles": operations.willDelete,
+      "workspace/willRenameFiles": operations.willRename,
+    }[method];
+    return options ?? undefined;
   }
 
   async syncDocument(
@@ -742,6 +797,28 @@ export class LspClient {
     return { diagnostics: [], observed: false };
   }
 
+  async willCreateFiles(path: string, signal?: AbortSignal): Promise<WorkspaceEdit | null> {
+    if (!this.supportsWillCreateFiles(path)) {
+      throw new Error(`${this.name} does not support workspace/willCreateFiles.`);
+    }
+    return this.#request<WorkspaceEdit | null>(
+      "workspace/willCreateFiles",
+      { files: [{ uri: pathToFileURL(path).href }] },
+      signal,
+    );
+  }
+
+  async willDeleteFiles(path: string, signal?: AbortSignal): Promise<WorkspaceEdit | null> {
+    if (!this.supportsWillDeleteFiles(path)) {
+      throw new Error(`${this.name} does not support workspace/willDeleteFiles.`);
+    }
+    return this.#request<WorkspaceEdit | null>(
+      "workspace/willDeleteFiles",
+      { files: [{ uri: pathToFileURL(path).href }] },
+      signal,
+    );
+  }
+
   async willRenameFiles(
     oldPath: string,
     newPath: string,
@@ -755,6 +832,43 @@ export class LspClient {
       { files: [{ newUri: pathToFileURL(newPath).href, oldUri: pathToFileURL(oldPath).href }] },
       signal,
     );
+  }
+
+  async didCreateFiles(path: string): Promise<void> {
+    if (!this.supportsDidCreateFiles(path)) return;
+    await delay(20);
+    if (this.#process === undefined || !isRunning(this.#process)) {
+      throw new Error(`${this.name} exited before workspace/didCreateFiles.`);
+    }
+    await this.#requiredConnection().sendNotification("workspace/didCreateFiles", {
+      files: [{ uri: pathToFileURL(path).href }],
+    });
+  }
+
+  async didDeleteFiles(path: string): Promise<void> {
+    const uri = pathToFileURL(path).href;
+    try {
+      const connection = this.#requiredConnection();
+      if (this.supportsDidDeleteFiles(path)) {
+        await delay(20);
+        if (this.#process === undefined || !isRunning(this.#process)) {
+          throw new Error(`${this.name} exited before workspace/didDeleteFiles.`);
+        }
+        await connection.sendNotification("workspace/didDeleteFiles", {
+          files: [{ uri }],
+        });
+      }
+      if (
+        this.#documents.has(uri) &&
+        synchronizationOptions(this.#capabilities?.textDocumentSync).openClose
+      ) {
+        await connection.sendNotification("textDocument/didClose", { textDocument: { uri } });
+      }
+    } finally {
+      this.#documents.delete(uri);
+      this.#diagnostics.delete(uri);
+      this.#syncQueues.delete(uri);
+    }
   }
 
   async didRenameFiles(oldPath: string, newPath: string, newLanguageId?: string): Promise<void> {
