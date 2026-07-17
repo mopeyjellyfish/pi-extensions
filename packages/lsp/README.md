@@ -72,6 +72,29 @@ Servers are started lazily per detected workspace root and reused for the
 session. Missing or failed servers are not retried on every write. Run `/lsp`
 to see servers that are running, unavailable, or failed.
 
+## Semantic queries
+
+Use `lsp_query` for explicit, token-bounded semantic navigation and code discovery:
+
+```json
+{
+  "operation": "references",
+  "path": "src/service.ts",
+  "line": 42,
+  "column": 15,
+  "includeDeclaration": true
+}
+```
+
+Supported operations are `declaration`, `definition`, `typeDefinition`,
+`implementation`, `references`, `hover`, `documentSymbols`, and
+`workspaceSymbols`. Lines and UTF-16 columns are one-based. Document operations
+synchronize the current file under Pi's mutation queue before requesting a
+result. Workspace symbol queries can use `path` to select one server; without a
+path they fan out only to already-running servers. Results are deduplicated,
+sanitized, and bounded. Semantic query data is requested explicitly and is not
+appended to every `read`.
+
 ## Automatic diagnostics
 
 A successful `read` warms the applicable server in the background. Successful

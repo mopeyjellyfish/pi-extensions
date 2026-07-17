@@ -224,6 +224,22 @@ describe("LspClient", () => {
     await filtered.didRenameFiles(join(root, "old.py"), join(root, "new.py"));
     await filtered.shutdown();
     expect(await readFile(filteredLog, "utf8")).not.toContain("workspace/didRenameFiles");
+
+    const dynamicQuery = new LspClient({
+      args: [fixture],
+      command: process.execPath,
+      env: { ...process.env, FAKE_DYNAMIC_QUERY: "1", FAKE_NO_QUERY: "1" },
+      id: "dynamic-query",
+      name: "Dynamic Query LSP",
+      root,
+    });
+    await dynamicQuery.start();
+    await new Promise<void>((resolveDelay) => {
+      setTimeout(resolveDelay, 25);
+    });
+    expect(dynamicQuery.supportsQuery("hover")).toBe(true);
+    expect(dynamicQuery.supportsQuery("definition")).toBe(false);
+    await dynamicQuery.shutdown();
   });
 
   it("rejects unsupported position encodings", async () => {

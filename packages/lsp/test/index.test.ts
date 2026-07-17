@@ -149,6 +149,12 @@ function error(line = 2): Diagnostic {
 function fakeService(overrides: Partial<LspService> = {}): LspService {
   return {
     diagnoseMutation: vi.fn().mockResolvedValue([error()]),
+    query: vi.fn().mockResolvedValue({
+      items: [],
+      omitted: 0,
+      operation: "definition",
+      serverNames: ["fake"],
+    }),
     renameFile: vi.fn().mockResolvedValue({
       changedFiles: ["imports.ts"],
       diagnostics: [{ diagnostics: [error(0)], path: "new.ts" }],
@@ -280,6 +286,67 @@ describe("Pi LSP extension", () => {
       "diagnose:second",
     ]);
     await expect(readFile(path, "utf8")).resolves.toBe("second\n");
+  });
+
+  it("exposes bounded semantic LSP queries", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-query-tool-"));
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [{ column: 2, kind: "definition", line: 3, path: join(cwd, "example.ts") }],
+        omitted: 0,
+        operation: "definition",
+        serverNames: ["Fake LSP"],
+      })
+      .mockResolvedValueOnce({
+        items: [],
+        omitted: 2,
+        operation: "workspaceSymbols",
+        serverNames: ["Fake LSP"],
+      });
+    const state = harness(fakeService({ query }));
+    const ctx = context(cwd);
+    await emit(state, "session_start", {}, ctx);
+    const tool = requiredTool(state, "lsp_query");
+    const result = await tool.execute(
+      "query-1",
+      { column: 1, line: 1, operation: "definition", path: "example.ts" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(query).toHaveBeenCalledExactlyOnceWith(
+      {
+        column: 1,
+        line: 1,
+        operation: "definition",
+        path: join(cwd, "example.ts"),
+      },
+      undefined,
+    );
+    expect(result.content[0]?.text).toContain("example.ts:3:2");
+    const workspaceResult = await tool.execute(
+      "query-workspace",
+      { operation: "workspaceSymbols", query: "Example" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(query).toHaveBeenLastCalledWith(
+      { operation: "workspaceSymbols", query: "Example" },
+      undefined,
+    );
+    expect(workspaceResult.content[0]?.text).toContain("2 additional results omitted");
+    await expect(
+      tool.execute(
+        "query-untrusted",
+        { operation: "documentSymbols", path: "example.ts" },
+        undefined,
+        undefined,
+        context(cwd, false),
+      ),
+    ).rejects.toThrow("trusted project");
   });
 
   it("delegates semantic renames and cleans up the session", async () => {
