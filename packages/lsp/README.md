@@ -192,6 +192,17 @@ and byte counts. Apply mode acquires canonical
 mutation queues for every affected file, writes transactionally with rollback,
 resynchronizes changed documents, and reports post-edit diagnostics.
 
+## Semantic file lifecycle
+
+Use `lsp_create_file` and `lsp_delete_file` when a source-file lifecycle change
+may require language-server updates to project metadata or related files. The
+tools call `workspace/willCreateFiles` or `workspace/willDeleteFiles`, validate
+and transactionally apply text-only workspace edits together with the filesystem
+mutation, then send the matching `didCreateFiles` or `didDeleteFiles`
+notification. Existing create destinations, non-file delete targets, unsupported
+servers, stale edits, resource operations, unsafe paths, and unsnapshotted
+unversioned edits fail closed.
+
 ## Semantic file renames
 
 Use `lsp_rename_file` instead of `mv`, `git mv`, or write-plus-delete:

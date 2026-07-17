@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { watch as watchFilesystem } from "node:fs";
-import { lstat, mkdir, readFile, realpath, rename } from "node:fs/promises";
-import { dirname, isAbsolute, matchesGlob, relative, resolve } from "node:path";
+import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, matchesGlob, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
@@ -121,6 +121,16 @@ export interface SymbolRenameOutcome {
   readonly warning?: string;
 }
 
+export interface FileLifecycleOutcome {
+  readonly changedFiles: readonly string[];
+  readonly changes: readonly WorkspaceEditFileChange[];
+  readonly diagnostics: readonly FileDiagnostics[];
+  readonly operation: "created" | "deleted";
+  readonly path: string;
+  readonly serverName: string;
+  readonly warning?: string;
+}
+
 export interface RenameOutcome {
   readonly changedFiles: readonly string[];
   readonly diagnostics: readonly FileDiagnostics[];
@@ -140,6 +150,8 @@ export interface LspStatus {
 
 export interface LspService {
   codeAction(request: CodeActionRequest, signal?: AbortSignal): Promise<CodeActionOutcome>;
+  createFile(path: string, content: string, signal?: AbortSignal): Promise<FileLifecycleOutcome>;
+  deleteFile(path: string, signal?: AbortSignal): Promise<FileLifecycleOutcome>;
   diagnoseMutation(
     path: string,
     text: string,
@@ -393,7 +405,13 @@ async function exists(path: string): Promise<boolean> {
     await lstat(path);
     return true;
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return false;
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error.code === "ENOENT" || error.code === "ENOTDIR")
+    ) {
+      return false;
+    }
     throw error;
   }
 }
@@ -1097,6 +1115,189 @@ export class LspManager implements LspService {
       .map((item) => this.#consumeDiagnosticReport(client, item.uri, item));
   }
 
+  async createFile(
+    path: string,
+    content: string,
+    signal?: AbortSignal,
+  ): Promise<FileLifecycleOutcome> {
+    if (!this.#trusted) throw new Error("LSP semantic file creation requires a trusted project.");
+    if (Buffer.byteLength(content, "utf8") > MAX_SYNC_FILE_BYTES) {
+      throw new Error(`LSP file content exceeds ${String(MAX_SYNC_FILE_BYTES)} bytes.`);
+    }
+    const absolutePath = resolve(path);
+    if (!(await this.#isTrustedPath(absolutePath))) {
+      throw new Error("LSP semantic file creation must remain inside the trusted project.");
+    }
+    if (await exists(absolutePath)) throw new Error(`Create destination already exists: ${path}`);
+    const parent = await lstat(dirname(absolutePath));
+    if (!parent.isDirectory())
+      throw new Error("LSP semantic file creation requires an existing parent directory.");
+    const operationSignal = combinedSignal(this.#session.signal, signal);
+    const route = await this.#clientForFile(absolutePath, operationSignal);
+    if (route === undefined) throw new Error(`No installed LSP server is available for ${path}.`);
+    if (!route.client.supportsWillCreateFiles(absolutePath)) {
+      throw new Error(`${route.client.name} does not support workspace/willCreateFiles.`);
+    }
+    const expectedDocuments = await this.#snapshotClientDocuments(route.client);
+    const workspaceEdit = await route.client.willCreateFiles(absolutePath, operationSignal);
+    let queuedCreatePath: string | undefined;
+    const transaction = await applyWorkspaceEdit(workspaceEdit, route.client.root, {
+      additionalQueuePaths: [absolutePath],
+      documentState: (editPath) => this.#documentStateForClientPath(route.client, editPath),
+      expectedDocumentState: (editPath) => expectedDocuments.get(editPath),
+      signal: operationSignal,
+      validateAdditionalQueuePath: async (queuePath) => {
+        await this.#validateLifecycleQueuePath(route.client.root, queuePath);
+        queuedCreatePath = queuePath;
+      },
+      whileApplied: async () => {
+        operationSignal.throwIfAborted();
+        const canonicalRoot = await realpath(route.client.root);
+        const canonicalParent = await realpath(dirname(absolutePath));
+        if (!isInside(canonicalRoot, canonicalParent)) {
+          throw new Error("LSP file creation parent escaped the language-server workspace.");
+        }
+        const canonicalTarget = join(canonicalParent, basename(absolutePath));
+        if (queuedCreatePath === undefined || canonicalTarget !== queuedCreatePath) {
+          throw new Error("LSP file creation path changed while waiting for its mutation queue.");
+        }
+        await writeFile(queuedCreatePath, content, { encoding: "utf8", flag: "wx" });
+        const createdCanonicalPath = await realpath(queuedCreatePath);
+        if (
+          createdCanonicalPath !== queuedCreatePath ||
+          !isInside(canonicalRoot, createdCanonicalPath)
+        ) {
+          await unlink(createdCanonicalPath);
+          throw new Error("LSP file creation escaped its validated mutation path.");
+        }
+      },
+    });
+    this.#baselines.delete(absolutePath);
+    for (const changedPath of transaction.changedFiles) this.#baselines.delete(changedPath);
+    let notificationWarning: string | undefined;
+    try {
+      await route.client.didCreateFiles(absolutePath);
+    } catch (error) {
+      notificationWarning = `The file creation committed, but ${route.client.name} did not accept didCreateFiles: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    const affected = [...new Set([absolutePath, ...transaction.changedFiles])];
+    const synchronizationWarning = (
+      await this.#synchronizeChangedFiles(affected, operationSignal)
+    ).at(0);
+    const warning = combineWarnings(notificationWarning, synchronizationWarning);
+    const diagnostics = warning ? [] : await this.#collectDiagnostics(affected, operationSignal);
+    return {
+      changedFiles: affected,
+      changes: transaction.changes,
+      diagnostics,
+      operation: "created",
+      path: absolutePath,
+      serverName: route.client.name,
+      ...(warning ? { warning } : {}),
+    };
+  }
+
+  async deleteFile(path: string, signal?: AbortSignal): Promise<FileLifecycleOutcome> {
+    if (!this.#trusted) throw new Error("LSP semantic file deletion requires a trusted project.");
+    const absolutePath = resolve(path);
+    if (!(await this.#isTrustedPath(absolutePath))) {
+      throw new Error("LSP semantic file deletion must remain inside the trusted project.");
+    }
+    const target = await lstat(absolutePath);
+    if (!target.isFile())
+      throw new Error("LSP semantic file deletion currently supports files only.");
+    const operationSignal = combinedSignal(this.#session.signal, signal);
+    const prepared = await this.#withSynchronizedDocument(
+      absolutePath,
+      operationSignal,
+      async (route, text) => {
+        if (!route.client.supportsWillDeleteFiles(absolutePath)) {
+          throw new Error(`${route.client.name} does not support workspace/willDeleteFiles.`);
+        }
+        const expectedDocuments = await this.#snapshotClientDocuments(route.client);
+        const identity = await lstat(absolutePath, { bigint: true });
+        const canonicalPath = await realpath(absolutePath);
+        const workspaceEdit = await route.client.willDeleteFiles(absolutePath, operationSignal);
+        return { canonicalPath, expectedDocuments, identity, route, text, workspaceEdit };
+      },
+    );
+    let queuedDeletePath: string | undefined;
+    const transaction = await applyWorkspaceEdit(
+      prepared.workspaceEdit,
+      prepared.route.client.root,
+      {
+        additionalQueuePaths: [absolutePath],
+        documentState: (editPath) =>
+          this.#documentStateForClientPath(prepared.route.client, editPath),
+        expectedDocumentState: (editPath) => prepared.expectedDocuments.get(editPath),
+        signal: operationSignal,
+        validateAdditionalQueuePath: async (queuePath) => {
+          await this.#validateLifecycleQueuePath(prepared.route.client.root, queuePath);
+          if (queuePath !== prepared.canonicalPath) {
+            throw new Error("LSP delete target changed while waiting for its mutation queue.");
+          }
+          queuedDeletePath = queuePath;
+        },
+        validateTextEditPath: (editPath) => {
+          if (editPath === prepared.canonicalPath) {
+            throw new Error("LSP willDeleteFiles may not edit the file being deleted.");
+          }
+        },
+        whileApplied: async () => {
+          operationSignal.throwIfAborted();
+          const canonicalRoot = await realpath(prepared.route.client.root);
+          const currentCanonicalPath = await realpath(absolutePath);
+          if (
+            queuedDeletePath === undefined ||
+            currentCanonicalPath !== prepared.canonicalPath ||
+            currentCanonicalPath !== queuedDeletePath ||
+            !isInside(canonicalRoot, currentCanonicalPath)
+          ) {
+            throw new Error("LSP delete target identity changed before commit.");
+          }
+          const [currentIdentity, currentText] = await Promise.all([
+            lstat(absolutePath, { bigint: true }),
+            readFile(currentCanonicalPath, "utf8"),
+          ]);
+          if (
+            currentIdentity.dev !== prepared.identity.dev ||
+            currentIdentity.ino !== prepared.identity.ino ||
+            currentIdentity.mtimeNs !== prepared.identity.mtimeNs ||
+            currentIdentity.size !== prepared.identity.size ||
+            currentText !== prepared.text
+          ) {
+            throw new Error("LSP delete target changed after willDeleteFiles.");
+          }
+          await unlink(queuedDeletePath);
+        },
+      },
+    );
+    this.#baselines.delete(absolutePath);
+    for (const changedPath of transaction.changedFiles) this.#baselines.delete(changedPath);
+    let notificationWarning: string | undefined;
+    try {
+      await prepared.route.client.didDeleteFiles(absolutePath);
+    } catch (error) {
+      notificationWarning = `The file deletion committed, but ${prepared.route.client.name} did not accept didDeleteFiles: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    const synchronizationWarning = (
+      await this.#synchronizeChangedFiles(transaction.changedFiles, operationSignal)
+    ).at(0);
+    const warning = combineWarnings(notificationWarning, synchronizationWarning);
+    const diagnostics = warning
+      ? []
+      : await this.#collectDiagnostics(transaction.changedFiles, operationSignal);
+    return {
+      changedFiles: [...new Set([absolutePath, ...transaction.changedFiles])],
+      changes: transaction.changes,
+      diagnostics,
+      operation: "deleted",
+      path: absolutePath,
+      serverName: prepared.route.client.name,
+      ...(warning ? { warning } : {}),
+    };
+  }
+
   async renameSymbol(
     request: SymbolRenameRequest,
     signal?: AbortSignal,
@@ -1300,6 +1501,13 @@ export class LspManager implements LspService {
         }
       },
     });
+  }
+
+  async #validateLifecycleQueuePath(workspaceRoot: string, path: string): Promise<void> {
+    const canonicalRoot = await realpath(workspaceRoot);
+    if (!isInside(canonicalRoot, path)) {
+      throw new Error("LSP file lifecycle mutation escaped the language-server workspace.");
+    }
   }
 
   async #snapshotClientDocuments(

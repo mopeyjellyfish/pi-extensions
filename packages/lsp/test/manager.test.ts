@@ -698,6 +698,169 @@ describe("LspManager semantic rename", () => {
     ).rejects.toThrow("trusted project");
   });
 
+  it("creates and deletes files through semantic lifecycle transactions", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-file-lifecycle-"));
+    const related = join(root, "catalog.ts");
+    const target = join(root, "created.ts");
+    const log = join(root, "lifecycle.log");
+    await writeFile(related, "old\n");
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_LIFECYCLE_EDIT_FILE: related,
+        FAKE_LSP_LOG: log,
+      },
+      trusted: true,
+    });
+    await manager.warmFile(related);
+    const created = await manager.createFile(target, "BROKEN\n");
+    expect(created).toMatchObject({ operation: "created", path: target });
+    await expect(readFile(target, "utf8")).resolves.toBe("BROKEN\n");
+    await expect(readFile(related, "utf8")).resolves.toBe("new\n");
+    expect(created.changedFiles).toEqual(expect.arrayContaining([related, target]));
+
+    const deleted = await manager.deleteFile(target);
+    expect(deleted).toMatchObject({ operation: "deleted", path: target });
+    await expect(access(target)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(readFile(related, "utf8")).resolves.toBe("old\n");
+    const lifecycleCalls = (await readFile(log, "utf8")).split("\n");
+    expect(lifecycleCalls.indexOf("workspace/willCreateFiles")).toBeLessThan(
+      lifecycleCalls.indexOf("workspace/didCreateFiles"),
+    );
+    expect(lifecycleCalls.indexOf("workspace/willDeleteFiles")).toBeLessThan(
+      lifecycleCalls.indexOf("workspace/didDeleteFiles"),
+    );
+    await expect(manager.createFile(target, "x".repeat(2 * 1024 * 1024 + 1))).rejects.toThrow(
+      "exceeds",
+    );
+    await writeFile(target, "existing\n");
+    await expect(manager.createFile(target, "new\n")).rejects.toThrow("already exists");
+    await rm(target);
+    await expect(manager.createFile(join(related, "child.ts"), "new\n")).rejects.toThrow(
+      "existing parent directory",
+    );
+    const directoryTarget = join(root, "directory.ts");
+    await mkdir(directoryTarget);
+    await expect(manager.deleteFile(directoryTarget)).rejects.toThrow("files only");
+    await expect(manager.createFile(join(root, "unknown.ext"), "new\n")).rejects.toThrow(
+      "No installed LSP server",
+    );
+    const outsideCreate = join(tmpdir(), `pi-lsp-create-outside-${String(Date.now())}.ts`);
+    const outsideDelete = join(tmpdir(), `pi-lsp-delete-outside-${String(Date.now())}.ts`);
+    await writeFile(outsideDelete, "outside\n");
+    await expect(manager.createFile(outsideCreate, "outside\n")).rejects.toThrow("trusted project");
+    await expect(manager.deleteFile(outsideDelete)).rejects.toThrow("trusted project");
+    await manager.shutdown();
+
+    const unsupported = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_NO_FILE_LIFECYCLE: "1" },
+      trusted: true,
+    });
+    await expect(unsupported.createFile(target, "content\n")).rejects.toThrow(
+      "does not support workspace/willCreateFiles",
+    );
+    await writeFile(target, "content\n");
+    await expect(unsupported.deleteFile(target)).rejects.toThrow(
+      "does not support workspace/willDeleteFiles",
+    );
+    await unsupported.shutdown();
+
+    const warningPath = join(root, "warning.ts");
+    const warningManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_EXIT_AFTER_WILL_LIFECYCLE: "1",
+        FAKE_LIFECYCLE_NULL: "1",
+      },
+      trusted: true,
+    });
+    const warning = await warningManager.createFile(warningPath, "content\n");
+    expect(warning.warning).toContain("creation committed");
+    await expect(readFile(warningPath, "utf8")).resolves.toBe("content\n");
+    await warningManager.shutdown();
+
+    const warningDeletePath = join(root, "warning-delete.ts");
+    await writeFile(warningDeletePath, "content\n");
+    const warningDeleteManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_EXIT_AFTER_WILL_LIFECYCLE: "1",
+        FAKE_LIFECYCLE_NULL: "1",
+      },
+      trusted: true,
+    });
+    const deleteWarning = await warningDeleteManager.deleteFile(warningDeletePath);
+    expect(deleteWarning.warning).toContain("deletion committed");
+    await expect(access(warningDeletePath)).rejects.toMatchObject({ code: "ENOENT" });
+    await warningDeleteManager.shutdown();
+
+    const racedDeletePath = join(root, "raced-delete.ts");
+    const raceLog = join(root, "lifecycle-race.log");
+    await writeFile(racedDeletePath, "original\n");
+    const racedDeleteManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_LIFECYCLE_DELAY_MS: "100",
+        FAKE_LIFECYCLE_NULL: "1",
+        FAKE_LSP_LOG: raceLog,
+      },
+      trusted: true,
+    });
+    const racedDelete = racedDeleteManager.deleteFile(racedDeletePath);
+    await waitForLog(raceLog, "workspace/willDeleteFiles");
+    await writeFile(racedDeletePath, "concurrent\n");
+    await expect(racedDelete).rejects.toThrow("changed after willDeleteFiles");
+    await expect(readFile(racedDeletePath, "utf8")).resolves.toBe("concurrent\n");
+    await racedDeleteManager.shutdown();
+
+    const safeParent = join(root, "safe-parent");
+    const outsideParent = await mkdtemp(join(tmpdir(), "pi-lsp-create-escape-"));
+    const escapedCreatePath = join(safeParent, "escaped.ts");
+    const createRaceLog = join(root, "create-race.log");
+    await mkdir(safeParent);
+    const escapedCreateManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_LIFECYCLE_DELAY_MS: "100",
+        FAKE_LIFECYCLE_NULL: "1",
+        FAKE_LSP_LOG: createRaceLog,
+      },
+      trusted: true,
+    });
+    const escapedCreate = escapedCreateManager.createFile(escapedCreatePath, "content\n");
+    await waitForLog(createRaceLog, "workspace/willCreateFiles");
+    await rm(safeParent, { recursive: true });
+    await symlink(outsideParent, safeParent);
+    await expect(escapedCreate).rejects.toThrow("escaped");
+    await expect(access(join(outsideParent, "escaped.ts"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await escapedCreateManager.shutdown();
+
+    const untrusted = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: false,
+    });
+    await expect(untrusted.createFile(join(root, "no.ts"), "content\n")).rejects.toThrow(
+      "trusted project",
+    );
+    await expect(untrusted.deleteFile(target)).rejects.toThrow("trusted project");
+  });
+
   it("previews and applies version-validated semantic symbol renames", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "pi-lsp-symbol-rename-manager-"));

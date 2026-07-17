@@ -128,16 +128,24 @@ function initializeResult() {
         ? { positionEncoding: process.env.FAKE_POSITION_ENCODING }
         : {}),
       textDocumentSync,
-      ...(process.env.FAKE_NO_RENAME
-        ? {}
-        : {
-            workspace: {
-              fileOperations: {
+      workspace: {
+        fileOperations: {
+          ...(process.env.FAKE_NO_FILE_LIFECYCLE
+            ? {}
+            : {
+                didCreate: { filters: [{ pattern: renamePattern }] },
+                didDelete: { filters: [{ pattern: renamePattern }] },
+                willCreate: { filters: [{ pattern: renamePattern }] },
+                willDelete: { filters: [{ pattern: renamePattern }] },
+              }),
+          ...(process.env.FAKE_NO_RENAME
+            ? {}
+            : {
                 didRename: { filters: [{ pattern: renamePattern }] },
                 willRename: { filters: [{ pattern: renamePattern }] },
-              },
-            },
-          }),
+              }),
+        },
+      },
     },
   };
 }
@@ -255,12 +263,12 @@ function handle(message) {
         log("MISSING_DOCUMENT_CHANGES");
       }
       if (
-        workspaceCapabilities.fileOperations.didCreate ||
-        workspaceCapabilities.fileOperations.didDelete ||
-        workspaceCapabilities.fileOperations.willCreate ||
-        workspaceCapabilities.fileOperations.willDelete
+        workspaceCapabilities.fileOperations.didCreate !== true ||
+        workspaceCapabilities.fileOperations.didDelete !== true ||
+        workspaceCapabilities.fileOperations.willCreate !== true ||
+        workspaceCapabilities.fileOperations.willDelete !== true
       ) {
-        log("BAD_FILE_OPERATION_CAPABILITIES");
+        log("MISSING_FILE_OPERATION_CAPABILITIES");
       }
       if (process.env.FAKE_STDERR) process.stderr.write("fake server stderr\n");
       if (process.env.FAKE_INITIALIZE_ERROR) {
@@ -736,6 +744,39 @@ function handle(message) {
           },
         ],
       });
+      break;
+    }
+    case "workspace/willCreateFiles":
+    case "workspace/willDeleteFiles": {
+      const editFile = process.env.FAKE_LIFECYCLE_EDIT_FILE;
+      const newText = method === "workspace/willCreateFiles" ? "new" : "old";
+      const response = {
+        id: message.id,
+        jsonrpc: "2.0",
+        result:
+          editFile && !process.env.FAKE_LIFECYCLE_NULL
+            ? {
+                changes: {
+                  [pathToFileURL(editFile).href]: [
+                    {
+                      newText,
+                      range: {
+                        end: { character: 3, line: 0 },
+                        start: { character: 0, line: 0 },
+                      },
+                    },
+                  ],
+                },
+              }
+            : null,
+      };
+      const respond = () => {
+        send(response);
+        if (process.env.FAKE_EXIT_AFTER_WILL_LIFECYCLE) process.stdin.destroy();
+      };
+      const lifecycleDelay = Number(process.env.FAKE_LIFECYCLE_DELAY_MS ?? "0");
+      if (lifecycleDelay > 0) setTimeout(respond, lifecycleDelay);
+      else respond();
       break;
     }
     case "workspace/willRenameFiles": {
