@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-lsp",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Agent-oriented LSP diagnostics, navigation, validation, and safe semantic refactoring for Pi.",
   "license": "MIT",
   "type": "module",
