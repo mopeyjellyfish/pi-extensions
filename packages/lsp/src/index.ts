@@ -17,6 +17,7 @@ import { renderQueryOutcome } from "./query.ts";
 import { renderValidationOutcome } from "./validation.ts";
 
 import type {
+  CodeActionOutcome,
   LspService,
   MutationSnapshot,
   RenameOutcome,
@@ -72,6 +73,33 @@ const ValidateParameters = Type.Object(
     scope: Type.Union([Type.Literal("document"), Type.Literal("workspace")]),
     severity: Type.Optional(
       Type.Union([Type.Literal("error"), Type.Literal("warning"), Type.Literal("all")]),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+const CodeActionParameters = Type.Object(
+  {
+    column: Type.Optional(
+      Type.Integer({ description: "One-based UTF-16 start column", minimum: 1 }),
+    ),
+    endColumn: Type.Optional(
+      Type.Integer({ description: "One-based UTF-16 end column", minimum: 1 }),
+    ),
+    endLine: Type.Optional(Type.Integer({ description: "One-based end line", minimum: 1 })),
+    kind: Type.Union([Type.Literal("quickfix"), Type.Literal("source.organizeImports")], {
+      description: "Restricted code-action kind",
+    }),
+    line: Type.Optional(Type.Integer({ description: "One-based start line", minimum: 1 })),
+    mode: Type.Union([Type.Literal("list"), Type.Literal("apply")], {
+      description: "List fresh actions or apply one uniquely matching title",
+    }),
+    path: Type.String({ description: "File to request code actions for" }),
+    title: Type.Optional(
+      Type.String({
+        description: "Exact fresh action title required by apply mode",
+        maxLength: 512,
+      }),
     ),
   },
   { additionalProperties: false },
@@ -141,6 +169,46 @@ function appendDiagnostics<T extends { content: readonly unknown[] }>(result: T,
     ...result,
     content: [...result.content, { text: `\n\n${text}`, type: "text" }],
   };
+}
+
+function listedCodeActions(outcome: CodeActionOutcome): string {
+  const lines = [
+    `${outcome.serverName} returned ${String(outcome.actions.length)} supported code action${outcome.actions.length === 1 ? "" : "s"}.`,
+  ];
+  for (const action of outcome.actions) {
+    const flags = [
+      action.isPreferred ? "preferred" : undefined,
+      action.applicable ? "applicable" : "not applicable",
+      action.disabledReason ? `disabled: ${action.disabledReason}` : undefined,
+    ].filter((flag): flag is string => flag !== undefined);
+    lines.push(`- ${action.title} [${action.kind || "unspecified"}; ${flags.join(", ")}]`);
+  }
+  return truncateHead(lines.join("\n"), { maxBytes: MAX_RENAME_OUTPUT_BYTES, maxLines: 80 })
+    .content;
+}
+
+function appliedCodeAction(cwd: string, outcome: CodeActionOutcome): string {
+  const editCount = outcome.changes.reduce((count, change) => count + change.editCount, 0);
+  const lines = [
+    `Applied ${outcome.actions[0]?.title ?? "LSP code action"} with ${outcome.serverName}.`,
+    `${String(editCount)} edit${editCount === 1 ? "" : "s"} across ${String(outcome.changedFiles.length)} file${outcome.changedFiles.length === 1 ? "" : "s"}.`,
+  ];
+  for (const change of outcome.changes) {
+    lines.push(
+      `${relative(cwd, change.path)}: ${String(change.editCount)} edit${change.editCount === 1 ? "" : "s"}`,
+    );
+  }
+  if (outcome.warning) lines.push(`Warning: ${outcome.warning}`);
+  for (const group of outcome.diagnostics) {
+    const rendered = renderDiagnostics(group.diagnostics);
+    if (rendered) lines.push(`Diagnostics for ${relative(cwd, group.path)}:\n${rendered}`);
+  }
+  return truncateHead(lines.join("\n"), { maxBytes: MAX_RENAME_OUTPUT_BYTES, maxLines: 120 })
+    .content;
+}
+
+function codeActionSummary(cwd: string, outcome: CodeActionOutcome): string {
+  return outcome.applied ? appliedCodeAction(cwd, outcome) : listedCodeActions(outcome);
 }
 
 function symbolRenameSummary(cwd: string, outcome: SymbolRenameOutcome): string {
@@ -432,6 +500,51 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
             omitted: outcome.omitted,
             scope: outcome.scope,
             serverNames: outcome.serverNames,
+          },
+        };
+      },
+    });
+
+    pi.registerTool({
+      name: "lsp_code_action",
+      label: "LSP Code Action",
+      description:
+        "List a fresh restricted set of language-server code actions or apply one exact, uniquely matched text-edit-only action.",
+      executionMode: "sequential",
+      promptSnippet: "List and apply safe quick fixes or organize-imports edits",
+      promptGuidelines: [
+        "List lsp_code_action results before apply and use the exact returned title.",
+        "Only quickfix and source.organizeImports text-edit actions are supported; commands are rejected.",
+      ],
+      parameters: CodeActionParameters,
+      async execute(_toolCallId, input, signal, _onUpdate, ctx) {
+        if (!ctx.isProjectTrusted()) throw new Error("lsp_code_action requires a trusted project.");
+        const outcome = await ensureService(ctx).codeAction(
+          {
+            ...(input.column === undefined ? {} : { column: input.column }),
+            ...(input.endColumn === undefined ? {} : { endColumn: input.endColumn }),
+            ...(input.endLine === undefined ? {} : { endLine: input.endLine }),
+            kind: input.kind,
+            ...(input.line === undefined ? {} : { line: input.line }),
+            mode: input.mode,
+            path: normalizePath(ctx.cwd, input.path),
+            ...(input.title === undefined ? {} : { title: input.title }),
+          },
+          signal,
+        );
+        return {
+          content: [{ text: codeActionSummary(ctx.cwd, outcome), type: "text" }],
+          details: {
+            actions: outcome.actions.slice(0, 32),
+            applied: outcome.applied,
+            changedFiles: outcome.changedFiles.slice(0, 64),
+            changes: outcome.changes.slice(0, 64),
+            diagnosticCount: outcome.diagnostics.reduce(
+              (count, group) => count + group.diagnostics.length,
+              0,
+            ),
+            serverName: outcome.serverName,
+            ...(outcome.warning ? { warning: outcome.warning } : {}),
           },
         };
       },

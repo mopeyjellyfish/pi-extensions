@@ -322,6 +322,311 @@ describe("LspManager semantic rename", () => {
     await idle.shutdown();
   });
 
+  it("lists and applies only fresh text-edit code actions", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-code-action-manager-"));
+    const file = join(root, "action.ts");
+    await writeFile(file, "const oldName = oldName;\n");
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: true,
+    });
+    const listed = await manager.codeAction({
+      kind: "quickfix",
+      mode: "list",
+      path: file,
+    });
+    expect(listed).toMatchObject({
+      actions: [
+        {
+          applicable: true,
+          isPreferred: true,
+          kind: "quickfix",
+          title: "Replace oldName",
+        },
+      ],
+      applied: false,
+    });
+    const applied = await manager.codeAction({
+      column: 7,
+      kind: "quickfix",
+      line: 1,
+      mode: "apply",
+      path: file,
+      title: "Replace oldName",
+    });
+    expect(applied).toMatchObject({ applied: true, changes: [{ editCount: 1 }] });
+    await expect(readFile(file, "utf8")).resolves.toBe("const fixedName = oldName;\n");
+    await expect(
+      manager.codeAction({
+        kind: "source.organizeImports",
+        mode: "apply",
+        path: file,
+        title: "Organize Imports",
+      }),
+    ).resolves.toMatchObject({ applied: true });
+    await expect(readFile(file, "utf8")).resolves.toContain("// organized\n");
+    await expect(
+      manager.codeAction({ kind: "quickfix", mode: "apply", path: file }),
+    ).rejects.toThrow("exact title");
+    await expect(
+      manager.codeAction({ column: 1, kind: "quickfix", mode: "list", path: file }),
+    ).rejects.toThrow("line and column together");
+    await expect(
+      manager.codeAction({ endLine: 1, kind: "quickfix", mode: "list", path: file }),
+    ).rejects.toThrow("require a start position");
+    await expect(
+      manager.codeAction({
+        column: 1,
+        endLine: 1,
+        kind: "quickfix",
+        line: 1,
+        mode: "list",
+        path: file,
+      }),
+    ).rejects.toThrow("must be provided together");
+    await expect(
+      manager.codeAction({
+        column: 5,
+        endColumn: 2,
+        endLine: 1,
+        kind: "quickfix",
+        line: 1,
+        mode: "list",
+        path: file,
+      }),
+    ).rejects.toThrow("must not be reversed");
+    await manager.shutdown();
+
+    await writeFile(file, "const oldName = oldName;\n");
+    const resolving = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_CODE_ACTION_NO_DATA: "1",
+        FAKE_CODE_ACTION_RESOLVE: "1",
+        FAKE_CODE_ACTION_UNRESOLVED: "1",
+      },
+      trusted: true,
+    });
+    await expect(
+      resolving.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).resolves.toMatchObject({ applied: true });
+    await expect(readFile(file, "utf8")).resolves.toBe("const fixedName = oldName;\n");
+    await resolving.shutdown();
+
+    await writeFile(file, "const oldName = oldName;\n");
+    const disabled = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_CODE_ACTION_DISABLED: "1",
+        FAKE_CODE_ACTION_LONG_DISABLED: "1",
+      },
+      trusted: true,
+    });
+    const disabledList = await disabled.codeAction({
+      kind: "quickfix",
+      mode: "list",
+      path: file,
+    });
+    expect(disabledList.actions[0]?.disabledReason).toHaveLength(512);
+    let disabledError: unknown;
+    try {
+      await disabled.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      });
+    } catch (error) {
+      disabledError = error;
+    }
+    expect(disabledError).toBeInstanceOf(Error);
+    expect((disabledError as Error).message.length).toBeLessThan(600);
+    await disabled.shutdown();
+
+    const commanded = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_COMMAND: "1" },
+      trusted: true,
+    });
+    const commandList = await commanded.codeAction({
+      kind: "quickfix",
+      mode: "list",
+      path: file,
+    });
+    expect(commandList.actions).toMatchObject([{ applicable: false }]);
+    await expect(
+      commanded.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).rejects.toThrow("containing commands");
+    await commanded.shutdown();
+
+    const duplicate = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_LATE_DUPLICATE: "1" },
+      trusted: true,
+    });
+    await expect(
+      duplicate.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).rejects.toThrow("more than one matching title");
+    await duplicate.shutdown();
+
+    const legacyCommand = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_AS_COMMAND: "1" },
+      trusted: true,
+    });
+    await expect(
+      legacyCommand.codeAction({ kind: "quickfix", mode: "list", path: file }),
+    ).resolves.toMatchObject({ actions: [] });
+    await legacyCommand.shutdown();
+
+    const wrongKind = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_KIND: "refactor.extract" },
+      trusted: true,
+    });
+    await expect(
+      wrongKind.codeAction({ kind: "quickfix", mode: "list", path: file }),
+    ).resolves.toMatchObject({ actions: [] });
+    await expect(
+      wrongKind.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).rejects.toThrow("No matching supported");
+    await wrongKind.shutdown();
+
+    const namespacedKind = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_KIND: "source.organizeImports.custom" },
+      trusted: true,
+    });
+    await expect(
+      namespacedKind.codeAction({
+        kind: "source.organizeImports",
+        mode: "list",
+        path: file,
+      }),
+    ).resolves.toMatchObject({ actions: [{ kind: "source.organizeImports.custom" }] });
+    await namespacedKind.shutdown();
+
+    const oversizedKind = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_KIND: `quickfix.${"x".repeat(200)}` },
+      trusted: true,
+    });
+    await expect(
+      oversizedKind.codeAction({ kind: "quickfix", mode: "list", path: file }),
+    ).resolves.toMatchObject({ actions: [] });
+    await oversizedKind.shutdown();
+
+    const unresolved = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_CODE_ACTION_UNRESOLVED: "1" },
+      trusted: true,
+    });
+    await expect(
+      unresolved.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).rejects.toThrow("does not contain a text edit");
+    await unresolved.shutdown();
+
+    const changedResolve = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_CODE_ACTION_CHANGED_TITLE: "1",
+        FAKE_CODE_ACTION_RESOLVE: "1",
+        FAKE_CODE_ACTION_UNRESOLVED: "1",
+      },
+      trusted: true,
+    });
+    await expect(
+      changedResolve.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).rejects.toThrow("changed its title");
+    await changedResolve.shutdown();
+
+    const emptyResolve = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_CODE_ACTION_RESOLVE: "1",
+        FAKE_CODE_ACTION_RESOLVED_NO_EDIT: "1",
+        FAKE_CODE_ACTION_UNRESOLVED: "1",
+      },
+      trusted: true,
+    });
+    await expect(
+      emptyResolve.codeAction({
+        kind: "quickfix",
+        mode: "apply",
+        path: file,
+        title: "Replace oldName",
+      }),
+    ).rejects.toThrow("did not resolve to a text edit");
+    await emptyResolve.shutdown();
+
+    const unsupported = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_FALSE_CODE_ACTION: "1" },
+      trusted: true,
+    });
+    await expect(
+      unsupported.codeAction({ kind: "quickfix", mode: "list", path: file }),
+    ).rejects.toThrow("does not support textDocument/codeAction");
+    await unsupported.shutdown();
+
+    const untrusted = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: false,
+    });
+    await expect(
+      untrusted.codeAction({ kind: "quickfix", mode: "list", path: file }),
+    ).rejects.toThrow("trusted project");
+  });
+
   it("previews and applies version-validated semantic symbol renames", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "pi-lsp-symbol-rename-manager-"));

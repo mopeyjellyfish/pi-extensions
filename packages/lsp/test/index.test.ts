@@ -148,6 +148,14 @@ function error(line = 2): Diagnostic {
 
 function fakeService(overrides: Partial<LspService> = {}): LspService {
   return {
+    codeAction: vi.fn().mockResolvedValue({
+      actions: [],
+      applied: false,
+      changedFiles: [],
+      changes: [],
+      diagnostics: [],
+      serverName: "fake",
+    }),
     diagnoseMutation: vi.fn().mockResolvedValue([error()]),
     query: vi.fn().mockResolvedValue({
       items: [],
@@ -392,6 +400,103 @@ describe("Pi LSP extension", () => {
       tool.execute(
         "validate-untrusted",
         { paths: ["example.ts"], scope: "document" },
+        undefined,
+        undefined,
+        context(cwd, false),
+      ),
+    ).rejects.toThrow("trusted project");
+  });
+
+  it("lists and applies restricted code actions", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-code-action-tool-"));
+    const path = join(cwd, "action.ts");
+    const codeAction = vi.fn().mockResolvedValueOnce({
+      actions: [
+        {
+          applicable: true,
+          isPreferred: true,
+          kind: "quickfix",
+          title: "Fix issue",
+        },
+        {
+          applicable: false,
+          disabledReason: "not available",
+          isPreferred: false,
+          kind: "quickfix",
+          title: "Disabled fix",
+        },
+      ],
+      applied: false,
+      changedFiles: [],
+      changes: [],
+      diagnostics: [],
+      serverName: "Fake LSP",
+    });
+    const state = harness(fakeService({ codeAction }));
+    const ctx = context(cwd);
+    await emit(state, "session_start", {}, ctx);
+    const tool = requiredTool(state, "lsp_code_action");
+    const listed = await tool.execute(
+      "code-action-list",
+      { kind: "quickfix", mode: "list", path: "action.ts" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(codeAction).toHaveBeenCalledWith({ kind: "quickfix", mode: "list", path }, undefined);
+    expect(listed.content[0]?.text).toContain("Fix issue");
+    expect(listed.content[0]?.text).toContain("disabled: not available");
+
+    codeAction.mockResolvedValueOnce({
+      actions: [
+        {
+          applicable: true,
+          isPreferred: true,
+          kind: "quickfix",
+          title: "Fix issue",
+        },
+      ],
+      applied: true,
+      changedFiles: [path],
+      changes: [{ afterBytes: 4, beforeBytes: 3, editCount: 1, path }],
+      diagnostics: [],
+      serverName: "Fake LSP",
+    });
+    const applied = await tool.execute(
+      "code-action-apply",
+      {
+        column: 1,
+        endColumn: 2,
+        endLine: 1,
+        kind: "quickfix",
+        line: 1,
+        mode: "apply",
+        path: "action.ts",
+        title: "Fix issue",
+      },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(applied.content[0]?.text).toContain("Applied Fix issue");
+    expect(codeAction).toHaveBeenLastCalledWith(
+      {
+        column: 1,
+        endColumn: 2,
+        endLine: 1,
+        kind: "quickfix",
+        line: 1,
+        mode: "apply",
+        path,
+        title: "Fix issue",
+      },
+      undefined,
+    );
+    await expect(
+      tool.execute(
+        "code-action-untrusted",
+        { kind: "quickfix", mode: "list", path: "action.ts" },
         undefined,
         undefined,
         context(cwd, false),

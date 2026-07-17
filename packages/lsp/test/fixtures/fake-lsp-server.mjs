@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 let buffer = Buffer.alloc(0);
 const documents = new Map();
 let nextServerRequestId = 100;
+let lastCodeActionUri;
 
 function log(method) {
   if (process.env.FAKE_LSP_LOG) appendFileSync(process.env.FAKE_LSP_LOG, `${method}\n`);
@@ -90,6 +91,11 @@ function initializeResult() {
   };
   return {
     capabilities: {
+      codeActionProvider: process.env.FAKE_NO_CODE_ACTION
+        ? undefined
+        : process.env.FAKE_FALSE_CODE_ACTION
+          ? false
+          : { resolveProvider: Boolean(process.env.FAKE_CODE_ACTION_RESOLVE) },
       ...(process.env.FAKE_NO_QUERY
         ? {}
         : {
@@ -155,6 +161,17 @@ function exerciseClientRequests() {
   if (process.env.FAKE_DYNAMIC_QUERY) {
     serverRequest("client/registerCapability", {
       registrations: [{ id: "hover", method: "textDocument/hover", registerOptions: {} }],
+    });
+  }
+  if (process.env.FAKE_DYNAMIC_CODE_ACTION) {
+    serverRequest("client/registerCapability", {
+      registrations: [
+        {
+          id: "code-action",
+          method: "textDocument/codeAction",
+          registerOptions: { resolveProvider: true },
+        },
+      ],
     });
   }
   if (process.env.FAKE_DYNAMIC_SYMBOL_RENAME) {
@@ -311,6 +328,117 @@ function handle(message) {
                   version: document.version,
                 };
           }),
+        },
+      });
+      break;
+    }
+    case "textDocument/codeAction": {
+      const uri = message.params.textDocument.uri;
+      lastCodeActionUri = uri;
+      const document = documents.get(uri) ?? { text: "", version: 1 };
+      const requestedKind = message.params.context.only?.[0] ?? "quickfix";
+      const baseEdit = {
+        documentChanges: [
+          {
+            edits: [
+              {
+                newText:
+                  requestedKind === "source.organizeImports" ? "// organized\n" : "fixedName",
+                range:
+                  requestedKind === "source.organizeImports"
+                    ? {
+                        end: { character: 0, line: 0 },
+                        start: { character: 0, line: 0 },
+                      }
+                    : {
+                        end: { character: 13, line: 0 },
+                        start: { character: 6, line: 0 },
+                      },
+              },
+            ],
+            textDocument: { uri, version: document.version },
+          },
+        ],
+      };
+      const action = {
+        ...(process.env.FAKE_CODE_ACTION_COMMAND
+          ? { command: { command: "fake.command", title: "Run command" } }
+          : {}),
+        ...(process.env.FAKE_CODE_ACTION_DISABLED
+          ? {
+              disabled: {
+                reason: process.env.FAKE_CODE_ACTION_LONG_DISABLED
+                  ? "x".repeat(2048)
+                  : "disabled by fixture",
+              },
+            }
+          : {}),
+        ...(process.env.FAKE_CODE_ACTION_UNRESOLVED ? {} : { edit: baseEdit }),
+        ...(process.env.FAKE_CODE_ACTION_UNRESOLVED && !process.env.FAKE_CODE_ACTION_NO_DATA
+          ? { data: { uri } }
+          : {}),
+        isPreferred: true,
+        kind: process.env.FAKE_CODE_ACTION_KIND ?? requestedKind,
+        title: process.env.FAKE_CODE_ACTION_EMPTY_TITLE
+          ? ""
+          : requestedKind === "source.organizeImports"
+            ? "Organize Imports"
+            : "Replace oldName",
+      };
+      const returnedAction = process.env.FAKE_CODE_ACTION_AS_COMMAND
+        ? { command: "fake.command", title: "Legacy command" }
+        : action;
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: process.env.FAKE_CODE_ACTION_EMPTY
+          ? null
+          : process.env.FAKE_CODE_ACTION_LATE_DUPLICATE
+            ? [
+                returnedAction,
+                ...Array.from({ length: 31 }, (_, index) => ({
+                  ...action,
+                  title: `Other action ${String(index)}`,
+                })),
+                returnedAction,
+              ]
+            : process.env.FAKE_CODE_ACTION_DUPLICATE
+              ? [returnedAction, returnedAction]
+              : [returnedAction],
+      });
+      break;
+    }
+    case "codeAction/resolve": {
+      const uri = message.params.data?.uri ?? lastCodeActionUri;
+      const document = documents.get(uri) ?? { version: 1 };
+      const edit = {
+        documentChanges: [
+          {
+            edits: [
+              {
+                newText: "fixedName",
+                range: {
+                  end: { character: 13, line: 0 },
+                  start: { character: 6, line: 0 },
+                },
+              },
+            ],
+            textDocument: { uri, version: document.version },
+          },
+        ],
+      };
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: {
+          ...message.params,
+          ...(process.env.FAKE_CODE_ACTION_RESOLVED_COMMAND
+            ? { command: { command: "fake.command", title: "Run command" } }
+            : {}),
+          ...(process.env.FAKE_CODE_ACTION_RESOLVED_NO_EDIT ? {} : { edit }),
+          title: process.env.FAKE_CODE_ACTION_CHANGED_TITLE
+            ? "Changed title"
+            : message.params.title,
         },
       });
       break;

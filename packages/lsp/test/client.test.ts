@@ -49,6 +49,8 @@ describe("LspClient", () => {
     expect(client.id).toBe("fake");
     expect(client.name).toBe("Fake LSP");
     expect(client.root).toBe(root);
+    expect(client.supportsCodeActions()).toBe(true);
+    expect(client.supportsCodeActionResolve()).toBe(false);
     expect(client.supportsDocumentDiagnostics()).toBe(false);
     expect(client.supportsWorkspaceDiagnostics()).toBe(false);
     expect(client.supportsSymbolRename()).toBe(true);
@@ -235,9 +237,11 @@ describe("LspClient", () => {
       command: process.execPath,
       env: {
         ...process.env,
+        FAKE_DYNAMIC_CODE_ACTION: "1",
         FAKE_DYNAMIC_QUERY: "1",
         FAKE_DYNAMIC_PREPARE_RENAME: "1",
         FAKE_DYNAMIC_SYMBOL_RENAME: "1",
+        FAKE_NO_CODE_ACTION: "1",
         FAKE_NO_QUERY: "1",
         FAKE_NO_SYMBOL_RENAME: "1",
       },
@@ -249,6 +253,8 @@ describe("LspClient", () => {
     await new Promise<void>((resolveDelay) => {
       setTimeout(resolveDelay, 25);
     });
+    expect(dynamicQuery.supportsCodeActions()).toBe(true);
+    expect(dynamicQuery.supportsCodeActionResolve()).toBe(true);
     expect(dynamicQuery.supportsQuery("hover")).toBe(true);
     expect(dynamicQuery.supportsQuery("definition")).toBe(false);
     expect(dynamicQuery.supportsSymbolRename()).toBe(true);

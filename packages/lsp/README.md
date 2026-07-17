@@ -133,6 +133,28 @@ Clean files add no model-facing output. Results are sanitized and limited to
 eight errors and 2 KiB. A diagnostic that merely moves because lines were
 inserted or removed is not reported as new.
 
+## Safe code actions
+
+Use `lsp_code_action` in `list` mode to request a fresh, bounded set of either
+`quickfix` or `source.organizeImports` actions. Apply mode makes another fresh
+request and requires the exact title to match exactly one action:
+
+```json
+{
+  "path": "src/service.ts",
+  "line": 18,
+  "column": 14,
+  "kind": "quickfix",
+  "mode": "apply",
+  "title": "Add missing await"
+}
+```
+
+Only validated text edits are applied. Disabled actions, commands, resource
+operations, confirmation annotations, stale versions, ambiguous titles, and
+unversioned targets without request-time snapshots fail closed. The tool never
+executes a server command or reuses a cached action identifier.
+
 ## Semantic symbol renames
 
 Use `lsp_rename_symbol` to rename an identifier through
