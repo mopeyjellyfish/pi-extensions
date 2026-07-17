@@ -13,7 +13,8 @@
   ],
   "pi": {
     "extensions": [
-      "./packages/*/src/index.ts"
+      "./packages/*/src/index.ts",
+      "./node_modules/@ff-labs/pi-fff/src/index.ts"
     ],
     "skills": [
       "./packages/*/skills"
@@ -78,5 +79,8 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",
     "vitest": "4.1.10"
+  },
+  "dependencies": {
+    "@ff-labs/pi-fff": "0.9.6"
   }
 }

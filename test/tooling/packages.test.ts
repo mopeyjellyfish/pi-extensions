@@ -52,6 +52,42 @@ async function rootWithRuntime(node: string, nodeTypes: string): Promise<string>
   return root;
 }
 
+async function rootWithDependencyExtension(includeDependency: boolean): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), "pi-bundled-extension-test-"));
+  temporaryRoots.push(root);
+  const extensionRoot = join(root, "node_modules", "@example", "pi-extension");
+  await mkdir(join(root, "packages"), { recursive: true });
+  await mkdir(join(extensionRoot, "src"), { recursive: true });
+  await writeFile(join(extensionRoot, "src", "index.ts"), "export default () => {};\n", "utf8");
+  await writeFile(
+    join(extensionRoot, "package.json"),
+    JSON.stringify({
+      name: "@example/pi-extension",
+      version: "1.0.0",
+      pi: { extensions: ["./src/index.ts"] },
+    }),
+    "utf8",
+  );
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({
+      private: true,
+      workspaces: ["packages/*"],
+      engines: { node: ">=22.20.0" },
+      dependencies: includeDependency ? { "@example/pi-extension": "1.0.0" } : {},
+      devDependencies: { "@types/node": "22.20.0" },
+      pi: {
+        extensions: [
+          "./packages/*/src/index.ts",
+          "./node_modules/@example/pi-extension/src/index.ts",
+        ],
+      },
+    }),
+    "utf8",
+  );
+  return root;
+}
+
 async function rootWithSkillAggregate(includeSkills: boolean): Promise<{
   readonly descriptor: PackageDescriptor;
   readonly root: string;
@@ -148,6 +184,16 @@ describe("package contracts", () => {
     const aggregated = await rootWithSkillAggregate(true);
     await expect(validateRootAggregate([aggregated.descriptor], aggregated.root)).resolves.toEqual(
       [],
+    );
+  });
+
+  it("allows Pi package dependencies in the root aggregate", async () => {
+    expect.hasAssertions();
+    const valid = await rootWithDependencyExtension(true);
+    await expect(validateRootAggregate([], valid)).resolves.toEqual([]);
+    const missingDependency = await rootWithDependencyExtension(false);
+    await expect(validateRootAggregate([], missingDependency)).resolves.toContainEqual(
+      "Root aggregate includes unmanaged entrypoint node_modules/@example/pi-extension/src/index.ts.",
     );
   });
 

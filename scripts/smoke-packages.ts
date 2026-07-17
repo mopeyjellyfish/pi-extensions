@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
+import { cp, copyFile, mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -222,6 +222,47 @@ async function smokePath(
   }
 }
 
+async function loadRootAggregate(root: string): Promise<PackageDescriptor> {
+  const value = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as unknown;
+  if (!isRecord(value)) {
+    throw new Error("Root aggregate package.json must contain an object.");
+  }
+  return { kind: "production", manifest: value, root };
+}
+
+async function installRootAggregate(tempRoot: string): Promise<string> {
+  const installRoot = join(tempRoot, "install");
+  const npmHome = join(tempRoot, "npm-home");
+  await mkdir(installRoot, { recursive: true });
+  await mkdir(npmHome, { recursive: true });
+  await Promise.all([
+    copyFile(join(repositoryRoot, ".npmrc"), join(installRoot, ".npmrc")),
+    copyFile(join(repositoryRoot, "package.json"), join(installRoot, "package.json")),
+    copyFile(join(repositoryRoot, "package-lock.json"), join(installRoot, "package-lock.json")),
+    cp(join(repositoryRoot, "packages"), join(installRoot, "packages"), { recursive: true }),
+  ]);
+  const npmEnvironment = isolatedNpmEnvironment(npmHome);
+  const installInvocation = npmInvocation(
+    ["install", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"],
+    npmEnvironment,
+  );
+  const installed = await runCommand(installInvocation.command, installInvocation.arguments, {
+    cwd: installRoot,
+    env: npmEnvironment,
+    timeoutMs: 120_000,
+  });
+  if (installed.code !== 0) {
+    throw new Error(describeFailure("npm install root aggregate", installed));
+  }
+  const externalManifest = JSON.parse(
+    await readFile(join(installRoot, "node_modules", "@ff-labs", "pi-fff", "package.json"), "utf8"),
+  ) as unknown;
+  if (!isRecord(externalManifest) || externalManifest["name"] !== "@ff-labs/pi-fff") {
+    throw new Error("The installed root aggregate did not contain @ff-labs/pi-fff.");
+  }
+  return installRoot;
+}
+
 async function packAndInstall(descriptor: PackageDescriptor, tempRoot: string): Promise<string> {
   const packRoot = join(tempRoot, "pack");
   const extractRoot = join(tempRoot, "extract");
@@ -286,7 +327,25 @@ async function main(): Promise<void> {
         `Smoke-tested ${packageName} ${sourceOnly ? "from source" : packedOnly ? "from its package" : "from source and package"}.`,
       );
     }
-    console.log(`Pi smoke tests passed for ${String(descriptors.length)} package(s).`);
+    const rootAggregate = await loadRootAggregate(repositoryRoot);
+    if (!packedOnly) {
+      await smokePath(rootAggregate, repositoryRoot, "root-aggregate-source", tempRoot);
+    }
+    if (!sourceOnly) {
+      const installedRoot = await installRootAggregate(join(tempRoot, "root-aggregate"));
+      await smokePath(
+        await loadRootAggregate(installedRoot),
+        installedRoot,
+        "root-aggregate-installed",
+        tempRoot,
+      );
+    }
+    console.log(
+      `Smoke-tested the private root aggregate ${sourceOnly ? "from source" : packedOnly ? "from an isolated production install" : "from source and an isolated production install"}.`,
+    );
+    console.log(
+      `Pi smoke tests passed for ${String(descriptors.length)} package(s) and the private root aggregate.`,
+    );
   } finally {
     await rm(tempRoot, { force: true, recursive: true });
   }

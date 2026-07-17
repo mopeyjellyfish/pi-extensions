@@ -2,7 +2,7 @@
 
 ## Package boundaries
 
-The root package is private and exists only for shared development tooling and aggregate source loading. Each directory under `packages/` is an independent npm package with its own Pi manifest, runtime dependencies, documentation, tests, and optional native helper.
+The root package is private and exists only for shared development tooling and aggregate source loading, including the repository-wide Git install documented in the root README. It may deliberately include an external Pi package for that aggregate install, but must declare the package as a production dependency and reference its resources explicitly. Each directory under `packages/` is an independent npm package with its own Pi manifest, runtime dependencies, documentation, tests, and optional native helper.
 
 A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.
 
