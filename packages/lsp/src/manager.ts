@@ -2,10 +2,21 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { lstat, mkdir, readFile, realpath, rename } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 
 import { LspClient } from "./client.ts";
 import { introducedDiagnostics } from "./diagnostics.ts";
+import {
+  normalizeDocumentSymbols,
+  normalizeHover,
+  normalizeLocations,
+  normalizeWorkspaceSymbols,
+  QUERY_ITEM_LIMIT,
+  queryMethod,
+  toLspPosition,
+} from "./query.ts";
 import {
   DEFAULT_SERVER_DEFINITIONS,
   findWorkspaceRoot,
@@ -15,8 +26,18 @@ import {
 import { applyWorkspaceEdit } from "./workspace-edit.ts";
 
 import type { LspClientOptions } from "./client.ts";
+import type { LspQueryOutcome, LspQueryRequest } from "./query.ts";
 import type { ServerDefinition } from "./servers.ts";
-import type { Diagnostic, WorkspaceEdit } from "vscode-languageserver-protocol";
+import type {
+  Diagnostic,
+  DocumentSymbol,
+  Hover,
+  Location,
+  LocationLink,
+  SymbolInformation,
+  WorkspaceEdit,
+  WorkspaceSymbol,
+} from "vscode-languageserver-protocol";
 
 const MAX_SYNC_FILE_BYTES = 2 * 1024 * 1024;
 const DIAGNOSTIC_WAIT_MS = 10_000;
@@ -55,6 +76,7 @@ export interface LspService {
     snapshot: MutationSnapshot | undefined,
     signal?: AbortSignal,
   ): Promise<readonly Diagnostic[]>;
+  query(request: LspQueryRequest, signal?: AbortSignal): Promise<LspQueryOutcome>;
   renameFile(oldPath: string, newPath: string, signal?: AbortSignal): Promise<RenameOutcome>;
   shutdown(): Promise<void>;
   snapshot(path: string): Promise<MutationSnapshot | undefined>;
@@ -241,6 +263,155 @@ export class LspManager implements LspService {
         this.#pendingDiagnostics.delete(absolutePath);
       }
     }
+  }
+
+  async query(request: LspQueryRequest, signal?: AbortSignal): Promise<LspQueryOutcome> {
+    if (!this.#trusted) throw new Error("LSP queries require a trusted project.");
+    const operationSignal = combinedSignal(this.#session.signal, signal);
+    if (request.operation === "workspaceSymbols") {
+      const query = request.query?.trim();
+      if (query === undefined) throw new Error("workspaceSymbols requires a query string.");
+      if (request.path !== undefined) {
+        return this.#withSynchronizedDocument(request.path, operationSignal, (route) =>
+          this.#queryWorkspaceSymbols([route.client], query, operationSignal),
+        );
+      }
+      const clients = [...new Set(this.#clients.values())].slice(0, 8);
+      return this.#queryWorkspaceSymbols(clients, query, operationSignal);
+    }
+    if (request.path === undefined) throw new Error(`${request.operation} requires a path.`);
+    return this.#withSynchronizedDocument(request.path, operationSignal, (route, text, uri) =>
+      this.#queryDocument(route, text, uri, request, operationSignal),
+    );
+  }
+
+  async #withSynchronizedDocument<T>(
+    path: string,
+    signal: AbortSignal,
+    callback: (route: ClientRoute, text: string, uri: string) => Promise<T>,
+  ): Promise<T> {
+    const absolutePath = resolve(path);
+    if (!(await this.#isTrustedPath(absolutePath))) {
+      throw new Error("LSP query path must remain inside the trusted project.");
+    }
+    return withFileMutationQueue(absolutePath, async () => {
+      if (signal.aborted) throw new Error("LSP query aborted.");
+      const text = await readFile(absolutePath, "utf8");
+      if (Buffer.byteLength(text, "utf8") > MAX_SYNC_FILE_BYTES) {
+        throw new Error(`LSP query file exceeds ${String(MAX_SYNC_FILE_BYTES)} bytes.`);
+      }
+      const route = await this.#clientForFile(absolutePath, signal);
+      if (route === undefined) throw new Error(`No installed LSP server is available for ${path}.`);
+      await route.client.syncDocument(absolutePath, route.languageId, text);
+      return callback(route, text, pathToFileURL(absolutePath).href);
+    });
+  }
+
+  async #queryDocument(
+    route: ClientRoute,
+    text: string,
+    uri: string,
+    request: LspQueryRequest,
+    signal: AbortSignal,
+  ): Promise<LspQueryOutcome> {
+    if (!route.client.supportsQuery(request.operation)) {
+      throw new Error(`${route.client.name} does not support ${queryMethod(request.operation)}.`);
+    }
+    const base = { textDocument: { uri } };
+    if (request.operation === "documentSymbols") {
+      const raw = await route.client.request<
+        readonly DocumentSymbol[] | readonly SymbolInformation[] | null
+      >(queryMethod(request.operation), base, signal);
+      return {
+        items: normalizeDocumentSymbols(raw, fileURLToPath(uri)),
+        omitted: 0,
+        operation: request.operation,
+        serverNames: [route.client.name],
+      };
+    }
+    if (request.line === undefined || request.column === undefined) {
+      throw new Error(`${request.operation} requires line and column.`);
+    }
+    const position = toLspPosition(text, request.line, request.column);
+    if (request.operation === "hover") {
+      const raw = await route.client.request<Hover | null>(
+        queryMethod(request.operation),
+        { ...base, position },
+        signal,
+      );
+      const hover = normalizeHover(raw);
+      return {
+        ...(hover === undefined ? {} : { hover }),
+        items: [],
+        omitted: 0,
+        operation: request.operation,
+        serverNames: [route.client.name],
+      };
+    }
+    const params =
+      request.operation === "references"
+        ? {
+            ...base,
+            context: { includeDeclaration: request.includeDeclaration ?? true },
+            position,
+          }
+        : { ...base, position };
+    const raw = await route.client.request<
+      Location | readonly Location[] | readonly LocationLink[] | null
+    >(queryMethod(request.operation), params, signal);
+    const items = normalizeLocations(raw, request.operation);
+    const count = raw === null ? 0 : Array.isArray(raw) ? raw.length : 1;
+    return {
+      items,
+      omitted: Math.max(0, count - items.length),
+      operation: request.operation,
+      serverNames: [route.client.name],
+    };
+  }
+
+  async #queryWorkspaceSymbols(
+    clients: readonly LspClient[],
+    query: string,
+    signal: AbortSignal,
+  ): Promise<LspQueryOutcome> {
+    const supported = clients.filter((client) => client.supportsQuery("workspaceSymbols"));
+    if (supported.length === 0) {
+      throw new Error("No running language server supports workspace/symbol.");
+    }
+    const settled = await Promise.allSettled(
+      supported.map((client) =>
+        client.request<readonly (SymbolInformation | WorkspaceSymbol)[] | null>(
+          queryMethod("workspaceSymbols"),
+          { query },
+          signal,
+        ),
+      ),
+    );
+    const items = [] as ReturnType<typeof normalizeWorkspaceSymbols>[number][];
+    let omitted = 0;
+    const seen = new Set<string>();
+    for (const result of settled) {
+      if (result.status !== "fulfilled") continue;
+      const normalized = normalizeWorkspaceSymbols(result.value);
+      const rawCount = result.value?.length ?? 0;
+      omitted += Math.max(0, rawCount - normalized.length);
+      for (const item of normalized) {
+        const key = JSON.stringify(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (items.length >= QUERY_ITEM_LIMIT) {
+          omitted += 1;
+          continue;
+        }
+        items.push(item);
+      }
+    }
+    return {
+      items,
+      omitted,
+      operation: "workspaceSymbols",
+      serverNames: supported.map((client) => client.name),
+    };
   }
 
   async renameFile(oldPath: string, newPath: string, signal?: AbortSignal): Promise<RenameOutcome> {

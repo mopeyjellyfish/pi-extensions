@@ -86,6 +86,18 @@ function initializeResult() {
   };
   return {
     capabilities: {
+      ...(process.env.FAKE_NO_QUERY
+        ? {}
+        : {
+            declarationProvider: true,
+            definitionProvider: true,
+            documentSymbolProvider: true,
+            hoverProvider: true,
+            implementationProvider: true,
+            referencesProvider: true,
+            typeDefinitionProvider: true,
+            workspaceSymbolProvider: true,
+          }),
       ...(process.env.FAKE_POSITION_ENCODING
         ? { positionEncoding: process.env.FAKE_POSITION_ENCODING }
         : {}),
@@ -122,6 +134,11 @@ function exerciseClientRequests() {
         ]
       : [],
   });
+  if (process.env.FAKE_DYNAMIC_QUERY) {
+    serverRequest("client/registerCapability", {
+      registrations: [{ id: "hover", method: "textDocument/hover", registerOptions: {} }],
+    });
+  }
   if (process.env.FAKE_CLIENT_EDGE_REQUESTS) {
     serverRequest("workspace/configuration", {});
     serverRequest("client/registerCapability", { registrations: [{}] });
@@ -197,6 +214,121 @@ function handle(message) {
       documents.set(doc.uri, { text, version: doc.version });
       log(`didChangeVersion:${String(doc.version)}`);
       publish(doc.uri, doc.version, text);
+      break;
+    }
+    case "textDocument/declaration":
+    case "textDocument/definition":
+    case "textDocument/implementation":
+    case "textDocument/typeDefinition": {
+      const uri = message.params.textDocument.uri;
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: [
+          {
+            targetRange: {
+              end: { character: 12, line: 4 },
+              start: { character: 0, line: 4 },
+            },
+            targetSelectionRange: {
+              end: { character: 5, line: 4 },
+              start: { character: 0, line: 4 },
+            },
+            targetUri: uri,
+          },
+        ],
+      });
+      break;
+    }
+    case "textDocument/references": {
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: [
+          {
+            range: {
+              end: { character: 8, line: 2 },
+              start: { character: 2, line: 2 },
+            },
+            uri: message.params.textDocument.uri,
+          },
+        ],
+      });
+      break;
+    }
+    case "textDocument/hover": {
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: process.env.FAKE_HOVER_NULL
+          ? null
+          : { contents: { kind: "markdown", value: "```ts\\nconst value: number\\n```" } },
+      });
+      break;
+    }
+    case "textDocument/documentSymbol": {
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: [
+          {
+            children: [
+              {
+                kind: 12,
+                name: "method",
+                range: {
+                  end: { character: 1, line: 3 },
+                  start: { character: 0, line: 2 },
+                },
+                selectionRange: {
+                  end: { character: 8, line: 2 },
+                  start: { character: 2, line: 2 },
+                },
+              },
+            ],
+            kind: 5,
+            name: "Example",
+            range: {
+              end: { character: 1, line: 5 },
+              start: { character: 0, line: 0 },
+            },
+            selectionRange: {
+              end: { character: 13, line: 0 },
+              start: { character: 6, line: 0 },
+            },
+          },
+        ],
+      });
+      break;
+    }
+    case "workspace/symbol": {
+      if (process.env.FAKE_WORKSPACE_SYMBOL_ERROR) {
+        send({
+          error: { code: -32_603, message: "workspace symbol failed" },
+          id: message.id,
+          jsonrpc: "2.0",
+        });
+        break;
+      }
+      const uri = pathToFileURL(process.env.FAKE_WORKSPACE_SYMBOL_FILE ?? process.cwd()).href;
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: [
+          {
+            containerName: "workspace",
+            kind: 12,
+            location: {
+              range: {
+                end: { character: 8, line: 1 },
+                start: { character: 0, line: 1 },
+              },
+              uri,
+            },
+            name: `symbol:${String(message.params.query)}`,
+          },
+        ],
+      });
       break;
     }
     case "workspace/willRenameFiles": {

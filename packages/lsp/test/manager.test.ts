@@ -94,6 +94,136 @@ describe("LspManager semantic rename", () => {
     await manager.shutdown();
   });
 
+  it("serves bounded semantic navigation, hover, and symbol queries", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-query-manager-"));
+    const file = join(root, "example.ts");
+    await writeFile(
+      file,
+      "class Example {\n  value = 1;\n  method() {}\n}\nconst use = Example;\n",
+    );
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_WORKSPACE_SYMBOL_FILE: file },
+      trusted: true,
+    });
+
+    for (const operation of [
+      "declaration",
+      "definition",
+      "implementation",
+      "typeDefinition",
+    ] as const) {
+      const outcome = await manager.query({ column: 7, line: 1, operation, path: file });
+      expect(outcome.items[0]).toMatchObject({ line: 5, path: file });
+    }
+    const references = await manager.query({
+      column: 7,
+      includeDeclaration: false,
+      line: 1,
+      operation: "references",
+      path: file,
+    });
+    expect(references.items[0]).toMatchObject({ line: 3, path: file });
+    const hover = await manager.query({ column: 7, line: 1, operation: "hover", path: file });
+    expect(hover.hover).toContain("const value: number");
+    const symbols = await manager.query({ operation: "documentSymbols", path: file });
+    expect(symbols.items).toMatchObject([
+      { kind: "class", name: "Example" },
+      { containerName: "Example", kind: "function", name: "method" },
+    ]);
+    const selectedWorkspace = await manager.query({
+      operation: "workspaceSymbols",
+      path: file,
+      query: "Example",
+    });
+    expect(selectedWorkspace.items[0]).toMatchObject({ name: "symbol:Example", path: file });
+    const runningWorkspace = await manager.query({
+      operation: "workspaceSymbols",
+      query: "Example",
+    });
+    expect(runningWorkspace.items).toHaveLength(1);
+    await expect(
+      manager.query({ column: 99, line: 1, operation: "definition", path: file }),
+    ).rejects.toThrow("UTF-16");
+    await expect(manager.query({ operation: "documentSymbols" })).rejects.toThrow(
+      "requires a path",
+    );
+    await expect(manager.query({ operation: "hover", path: file })).rejects.toThrow(
+      "requires line and column",
+    );
+    await expect(manager.query({ operation: "workspaceSymbols" })).rejects.toThrow(
+      "requires a query string",
+    );
+    await expect(
+      manager.query({ column: 7, line: 1, operation: "references", path: file }),
+    ).resolves.toMatchObject({ items: [{ kind: "references" }] });
+    const large = join(root, "large.ts");
+    await writeFile(large, "x".repeat(2 * 1024 * 1024 + 1));
+    await expect(manager.query({ operation: "documentSymbols", path: large })).rejects.toThrow(
+      "exceeds",
+    );
+    const unsupportedFile = join(root, "notes.unknown");
+    await writeFile(unsupportedFile, "text\n");
+    await expect(
+      manager.query({ operation: "documentSymbols", path: unsupportedFile }),
+    ).rejects.toThrow("No installed LSP server");
+    const outside = join(tmpdir(), `pi-lsp-query-outside-${String(Date.now())}.ts`);
+    await writeFile(outside, "text\n");
+    await expect(manager.query({ operation: "documentSymbols", path: outside })).rejects.toThrow(
+      "trusted project",
+    );
+    const aborted = new AbortController();
+    aborted.abort();
+    await expect(
+      manager.query({ operation: "documentSymbols", path: file }, aborted.signal),
+    ).rejects.toThrow("aborted");
+    await manager.shutdown();
+
+    const unsupported = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_NO_QUERY: "1" },
+      trusted: true,
+    });
+    await expect(
+      unsupported.query({ column: 1, line: 1, operation: "definition", path: file }),
+    ).rejects.toThrow("does not support");
+    await unsupported.shutdown();
+
+    const nullHover = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_HOVER_NULL: "1" },
+      trusted: true,
+    });
+    await expect(
+      nullHover.query({ column: 1, line: 1, operation: "hover", path: file }),
+    ).resolves.toMatchObject({ items: [] });
+    await nullHover.shutdown();
+
+    const idle = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: true,
+    });
+    await expect(idle.query({ operation: "workspaceSymbols", query: "Example" })).rejects.toThrow(
+      "No running language server",
+    );
+    await idle.shutdown();
+
+    const untrusted = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: false,
+    });
+    await expect(
+      untrusted.query({ operation: "workspaceSymbols", query: "Example" }),
+    ).rejects.toThrow("trusted project");
+    await untrusted.shutdown();
+  });
+
   it("caches unavailable and failed server routes", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "pi-lsp-unavailable-"));

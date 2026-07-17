@@ -13,6 +13,7 @@ import { Type } from "typebox";
 
 import { renderDiagnostics } from "./diagnostics.ts";
 import { LspManager } from "./manager.ts";
+import { renderQueryOutcome } from "./query.ts";
 
 import type { LspService, MutationSnapshot, RenameOutcome } from "./manager.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -22,6 +23,37 @@ const DEFAULT_INLINE_WAIT_MS = 500;
 const MAX_RENAME_OUTPUT_BYTES = 8192;
 const MESSAGE_TYPE = "mopeyjellyfish-pi-lsp-diagnostics";
 const UNICODE_SPACES = /[\u{A0}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}]/gu;
+
+const QueryOperation = Type.Union([
+  Type.Literal("declaration"),
+  Type.Literal("definition"),
+  Type.Literal("documentSymbols"),
+  Type.Literal("hover"),
+  Type.Literal("implementation"),
+  Type.Literal("references"),
+  Type.Literal("typeDefinition"),
+  Type.Literal("workspaceSymbols"),
+]);
+
+const QueryParameters = Type.Object(
+  {
+    column: Type.Optional(
+      Type.Integer({ description: "One-based UTF-16 column for position queries", minimum: 1 }),
+    ),
+    includeDeclaration: Type.Optional(
+      Type.Boolean({ description: "Include the declaration in reference results" }),
+    ),
+    line: Type.Optional(
+      Type.Integer({ description: "One-based line for position queries", minimum: 1 }),
+    ),
+    operation: QueryOperation,
+    path: Type.Optional(
+      Type.String({ description: "File path for document queries or workspace selection" }),
+    ),
+    query: Type.Optional(Type.String({ description: "Symbol search text for workspaceSymbols" })),
+  },
+  { additionalProperties: false },
+);
 
 const RenameFileParameters = Type.Object(
   {
@@ -99,6 +131,7 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
         new LspManager({ cwd: ctx.cwd, trusted: ctx.isProjectTrusted() }));
     const inlineWaitMs = options.inlineWaitMs ?? DEFAULT_INLINE_WAIT_MS;
     const mutationQueues = new Map<string, Promise<void>>();
+    let mutationRegistration = Promise.resolve();
     let service: LspService | undefined;
 
     const withMutationTransaction = async <T>(
@@ -106,26 +139,39 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
       signal: AbortSignal | undefined,
       callback: () => Promise<T>,
     ): Promise<T> => {
-      let queueKey = path;
-      try {
-        queueKey = await realpath(path);
-      } catch {
-        // The built-in write tool may be creating a new path.
-      }
-      const previous = mutationQueues.get(queueKey) ?? Promise.resolve();
-      const operation = (async (): Promise<T> => {
-        await previous;
-        if (signal?.aborted) throw new Error("LSP mutation transaction aborted.");
-        return callback();
-      })();
-      const tail = (async (): Promise<void> => {
+      const previousRegistration = mutationRegistration;
+      const registration = (async () => {
+        await previousRegistration;
+        let queueKey = path;
         try {
-          await operation;
+          queueKey = await realpath(path);
         } catch {
-          // Failed transactions must not break the next queued mutation.
+          // The built-in write tool may be creating a new path.
+        }
+        const previous = mutationQueues.get(queueKey) ?? Promise.resolve();
+        const operation = (async (): Promise<T> => {
+          await previous;
+          if (signal?.aborted) throw new Error("LSP mutation transaction aborted.");
+          return callback();
+        })();
+        const tail = (async (): Promise<void> => {
+          try {
+            await operation;
+          } catch {
+            // Failed transactions must not break the next queued mutation.
+          }
+        })();
+        mutationQueues.set(queueKey, tail);
+        return { operation, queueKey, tail };
+      })();
+      mutationRegistration = (async (): Promise<void> => {
+        try {
+          await registration;
+        } catch {
+          // Failed registrations must not block later mutation transactions.
         }
       })();
-      mutationQueues.set(queueKey, tail);
+      const { operation, queueKey, tail } = await registration;
       try {
         return await operation;
       } finally {
@@ -255,6 +301,45 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
           }
           return enrich(current, ctx.cwd, result, path, text, snapshot, signal);
         });
+      },
+    });
+
+    pi.registerTool({
+      name: "lsp_query",
+      label: "LSP Query",
+      description:
+        "Query language-server semantics for definitions, declarations, type definitions, implementations, references, hover information, and document or workspace symbols.",
+      promptSnippet:
+        "Query semantic code navigation and symbols through the active language server",
+      promptGuidelines: [
+        "Use lsp_query for semantic definitions, references, implementations, symbols, and inferred type documentation when lexical search is ambiguous or expensive.",
+        "Use one-based line and UTF-16 column values with lsp_query position operations.",
+      ],
+      parameters: QueryParameters,
+      async execute(_toolCallId, input, signal, _onUpdate, ctx) {
+        if (!ctx.isProjectTrusted()) throw new Error("lsp_query requires a trusted project.");
+        const outcome = await ensureService(ctx).query(
+          {
+            ...(input.column === undefined ? {} : { column: input.column }),
+            ...(input.includeDeclaration === undefined
+              ? {}
+              : { includeDeclaration: input.includeDeclaration }),
+            ...(input.line === undefined ? {} : { line: input.line }),
+            operation: input.operation,
+            ...(input.path === undefined ? {} : { path: normalizePath(ctx.cwd, input.path) }),
+            ...(input.query === undefined ? {} : { query: input.query }),
+          },
+          signal,
+        );
+        return {
+          content: [{ text: renderQueryOutcome(ctx.cwd, outcome), type: "text" }],
+          details: {
+            items: outcome.items.slice(0, 100),
+            omitted: outcome.omitted,
+            operation: outcome.operation,
+            serverNames: outcome.serverNames,
+          },
+        };
       },
     });
 

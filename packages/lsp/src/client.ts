@@ -11,6 +11,9 @@ import {
   StreamMessageWriter,
 } from "vscode-jsonrpc/node.js";
 
+import { queryMethod } from "./query.ts";
+
+import type { LspQueryOperation } from "./query.ts";
 import type { ChildProcess, ChildProcessWithoutNullStreams } from "node:child_process";
 import type { MessageConnection } from "vscode-jsonrpc";
 import type {
@@ -364,13 +367,26 @@ export class LspClient {
           capabilities: {
             general: { positionEncodings: ["utf-16"] },
             textDocument: {
+              declaration: { dynamicRegistration: true, linkSupport: true },
+              definition: { dynamicRegistration: true, linkSupport: true },
+              documentSymbol: {
+                dynamicRegistration: true,
+                hierarchicalDocumentSymbolSupport: true,
+              },
+              hover: {
+                contentFormat: ["plaintext", "markdown"],
+                dynamicRegistration: true,
+              },
+              implementation: { dynamicRegistration: true, linkSupport: true },
               publishDiagnostics: { versionSupport: true },
+              references: { dynamicRegistration: true },
               synchronization: {
                 didSave: true,
                 dynamicRegistration: false,
                 willSave: false,
                 willSaveWaitUntil: false,
               },
+              typeDefinition: { dynamicRegistration: true, linkSupport: true },
             },
             workspace: {
               applyEdit: false,
@@ -380,6 +396,7 @@ export class LspClient {
                 dynamicRegistration: true,
                 willRename: true,
               },
+              symbol: { dynamicRegistration: true },
               workspaceEdit: {
                 documentChanges: false,
               },
@@ -429,6 +446,30 @@ export class LspClient {
 
   supportsDidRenameFiles(oldPath?: string, newPath?: string): boolean {
     return this.#supportsFileOperation("workspace/didRenameFiles", oldPath, newPath);
+  }
+
+  supportsQuery(operation: LspQueryOperation): boolean {
+    const capabilities = this.#capabilities;
+    const provider = {
+      declaration: capabilities?.declarationProvider,
+      definition: capabilities?.definitionProvider,
+      documentSymbols: capabilities?.documentSymbolProvider,
+      hover: capabilities?.hoverProvider,
+      implementation: capabilities?.implementationProvider,
+      references: capabilities?.referencesProvider,
+      typeDefinition: capabilities?.typeDefinitionProvider,
+      workspaceSymbols: capabilities?.workspaceSymbolProvider,
+    }[operation];
+    if (provider !== undefined && provider !== false) return true;
+    const method = queryMethod(operation);
+    for (const registration of this.#dynamicRegistrations.values()) {
+      if (registration.method === method) return true;
+    }
+    return false;
+  }
+
+  request<T>(method: string, params: unknown, signal?: AbortSignal): Promise<T> {
+    return this.#request<T>(method, params, signal);
   }
 
   #supportsFileOperation(method: FileOperationMethod, oldPath?: string, newPath?: string): boolean {
