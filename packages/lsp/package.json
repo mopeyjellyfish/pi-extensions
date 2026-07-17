@@ -1,7 +1,7 @@
 {
   "name": "@mopeyjellyfish/pi-lsp",
   "version": "0.0.0",
-  "description": "LSP-aware Pi file mutations with compact diagnostics and semantic file renames.",
+  "description": "Agent-oriented LSP diagnostics, navigation, validation, and safe semantic refactoring for Pi.",
   "license": "MIT",
   "type": "module",
   "engines": {
