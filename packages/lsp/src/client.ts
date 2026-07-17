@@ -248,6 +248,7 @@ export class LspClient {
   readonly #syncQueues = new Map<string, Promise<void>>();
   #capabilities: InitializeResult["capabilities"] | undefined;
   #connection: MessageConnection | undefined;
+  #diagnosticRefreshSequence = 0;
   #process: ChildProcessWithoutNullStreams | undefined;
   #sequence = 0;
   #shutdownPromise: Promise<void> | undefined;
@@ -354,6 +355,10 @@ export class LspClient {
       return null;
     });
     connection.onRequest("window/workDoneProgress/create", () => null);
+    connection.onRequest("workspace/diagnostic/refresh", () => {
+      this.#diagnosticRefreshSequence += 1;
+      return null;
+    });
     connection.onRequest("workspace/applyEdit", () => ({
       applied: false,
       failureReason: "Unsolicited language-server workspace edits are disabled.",
@@ -369,6 +374,7 @@ export class LspClient {
             textDocument: {
               declaration: { dynamicRegistration: true, linkSupport: true },
               definition: { dynamicRegistration: true, linkSupport: true },
+              diagnostic: { dynamicRegistration: true, relatedDocumentSupport: true },
               documentSymbol: {
                 dynamicRegistration: true,
                 hierarchicalDocumentSymbolSupport: true,
@@ -390,6 +396,7 @@ export class LspClient {
             },
             workspace: {
               applyEdit: false,
+              diagnostics: { refreshSupport: true },
               configuration: true,
               fileOperations: {
                 didRename: true,
@@ -442,6 +449,42 @@ export class LspClient {
 
   supportsWillRenameFiles(oldPath?: string, newPath?: string): boolean {
     return this.#supportsFileOperation("workspace/willRenameFiles", oldPath, newPath);
+  }
+
+  get diagnosticRefreshSequence(): number {
+    return this.#diagnosticRefreshSequence;
+  }
+
+  diagnosticIdentifier(): string | undefined {
+    const provider = this.#diagnosticProvider();
+    if (typeof provider !== "object" || provider === null || !("identifier" in provider)) {
+      return undefined;
+    }
+    return typeof provider.identifier === "string" ? provider.identifier : undefined;
+  }
+
+  supportsDocumentDiagnostics(): boolean {
+    return this.#diagnosticProvider() !== undefined;
+  }
+
+  supportsWorkspaceDiagnostics(): boolean {
+    const provider = this.#diagnosticProvider();
+    return (
+      typeof provider === "object" &&
+      provider !== null &&
+      "workspaceDiagnostics" in provider &&
+      provider.workspaceDiagnostics === true
+    );
+  }
+
+  #diagnosticProvider(): unknown {
+    if (this.#capabilities?.diagnosticProvider !== undefined) {
+      return this.#capabilities.diagnosticProvider;
+    }
+    for (const registration of this.#dynamicRegistrations.values()) {
+      if (registration.method === "textDocument/diagnostic") return registration.registerOptions;
+    }
+    return undefined;
   }
 
   supportsDidRenameFiles(oldPath?: string, newPath?: string): boolean {

@@ -95,6 +95,25 @@ path they fan out only to already-running servers. Results are deduplicated,
 sanitized, and bounded. Semantic query data is requested explicitly and is not
 appended to every `read`.
 
+## Explicit validation
+
+Use `lsp_validate` to request current document or workspace diagnostics:
+
+```json
+{
+  "scope": "document",
+  "paths": ["src/service.ts"],
+  "severity": "warning"
+}
+```
+
+Document validation uses LSP 3.17 pull diagnostics when the selected server
+advertises them, including cached `resultId`, unchanged reports, related
+documents, and diagnostic refresh requests. Other servers fall back to a
+version-synchronized push diagnostic wait. Workspace validation is explicit,
+requires server support, and can use paths to select relevant running servers.
+Results are deduplicated and bounded to protect Pi's context.
+
 ## Automatic diagnostics
 
 A successful `read` warms the applicable server in the background. Successful

@@ -224,6 +224,91 @@ describe("LspManager semantic rename", () => {
     await untrusted.shutdown();
   });
 
+  it("validates pull diagnostics, caches unchanged reports, and falls back to push", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-validation-manager-"));
+    const file = join(root, "example.ts");
+    const related = join(root, "related.ts");
+    const log = join(root, "server.log");
+    await writeFile(file, "BROKEN\n");
+    await writeFile(related, "BROKEN\n");
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DIAGNOSTIC_REFRESH: "1",
+        FAKE_LSP_LOG: log,
+        FAKE_PULL_DIAGNOSTICS: "1",
+        FAKE_RELATED_DIAGNOSTIC_FILE: related,
+        FAKE_WORKSPACE_DIAGNOSTICS: "1",
+      },
+      trusted: true,
+    });
+
+    const first = await manager.validate({ paths: [file], scope: "document", severity: "error" });
+    expect(first.diagnostics.map((group) => group.path)).toEqual([file, related]);
+    const unchanged = await manager.validate({
+      paths: [file],
+      scope: "document",
+      severity: "error",
+    });
+    expect(unchanged.diagnostics).toHaveLength(1);
+    await new Promise<void>((resolveDelay) => {
+      setTimeout(resolveDelay, 75);
+    });
+    const refreshed = await manager.validate({
+      paths: [file],
+      scope: "document",
+      severity: "warning",
+    });
+    expect(refreshed.diagnostics).not.toHaveLength(0);
+    const workspace = await manager.validate({
+      paths: [file],
+      scope: "workspace",
+      severity: "all",
+    });
+    expect(workspace.diagnostics[0]).toMatchObject({ path: file });
+    const workspaceUnchanged = await manager.validate({
+      scope: "workspace",
+      severity: "all",
+    });
+    expect(workspaceUnchanged.diagnostics[0]).toMatchObject({ path: file });
+    expect(await readFile(log, "utf8")).toContain("workspace/diagnostic/refresh");
+    await manager.shutdown();
+
+    const push = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      diagnosticWaitMs: 500,
+      env: { ...process.env, FAKE_UNVERSIONED: "1" },
+      trusted: true,
+    });
+    const pushed = await push.validate({ paths: [file], scope: "document", severity: "error" });
+    expect(pushed.diagnostics[0]).toMatchObject({ path: file });
+    await expect(
+      push.validate({ paths: [], scope: "document", severity: "error" }),
+    ).rejects.toThrow("at least one path");
+    await expect(
+      push.validate({
+        paths: Array.from({ length: 33 }, (_, index) => join(root, `${String(index)}.ts`)),
+        scope: "document",
+        severity: "error",
+      }),
+    ).rejects.toThrow("at most 32");
+    await push.shutdown();
+
+    const idle = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: true,
+    });
+    await expect(idle.validate({ scope: "workspace", severity: "error" })).rejects.toThrow(
+      "workspace diagnostics",
+    );
+    await idle.shutdown();
+  });
+
   it("caches unavailable and failed server routes", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "pi-lsp-unavailable-"));

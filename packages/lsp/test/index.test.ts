@@ -165,6 +165,12 @@ function fakeService(overrides: Partial<LspService> = {}): LspService {
     shutdown: vi.fn().mockResolvedValue(undefined),
     snapshot: vi.fn().mockResolvedValue(undefined),
     status: vi.fn().mockReturnValue([]),
+    validate: vi.fn().mockResolvedValue({
+      diagnostics: [],
+      omitted: 0,
+      scope: "document",
+      serverNames: ["fake"],
+    }),
     warmFile: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -342,6 +348,43 @@ describe("Pi LSP extension", () => {
       tool.execute(
         "query-untrusted",
         { operation: "documentSymbols", path: "example.ts" },
+        undefined,
+        undefined,
+        context(cwd, false),
+      ),
+    ).rejects.toThrow("trusted project");
+  });
+
+  it("exposes explicit document and workspace validation", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-validation-tool-"));
+    const path = join(cwd, "example.ts");
+    const validate = vi.fn().mockResolvedValue({
+      diagnostics: [{ diagnostics: [error(0)], path }],
+      omitted: 0,
+      scope: "document",
+      serverNames: ["Fake LSP"],
+    });
+    const state = harness(fakeService({ validate }));
+    const ctx = context(cwd);
+    await emit(state, "session_start", {}, ctx);
+    const tool = requiredTool(state, "lsp_validate");
+    const result = await tool.execute(
+      "validate-1",
+      { paths: ["example.ts"], scope: "document" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(validate).toHaveBeenCalledExactlyOnceWith(
+      { paths: [path], scope: "document", severity: "error" },
+      undefined,
+    );
+    expect(result.content[0]?.text).toContain("example.ts:1:2 error");
+    await expect(
+      tool.execute(
+        "validate-untrusted",
+        { paths: ["example.ts"], scope: "document" },
         undefined,
         undefined,
         context(cwd, false),

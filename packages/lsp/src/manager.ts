@@ -23,23 +23,29 @@ import {
   languageKey,
   resolveServerCommand,
 } from "./servers.ts";
+import { buildValidationOutcome } from "./validation.ts";
 import { applyWorkspaceEdit } from "./workspace-edit.ts";
 
-import type { LspClientOptions } from "./client.ts";
+import type { DocumentSynchronization, LspClientOptions } from "./client.ts";
 import type { LspQueryOutcome, LspQueryRequest } from "./query.ts";
 import type { ServerDefinition } from "./servers.ts";
+import type { ValidationOutcome, ValidationRequest } from "./validation.ts";
 import type {
   Diagnostic,
+  DocumentDiagnosticReport,
   DocumentSymbol,
   Hover,
   Location,
   LocationLink,
   SymbolInformation,
+  WorkspaceDiagnosticReport,
+  WorkspaceDocumentDiagnosticReport,
   WorkspaceEdit,
   WorkspaceSymbol,
 } from "vscode-languageserver-protocol";
 
 const MAX_SYNC_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_PULL_CACHE_ENTRIES = 256;
 const DIAGNOSTIC_WAIT_MS = 10_000;
 
 export interface MutationSnapshot {
@@ -81,7 +87,13 @@ export interface LspService {
   shutdown(): Promise<void>;
   snapshot(path: string): Promise<MutationSnapshot | undefined>;
   status(): readonly LspStatus[];
+  validate(request: ValidationRequest, signal?: AbortSignal): Promise<ValidationOutcome>;
   warmFile(path: string, signal?: AbortSignal): Promise<void>;
+}
+
+interface PullDiagnosticCacheEntry {
+  readonly diagnostics: readonly Diagnostic[];
+  readonly resultId?: string;
 }
 
 interface ClientRoute {
@@ -116,6 +128,14 @@ function combinedSignal(session: AbortSignal, signal?: AbortSignal): AbortSignal
 function combineWarnings(...warnings: (string | undefined)[]): string | undefined {
   const combined = warnings.filter((warning): warning is string => warning !== undefined).join(" ");
   return combined || undefined;
+}
+
+function pathFromDocumentUri(uri: string): string {
+  try {
+    return fileURLToPath(uri);
+  } catch {
+    return uri;
+  }
 }
 
 async function waitForSharedOperation<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -156,6 +176,8 @@ export class LspManager implements LspService {
   readonly #unavailable = new Set<string>();
   readonly #statuses = new Map<string, LspStatus>();
   readonly #pendingDiagnostics = new Map<string, AbortController>();
+  readonly #pullDiagnostics = new Map<LspClient, Map<string, PullDiagnosticCacheEntry>>();
+  readonly #pullRefreshSequences = new Map<LspClient, number>();
   readonly #baselines = new Map<string, LspClient>();
   readonly #warming = new Map<string, Promise<void>>();
   readonly #session = new AbortController();
@@ -288,7 +310,12 @@ export class LspManager implements LspService {
   async #withSynchronizedDocument<T>(
     path: string,
     signal: AbortSignal,
-    callback: (route: ClientRoute, text: string, uri: string) => Promise<T>,
+    callback: (
+      route: ClientRoute,
+      text: string,
+      uri: string,
+      synchronization: DocumentSynchronization,
+    ) => Promise<T>,
   ): Promise<T> {
     const absolutePath = resolve(path);
     if (!(await this.#isTrustedPath(absolutePath))) {
@@ -302,8 +329,8 @@ export class LspManager implements LspService {
       }
       const route = await this.#clientForFile(absolutePath, signal);
       if (route === undefined) throw new Error(`No installed LSP server is available for ${path}.`);
-      await route.client.syncDocument(absolutePath, route.languageId, text);
-      return callback(route, text, pathToFileURL(absolutePath).href);
+      const synchronization = await route.client.syncDocument(absolutePath, route.languageId, text);
+      return callback(route, text, pathToFileURL(absolutePath).href, synchronization);
     });
   }
 
@@ -412,6 +439,156 @@ export class LspManager implements LspService {
       operation: "workspaceSymbols",
       serverNames: supported.map((client) => client.name),
     };
+  }
+
+  async validate(request: ValidationRequest, signal?: AbortSignal): Promise<ValidationOutcome> {
+    if (!this.#trusted) throw new Error("LSP validation requires a trusted project.");
+    const paths = request.paths === undefined ? [] : [...new Set(request.paths)];
+    if (paths.length > 32) throw new Error("LSP validation accepts at most 32 paths.");
+    const operationSignal = combinedSignal(this.#session.signal, signal);
+    if (request.scope === "document") {
+      if (paths.length === 0) throw new Error("Document validation requires at least one path.");
+      const groups: FileDiagnostics[] = [];
+      const serverNames: string[] = [];
+      for (const path of paths) {
+        const result = await this.#withSynchronizedDocument(
+          path,
+          operationSignal,
+          async (route, _text, uri, synchronization) => {
+            serverNames.push(route.client.name);
+            if (route.client.supportsDocumentDiagnostics()) {
+              return this.#pullDocumentDiagnostics(route.client, uri, operationSignal);
+            }
+            const published = await route.client.freshDiagnosticsResult(
+              synchronization,
+              operationSignal,
+              this.#diagnosticWaitMs,
+              true,
+            );
+            return published.observed
+              ? [{ diagnostics: published.diagnostics, path: pathFromDocumentUri(uri) }]
+              : [];
+          },
+        );
+        groups.push(...result);
+      }
+      return buildValidationOutcome(request.scope, request.severity, serverNames, groups);
+    }
+    const clients = new Set<LspClient>();
+    for (const path of paths) {
+      await this.#withSynchronizedDocument(path, operationSignal, (route) => {
+        clients.add(route.client);
+        return Promise.resolve();
+      });
+    }
+    if (paths.length === 0) {
+      for (const client of this.#clients.values()) clients.add(client);
+    }
+    const supported = [...clients].filter((client) => client.supportsWorkspaceDiagnostics());
+    if (supported.length === 0) {
+      throw new Error("No running language server supports workspace diagnostics.");
+    }
+    const groups: FileDiagnostics[] = [];
+    for (const client of supported) {
+      groups.push(...(await this.#pullWorkspaceDiagnostics(client, operationSignal)));
+    }
+    return buildValidationOutcome(
+      request.scope,
+      request.severity,
+      supported.map((client) => client.name),
+      groups,
+    );
+  }
+
+  #pullCache(client: LspClient): Map<string, PullDiagnosticCacheEntry> {
+    const refreshSequence = client.diagnosticRefreshSequence;
+    if (this.#pullRefreshSequences.get(client) !== refreshSequence) {
+      this.#pullDiagnostics.set(client, new Map());
+      this.#pullRefreshSequences.set(client, refreshSequence);
+    }
+    let cache = this.#pullDiagnostics.get(client);
+    if (cache === undefined) {
+      cache = new Map();
+      this.#pullDiagnostics.set(client, cache);
+    }
+    return cache;
+  }
+
+  #consumeDiagnosticReport(
+    client: LspClient,
+    uri: string,
+    report: DocumentDiagnosticReport | WorkspaceDocumentDiagnosticReport,
+  ): FileDiagnostics {
+    const cache = this.#pullCache(client);
+    if (!cache.has(uri) && cache.size >= MAX_PULL_CACHE_ENTRIES) {
+      const oldest = cache.keys().next().value;
+      if (typeof oldest === "string") cache.delete(oldest);
+    }
+    if (report.kind === "unchanged") {
+      const previous = cache.get(uri);
+      const diagnostics = previous?.diagnostics ?? [];
+      cache.set(uri, { diagnostics, resultId: report.resultId });
+      return { diagnostics, path: pathFromDocumentUri(uri) };
+    }
+    const entry: PullDiagnosticCacheEntry = {
+      diagnostics: report.items,
+      ...(report.resultId === undefined ? {} : { resultId: report.resultId }),
+    };
+    cache.set(uri, entry);
+    return { diagnostics: entry.diagnostics, path: pathFromDocumentUri(uri) };
+  }
+
+  async #pullDocumentDiagnostics(
+    client: LspClient,
+    uri: string,
+    signal: AbortSignal,
+  ): Promise<FileDiagnostics[]> {
+    const previous = this.#pullCache(client).get(uri);
+    const identifier = client.diagnosticIdentifier();
+    const report = await client.request<DocumentDiagnosticReport>(
+      "textDocument/diagnostic",
+      {
+        ...(identifier === undefined ? {} : { identifier }),
+        ...(previous?.resultId === undefined ? {} : { previousResultId: previous.resultId }),
+        textDocument: { uri },
+      },
+      signal,
+    );
+    const groups = [this.#consumeDiagnosticReport(client, uri, report)];
+    const relatedDocuments = "relatedDocuments" in report ? report.relatedDocuments : undefined;
+    if (relatedDocuments !== undefined) {
+      for (const [relatedUri, related] of Object.entries(relatedDocuments).slice(
+        0,
+        MAX_PULL_CACHE_ENTRIES,
+      )) {
+        groups.push(this.#consumeDiagnosticReport(client, relatedUri, related));
+      }
+    }
+    return groups;
+  }
+
+  async #pullWorkspaceDiagnostics(
+    client: LspClient,
+    signal: AbortSignal,
+  ): Promise<FileDiagnostics[]> {
+    const cache = this.#pullCache(client);
+    const identifier = client.diagnosticIdentifier();
+    const report = await client.request<WorkspaceDiagnosticReport>(
+      "workspace/diagnostic",
+      {
+        ...(identifier === undefined ? {} : { identifier }),
+        previousResultIds: [...cache]
+          .filter(
+            (entry): entry is [string, PullDiagnosticCacheEntry & { resultId: string }] =>
+              entry[1].resultId !== undefined,
+          )
+          .map(([uri, entry]) => ({ uri, value: entry.resultId })),
+      },
+      signal,
+    );
+    return report.items
+      .slice(0, MAX_PULL_CACHE_ENTRIES)
+      .map((item) => this.#consumeDiagnosticReport(client, item.uri, item));
   }
 
   async renameFile(oldPath: string, newPath: string, signal?: AbortSignal): Promise<RenameOutcome> {
@@ -591,6 +768,8 @@ export class LspManager implements LspService {
     this.#session.abort();
     for (const controller of this.#pendingDiagnostics.values()) controller.abort();
     this.#pendingDiagnostics.clear();
+    this.#pullDiagnostics.clear();
+    this.#pullRefreshSequences.clear();
     this.#baselines.clear();
     await Promise.allSettled(this.#warming.values());
     this.#warming.clear();
