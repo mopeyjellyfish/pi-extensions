@@ -72,6 +72,17 @@ Servers are started lazily per detected workspace root and reused for the
 session. Missing or failed servers are not retried on every write. Run `/lsp`
 to see servers that are running, unavailable, or failed.
 
+## Watched workspace files
+
+When a running server dynamically registers `workspace/didChangeWatchedFiles`,
+the extension uses Node's recursive filesystem watcher for that workspace. It
+honors the registered glob, relative base URI, and create/change/delete mask,
+debounces duplicate events, and sends batches of at most 128 changes. Each
+server is limited to 32 watcher patterns. Invalid, escaping, excessive, or
+unsupported watcher registrations fail closed; `/lsp` reports the server as
+running with a degraded watched-file message. Watchers are closed on
+unregistration, shutdown, and reload.
+
 ## Semantic queries
 
 Use `lsp_query` for explicit, token-bounded semantic navigation and code discovery:

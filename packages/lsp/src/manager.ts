@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
+import { watch as watchFilesystem } from "node:fs";
 import { lstat, mkdir, readFile, realpath, rename } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, matchesGlob, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
@@ -58,6 +59,9 @@ import type {
 const MAX_SYNC_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_PULL_CACHE_ENTRIES = 256;
 const DIAGNOSTIC_WAIT_MS = 10_000;
+const MAX_WATCHED_FILE_PATTERNS = 32;
+const MAX_WATCHED_FILE_BATCH = 128;
+const WATCHED_FILE_DEBOUNCE_MS = 50;
 
 export interface MutationSnapshot {
   readonly diagnostics: readonly Diagnostic[];
@@ -171,6 +175,31 @@ interface ClientRoute {
   readonly languageId: string;
 }
 
+export interface WorkspaceWatcher {
+  close(): void;
+  onError?(listener: (error: Error) => void): void;
+}
+
+export type WorkspaceWatchFactory = (
+  root: string,
+  listener: (eventType: string, filename: Buffer | string | null) => void,
+) => WorkspaceWatcher;
+
+interface WatchedFilePattern {
+  readonly basePath: string;
+  readonly glob: string;
+  readonly kind: number;
+}
+
+interface WatchedFileState {
+  readonly client: LspClient;
+  eventQueue: Promise<void>;
+  readonly patterns: readonly WatchedFilePattern[];
+  readonly pending: Map<string, number>;
+  timer?: ReturnType<typeof setTimeout>;
+  readonly watcher: WorkspaceWatcher;
+}
+
 export interface LspManagerOptions {
   readonly clientFactory?: (options: LspClientOptions) => LspClient;
   readonly cwd: string;
@@ -178,6 +207,7 @@ export interface LspManagerOptions {
   readonly definitions?: readonly ServerDefinition[];
   readonly env?: NodeJS.ProcessEnv;
   readonly trusted: boolean;
+  readonly watchFactory?: WorkspaceWatchFactory;
 }
 
 function isInside(root: string, target: string): boolean {
@@ -266,6 +296,75 @@ function codeActionSummary(action: CodeAction, canResolve: boolean): CodeActionS
   };
 }
 
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function watchedFileEvent(
+  eventType: string,
+  existsNow: boolean,
+): { readonly mask: number; readonly type: number } {
+  if (eventType === "change") return { mask: 2, type: 2 };
+  return existsNow ? { mask: 1, type: 1 } : { mask: 4, type: 3 };
+}
+
+function watchedFileKind(value: unknown): number {
+  const kind = value === undefined ? 7 : value;
+  if (typeof kind !== "number" || !Number.isInteger(kind) || kind < 1 || kind > 7) {
+    throw new TypeError("the server registered an invalid watcher kind");
+  }
+  return kind;
+}
+
+async function canonicalExistingAncestor(path: string): Promise<string> {
+  let existing = resolve(path);
+  while (!(await exists(existing))) {
+    const parent = dirname(existing);
+    if (parent === existing) throw new Error("no existing watcher base ancestor was found");
+    existing = parent;
+  }
+  return realpath(existing);
+}
+
+async function watchedFilePattern(
+  canonicalRoot: string,
+  displayRoot: string,
+  value: unknown,
+): Promise<WatchedFilePattern> {
+  const watcher = recordValue(value);
+  if (watcher === undefined) throw new TypeError("the server registered a malformed watcher");
+  const globPattern = watcher["globPattern"];
+  const kind = watchedFileKind(watcher["kind"]);
+  const relativePattern = recordValue(globPattern);
+  let basePath = displayRoot;
+  let glob: unknown = globPattern;
+  if (relativePattern !== undefined) {
+    glob = relativePattern["pattern"];
+    const baseUri = relativePattern["baseUri"];
+    const uri = typeof baseUri === "string" ? baseUri : recordValue(baseUri)?.["uri"];
+    if (typeof uri !== "string") {
+      throw new TypeError("the server registered an invalid watcher base URI");
+    }
+    const url = new URL(uri);
+    if (url.protocol !== "file:") throw new TypeError("the watcher base URI is not a file URI");
+    basePath = resolve(fileURLToPath(url));
+    if (!isInside(displayRoot, basePath)) {
+      throw new Error("the watcher base URI escapes the workspace");
+    }
+    const canonicalBase = await canonicalExistingAncestor(basePath);
+    if (!isInside(canonicalRoot, canonicalBase)) {
+      throw new Error("the watcher base URI escapes the workspace");
+    }
+  }
+  if (typeof glob !== "string" || glob.length === 0 || glob.length > 512) {
+    throw new TypeError("the server registered an invalid watcher glob");
+  }
+  matchesGlob("probe.ts", glob);
+  return { basePath, glob, kind };
+}
+
 function pathFromDocumentUri(uri: string): string {
   try {
     return fileURLToPath(uri);
@@ -306,6 +405,7 @@ export class LspManager implements LspService {
   readonly #diagnosticWaitMs: number;
   readonly #env: NodeJS.ProcessEnv;
   readonly #clientFactory: (options: LspClientOptions) => LspClient;
+  readonly #watchFactory: WorkspaceWatchFactory;
   readonly #clients = new Map<string, LspClient>();
   readonly #starting = new Map<string, Promise<LspClient | undefined>>();
   readonly #broken = new Set<string>();
@@ -316,6 +416,9 @@ export class LspManager implements LspService {
   readonly #pullRefreshSequences = new Map<LspClient, number>();
   readonly #baselines = new Map<string, LspClient>();
   readonly #warming = new Map<string, Promise<void>>();
+  readonly #watchedFiles = new Map<string, WatchedFileState>();
+  readonly #watchRefreshes = new Map<string, Promise<void>>();
+  readonly #watchWarnings = new Map<string, string>();
   readonly #session = new AbortController();
 
   constructor(options: LspManagerOptions) {
@@ -326,10 +429,30 @@ export class LspManager implements LspService {
     this.#env = options.env ?? process.env;
     this.#clientFactory =
       options.clientFactory ?? ((clientOptions) => new LspClient(clientOptions));
+    this.#watchFactory =
+      options.watchFactory ??
+      ((root, listener) => {
+        const watcher = watchFilesystem(root, { persistent: false, recursive: true }, listener);
+        return {
+          close: () => {
+            watcher.close();
+          },
+          onError: (onError) => {
+            watcher.on("error", onError);
+          },
+        };
+      });
   }
 
   status(): readonly LspStatus[] {
-    return [...this.#statuses.values()].sort((left, right) => left.name.localeCompare(right.name));
+    return [...this.#statuses]
+      .map(([key, status]) => {
+        const warning = this.#watchWarnings.get(key);
+        return warning === undefined || status.state !== "running"
+          ? status
+          : { ...status, message: warning };
+      })
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   async snapshot(path: string): Promise<MutationSnapshot | undefined> {
@@ -1206,6 +1329,191 @@ export class LspManager implements LspService {
     );
   }
 
+  #scheduleWatchedFilesRefresh(key: string, client: LspClient): void {
+    const previous = this.#watchRefreshes.get(key) ?? Promise.resolve();
+    const refresh = this.#runWatchedFilesRefresh(key, client, previous);
+    this.#watchRefreshes.set(key, refresh);
+    void this.#completeWatchedFilesRefresh(key, refresh);
+  }
+
+  async #runWatchedFilesRefresh(
+    key: string,
+    client: LspClient,
+    previous: Promise<void>,
+  ): Promise<void> {
+    try {
+      await previous;
+    } catch {
+      // A later registration still replaces a failed refresh.
+    }
+    await this.#refreshWatchedFiles(key, client);
+  }
+
+  async #completeWatchedFilesRefresh(key: string, refresh: Promise<void>): Promise<void> {
+    try {
+      await refresh;
+    } catch (error) {
+      this.#watchWarnings.set(
+        key,
+        `Watched files unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    if (this.#watchRefreshes.get(key) === refresh) this.#watchRefreshes.delete(key);
+  }
+
+  async #refreshWatchedFiles(key: string, client: LspClient): Promise<void> {
+    this.#stopWatchedFiles(key);
+    this.#watchWarnings.delete(key);
+    const registrations = client.watchedFileRegistrations();
+    if (registrations.length === 0 || this.#session.signal.aborted) return;
+    try {
+      const patterns = await this.#watchedFilePatterns(client.root, registrations);
+      if (patterns.length === 0 || this.#sessionAborted()) return;
+      const holder: { state?: WatchedFileState } = {};
+      const watcher = this.#watchFactory(client.root, (eventType, filename) => {
+        const current = holder.state;
+        if (current === undefined || this.#watchedFiles.get(key) !== current) return;
+        this.#enqueueWatchedFileOperation(key, current, () =>
+          this.#queueWatchedFileChange(key, current, eventType, filename),
+        );
+      });
+      const state: WatchedFileState = {
+        client,
+        eventQueue: Promise.resolve(),
+        patterns,
+        pending: new Map(),
+        watcher,
+      };
+      holder.state = state;
+      this.#watchedFiles.set(key, state);
+      watcher.onError?.((error) => {
+        this.#failWatchedFiles(key, state, error);
+      });
+    } catch (error) {
+      this.#watchWarnings.set(
+        key,
+        `Watched files unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  #sessionAborted(): boolean {
+    return this.#session.signal.aborted;
+  }
+
+  #failWatchedFiles(key: string, state: WatchedFileState, error: Error): void {
+    if (this.#watchedFiles.get(key) !== state) return;
+    this.#stopWatchedFiles(key);
+    this.#watchWarnings.set(key, `Watched files unavailable: ${error.message}`);
+  }
+
+  async #watchedFilePatterns(
+    workspaceRoot: string,
+    registrations: readonly unknown[],
+  ): Promise<WatchedFilePattern[]> {
+    const displayRoot = resolve(workspaceRoot);
+    const canonicalRoot = await realpath(displayRoot);
+    const patterns: WatchedFilePattern[] = [];
+    for (const registration of registrations) {
+      const watchers = recordValue(registration)?.["watchers"];
+      if (!Array.isArray(watchers)) {
+        throw new TypeError("the server registered malformed watcher options");
+      }
+      for (const watcher of watchers) {
+        if (patterns.length >= MAX_WATCHED_FILE_PATTERNS) {
+          throw new Error(
+            `the server exceeded the ${String(MAX_WATCHED_FILE_PATTERNS)} pattern limit`,
+          );
+        }
+        patterns.push(await watchedFilePattern(canonicalRoot, displayRoot, watcher));
+      }
+    }
+    return patterns;
+  }
+
+  #enqueueWatchedFileOperation(
+    key: string,
+    state: WatchedFileState,
+    operation: () => Promise<void>,
+  ): void {
+    state.eventQueue = this.#runWatchedFileOperation(key, state, state.eventQueue, operation);
+  }
+
+  async #runWatchedFileOperation(
+    key: string,
+    state: WatchedFileState,
+    previous: Promise<void>,
+    operation: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await previous;
+      if (this.#watchedFiles.get(key) === state) await operation();
+    } catch (error) {
+      this.#watchWarnings.set(
+        key,
+        `Watched file processing failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async #queueWatchedFileChange(
+    key: string,
+    state: WatchedFileState,
+    eventType: string,
+    filename: Buffer | string | null,
+  ): Promise<void> {
+    if (filename === null || this.#session.signal.aborted) return;
+    const name = Buffer.isBuffer(filename) ? filename.toString("utf8") : filename;
+    const path = resolve(state.client.root, name);
+    if (!isInside(state.client.root, path) || !(await this.#isTrustedPath(path))) return;
+    const existsNow = await exists(path);
+    if (this.#sessionAborted() || this.#watchedFiles.get(key) !== state) return;
+    const event = watchedFileEvent(eventType, existsNow);
+    const matched = state.patterns.some((pattern) => {
+      if ((pattern.kind & event.mask) === 0 || !isInside(pattern.basePath, path)) return false;
+      const candidate = relative(pattern.basePath, path).replaceAll("\\", "/");
+      return matchesGlob(candidate, pattern.glob);
+    });
+    if (!matched) return;
+    const uri = pathToFileURL(path).href;
+    state.pending.set(uri, event.type);
+    if (state.pending.size >= MAX_WATCHED_FILE_BATCH) {
+      if (state.timer !== undefined) clearTimeout(state.timer);
+      delete state.timer;
+      await this.#flushWatchedFileChanges(key, state);
+      return;
+    }
+    if (state.timer !== undefined) return;
+    state.timer = setTimeout(() => {
+      delete state.timer;
+      this.#enqueueWatchedFileOperation(key, state, () =>
+        this.#flushWatchedFileChanges(key, state),
+      );
+    }, WATCHED_FILE_DEBOUNCE_MS);
+  }
+
+  async #flushWatchedFileChanges(key: string, state: WatchedFileState): Promise<void> {
+    if (this.#watchedFiles.get(key) !== state || state.pending.size === 0) return;
+    const changes = [...state.pending].map(([uri, type]) => ({ type, uri }));
+    state.pending.clear();
+    try {
+      await state.client.notify("workspace/didChangeWatchedFiles", { changes });
+    } catch (error) {
+      this.#watchWarnings.set(
+        key,
+        `Watched file notification failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  #stopWatchedFiles(key: string): void {
+    const state = this.#watchedFiles.get(key);
+    if (state === undefined) return;
+    if (state.timer !== undefined) clearTimeout(state.timer);
+    state.watcher.close();
+    this.#watchedFiles.delete(key);
+  }
+
   async #synchronizeChangedFiles(paths: readonly string[], signal: AbortSignal): Promise<string[]> {
     const warnings: string[] = [];
     for (const path of paths) {
@@ -1263,6 +1571,17 @@ export class LspManager implements LspService {
     this.#pullDiagnostics.clear();
     this.#pullRefreshSequences.clear();
     this.#baselines.clear();
+    const watchedFileQueues = [...this.#watchedFiles.values()].map((state) => state.eventQueue);
+    for (const key of this.#watchedFiles.keys()) this.#stopWatchedFiles(key);
+    await Promise.allSettled(watchedFileQueues);
+    await Promise.allSettled(this.#watchRefreshes.values());
+    this.#watchRefreshes.clear();
+    const finalWatchedFileQueues = [...this.#watchedFiles.values()].map(
+      (state) => state.eventQueue,
+    );
+    for (const key of this.#watchedFiles.keys()) this.#stopWatchedFiles(key);
+    await Promise.allSettled(finalWatchedFileQueues);
+    this.#watchWarnings.clear();
     await Promise.allSettled(this.#warming.values());
     this.#warming.clear();
     const starting = await Promise.allSettled(this.#starting.values());
@@ -1352,6 +1671,9 @@ export class LspManager implements LspService {
         env: this.#env,
         id: definition.id,
         name: definition.name,
+        onWatchedFilesChange: () => {
+          if (client !== undefined) this.#scheduleWatchedFilesRefresh(key, client);
+        },
         root,
       });
       await client.start(this.#session.signal);
@@ -1362,6 +1684,7 @@ export class LspManager implements LspService {
         root,
         state: "running",
       });
+      this.#scheduleWatchedFilesRefresh(key, client);
       return client;
     } catch (error) {
       await client?.shutdown();

@@ -1,9 +1,18 @@
-import { access, mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { LspManager } from "../src/manager.ts";
 
@@ -21,6 +30,18 @@ function fakeDefinition(): ServerDefinition {
     name: "Fake LSP",
     rootMarkers: ["package.json"],
   };
+}
+
+async function waitForCondition(condition: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (condition()) return;
+    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 10));
+  }
+  throw new Error("Timed out waiting for condition.");
+}
+
+function firstStatusMessage(manager: LspManager): string | undefined {
+  return manager.status()[0]?.message;
 }
 
 async function waitForLog(path: string, needle: string): Promise<void> {
@@ -850,6 +871,288 @@ describe("LspManager semantic rename", () => {
       }),
     ).rejects.toThrow("does not support textDocument/rename");
     await unavailable.shutdown();
+  });
+
+  it("forwards bounded dynamically registered watched-file events", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-watched-files-"));
+    const source = join(root, "source.ts");
+    const log = join(root, "lsp.log");
+    await writeFile(source, "source\n");
+    let listener: ((eventType: string, filename: Buffer | string | null) => void) | undefined;
+    const close = vi.fn();
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_LSP_LOG: log,
+        FAKE_WATCHER_GLOB: "*.ts",
+      },
+      trusted: true,
+      watchFactory: (_workspaceRoot, nextListener) => {
+        listener = nextListener;
+        return { close };
+      },
+    });
+    await manager.warmFile(source);
+    await waitForCondition(() => listener !== undefined);
+    const emit = listener;
+    if (emit === undefined) throw new Error("Watcher listener missing.");
+
+    const changed = join(root, "changed.ts");
+    await writeFile(changed, "changed\n");
+    emit("change", "changed.ts");
+    await waitForLog(log, `watched:2:${pathToFileURL(changed).href}`);
+
+    const created = join(root, "created.ts");
+    await writeFile(created, "created\n");
+    emit("rename", Buffer.from("created.ts"));
+    await waitForLog(log, `watched:1:${pathToFileURL(created).href}`);
+
+    await rm(created);
+    emit("rename", "created.ts");
+    await waitForLog(log, `watched:3:${pathToFileURL(created).href}`);
+    emit("change", null);
+    emit("change", "ignored.js");
+    emit("change", "../outside.ts");
+    const outsideTarget = join(tmpdir(), `pi-lsp-watched-outside-${String(Date.now())}.ts`);
+    const escapingLink = join(root, "escaping.ts");
+    await writeFile(outsideTarget, "outside\n");
+    await symlink(outsideTarget, escapingLink);
+    emit("change", "escaping.ts");
+    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 75));
+    expect(await readFile(log, "utf8")).not.toContain(pathToFileURL(escapingLink).href);
+    expect(firstStatusMessage(manager)).toBeUndefined();
+    emit("change", "shutdown.ts");
+    await manager.shutdown();
+    expect(close).toHaveBeenCalledOnce();
+
+    const unregisterClose = vi.fn();
+    const unregistering = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_UNREGISTER_WATCHED_FILES: "1",
+        FAKE_WATCHER_GLOB: "*.ts",
+      },
+      trusted: true,
+      watchFactory: () => ({ close: unregisterClose }),
+    });
+    await unregistering.warmFile(source);
+    await waitForCondition(() => unregisterClose.mock.calls.length > 0);
+    await unregistering.shutdown();
+    expect(unregisterClose).toHaveBeenCalledOnce();
+
+    const nested = join(root, "nested");
+    await mkdir(nested);
+    const nestedFile = join(nested, "nested.ts");
+    await writeFile(nestedFile, "nested\n");
+    let relativeListener:
+      ((eventType: string, filename: Buffer | string | null) => void) | undefined;
+    const relativeManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_LSP_LOG: log,
+        FAKE_WATCHER_BASE_OBJECT: "1",
+        FAKE_WATCHER_BASE_URI: pathToFileURL(nested).href,
+        FAKE_WATCHER_GLOB: "*.ts",
+        FAKE_WATCHER_OMIT_KIND: "1",
+      },
+      trusted: true,
+      watchFactory: (_workspaceRoot, nextListener) => {
+        nextListener("change", "nested/nested.ts");
+        relativeListener = nextListener;
+        return { close: vi.fn() };
+      },
+    });
+    await relativeManager.warmFile(source);
+    await waitForCondition(() => relativeListener !== undefined);
+    relativeListener?.("change", "nested/nested.ts");
+    await waitForLog(log, `watched:2:${pathToFileURL(nestedFile).href}`);
+    await relativeManager.shutdown();
+
+    let deleteListener: ((eventType: string, filename: Buffer | string | null) => void) | undefined;
+    const deleteOnly = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_LSP_LOG: log,
+        FAKE_WATCHER_GLOB: "*.ts",
+        FAKE_WATCHER_KIND: "4",
+      },
+      trusted: true,
+      watchFactory: (_workspaceRoot, nextListener) => {
+        deleteListener = nextListener;
+        return { close: vi.fn() };
+      },
+    });
+    await deleteOnly.warmFile(source);
+    await waitForCondition(() => deleteListener !== undefined);
+    const deletedOnlyFile = join(root, "deleted-only.ts");
+    deleteListener?.("change", "deleted-only.ts");
+    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 75));
+    expect(await readFile(log, "utf8")).not.toContain(pathToFileURL(deletedOnlyFile).href);
+    deleteListener?.("rename", "deleted-only.ts");
+    await waitForLog(log, `watched:3:${pathToFileURL(deletedOnlyFile).href}`);
+    await deleteOnly.shutdown();
+
+    let watcherError: ((error: Error) => void) | undefined;
+    const errorClose = vi.fn();
+    const asynchronousFailure = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_DYNAMIC_WATCHED_FILES: "1" },
+      trusted: true,
+      watchFactory: () => ({
+        close: errorClose,
+        onError: (listener) => {
+          watcherError = listener;
+        },
+      }),
+    });
+    await asynchronousFailure.warmFile(source);
+    await waitForCondition(() => watcherError !== undefined);
+    watcherError?.(new Error("asynchronous watcher failure"));
+    watcherError?.(new Error("stale watcher failure"));
+    await waitForCondition(
+      () =>
+        firstStatusMessage(asynchronousFailure)?.includes("asynchronous watcher failure") === true,
+    );
+    expect(errorClose).toHaveBeenCalledOnce();
+    await asynchronousFailure.shutdown();
+
+    let batchListener: ((eventType: string, filename: Buffer | string | null) => void) | undefined;
+    const batchManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_LSP_LOG: log,
+        FAKE_WATCHER_GLOB: "*.ts",
+      },
+      trusted: true,
+      watchFactory: (_workspaceRoot, nextListener) => {
+        batchListener = nextListener;
+        return { close: vi.fn() };
+      },
+    });
+    await batchManager.warmFile(source);
+    await waitForCondition(() => batchListener !== undefined);
+    for (let index = 0; index < 129; index += 1) {
+      batchListener?.("change", `batch-${String(index)}.ts`);
+    }
+    await waitForLog(log, "watchedBatch:128");
+    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 100));
+    expect((await readFile(log, "utf8")).split("\n")).toContain("watchedBatch:1");
+    expect(firstStatusMessage(batchManager)).toBeUndefined();
+    await batchManager.shutdown();
+
+    const futureBase = join(root, "future", "generated");
+    const futureClose = vi.fn();
+    let futureCreated = false;
+    const futureManager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_WATCHER_BASE_URI: pathToFileURL(futureBase).href,
+      },
+      trusted: true,
+      watchFactory: () => {
+        futureCreated = true;
+        return { close: futureClose };
+      },
+    });
+    await futureManager.warmFile(source);
+    await waitForCondition(() => futureCreated);
+    expect(firstStatusMessage(futureManager)).toBeUndefined();
+    await futureManager.shutdown();
+    expect(futureClose).toHaveBeenCalledOnce();
+
+    const noPatterns = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_WATCHER_COUNT: "0",
+      },
+      trusted: true,
+      watchFactory: () => {
+        throw new Error("must not watch empty patterns");
+      },
+    });
+    await noPatterns.warmFile(source);
+    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 50));
+    expect(firstStatusMessage(noPatterns)).toBeUndefined();
+    await noPatterns.shutdown();
+
+    const unavailable = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_DYNAMIC_WATCHED_FILES: "1" },
+      trusted: true,
+      watchFactory: () => {
+        throw new Error("recursive watching unavailable");
+      },
+    });
+    await unavailable.warmFile(source);
+    await waitForCondition(
+      () => firstStatusMessage(unavailable)?.includes("recursive watching unavailable") === true,
+    );
+    expect(unavailable.status()[0]?.state).toBe("running");
+    await unavailable.shutdown();
+
+    for (const [env, message] of [
+      [{ FAKE_MALFORMED_WATCHER_OPTIONS: "1" }, "malformed watcher options"],
+      [{ FAKE_MALFORMED_WATCHER: "1" }, "malformed watcher"],
+      [{ FAKE_WATCHER_GLOB: "" }, "invalid watcher glob"],
+      [{ FAKE_WATCHER_KIND: "8" }, "invalid watcher kind"],
+      [{ FAKE_WATCHER_BASE_URI: pathToFileURL(tmpdir()).href }, "escapes the workspace"],
+    ] as const) {
+      const invalid = new LspManager({
+        cwd: root,
+        definitions: [fakeDefinition()],
+        env: { ...process.env, FAKE_DYNAMIC_WATCHED_FILES: "1", ...env },
+        trusted: true,
+        watchFactory: () => ({ close: vi.fn() }),
+      });
+      await invalid.warmFile(source);
+      await waitForCondition(() => firstStatusMessage(invalid)?.includes(message) === true);
+      expect(firstStatusMessage(invalid)).toContain(message);
+      await invalid.shutdown();
+    }
+
+    const excessive = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
+        FAKE_WATCHER_COUNT: "33",
+      },
+      trusted: true,
+      watchFactory: () => {
+        throw new Error("must not create watcher");
+      },
+    });
+    await excessive.warmFile(source);
+    await waitForCondition(
+      () => firstStatusMessage(excessive)?.includes("32 pattern limit") === true,
+    );
+    expect(firstStatusMessage(excessive)).toContain("pattern limit");
+    await excessive.shutdown();
   });
 
   it("caches unavailable and failed server routes", async () => {

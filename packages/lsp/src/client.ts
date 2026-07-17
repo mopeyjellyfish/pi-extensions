@@ -37,6 +37,7 @@ export interface LspClientOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly id: string;
   readonly name: string;
+  readonly onWatchedFilesChange?: () => void;
   readonly requestTimeoutMs?: number;
   readonly root: string;
 }
@@ -338,6 +339,7 @@ export class LspClient {
       },
     ]);
     connection.onRequest("client/registerCapability", (params: RegistrationParams) => {
+      let watchedFilesChanged = false;
       for (const registration of params.registrations) {
         const candidate = registration as {
           id?: unknown;
@@ -350,14 +352,21 @@ export class LspClient {
           method: candidate.method,
           registerOptions: candidate.registerOptions,
         });
+        if (candidate.method === "workspace/didChangeWatchedFiles") watchedFilesChanged = true;
       }
+      if (watchedFilesChanged) this.#options.onWatchedFilesChange?.();
       return null;
     });
     connection.onRequest("client/unregisterCapability", (params: UnregistrationParams) => {
+      let watchedFilesChanged = false;
       for (const unregistration of params.unregisterations) {
         const candidate = unregistration as { id?: unknown };
-        if (typeof candidate.id === "string") this.#dynamicRegistrations.delete(candidate.id);
+        if (typeof candidate.id !== "string") continue;
+        const existing = this.#dynamicRegistrations.get(candidate.id);
+        this.#dynamicRegistrations.delete(candidate.id);
+        if (existing?.method === "workspace/didChangeWatchedFiles") watchedFilesChanged = true;
       }
+      if (watchedFilesChanged) this.#options.onWatchedFilesChange?.();
       return null;
     });
     connection.onRequest("window/workDoneProgress/create", () => null);
@@ -422,6 +431,7 @@ export class LspClient {
             },
             workspace: {
               applyEdit: false,
+              didChangeWatchedFiles: { dynamicRegistration: true },
               diagnostics: { refreshSupport: true },
               configuration: true,
               fileOperations: {
@@ -625,8 +635,21 @@ export class LspClient {
     return false;
   }
 
+  watchedFileRegistrations(): readonly unknown[] {
+    return [...this.#dynamicRegistrations.values()]
+      .filter((registration) => registration.method === "workspace/didChangeWatchedFiles")
+      .map((registration) => registration.registerOptions);
+  }
+
   request<T>(method: string, params: unknown, signal?: AbortSignal): Promise<T> {
     return this.#request<T>(method, params, signal);
+  }
+
+  async notify(method: string, params: unknown): Promise<void> {
+    if (this.#connection === undefined) {
+      throw new Error(`${this.name} is not running.`);
+    }
+    await this.#connection.sendNotification(method, params);
   }
 
   #supportsFileOperation(method: FileOperationMethod, oldPath?: string, newPath?: string): boolean {
