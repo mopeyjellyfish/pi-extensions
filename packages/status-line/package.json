@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-status-line",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "A Powerlevel10k-style status line with first-party Pi extension integrations.",
   "license": "MIT",
   "type": "module",

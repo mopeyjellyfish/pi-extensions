@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-github",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Focused GitHub CLI workflows for pull requests, Actions, issues, labels, repositories, and releases.",
   "license": "MIT",
   "type": "module",

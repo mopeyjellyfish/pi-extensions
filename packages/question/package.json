@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-question",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Structured clarifying questions for Pi agents.",
   "license": "MIT",
   "type": "module",
