@@ -49,8 +49,8 @@ function createHarness(): Harness {
         killed: false,
         stderr: "",
         stdout: options.cwd?.endsWith("example-feature")
-          ? "## feat/status-line...origin/feat/status-line\n"
-          : "## main...origin/main\n",
+          ? "# branch.oid abcdef0123456789\n# branch.head feat/status-line\n# branch.upstream origin/feat/status-line\n# branch.ab +2 -1\n1 .M N... 100644 100644 100644 a a changed.ts\n"
+          : "# branch.oid 0123456789abcdef\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n",
       }),
   );
   const footerValues: unknown[] = [];
@@ -105,7 +105,7 @@ function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionCont
     },
     modelRegistry: { isUsingOAuth: () => false },
     sessionManager: {
-      getEntries: () => [
+      getBranch: () => [
         {
           message: {
             role: "assistant",
@@ -121,6 +121,23 @@ function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionCont
           type: "message",
         },
       ],
+      getEntries: () => [
+        {
+          message: {
+            role: "assistant",
+            usage: {
+              cacheRead: 0,
+              cacheWrite: 0,
+              cost: { total: 99 },
+              input: 1_000_000,
+              output: 1_000_000,
+              totalTokens: 2_000_000,
+            },
+          },
+          type: "message",
+        },
+      ],
+      getSessionId: () => "session-1",
       getSessionName: () => "Status integration",
     },
     ui: {
@@ -143,6 +160,12 @@ async function emitLifecycle(
 
 function emitBus(harness: Harness, channel: string, data: unknown): void {
   for (const handler of harness.bus.get(channel) ?? []) handler(data);
+}
+
+function onBus(harness: Harness, channel: string, handler: (data: unknown) => void): void {
+  const handlers = harness.bus.get(channel) ?? new Set<(data: unknown) => void>();
+  handlers.add(handler);
+  harness.bus.set(channel, handlers);
 }
 
 function footerData(statuses: ReadonlyMap<string, string>): ReadonlyFooterDataProvider {
@@ -175,7 +198,7 @@ describe("pi-status-line extension", () => {
     expect(harness.footerFactory).toBeDefined();
     expect(harness.exec).toHaveBeenCalledWith(
       "git",
-      ["status", "--porcelain=v1", "--branch", "--untracked-files=no"],
+      ["status", "--porcelain=v2", "--branch", "--untracked-files=no"],
       expect.objectContaining({ cwd: "/projects/example-feature" }),
     );
 
@@ -190,14 +213,14 @@ describe("pi-status-line extension", () => {
         ]),
       ),
     );
-    const rendered = component?.render(180).join("\n") ?? "";
+    const rendered = component?.render(240).join("\n") ?? "";
     expect(rendered).toContain(" example");
     expect(rendered).not.toContain("example-feature");
-    expect(rendered).toContain(" feat/status-line");
+    expect(rendered).toContain(" feat/status-line ↑2 ↓1 ~1");
     expect(rendered).toContain(" GPT-5.4");
     expect(rendered).toContain("think:high");
     expect(rendered).toContain(" 18.5%/272k 󰁨");
-    expect(rendered).toContain("  15k");
+    expect(rendered).toContain("  15k · $0.12");
     expect(rendered).toContain(" 2/5 · Implement integration");
     expect(rendered).toContain("review ready");
     expect(rendered).not.toContain("worktree: example-feature");
@@ -206,13 +229,68 @@ describe("pi-status-line extension", () => {
       code: 0,
       killed: false,
       stderr: "",
-      stdout: "## feat/switched\n",
+      stdout: "# branch.oid fedcba9876543210\n# branch.head feat/switched\n",
     });
     await emitLifecycle(harness, "tool_result", ctx, { toolName: "bash" });
     await vi.waitFor(() => {
       expect(component?.render(180).join(" ")).toContain("feat/switched");
     });
-    expect(component?.render(180).join(" ")).not.toContain("feat/status-line");
+    expect(component?.render(240).join(" ")).not.toContain("feat/status-line");
+  });
+
+  it("restores and refreshes a compact subagent fleet through the v1 RPC", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    let statusText =
+      "Active async runs: 2\n\n- first | running | single | steps 1 | /tmp\n  1. worker | running | needs attention\n- second | queued | single | steps 1 | /tmp";
+    const requests: unknown[] = [];
+    onBus(harness, "subagents:rpc:v1:request", (data) => {
+      requests.push(data);
+      const request = data as { requestId?: unknown };
+      if (typeof request.requestId !== "string") return;
+      emitBus(harness, `subagents:rpc:v1:reply:${request.requestId}`, {
+        data: { text: statusText },
+        method: "status",
+        requestId: request.requestId,
+        success: true,
+        version: 2,
+      });
+      emitBus(harness, `subagents:rpc:v1:reply:${request.requestId}`, {
+        data: { text: statusText },
+        method: "status",
+        requestId: request.requestId,
+        success: true,
+        version: 1,
+      });
+    });
+
+    const ctx = context(harness);
+    await emitLifecycle(harness, "session_start", ctx);
+    const component = harness.footerFactory?.(
+      { requestRender: harness.renders },
+      testTheme,
+      footerData(new Map([["subagent-slash", "running..."]])),
+    );
+    expect(requests.at(-1)).toMatchObject({
+      method: "status",
+      params: {},
+      source: { extension: "@mopeyjellyfish/pi-status-line" },
+      version: 1,
+    });
+    expect(component?.render(180).join(" ")).toContain(" 2 !1");
+    expect(component?.render(180).join(" ")).not.toContain("running...");
+
+    statusText = "Active async runs: 0";
+    emitBus(harness, "subagent:control-event", { type: "needs_attention" });
+    expect(component?.render(180).join(" ")).toContain(" 2 !1");
+
+    statusText = "No active async runs.";
+    emitBus(harness, "subagent:async-complete", { id: "first", success: true });
+    expect(component?.render(180).join(" ")).not.toContain("");
+
+    emitBus(harness, "subagents:rpc:v1:ready", { version: 1 });
+    expect(requests).toHaveLength(4);
+    await emitLifecycle(harness, "session_shutdown", ctx);
   });
 
   it("reacts to integration updates, validates payloads, and restores the footer on shutdown", async () => {
@@ -243,6 +321,7 @@ describe("pi-status-line extension", () => {
       version: 1,
     });
     expect(component?.render(120).join(" ")).toContain(" example");
+    expect(component?.render(120).join(" ")).toContain("detached@abc123");
     expect(component?.render(120).join(" ")).not.toContain("other");
     harness.exec.mockRejectedValueOnce(new Error("route refresh failed"));
     emitBus(harness, "mopeyjellyfish:pi-worktrunk:route:v1", undefined);
@@ -294,7 +373,7 @@ describe("pi-status-line extension", () => {
       getContextUsage: () => ({ contextWindow: 2_000_000, percent: null, tokens: null }),
       model: undefined,
       sessionManager: {
-        getEntries: () => [
+        getBranch: () => [
           {
             message: {
               role: "assistant",
@@ -311,6 +390,7 @@ describe("pi-status-line extension", () => {
           },
           { message: { role: "user" }, type: "message" },
         ],
+        getSessionId: () => "session-1",
         getSessionName: () => "Lifecycle",
       },
     } as unknown as ExtensionContext;
