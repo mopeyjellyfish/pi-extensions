@@ -27,11 +27,14 @@ const testTheme: StatusLineTheme = {
 const baseView: StatusLineView = {
   branch: "feat/status-line-integration",
   context: { contextWindow: 372_000, percent: 72.5 },
+  costUsd: 1.23,
   cwd: "/Users/david/code/personal/pi-extensions",
   effort: "high",
   extensionStatuses: [],
-  gitState: "clean",
+  gitDetails: { ahead: 2, behind: 1, changed: 4, conflicts: 0, staged: 3 },
+  gitState: "modified",
   model: "GPT-5.6 Sol",
+  subagents: { active: 2, attention: 1 },
   todo: {
     closed: 2,
     current: "Implement status integration",
@@ -43,21 +46,22 @@ const baseView: StatusLineView = {
 describe("Powerlevel10k status rendering", () => {
   it("matches pi-powerline-footer's thin inline style and requested segment order", () => {
     expect.hasAssertions();
-    const line = renderStatusLine(baseView, 180);
+    const line = renderStatusLine(baseView, 240);
     const plain = stripAnsi(line);
 
     expect(line).toContain("\u{E0B1}");
     expect(line).not.toContain("\u{E0B0}");
     expect(line).not.toContain("\u{E0B2}");
     expect(plain).toContain(
-      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration   72.5%/372k 󰁨    28M   2/5 · Implement status integration",
+      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement status integration",
     );
 
-    const styled = renderStatusLine(baseView, 180, testTheme);
+    const styled = renderStatusLine(baseView, 240, testTheme);
     expect(styled).toContain("\u{1B}[38;5;1mthink:high\u{1B}[0m");
-    expect(styled).toContain("\u{1B}[38;5;2m feat/status-line-integration\u{1B}[0m");
+    expect(styled).toContain("\u{1B}[38;5;3m feat/status-line-integration ↑2 ↓1 +3 ~4\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 72.5%/372k 󰁨\u{1B}[0m");
-    expect(styled).toContain("\u{1B}[38;5;4m  28M\u{1B}[0m");
+    expect(styled).toContain("\u{1B}[38;5;4m  28M · $1.23\u{1B}[0m");
+    expect(styled).toContain("\u{1B}[38;5;5m 2 !1\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 2/5 · Implement status integration\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;5m\u{1B}[0m");
   });
@@ -84,6 +88,31 @@ describe("Powerlevel10k status rendering", () => {
     for (const width of [20, 32, 48, 80, 120]) {
       expect(visibleWidth(renderStatusLine(baseView, width))).toBeLessThanOrEqual(width);
     }
+  });
+
+  it("formats cost ranges and a healthy compact subagent fleet", () => {
+    expect.hasAssertions();
+    const low = stripAnsi(
+      renderStatusLine(
+        {
+          branch: "main",
+          costUsd: 0.004,
+          cwd: baseView.cwd,
+          extensionStatuses: [],
+          gitDetails: { ahead: 0, behind: 0, changed: 0, conflicts: 1, staged: 0 },
+          gitState: "conflicted",
+          subagents: { active: 1, attention: 0 },
+        },
+        140,
+      ),
+    );
+    expect(low).toContain(" main !1");
+    expect(low).toContain("$0.004");
+    expect(low).toContain(" 1");
+    expect(low).not.toContain("!1   1 !");
+
+    expect(stripAnsi(renderStatusLine({ ...baseView, costUsd: 12.3 }, 240))).toContain("$12.3");
+    expect(stripAnsi(renderStatusLine({ ...baseView, costUsd: 101 }, 240))).toContain("$101");
   });
 
   it("sanitizes external text and reports an all-closed list", () => {

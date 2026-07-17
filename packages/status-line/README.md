@@ -36,15 +36,16 @@ Segments appear in this order:
 1. model;
 2. thinking effort;
 3. project directory;
-4. effective Git or routed-worktree branch;
+4. effective Git or routed-worktree branch, divergence, staged, changed, and conflict counts;
 5. context use and auto-compaction indicator;
-6. cumulative session tokens;
-7. todo progress and the active item, or the next pending item.
+6. active-branch session tokens and cost;
+7. compact active/attention counts for an optional `pi-subagents` fleet;
+8. todo progress and the active item, or the next pending item.
 
 For example:
 
 ```text
- GPT-5.6 Sol  think:high   pi-extensions   main   72.5%/372k 󰁨    28M   2/5 · Implement integration
+ GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement integration
 ```
 
 Unrelated extension statuses follow the first-party segments. The renderer
@@ -71,8 +72,17 @@ The package consumes two optional, versioned Pi event-bus channels:
 Both producer packages remain independently useful without this package. They
 retain their standard `setStatus()` fallback, and `pi-todo` retains its bounded
 widget. The status line filters those fallback keys only while the matching
-structured integration state is present. All unrelated extension statuses are
-preserved.
+structured integration state is present.
+
+When `pi-subagents` is installed, the status line uses its stable v1 status RPC
+to restore the current session's active async-run count. Async lifecycle and
+control notifications trigger refreshes, and `!N` reports runs whose status
+needs attention. The integration is optional and does not add a package
+dependency; the normal subagent status fallback is suppressed while the compact
+fleet segment is present.
+
+All other extension statuses are preserved. This includes the concise healthy
+icon or actionable failure summary published by `pi-lsp`.
 
 ## Styling
 

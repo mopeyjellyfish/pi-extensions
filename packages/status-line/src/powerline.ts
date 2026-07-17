@@ -2,7 +2,7 @@ import { basename } from "node:path";
 
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
-import type { GitState } from "./git.ts";
+import type { GitState, GitStatusDetails } from "./git.ts";
 import type { Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
 
 const ESCAPE_CHARACTER = "\u{1B}";
@@ -23,14 +23,22 @@ export interface TodoStatusLineView {
   readonly total: number;
 }
 
+export interface SubagentStatusLineView {
+  readonly active: number;
+  readonly attention: number;
+}
+
 export interface StatusLineView {
   readonly branch?: string;
   readonly context?: ContextStatusLineView;
+  readonly costUsd?: number;
   readonly cwd: string;
   readonly effort?: string;
   readonly extensionStatuses: readonly string[];
+  readonly gitDetails?: GitStatusDetails;
   readonly gitState: GitState;
   readonly model?: string;
+  readonly subagents?: SubagentStatusLineView;
   readonly todo?: TodoStatusLineView;
   readonly tokens?: number;
 }
@@ -38,7 +46,15 @@ export interface StatusLineView {
 interface Segment {
   readonly text: string;
   readonly tone:
-    "branch" | "context" | "effort" | "extension" | "model" | "path" | "todo" | "tokens";
+    | "branch"
+    | "context"
+    | "effort"
+    | "extension"
+    | "model"
+    | "path"
+    | "subagents"
+    | "todo"
+    | "tokens";
 }
 
 interface RenderOptions {
@@ -50,6 +66,7 @@ interface RenderOptions {
   readonly includeEffort: boolean;
   readonly includeExtensions: boolean;
   readonly includeModel: boolean;
+  readonly includeSubagents: boolean;
   readonly includeTodo: boolean;
   readonly includeTokens: boolean;
   readonly modelLimit: number;
@@ -95,6 +112,13 @@ function formatTokens(count: number): string {
   return `${String(Math.round(count / 1_000_000))}M`;
 }
 
+function formatCost(costUsd: number): string {
+  if (costUsd < 0.01) return `$${costUsd.toFixed(3)}`;
+  if (costUsd < 10) return `$${costUsd.toFixed(2)}`;
+  if (costUsd < 100) return `$${costUsd.toFixed(1)}`;
+  return `$${String(Math.round(costUsd))}`;
+}
+
 function rgb(hex: string, text: string): string {
   const red = Number.parseInt(hex.slice(1, 3), 16);
   const green = Number.parseInt(hex.slice(3, 5), 16);
@@ -121,6 +145,11 @@ function contextColor(context: ContextStatusLineView): ThemeColor {
   return "dim";
 }
 
+function branchColor(state: GitState): ThemeColor {
+  if (state === "conflicted") return "error";
+  return state === "clean" ? "success" : "warning";
+}
+
 function colorSegment(segment: Segment, view: StatusLineView, theme: StatusLineTheme): string {
   switch (segment.tone) {
     case "model":
@@ -130,26 +159,28 @@ function colorSegment(segment: Segment, view: StatusLineView, theme: StatusLineT
     case "path":
       return rgb("#00afaf", segment.text);
     case "branch":
-      return theme.fg(
-        view.gitState === "conflicted"
-          ? "error"
-          : view.gitState === "clean"
-            ? "success"
-            : "warning",
-        segment.text,
-      );
+      return theme.fg(branchColor(view.gitState), segment.text);
     case "context":
       return theme.fg(
         contextColor(view.context ?? { contextWindow: 0, percent: null }),
         segment.text,
       );
     case "tokens":
-      return theme.fg("muted", segment.text);
-    case "todo":
-      return theme.fg(view.todo?.current === undefined ? "success" : "warning", segment.text);
     case "extension":
       return theme.fg("muted", segment.text);
+    case "subagents":
+      return theme.fg(subagentColor(view.subagents), segment.text);
+    case "todo":
+      return theme.fg(todoColor(view.todo), segment.text);
   }
+}
+
+function subagentColor(subagents: SubagentStatusLineView | undefined): ThemeColor {
+  return (subagents?.attention ?? 0) > 0 ? "error" : "accent";
+}
+
+function todoColor(todo: TodoStatusLineView | undefined): ThemeColor {
+  return todo?.current === undefined ? "success" : "warning";
 }
 
 function contextText(context: ContextStatusLineView): string {
@@ -160,6 +191,34 @@ function contextText(context: ContextStatusLineView): string {
 function todoText(todo: TodoStatusLineView, maximum: number): string {
   const current = todo.current === undefined ? "all closed" : sanitize(todo.current);
   return compact(` ${String(todo.closed)}/${String(todo.total)} · ${current}`, maximum);
+}
+
+function countSuffix(symbol: string, count: number | undefined): string | undefined {
+  return count === undefined || count <= 0 ? undefined : `${symbol}${String(count)}`;
+}
+
+function present(value: string | undefined): value is string {
+  return value !== undefined;
+}
+
+function branchText(view: StatusLineView): string | undefined {
+  if (view.branch === undefined) return undefined;
+  const details = view.gitDetails;
+  const suffixes = [
+    countSuffix("↑", details?.ahead),
+    countSuffix("↓", details?.behind),
+    countSuffix("+", details?.staged),
+    countSuffix("~", details?.changed),
+    countSuffix("!", details?.conflicts),
+  ].filter(present);
+  return [view.branch, ...suffixes].join(" ");
+}
+
+function usageText(view: StatusLineView): string | undefined {
+  const values: string[] = [];
+  if (view.tokens !== undefined && view.tokens > 0) values.push(`  ${formatTokens(view.tokens)}`);
+  if (view.costUsd !== undefined && view.costUsd > 0) values.push(formatCost(view.costUsd));
+  return values.length === 0 ? undefined : values.join(" · ");
 }
 
 function identitySegments(view: StatusLineView, options: RenderOptions): Segment[] {
@@ -174,28 +233,58 @@ function identitySegments(view: StatusLineView, options: RenderOptions): Segment
     text: ` ${compact(basename(view.cwd) || view.cwd, options.cwdLimit)}`,
     tone: "path",
   });
-  if (options.includeBranch && view.branch !== undefined) {
-    result.push({ text: ` ${compact(view.branch, options.branchLimit)}`, tone: "branch" });
+  const branch = branchText(view);
+  if (options.includeBranch && branch !== undefined) {
+    result.push({ text: ` ${compact(branch, options.branchLimit)}`, tone: "branch" });
   }
   return result;
 }
 
+function contextSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
+  return options.includeContext && view.context !== undefined
+    ? { text: contextText(view.context), tone: "context" }
+    : undefined;
+}
+
+function usageSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
+  const text = usageText(view);
+  return options.includeTokens && text !== undefined ? { text, tone: "tokens" } : undefined;
+}
+
+function subagentSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
+  const fleet = view.subagents;
+  if (!options.includeSubagents || fleet === undefined || fleet.active <= 0) return undefined;
+  const attention = fleet.attention > 0 ? ` !${String(fleet.attention)}` : "";
+  return { text: ` ${String(fleet.active)}${attention}`, tone: "subagents" };
+}
+
+function todoSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
+  const todo = view.todo;
+  return options.includeTodo && todo !== undefined && todo.total > 0
+    ? { text: todoText(todo, options.todoLimit), tone: "todo" }
+    : undefined;
+}
+
+function extensionSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
+  if (!options.includeExtensions) return undefined;
+  const text = view.extensionStatuses.map(sanitize).filter(Boolean).join(" · ");
+  return text === ""
+    ? undefined
+    : { text: compact(text, options.extensionLimit), tone: "extension" };
+}
+
+function definedSegment(segment: Segment | undefined): segment is Segment {
+  return segment !== undefined;
+}
+
 function stateSegments(view: StatusLineView, options: RenderOptions): Segment[] {
-  const result: Segment[] = [];
-  if (options.includeContext && view.context !== undefined) {
-    result.push({ text: contextText(view.context), tone: "context" });
-  }
-  if (options.includeTokens && view.tokens !== undefined && view.tokens > 0) {
-    result.push({ text: `  ${formatTokens(view.tokens)}`, tone: "tokens" });
-  }
-  if (options.includeTodo && view.todo !== undefined && view.todo.total > 0) {
-    result.push({ text: todoText(view.todo, options.todoLimit), tone: "todo" });
-  }
-  const extensionText = view.extensionStatuses.map(sanitize).filter(Boolean).join(" · ");
-  if (options.includeExtensions && extensionText !== "") {
-    result.push({ text: compact(extensionText, options.extensionLimit), tone: "extension" });
-  }
-  return result;
+  return [
+    contextSegment(view, options),
+    usageSegment(view, options),
+    subagentSegment(view, options),
+    todoSegment(view, options),
+    extensionSegment(view, options),
+  ].filter(definedSegment);
 }
 
 function segments(view: StatusLineView, options: RenderOptions): Segment[] {
@@ -217,7 +306,7 @@ export function renderStatusLine(
   if (width <= 0) return "";
   const variants = [
     {
-      branchLimit: 32,
+      branchLimit: 60,
       cwdLimit: 40,
       extensionLimit: 36,
       includeBranch: true,
@@ -225,13 +314,14 @@ export function renderStatusLine(
       includeEffort: true,
       includeExtensions: true,
       includeModel: true,
+      includeSubagents: true,
       includeTodo: true,
       includeTokens: true,
       modelLimit: 28,
       todoLimit: 52,
     },
     {
-      branchLimit: 28,
+      branchLimit: 36,
       cwdLimit: 28,
       extensionLimit: 0,
       includeBranch: true,
@@ -239,13 +329,14 @@ export function renderStatusLine(
       includeEffort: true,
       includeExtensions: false,
       includeModel: true,
+      includeSubagents: true,
       includeTodo: true,
       includeTokens: true,
       modelLimit: 22,
       todoLimit: 30,
     },
     {
-      branchLimit: 22,
+      branchLimit: 28,
       cwdLimit: 20,
       extensionLimit: 0,
       includeBranch: true,
@@ -253,6 +344,7 @@ export function renderStatusLine(
       includeEffort: true,
       includeExtensions: false,
       includeModel: true,
+      includeSubagents: true,
       includeTodo: true,
       includeTokens: false,
       modelLimit: 18,
@@ -267,6 +359,7 @@ export function renderStatusLine(
       includeEffort: true,
       includeExtensions: false,
       includeModel: true,
+      includeSubagents: true,
       includeTodo: false,
       includeTokens: false,
       modelLimit: 16,
@@ -281,6 +374,7 @@ export function renderStatusLine(
       includeEffort: false,
       includeExtensions: false,
       includeModel: false,
+      includeSubagents: false,
       includeTodo: false,
       includeTokens: false,
       modelLimit: 0,
