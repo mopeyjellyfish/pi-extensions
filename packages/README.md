@@ -30,7 +30,7 @@ The manifest validator requires:
 - no dependency duplicated across dependency sections;
 - Pi host packages only in `peerDependencies`.
 
-The root aggregate must resolve to every package extension and skill with no unmanaged resources. The standard aggregate globs cover `src/index.ts` and `skills/`; a package that deliberately declares another resource layout must add matching root `pi` patterns in the same change. `npm pack` must include each declared resource, package manifest, README, changelog, and license.
+The root aggregate must resolve to every package extension and skill with no unmanaged resources. The standard aggregate globs cover `src/index.ts` and `skills/`; a package that deliberately declares another resource layout must add matching root `pi` patterns in the same change. An external Pi package included by the private root Git aggregate must be declared in `dependencies`, and the root `pi` manifest must reference its resources under `node_modules/`. `npm pack` must include each declared resource, package manifest, README, changelog, and license.
 
 ## Releases
 

@@ -35,6 +35,10 @@ Install the repository as one global Pi package:
 pi install git:github.com/mopeyjellyfish/pi-extensions
 ```
 
+This aggregate also installs and loads the external
+[`@ff-labs/pi-fff`](https://www.npmjs.com/package/@ff-labs/pi-fff) extension.
+Installing one package from `packages/` does not include that external extension.
+
 Update it later with:
 
 ```sh

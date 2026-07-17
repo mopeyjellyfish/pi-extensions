@@ -435,6 +435,33 @@ async function collectPackageEntrypoints(
   return entrypoints;
 }
 
+async function collectRootDependencyEntrypoints(
+  root: string,
+  manifest: Record<string, unknown>,
+  errors: string[],
+): Promise<Set<string>> {
+  const entrypoints = new Set<string>();
+  const dependencies = stringRecord(manifest["dependencies"]);
+  for (const dependency of Object.keys(dependencies ?? {})) {
+    const dependencyRoot = join(root, "node_modules", dependency);
+    const manifestPath = join(dependencyRoot, "package.json");
+    if (!pathExists(manifestPath)) {
+      errors.push(`Root dependency ${dependency} must be installed.`);
+      continue;
+    }
+    const value = await readJsonFile(manifestPath);
+    if (!isRecord(value)) {
+      errors.push(`Root dependency ${dependency} package.json must contain an object.`);
+      continue;
+    }
+    const resources = packageResources(value);
+    for (const entrypoint of await resolveExtensionPatterns(dependencyRoot, resources.extensions)) {
+      entrypoints.add(entrypoint);
+    }
+  }
+  return entrypoints;
+}
+
 async function collectPackageSkills(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
   const skills = new Set<string>();
   for (const descriptor of packages) {
@@ -479,6 +506,10 @@ export async function validateRootAggregate(
   }
   const aggregate = await collectAggregateEntrypoints(root, resources.extensions);
   const packageEntrypoints = await collectPackageEntrypoints(packages);
+  const dependencyEntrypoints = await collectRootDependencyEntrypoints(root, value, errors);
+  for (const entrypoint of dependencyEntrypoints) {
+    packageEntrypoints.add(entrypoint);
+  }
   errors.push(...compareAggregateEntrypoints(root, aggregate, packageEntrypoints));
   const packageSkills = await collectPackageSkills(packages);
   if (packageSkills.size > 0 && resources.skills.length === 0) {
