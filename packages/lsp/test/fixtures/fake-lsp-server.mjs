@@ -99,6 +99,7 @@ function initializeResult() {
       ...(process.env.FAKE_NO_QUERY
         ? {}
         : {
+            callHierarchyProvider: true,
             declarationProvider: true,
             definitionProvider: true,
             documentSymbolProvider: true,
@@ -111,6 +112,7 @@ function initializeResult() {
                 ? true
                 : { prepareProvider: true },
             typeDefinitionProvider: true,
+            typeHierarchyProvider: true,
             workspaceSymbolProvider: true,
           }),
       ...(process.env.FAKE_PULL_DIAGNOSTICS
@@ -329,6 +331,63 @@ function handle(message) {
                 };
           }),
         },
+      });
+      break;
+    }
+    case "textDocument/prepareCallHierarchy":
+    case "textDocument/prepareTypeHierarchy": {
+      const uri = message.params.textDocument.uri;
+      const rootCount = Number(process.env.FAKE_HIERARCHY_ROOTS ?? "1");
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: Array.from({ length: rootCount }, (_, index) => ({
+          detail: "fixture",
+          kind: 12,
+          name: `rootSymbol${String(index)}`,
+          range: {
+            end: { character: 13, line: 0 },
+            start: { character: 6, line: 0 },
+          },
+          selectionRange: {
+            end: { character: 13, line: 0 },
+            start: { character: 6, line: 0 },
+          },
+          uri,
+        })),
+      });
+      break;
+    }
+    case "callHierarchy/incomingCalls":
+    case "callHierarchy/outgoingCalls": {
+      const target = {
+        ...message.params.item,
+        name: method === "callHierarchy/incomingCalls" ? "caller" : "callee",
+      };
+      const resultCount = Number(process.env.FAKE_HIERARCHY_RESULTS ?? "1");
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: Array.from({ length: resultCount }, () =>
+          method === "callHierarchy/incomingCalls"
+            ? { from: target, fromRanges: [message.params.item.selectionRange] }
+            : { fromRanges: [message.params.item.selectionRange], to: target },
+        ),
+      });
+      break;
+    }
+    case "typeHierarchy/subtypes":
+    case "typeHierarchy/supertypes": {
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: [
+          {
+            ...message.params.item,
+            kind: 5,
+            name: method === "typeHierarchy/subtypes" ? "ChildType" : "ParentType",
+          },
+        ],
       });
       break;
     }

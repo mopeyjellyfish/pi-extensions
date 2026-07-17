@@ -53,6 +53,8 @@ describe("LspClient", () => {
     expect(client.supportsCodeActionResolve()).toBe(false);
     expect(client.supportsDocumentDiagnostics()).toBe(false);
     expect(client.supportsWorkspaceDiagnostics()).toBe(false);
+    expect(client.supportsQuery("callHierarchyIncoming")).toBe(true);
+    expect(client.supportsQuery("typeHierarchySubtypes")).toBe(true);
     expect(client.supportsSymbolRename()).toBe(true);
     expect(client.supportsPrepareRename()).toBe(true);
     expect(client.diagnosticIdentifier()).toBeUndefined();

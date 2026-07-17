@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 import { truncateHead } from "@earendil-works/pi-coding-agent";
 
 import type {
+  CallHierarchyIncomingCall,
+  CallHierarchyItem,
+  CallHierarchyOutgoingCall,
   DocumentSymbol,
   Hover,
   Location,
@@ -11,6 +14,7 @@ import type {
   MarkupContent,
   Position,
   SymbolInformation,
+  TypeHierarchyItem,
   WorkspaceSymbol,
 } from "vscode-languageserver-protocol";
 
@@ -21,6 +25,8 @@ const MAX_HOVER_BYTES = 8192;
 const MAX_SYMBOL_DEPTH = 12;
 
 export type LspQueryOperation =
+  | "callHierarchyIncoming"
+  | "callHierarchyOutgoing"
   | "declaration"
   | "definition"
   | "documentSymbols"
@@ -28,6 +34,8 @@ export type LspQueryOperation =
   | "implementation"
   | "references"
   | "typeDefinition"
+  | "typeHierarchySubtypes"
+  | "typeHierarchySupertypes"
   | "workspaceSymbols";
 
 export interface LspQueryRequest {
@@ -95,6 +103,8 @@ const SYMBOL_KINDS = [
 
 export function queryMethod(operation: LspQueryOperation): string {
   const methods: Record<LspQueryOperation, string> = {
+    callHierarchyIncoming: "textDocument/prepareCallHierarchy",
+    callHierarchyOutgoing: "textDocument/prepareCallHierarchy",
     declaration: "textDocument/declaration",
     definition: "textDocument/definition",
     documentSymbols: "textDocument/documentSymbol",
@@ -102,6 +112,8 @@ export function queryMethod(operation: LspQueryOperation): string {
     implementation: "textDocument/implementation",
     references: "textDocument/references",
     typeDefinition: "textDocument/typeDefinition",
+    typeHierarchySubtypes: "textDocument/prepareTypeHierarchy",
+    typeHierarchySupertypes: "textDocument/prepareTypeHierarchy",
     workspaceSymbols: "workspace/symbol",
   };
   return methods[operation];
@@ -216,6 +228,45 @@ export function normalizeDocumentSymbols(
     name: symbol.name,
     path: pathFromUri(symbol.location.uri),
   }));
+}
+
+function hierarchyItem(
+  item: CallHierarchyItem | TypeHierarchyItem,
+  relation: string,
+): LspQueryItem {
+  return {
+    column: item.selectionRange.start.character + 1,
+    ...(item.detail ? { containerName: item.detail } : {}),
+    endColumn: item.selectionRange.end.character + 1,
+    endLine: item.selectionRange.end.line + 1,
+    kind: `${relation}:${symbolKind(item.kind)}`,
+    line: item.selectionRange.start.line + 1,
+    name: item.name,
+    path: pathFromUri(item.uri),
+  };
+}
+
+export function normalizeIncomingCalls(
+  value: readonly CallHierarchyIncomingCall[] | null,
+): readonly LspQueryItem[] {
+  return (value ?? [])
+    .slice(0, QUERY_ITEM_LIMIT)
+    .map((call) => hierarchyItem(call.from, "incomingCall"));
+}
+
+export function normalizeOutgoingCalls(
+  value: readonly CallHierarchyOutgoingCall[] | null,
+): readonly LspQueryItem[] {
+  return (value ?? [])
+    .slice(0, QUERY_ITEM_LIMIT)
+    .map((call) => hierarchyItem(call.to, "outgoingCall"));
+}
+
+export function normalizeTypeHierarchy(
+  value: readonly TypeHierarchyItem[] | null,
+  relation: "subtype" | "supertype",
+): readonly LspQueryItem[] {
+  return (value ?? []).slice(0, QUERY_ITEM_LIMIT).map((item) => hierarchyItem(item, relation));
 }
 
 export function normalizeWorkspaceSymbols(
