@@ -24,6 +24,7 @@ import { isRecord, repositoryRoot } from "./lib/repository.ts";
 const piModulePath = fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"));
 const piCliPath = resolve(dirname(piModulePath), "cli.js");
 const RPC_REQUEST_ID = "pi-extension-smoke";
+const ROOT_AGGREGATE_INSTALL_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 120_000;
 
 interface PackResult {
   readonly filename: string;
@@ -249,7 +250,7 @@ async function installRootAggregate(tempRoot: string): Promise<string> {
   const installed = await runCommand(installInvocation.command, installInvocation.arguments, {
     cwd: installRoot,
     env: npmEnvironment,
-    timeoutMs: 120_000,
+    timeoutMs: ROOT_AGGREGATE_INSTALL_TIMEOUT_MS,
   });
   if (installed.code !== 0) {
     throw new Error(describeFailure("npm install root aggregate", installed));
