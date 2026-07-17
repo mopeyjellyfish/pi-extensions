@@ -700,9 +700,7 @@ describe("Pi LSP extension", () => {
       shutdown,
       status: vi
         .fn()
-        .mockReturnValue([
-          { id: "fake", message: "ready", name: "Fake LSP", root: cwd, state: "running" },
-        ]),
+        .mockReturnValue([{ id: "fake", name: "Fake LSP", root: cwd, state: "running" }]),
       warmFile,
     });
     const state = harness(service);
@@ -770,13 +768,105 @@ describe("Pi LSP extension", () => {
     expect(warmFile).toHaveBeenCalledTimes(1);
     await requiredCommand(state, "lsp").handler("", ctx);
     expect(state.notifications.some((message) => message.includes("Fake LSP: running"))).toBe(true);
-    expect(state.statuses).toContain("LSP: ready");
+    expect(state.statuses).toContain("󰒋");
 
     await emit(state, "session_start", {}, ctx);
     expect(shutdown).toHaveBeenCalledOnce();
     await emit(state, "session_shutdown", {}, ctx);
     expect(shutdown).toHaveBeenCalledTimes(2);
     expect(state.statuses.at(-1)).toBeUndefined();
+  });
+
+  it("shows only actionable LSP details and returns to the healthy icon", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-actionable-status-"));
+    const status = vi
+      .fn()
+      .mockReturnValueOnce([
+        { id: "ts", message: "server exited", name: "TypeScript", state: "failed" },
+        { id: "go", name: "Go", state: "unavailable" },
+        { id: "rust", name: "Rust", state: "starting" },
+      ])
+      .mockReturnValue([{ id: "ts", name: "TypeScript", state: "running" }]);
+    const state = harness(fakeService({ status }));
+    const ctx = context(cwd, true, state, "tui");
+
+    await emit(state, "session_start", {}, ctx);
+    expect(state.statuses.at(-1)).toBe("LSP: TypeScript failed · Go unavailable");
+
+    await emit(
+      state,
+      "tool_result",
+      {
+        content: [],
+        details: {},
+        input: { paths: ["example.ts"], scope: "document" },
+        isError: false,
+        toolCallId: "validate-1",
+        toolName: "lsp_validate",
+      },
+      ctx,
+    );
+    expect(state.statuses.at(-1)).toBe("󰒋");
+  });
+
+  it("polls asynchronous LSP health and prevents pending warmup from restoring shutdown status", async () => {
+    expect.hasAssertions();
+    vi.useFakeTimers();
+    try {
+      const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-status-lifecycle-"));
+      const warmController = new AbortController();
+      const warmFile = vi.fn(
+        () =>
+          new Promise<void>((resolveWarmup) => {
+            warmController.signal.addEventListener(
+              "abort",
+              () => {
+                resolveWarmup();
+              },
+              { once: true },
+            );
+          }),
+      );
+      const status = vi
+        .fn()
+        .mockReturnValueOnce([{ id: "ts", name: "TypeScript", state: "running" }])
+        .mockReturnValue([
+          { id: "ts", message: "watcher failed", name: "TypeScript", state: "running" },
+        ]);
+      const state = harness(fakeService({ status, warmFile }));
+      const ctx = context(cwd, true, state, "tui");
+
+      await emit(state, "session_start", {}, ctx);
+      expect(state.statuses.at(-1)).toBe("󰒋");
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(state.statuses.at(-1)).toBe("LSP: TypeScript degraded");
+
+      await emit(
+        state,
+        "tool_result",
+        {
+          content: [],
+          details: {},
+          input: { path: "example.ts" },
+          isError: false,
+          toolCallId: "read-status-race",
+          toolName: "read",
+        },
+        ctx,
+      );
+      expect(warmFile).toHaveBeenCalledOnce();
+      await emit(state, "session_shutdown", {}, ctx);
+      expect(state.statuses.at(-1)).toBeUndefined();
+
+      warmController.abort();
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(state.statuses.at(-1)).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("delivers slow diagnostics later and omits clean inline diagnostics", async () => {
