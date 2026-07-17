@@ -378,6 +378,19 @@ export class LspClient {
           capabilities: {
             general: { positionEncodings: ["utf-16"] },
             textDocument: {
+              codeAction: {
+                codeActionLiteralSupport: {
+                  codeActionKind: {
+                    valueSet: ["quickfix", "source.organizeImports"],
+                  },
+                },
+                dataSupport: true,
+                disabledSupport: true,
+                dynamicRegistration: true,
+                honorsChangeAnnotations: false,
+                isPreferredSupport: true,
+                resolveSupport: { properties: ["edit"] },
+              },
               declaration: { dynamicRegistration: true, linkSupport: true },
               definition: { dynamicRegistration: true, linkSupport: true },
               diagnostic: { dynamicRegistration: true, relatedDocumentSupport: true },
@@ -498,6 +511,40 @@ export class LspClient {
         options !== null &&
         "prepareProvider" in options &&
         options.prepareProvider === true
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  supportsCodeActions(): boolean {
+    const provider = this.#capabilities?.codeActionProvider;
+    if (provider !== undefined && provider !== false) return true;
+    for (const registration of this.#dynamicRegistrations.values()) {
+      if (registration.method === "textDocument/codeAction") return true;
+    }
+    return false;
+  }
+
+  supportsCodeActionResolve(): boolean {
+    const provider: unknown = this.#capabilities?.codeActionProvider;
+    if (
+      typeof provider === "object" &&
+      provider !== null &&
+      "resolveProvider" in provider &&
+      provider.resolveProvider === true
+    ) {
+      return true;
+    }
+    for (const registration of this.#dynamicRegistrations.values()) {
+      const options: unknown = registration.registerOptions;
+      if (
+        registration.method === "textDocument/codeAction" &&
+        typeof options === "object" &&
+        options !== null &&
+        "resolveProvider" in options &&
+        options.resolveProvider === true
       ) {
         return true;
       }

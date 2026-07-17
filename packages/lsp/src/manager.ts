@@ -32,6 +32,9 @@ import type { ServerDefinition } from "./servers.ts";
 import type { ValidationOutcome, ValidationRequest } from "./validation.ts";
 import type { WorkspaceEditFileChange } from "./workspace-edit.ts";
 import type {
+  CodeAction,
+  CodeActionContext,
+  Command,
   Diagnostic,
   DocumentDiagnosticReport,
   DocumentSymbol,
@@ -57,6 +60,37 @@ export interface MutationSnapshot {
 export interface FileDiagnostics {
   readonly diagnostics: readonly Diagnostic[];
   readonly path: string;
+}
+
+export type SupportedCodeActionKind = "quickfix" | "source.organizeImports";
+
+export interface CodeActionRequest {
+  readonly column?: number;
+  readonly endColumn?: number;
+  readonly endLine?: number;
+  readonly kind: SupportedCodeActionKind;
+  readonly line?: number;
+  readonly mode: "apply" | "list";
+  readonly path: string;
+  readonly title?: string;
+}
+
+export interface CodeActionSummary {
+  readonly applicable: boolean;
+  readonly disabledReason?: string;
+  readonly isPreferred: boolean;
+  readonly kind: string;
+  readonly title: string;
+}
+
+export interface CodeActionOutcome {
+  readonly actions: readonly CodeActionSummary[];
+  readonly applied: boolean;
+  readonly changedFiles: readonly string[];
+  readonly changes: readonly WorkspaceEditFileChange[];
+  readonly diagnostics: readonly FileDiagnostics[];
+  readonly serverName: string;
+  readonly warning?: string;
 }
 
 export interface SymbolRenameRequest {
@@ -94,6 +128,7 @@ export interface LspStatus {
 }
 
 export interface LspService {
+  codeAction(request: CodeActionRequest, signal?: AbortSignal): Promise<CodeActionOutcome>;
   diagnoseMutation(
     path: string,
     text: string,
@@ -108,6 +143,15 @@ export interface LspService {
   status(): readonly LspStatus[];
   validate(request: ValidationRequest, signal?: AbortSignal): Promise<ValidationOutcome>;
   warmFile(path: string, signal?: AbortSignal): Promise<void>;
+}
+
+interface PreparedCodeActions {
+  readonly actions: readonly CodeAction[];
+  readonly expectedDocuments: ReadonlyMap<
+    string,
+    { readonly text: string; readonly version: number }
+  >;
+  readonly route: ClientRoute;
 }
 
 interface PullDiagnosticCacheEntry {
@@ -147,6 +191,72 @@ function combinedSignal(session: AbortSignal, signal?: AbortSignal): AbortSignal
 function combineWarnings(...warnings: (string | undefined)[]): string | undefined {
   const combined = warnings.filter((warning): warning is string => warning !== undefined).join(" ");
   return combined || undefined;
+}
+
+function codeActionKindMatches(
+  kind: string | undefined,
+  requested: SupportedCodeActionKind,
+): boolean {
+  return kind === requested || kind?.startsWith(`${requested}.`) === true;
+}
+
+function asCodeAction(value: CodeAction | Command): CodeAction | undefined {
+  if (typeof value.title !== "string" || value.title.length === 0 || value.title.length > 512) {
+    return undefined;
+  }
+  const kind: unknown = "kind" in value ? value.kind : undefined;
+  if (kind !== undefined && (typeof kind !== "string" || kind.length > 128)) return undefined;
+  if ("command" in value && typeof value.command === "string") return undefined;
+  return value as CodeAction;
+}
+
+function codeActionRange(
+  text: string,
+  request: CodeActionRequest,
+): {
+  readonly end: { readonly character: number; readonly line: number };
+  readonly start: { readonly character: number; readonly line: number };
+} {
+  if (request.line === undefined && request.column === undefined) {
+    if (request.endLine !== undefined || request.endColumn !== undefined) {
+      throw new Error("LSP code action end positions require a start position.");
+    }
+    const lines = text.split("\n");
+    const lastLine = lines.at(-1) ?? "";
+    return {
+      end: { character: lastLine.length, line: Math.max(0, lines.length - 1) },
+      start: { character: 0, line: 0 },
+    };
+  }
+  if (request.line === undefined || request.column === undefined) {
+    throw new Error("LSP code actions require line and column together.");
+  }
+  if ((request.endLine === undefined) !== (request.endColumn === undefined)) {
+    throw new Error("LSP code action endLine and endColumn must be provided together.");
+  }
+  const start = toLspPosition(text, request.line, request.column);
+  const end =
+    request.endLine === undefined || request.endColumn === undefined
+      ? start
+      : toLspPosition(text, request.endLine, request.endColumn);
+  if (end.line < start.line || (end.line === start.line && end.character < start.character)) {
+    throw new Error("LSP code action range must not be reversed.");
+  }
+  return { end, start };
+}
+
+function codeActionSummary(action: CodeAction, canResolve: boolean): CodeActionSummary {
+  const disabledReason = action.disabled?.reason;
+  return {
+    applicable:
+      disabledReason === undefined &&
+      action.command === undefined &&
+      (action.edit !== undefined || canResolve),
+    ...(disabledReason ? { disabledReason: disabledReason.slice(0, 512) } : {}),
+    isPreferred: action.isPreferred === true,
+    kind: action.kind?.slice(0, 128) ?? "",
+    title: action.title,
+  };
 }
 
 function pathFromDocumentUri(uri: string): string {
@@ -304,6 +414,157 @@ export class LspManager implements LspService {
         this.#pendingDiagnostics.delete(absolutePath);
       }
     }
+  }
+
+  async codeAction(request: CodeActionRequest, signal?: AbortSignal): Promise<CodeActionOutcome> {
+    if (!this.#trusted) throw new Error("LSP code actions require a trusted project.");
+    if (request.mode === "apply" && !request.title) {
+      throw new Error("Applying an LSP code action requires its exact title.");
+    }
+    const operationSignal = combinedSignal(this.#session.signal, signal);
+    const prepared = await this.#requestCodeActions(request, operationSignal);
+    if (request.mode === "list") return this.#listedCodeActions(prepared);
+    const title = request.title;
+    if (!title) throw new Error("Applying an LSP code action requires its exact title.");
+    const selected = this.#selectCodeAction(prepared.actions, title);
+    const resolved = await this.#resolveCodeAction(
+      selected,
+      request.kind,
+      title,
+      prepared.route.client,
+      operationSignal,
+    );
+    return this.#applyCodeAction(resolved, prepared, operationSignal);
+  }
+
+  async #requestCodeActions(
+    request: CodeActionRequest,
+    signal: AbortSignal,
+  ): Promise<PreparedCodeActions> {
+    return this.#withSynchronizedDocument(request.path, signal, async (route, text, uri) => {
+      if (!route.client.supportsCodeActions()) {
+        throw new Error(`${route.client.name} does not support textDocument/codeAction.`);
+      }
+      const expectedDocuments = await this.#snapshotClientDocuments(route.client);
+      const context: CodeActionContext = {
+        diagnostics: route.client.diagnostics(uri).slice(0, 64),
+        only: [request.kind],
+        triggerKind: 1,
+      };
+      const response = await route.client.request<readonly (CodeAction | Command)[] | null>(
+        "textDocument/codeAction",
+        {
+          context,
+          range: codeActionRange(text, request),
+          textDocument: { uri },
+        },
+        signal,
+      );
+      const responseItems = response ?? [];
+      if (responseItems.length > 256) {
+        throw new Error("The LSP code action response exceeds the 256 action limit.");
+      }
+      const actions = responseItems
+        .map((item) => asCodeAction(item))
+        .filter(
+          (item): item is CodeAction =>
+            item !== undefined && codeActionKindMatches(item.kind, request.kind),
+        );
+      return { actions, expectedDocuments, route };
+    });
+  }
+
+  #listedCodeActions(prepared: PreparedCodeActions): CodeActionOutcome {
+    return {
+      actions: prepared.actions
+        .slice(0, 32)
+        .map((action) =>
+          codeActionSummary(action, prepared.route.client.supportsCodeActionResolve()),
+        ),
+      applied: false,
+      changedFiles: [],
+      changes: [],
+      diagnostics: [],
+      serverName: prepared.route.client.name,
+    };
+  }
+
+  #selectCodeAction(actions: readonly CodeAction[], title: string): CodeAction {
+    const matches = actions.filter((action) => action.title === title);
+    if (matches.length === 0) {
+      throw new Error("No matching supported LSP code action was returned by the fresh request.");
+    }
+    if (matches.length !== 1) {
+      throw new Error("The fresh LSP code action request returned more than one matching title.");
+    }
+    const selected = matches[0];
+    if (selected === undefined) throw new Error("The selected LSP code action is unavailable.");
+    return selected;
+  }
+
+  async #resolveCodeAction(
+    selected: CodeAction,
+    kind: SupportedCodeActionKind,
+    title: string,
+    client: LspClient,
+    signal: AbortSignal,
+  ): Promise<CodeAction & { readonly edit: WorkspaceEdit }> {
+    this.#assertApplicableCodeAction(selected);
+    if (selected.edit !== undefined)
+      return selected as CodeAction & { readonly edit: WorkspaceEdit };
+    if (!client.supportsCodeActionResolve()) {
+      throw new Error("The selected LSP code action does not contain a text edit.");
+    }
+    const response = await client.request<CodeAction>("codeAction/resolve", selected, signal);
+    const resolved = asCodeAction(response);
+    if (resolved === undefined) {
+      throw new Error("The resolved LSP code action is malformed or exceeds output limits.");
+    }
+    if (resolved.title !== title || !codeActionKindMatches(resolved.kind, kind)) {
+      throw new Error("The resolved LSP code action changed its title or supported kind.");
+    }
+    this.#assertApplicableCodeAction(resolved);
+    if (resolved.edit === undefined) {
+      throw new Error("The selected LSP code action did not resolve to a text edit.");
+    }
+    return resolved as CodeAction & { readonly edit: WorkspaceEdit };
+  }
+
+  #assertApplicableCodeAction(action: CodeAction): void {
+    if (action.disabled) {
+      throw new Error(
+        `The selected LSP code action is disabled: ${action.disabled.reason.slice(0, 512)}`,
+      );
+    }
+    if (action.command !== undefined) {
+      throw new Error("LSP code actions containing commands are not supported.");
+    }
+  }
+
+  async #applyCodeAction(
+    selected: CodeAction & { readonly edit: WorkspaceEdit },
+    prepared: PreparedCodeActions,
+    signal: AbortSignal,
+  ): Promise<CodeActionOutcome> {
+    const transaction = await applyWorkspaceEdit(selected.edit, prepared.route.client.root, {
+      documentState: (path) => this.#documentStateForClientPath(prepared.route.client, path),
+      expectedDocumentState: (path) => prepared.expectedDocuments.get(path),
+      signal,
+    });
+    for (const path of transaction.changedFiles) this.#baselines.delete(resolve(path));
+    const warning = (await this.#synchronizeChangedFiles(transaction.changedFiles, signal)).at(0);
+    const diagnostics = warning
+      ? []
+      : await this.#collectDiagnostics(transaction.changedFiles, signal);
+    return {
+      actions: [codeActionSummary(selected, false)],
+      applied: true,
+      changedFiles: transaction.changedFiles,
+      changes: transaction.changes,
+      diagnostics,
+      serverName: prepared.route.client.name,
+      ...(warning ? { warning } : {}),
+    };
   }
 
   async query(request: LspQueryRequest, signal?: AbortSignal): Promise<LspQueryOutcome> {
