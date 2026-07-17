@@ -30,6 +30,7 @@ import type { DocumentSynchronization, LspClientOptions } from "./client.ts";
 import type { LspQueryOutcome, LspQueryRequest } from "./query.ts";
 import type { ServerDefinition } from "./servers.ts";
 import type { ValidationOutcome, ValidationRequest } from "./validation.ts";
+import type { WorkspaceEditFileChange } from "./workspace-edit.ts";
 import type {
   Diagnostic,
   DocumentDiagnosticReport,
@@ -58,6 +59,23 @@ export interface FileDiagnostics {
   readonly path: string;
 }
 
+export interface SymbolRenameRequest {
+  readonly column: number;
+  readonly dryRun: boolean;
+  readonly line: number;
+  readonly newName: string;
+  readonly path: string;
+}
+
+export interface SymbolRenameOutcome {
+  readonly applied: boolean;
+  readonly changedFiles: readonly string[];
+  readonly changes: readonly WorkspaceEditFileChange[];
+  readonly diagnostics: readonly FileDiagnostics[];
+  readonly serverName: string;
+  readonly warning?: string;
+}
+
 export interface RenameOutcome {
   readonly changedFiles: readonly string[];
   readonly diagnostics: readonly FileDiagnostics[];
@@ -84,6 +102,7 @@ export interface LspService {
   ): Promise<readonly Diagnostic[]>;
   query(request: LspQueryRequest, signal?: AbortSignal): Promise<LspQueryOutcome>;
   renameFile(oldPath: string, newPath: string, signal?: AbortSignal): Promise<RenameOutcome>;
+  renameSymbol(request: SymbolRenameRequest, signal?: AbortSignal): Promise<SymbolRenameOutcome>;
   shutdown(): Promise<void>;
   snapshot(path: string): Promise<MutationSnapshot | undefined>;
   status(): readonly LspStatus[];
@@ -591,6 +610,76 @@ export class LspManager implements LspService {
       .map((item) => this.#consumeDiagnosticReport(client, item.uri, item));
   }
 
+  async renameSymbol(
+    request: SymbolRenameRequest,
+    signal?: AbortSignal,
+  ): Promise<SymbolRenameOutcome> {
+    if (!this.#trusted) throw new Error("LSP symbol rename requires a trusted project.");
+    if (!request.newName || request.newName.length > 256) {
+      throw new Error("LSP symbol rename requires a non-empty name of at most 256 characters.");
+    }
+    const operationSignal = combinedSignal(this.#session.signal, signal);
+    const prepared = await this.#withSynchronizedDocument(
+      request.path,
+      operationSignal,
+      async (route, text, uri) => {
+        if (!route.client.supportsSymbolRename()) {
+          throw new Error(`${route.client.name} does not support textDocument/rename.`);
+        }
+        const position = toLspPosition(text, request.line, request.column);
+        const expectedDocuments = await this.#snapshotClientDocuments(route.client);
+        if (route.client.supportsPrepareRename()) {
+          const prepareResult = await route.client.request<unknown>(
+            "textDocument/prepareRename",
+            { position, textDocument: { uri } },
+            operationSignal,
+          );
+          if (prepareResult === null) throw new Error("The selected symbol cannot be renamed.");
+        }
+        const workspaceEdit = await route.client.request<WorkspaceEdit | null>(
+          "textDocument/rename",
+          { newName: request.newName, position, textDocument: { uri } },
+          operationSignal,
+        );
+        return { expectedDocuments, route, workspaceEdit };
+      },
+    );
+    const transaction = await applyWorkspaceEdit(
+      prepared.workspaceEdit,
+      prepared.route.client.root,
+      {
+        documentState: (path) => this.#documentStateForClientPath(prepared.route.client, path),
+        dryRun: request.dryRun,
+        expectedDocumentState: (path) => prepared.expectedDocuments.get(path),
+        signal: operationSignal,
+      },
+    );
+    if (request.dryRun) {
+      return {
+        applied: false,
+        changedFiles: transaction.changedFiles,
+        changes: transaction.changes,
+        diagnostics: [],
+        serverName: prepared.route.client.name,
+      };
+    }
+    for (const path of transaction.changedFiles) this.#baselines.delete(resolve(path));
+    const warning = (
+      await this.#synchronizeChangedFiles(transaction.changedFiles, operationSignal)
+    ).at(0);
+    const diagnostics = warning
+      ? []
+      : await this.#collectDiagnostics(transaction.changedFiles, operationSignal);
+    return {
+      applied: true,
+      changedFiles: transaction.changedFiles,
+      changes: transaction.changes,
+      diagnostics,
+      serverName: prepared.route.client.name,
+      ...(warning ? { warning } : {}),
+    };
+  }
+
   async renameFile(oldPath: string, newPath: string, signal?: AbortSignal): Promise<RenameOutcome> {
     const oldAbsolute = resolve(oldPath);
     const newAbsolute = resolve(newPath);
@@ -618,6 +707,7 @@ export class LspManager implements LspService {
     );
     const oldContent = await readFile(oldAbsolute, "utf8");
     await resolved.client.syncDocument(oldAbsolute, resolved.languageId, oldContent);
+    const expectedDocuments = await this.#snapshotClientDocuments(resolved.client);
     const workspaceEdit = await resolved.client.willRenameFiles(
       oldAbsolute,
       newAbsolute,
@@ -626,9 +716,11 @@ export class LspManager implements LspService {
     const transaction = await this.#applySemanticRename(
       workspaceEdit,
       resolved.client.root,
+      resolved.client,
       oldAbsolute,
       newAbsolute,
       operationSignal,
+      expectedDocuments,
       intermediatePath,
     );
 
@@ -685,15 +777,19 @@ export class LspManager implements LspService {
   async #applySemanticRename(
     workspaceEdit: WorkspaceEdit | null,
     workspaceRoot: string,
+    sourceClient: LspClient,
     oldPath: string,
     newPath: string,
     signal: AbortSignal,
+    expectedDocuments: ReadonlyMap<string, { readonly text: string; readonly version: number }>,
     intermediatePath?: string,
   ): Promise<Awaited<ReturnType<typeof applyWorkspaceEdit>>> {
-    return applyWorkspaceEdit(
-      workspaceEdit,
-      workspaceRoot,
-      async () => {
+    return applyWorkspaceEdit(workspaceEdit, workspaceRoot, {
+      additionalQueuePaths: [oldPath, newPath, ...(intermediatePath ? [intermediatePath] : [])],
+      documentState: (path) => this.#documentStateForClientPath(sourceClient, path),
+      expectedDocumentState: (path) => expectedDocuments.get(path),
+      signal,
+      whileApplied: async () => {
         if (signal.aborted) throw new Error("LSP rename aborted before filesystem mutation.");
         await mkdir(dirname(newPath), { recursive: true });
         if (intermediatePath === undefined) {
@@ -716,7 +812,33 @@ export class LspManager implements LspService {
           throw error;
         }
       },
-      [oldPath, newPath, ...(intermediatePath ? [intermediatePath] : [])],
+    });
+  }
+
+  async #snapshotClientDocuments(
+    client: LspClient,
+  ): Promise<Map<string, { readonly text: string; readonly version: number }>> {
+    const snapshots = new Map<string, { readonly text: string; readonly version: number }>();
+    for (const state of client.openDocumentStates()) {
+      try {
+        const path = await realpath(fileURLToPath(state.uri));
+        snapshots.set(path, { text: state.text, version: state.version });
+      } catch {
+        // Ignore stale or non-file client document entries; edits to them will fail closed.
+      }
+    }
+    return snapshots;
+  }
+
+  async #documentStateForClientPath(
+    client: LspClient,
+    path: string,
+  ): Promise<{ readonly text: string; readonly version: number } | undefined> {
+    const canonicalRoot = await realpath(this.#cwd);
+    const displayPath = resolve(this.#cwd, relative(canonicalRoot, path));
+    return (
+      client.documentState(pathToFileURL(displayPath).href) ??
+      client.documentState(pathToFileURL(path).href)
     );
   }
 
@@ -726,10 +848,16 @@ export class LspManager implements LspService {
       try {
         const content = await readFile(path, "utf8");
         const route = await this.#clientForFile(path, signal);
-        if (route) await route.client.syncDocument(path, route.languageId, content);
+        if (route === undefined) {
+          warnings.push(
+            `The LSP edit committed, but no language server route could synchronize ${path}.`,
+          );
+          continue;
+        }
+        await route.client.syncDocument(path, route.languageId, content);
       } catch (error) {
         warnings.push(
-          `The file rename committed, but an edited document could not be synchronized: ${error instanceof Error ? error.message : String(error)}`,
+          `The LSP edit committed, but an edited document could not be synchronized: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }

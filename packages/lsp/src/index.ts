@@ -16,7 +16,12 @@ import { LspManager } from "./manager.ts";
 import { renderQueryOutcome } from "./query.ts";
 import { renderValidationOutcome } from "./validation.ts";
 
-import type { LspService, MutationSnapshot, RenameOutcome } from "./manager.ts";
+import type {
+  LspService,
+  MutationSnapshot,
+  RenameOutcome,
+  SymbolRenameOutcome,
+} from "./manager.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Diagnostic } from "vscode-languageserver-protocol";
 
@@ -72,6 +77,19 @@ const ValidateParameters = Type.Object(
   { additionalProperties: false },
 );
 
+const RenameSymbolParameters = Type.Object(
+  {
+    column: Type.Integer({ description: "One-based UTF-16 column of the symbol", minimum: 1 }),
+    dryRun: Type.Optional(
+      Type.Boolean({ description: "Preview affected files and edit counts without writing" }),
+    ),
+    line: Type.Integer({ description: "One-based line of the symbol", minimum: 1 }),
+    newName: Type.String({ description: "New semantic symbol name", maxLength: 256, minLength: 1 }),
+    path: Type.String({ description: "File containing the symbol" }),
+  },
+  { additionalProperties: false },
+);
+
 const RenameFileParameters = Type.Object(
   {
     newPath: Type.String({
@@ -123,6 +141,26 @@ function appendDiagnostics<T extends { content: readonly unknown[] }>(result: T,
     ...result,
     content: [...result.content, { text: `\n\n${text}`, type: "text" }],
   };
+}
+
+function symbolRenameSummary(cwd: string, outcome: SymbolRenameOutcome): string {
+  const editCount = outcome.changes.reduce((count, change) => count + change.editCount, 0);
+  const lines = [
+    `${outcome.applied ? "Applied" : "Previewed"} semantic symbol rename with ${outcome.serverName}.`,
+    `${String(editCount)} edit${editCount === 1 ? "" : "s"} across ${String(outcome.changedFiles.length)} file${outcome.changedFiles.length === 1 ? "" : "s"}.`,
+  ];
+  for (const change of outcome.changes) {
+    lines.push(
+      `${relative(cwd, change.path)}: ${String(change.editCount)} edit${change.editCount === 1 ? "" : "s"}, ${String(change.beforeBytes)} → ${String(change.afterBytes)} bytes`,
+    );
+  }
+  if (outcome.warning) lines.push(`Warning: ${outcome.warning}`);
+  for (const group of outcome.diagnostics) {
+    const rendered = renderDiagnostics(group.diagnostics);
+    if (rendered) lines.push(`Diagnostics for ${relative(cwd, group.path)}:\n${rendered}`);
+  }
+  return truncateHead(lines.join("\n"), { maxBytes: MAX_RENAME_OUTPUT_BYTES, maxLines: 120 })
+    .content;
 }
 
 function renameSummary(cwd: string, outcome: RenameOutcome): string {
@@ -394,6 +432,50 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
             omitted: outcome.omitted,
             scope: outcome.scope,
             serverNames: outcome.serverNames,
+          },
+        };
+      },
+    });
+
+    pi.registerTool({
+      name: "lsp_rename_symbol",
+      label: "LSP Rename Symbol",
+      description:
+        "Prepare, preview, and apply a language-server semantic symbol rename through a validated multi-file WorkspaceEdit.",
+      executionMode: "sequential",
+      promptSnippet:
+        "Preview and apply semantic identifier renames through the active language server",
+      promptGuidelines: [
+        "Call lsp_rename_symbol with dryRun true before applying a multi-file symbol rename.",
+        "Use lsp_rename_symbol instead of textual replacement when changing an identifier across references.",
+      ],
+      parameters: RenameSymbolParameters,
+      async execute(_toolCallId, input, signal, _onUpdate, ctx) {
+        if (!ctx.isProjectTrusted()) {
+          throw new Error("lsp_rename_symbol requires a trusted project.");
+        }
+        const outcome = await ensureService(ctx).renameSymbol(
+          {
+            column: input.column,
+            dryRun: input.dryRun ?? true,
+            line: input.line,
+            newName: input.newName,
+            path: normalizePath(ctx.cwd, input.path),
+          },
+          signal,
+        );
+        return {
+          content: [{ text: symbolRenameSummary(ctx.cwd, outcome), type: "text" }],
+          details: {
+            applied: outcome.applied,
+            changedFiles: outcome.changedFiles.slice(0, 64),
+            changes: outcome.changes.slice(0, 64),
+            diagnosticCount: outcome.diagnostics.reduce(
+              (count, group) => count + group.diagnostics.length,
+              0,
+            ),
+            serverName: outcome.serverName,
+            ...(outcome.warning ? { warning: outcome.warning } : {}),
           },
         };
       },

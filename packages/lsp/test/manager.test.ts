@@ -1,7 +1,7 @@
 import { access, mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
@@ -23,6 +23,18 @@ function fakeDefinition(): ServerDefinition {
   };
 }
 
+async function waitForLog(path: string, needle: string): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      if ((await readFile(path, "utf8")).includes(needle)) return;
+    } catch {
+      // The fixture creates its log lazily.
+    }
+    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 10));
+  }
+  throw new Error(`Timed out waiting for ${needle}.`);
+}
+
 describe("LspManager semantic rename", () => {
   it("applies willRenameFiles edits before moving and sends didRenameFiles", async () => {
     expect.hasAssertions();
@@ -40,6 +52,7 @@ describe("LspManager semantic rename", () => {
       env: { ...process.env, FAKE_IMPORT_FILE: imports, FAKE_LSP_LOG: log },
       trusted: true,
     });
+    await manager.warmFile(imports);
 
     const outcome = await manager.renameFile(oldPath, newPath);
     await expect(access(oldPath)).rejects.toMatchObject({ code: "ENOENT" });
@@ -309,6 +322,181 @@ describe("LspManager semantic rename", () => {
     await idle.shutdown();
   });
 
+  it("previews and applies version-validated semantic symbol renames", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-symbol-rename-manager-"));
+    const file = join(root, "symbol.ts");
+    await writeFile(file, "const oldName = oldName;\n");
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: true,
+    });
+    const preview = await manager.renameSymbol({
+      column: 7,
+      dryRun: true,
+      line: 1,
+      newName: "newName",
+      path: file,
+    });
+    expect(preview).toMatchObject({ applied: false, changes: [{ editCount: 2 }] });
+    await expect(readFile(file, "utf8")).resolves.toBe("const oldName = oldName;\n");
+
+    const applied = await manager.renameSymbol({
+      column: 7,
+      dryRun: false,
+      line: 1,
+      newName: "newName",
+      path: file,
+    });
+    expect(applied.applied).toBe(true);
+    await expect(readFile(file, "utf8")).resolves.toBe("const newName = newName;\n");
+    await expect(
+      manager.renameSymbol({ column: 1, dryRun: true, line: 1, newName: "", path: file }),
+    ).rejects.toThrow("non-empty name");
+    await manager.shutdown();
+
+    const raceFile = join(root, "race.ts");
+    const raceLog = join(root, "race.log");
+    await writeFile(raceFile, "const oldName = oldName;\n");
+    const racing = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_LSP_LOG: raceLog,
+        FAKE_RENAME_DELAY_MS: "100",
+      },
+      trusted: true,
+    });
+    const staleRename = racing.renameSymbol({
+      column: 7,
+      dryRun: false,
+      line: 1,
+      newName: "newName",
+      path: raceFile,
+    });
+    await waitForLog(raceLog, "textDocument/rename");
+    await writeFile(raceFile, "const external = oldName;\n");
+    await expect(staleRename).rejects.toThrow("snapshot is stale");
+    await expect(readFile(raceFile, "utf8")).resolves.toBe("const external = oldName;\n");
+    await racing.shutdown();
+
+    const closedFile = join(root, "closed.ts");
+    await writeFile(closedFile, "note\n");
+    await writeFile(raceFile, "const oldName = oldName;\n");
+    const unversioned = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_RENAME_SECOND_URI: pathToFileURL(closedFile).href },
+      trusted: true,
+    });
+    await expect(
+      unversioned.renameSymbol({
+        column: 7,
+        dryRun: false,
+        line: 1,
+        newName: "newName",
+        path: raceFile,
+      }),
+    ).rejects.toThrow("unversioned document that cannot be validated");
+    await expect(readFile(closedFile, "utf8")).resolves.toBe("note\n");
+    await expect(readFile(raceFile, "utf8")).resolves.toBe("const oldName = oldName;\n");
+    await unversioned.shutdown();
+
+    const confirmation = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_RENAME_ANNOTATION_CONFIRM: "1" },
+      trusted: true,
+    });
+    await expect(
+      confirmation.renameSymbol({
+        column: 7,
+        dryRun: false,
+        line: 1,
+        newName: "again",
+        path: file,
+      }),
+    ).rejects.toThrow("interactive confirmation");
+    await confirmation.shutdown();
+
+    const rejectedPrepare = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_PREPARE_RENAME_NULL: "1" },
+      trusted: true,
+    });
+    await expect(
+      rejectedPrepare.renameSymbol({
+        column: 7,
+        dryRun: true,
+        line: 1,
+        newName: "again",
+        path: file,
+      }),
+    ).rejects.toThrow("cannot be renamed");
+    await expect(
+      rejectedPrepare.renameSymbol({
+        column: 7,
+        dryRun: true,
+        line: 1,
+        newName: "x".repeat(257),
+        path: file,
+      }),
+    ).rejects.toThrow("at most 256");
+    await rejectedPrepare.shutdown();
+
+    const untrusted = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: false,
+    });
+    await expect(
+      untrusted.renameSymbol({
+        column: 7,
+        dryRun: true,
+        line: 1,
+        newName: "again",
+        path: file,
+      }),
+    ).rejects.toThrow("trusted project");
+
+    const withoutPrepare = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_NO_PREPARE_RENAME: "1" },
+      trusted: true,
+    });
+    await expect(
+      withoutPrepare.renameSymbol({
+        column: 7,
+        dryRun: true,
+        line: 1,
+        newName: "again",
+        path: file,
+      }),
+    ).resolves.toMatchObject({ applied: false });
+    await withoutPrepare.shutdown();
+
+    const unavailable = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_NO_SYMBOL_RENAME: "1" },
+      trusted: true,
+    });
+    await expect(
+      unavailable.renameSymbol({
+        column: 7,
+        dryRun: true,
+        line: 1,
+        newName: "again",
+        path: file,
+      }),
+    ).rejects.toThrow("does not support textDocument/rename");
+    await unavailable.shutdown();
+  });
+
   it("caches unavailable and failed server routes", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "pi-lsp-unavailable-"));
@@ -556,6 +744,7 @@ describe("LspManager semantic rename", () => {
       env: { ...process.env, FAKE_IMPORT_FILE: imports },
       trusted: true,
     });
+    await manager.warmFile(imports);
 
     await expect(manager.renameFile(oldPath, invalidPath)).rejects.toThrow();
     await expect(readFile(imports, "utf8")).resolves.toBe('export { value } from "./old";\n');

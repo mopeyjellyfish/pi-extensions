@@ -162,6 +162,13 @@ function fakeService(overrides: Partial<LspService> = {}): LspService {
       oldPath: "old.ts",
       serverName: "fake",
     } satisfies RenameOutcome),
+    renameSymbol: vi.fn().mockResolvedValue({
+      applied: false,
+      changedFiles: [],
+      changes: [],
+      diagnostics: [],
+      serverName: "fake",
+    }),
     shutdown: vi.fn().mockResolvedValue(undefined),
     snapshot: vi.fn().mockResolvedValue(undefined),
     status: vi.fn().mockReturnValue([]),
@@ -385,6 +392,77 @@ describe("Pi LSP extension", () => {
       tool.execute(
         "validate-untrusted",
         { paths: ["example.ts"], scope: "document" },
+        undefined,
+        undefined,
+        context(cwd, false),
+      ),
+    ).rejects.toThrow("trusted project");
+  });
+
+  it("previews semantic symbol renames by default", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-symbol-rename-tool-"));
+    const path = join(cwd, "symbol.ts");
+    const renameSymbol = vi.fn().mockResolvedValue({
+      applied: false,
+      changedFiles: [path],
+      changes: [{ afterBytes: 20, beforeBytes: 20, editCount: 2, path }],
+      diagnostics: [],
+      serverName: "Fake LSP",
+    });
+    const state = harness(fakeService({ renameSymbol }));
+    const ctx = context(cwd);
+    await emit(state, "session_start", {}, ctx);
+    const tool = requiredTool(state, "lsp_rename_symbol");
+    const result = await tool.execute(
+      "rename-symbol-1",
+      { column: 7, line: 1, newName: "newName", path: "symbol.ts" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(renameSymbol).toHaveBeenCalledExactlyOnceWith(
+      { column: 7, dryRun: true, line: 1, newName: "newName", path },
+      undefined,
+    );
+    expect(result.content[0]?.text).toContain("Previewed semantic symbol rename");
+    renameSymbol.mockResolvedValueOnce({
+      applied: true,
+      changedFiles: [path],
+      changes: [{ afterBytes: 19, beforeBytes: 20, editCount: 1, path }],
+      diagnostics: [
+        {
+          diagnostics: [
+            {
+              message: "rename diagnostic",
+              range: {
+                end: { character: 1, line: 0 },
+                start: { character: 0, line: 0 },
+              },
+              severity: 1,
+            },
+          ],
+          path,
+        },
+        { diagnostics: [], path: join(cwd, "empty.ts") },
+      ],
+      serverName: "Fake LSP",
+      warning: "synchronization warning",
+    });
+    const applied = await tool.execute(
+      "rename-symbol-2",
+      { column: 7, dryRun: false, line: 1, newName: "newName", path: "symbol.ts" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(applied.content[0]?.text).toContain("Applied semantic symbol rename");
+    expect(applied.content[0]?.text).toContain("Warning: synchronization warning");
+    expect(applied.content[0]?.text).toContain("rename diagnostic");
+    await expect(
+      tool.execute(
+        "rename-symbol-untrusted",
+        { column: 7, line: 1, newName: "newName", path: "symbol.ts" },
         undefined,
         undefined,
         context(cwd, false),

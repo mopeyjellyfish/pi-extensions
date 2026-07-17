@@ -1,8 +1,10 @@
+import { once } from "node:events";
 import { mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 
 import { applyWorkspaceEdit } from "../src/workspace-edit.ts";
@@ -158,7 +160,7 @@ describe("workspace edits", () => {
         ],
       },
       root,
-      callback,
+      { whileApplied: callback },
     );
     expect(callback).toHaveBeenCalledWith([file]);
     await expect(readFile(file, "utf8")).resolves.toBe("after\n");
@@ -167,9 +169,22 @@ describe("workspace edits", () => {
     await expect(readFile(file, "utf8")).resolves.toBe("before\n");
 
     const noOp = vi.fn().mockResolvedValue(undefined);
-    const noOpTransaction = await applyWorkspaceEdit(null, root, noOp);
+    const noOpTransaction = await applyWorkspaceEdit(null, root, { whileApplied: noOp });
     expect(noOp).toHaveBeenCalledWith([]);
     await expect(noOpTransaction.rollback()).resolves.toBeUndefined();
+
+    const emptyEdit = vi.fn().mockResolvedValue(undefined);
+    const emptyTransaction = await applyWorkspaceEdit(
+      {
+        documentChanges: [
+          { edits: [], textDocument: { uri: pathToFileURL(file).href, version: 1 } },
+        ],
+      },
+      root,
+      { whileApplied: emptyEdit },
+    );
+    expect(emptyTransaction.changedFiles).toEqual([]);
+    expect(emptyEdit).toHaveBeenCalledWith([]);
   });
 
   it("rejects unverifiable versions and canonicalizes alias queue targets", async () => {
@@ -185,14 +200,120 @@ describe("workspace edits", () => {
         {
           documentChanges: [
             {
-              edits: [],
+              edits: [
+                {
+                  newText: "",
+                  range: {
+                    end: { character: 0, line: 0 },
+                    start: { character: 0, line: 0 },
+                  },
+                },
+              ],
               textDocument: { uri: pathToFileURL(file).href, version: 1 },
             },
           ],
         },
         root,
       ),
-    ).rejects.toThrow("versioned document edit");
+    ).rejects.toThrow("version is stale");
+
+    const preview = await applyWorkspaceEdit(
+      {
+        documentChanges: [
+          {
+            edits: [
+              {
+                newText: "A",
+                range: {
+                  end: { character: 1, line: 0 },
+                  start: { character: 0, line: 0 },
+                },
+              },
+            ],
+            textDocument: { uri: pathToFileURL(file).href, version: 1 },
+          },
+        ],
+      },
+      root,
+      {
+        documentState: () => ({ text: "abcd\n", version: 1 }),
+        dryRun: true,
+      },
+    );
+    expect(preview.changes).toMatchObject([{ editCount: 1, path: file }]);
+    await expect(readFile(file, "utf8")).resolves.toBe("abcd\n");
+
+    const annotatedEdit = {
+      changes: {
+        [pathToFileURL(file).href]: [
+          {
+            annotationId: "annotation",
+            newText: "A",
+            range: {
+              end: { character: 1, line: 0 },
+              start: { character: 0, line: 0 },
+            },
+          },
+        ],
+      },
+    };
+    await expect(applyWorkspaceEdit(annotatedEdit, root)).rejects.toThrow(
+      "unknown change annotation",
+    );
+    await expect(
+      applyWorkspaceEdit(
+        {
+          ...annotatedEdit,
+          changeAnnotations: {
+            annotation: { label: "Confirm", needsConfirmation: true },
+          },
+        },
+        root,
+      ),
+    ).rejects.toThrow("interactive confirmation");
+    const annotatedPreview = await applyWorkspaceEdit(
+      {
+        ...annotatedEdit,
+        changeAnnotations: { annotation: { label: "Safe" } },
+      },
+      root,
+      { dryRun: true },
+    );
+    expect(annotatedPreview.changes).toHaveLength(1);
+
+    await expect(
+      applyWorkspaceEdit(
+        {
+          documentChanges: [
+            {
+              edits: [
+                {
+                  newText: "",
+                  range: {
+                    end: { character: 0, line: 0 },
+                    start: { character: 0, line: 0 },
+                  },
+                },
+              ],
+              textDocument: { uri: pathToFileURL(alias).href, version: 1 },
+            },
+            {
+              edits: [
+                {
+                  newText: "",
+                  range: {
+                    end: { character: 0, line: 0 },
+                    start: { character: 0, line: 0 },
+                  },
+                },
+              ],
+              textDocument: { uri: pathToFileURL(file).href, version: 2 },
+            },
+          ],
+        },
+        root,
+      ),
+    ).rejects.toThrow("aliases contain conflicting document versions");
 
     const transaction = await applyWorkspaceEdit(
       {
@@ -246,9 +367,46 @@ describe("workspace edits", () => {
           },
         },
         root,
-        () => Promise.reject(new Error("rename failed")),
+        { whileApplied: () => Promise.reject(new Error("rename failed")) },
       ),
     ).rejects.toThrow("rename failed");
+    await expect(readFile(file, "utf8")).resolves.toBe("old\n");
+  });
+
+  it("does not commit after cancellation while waiting for mutation queues", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-cancelled-edit-"));
+    const file = join(root, "file.ts");
+    await writeFile(file, "old\n");
+    const events = new EventTarget();
+    const entered = once(events, "entered");
+    const holder = withFileMutationQueue(file, async () => {
+      events.dispatchEvent(new Event("entered"));
+      await once(events, "release");
+    });
+    await entered;
+    const controller = new AbortController();
+    const pending = applyWorkspaceEdit(
+      {
+        changes: {
+          [pathToFileURL(file).href]: [
+            {
+              newText: "new",
+              range: {
+                end: { character: 3, line: 0 },
+                start: { character: 0, line: 0 },
+              },
+            },
+          ],
+        },
+      },
+      root,
+      { signal: controller.signal },
+    );
+    controller.abort();
+    events.dispatchEvent(new Event("release"));
+    await holder;
+    await expect(pending).rejects.toThrow(/abort/iu);
     await expect(readFile(file, "utf8")).resolves.toBe("old\n");
   });
 
@@ -365,7 +523,17 @@ describe("workspace edits", () => {
     await expect(
       applyWorkspaceEdit(
         {
-          changes: { [pathToFileURL(large).href]: [] },
+          changes: {
+            [pathToFileURL(large).href]: [
+              {
+                newText: "",
+                range: {
+                  end: { character: 0, line: 0 },
+                  start: { character: 0, line: 0 },
+                },
+              },
+            ],
+          },
         },
         root,
       ),

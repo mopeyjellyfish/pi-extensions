@@ -99,6 +99,11 @@ function initializeResult() {
             hoverProvider: true,
             implementationProvider: true,
             referencesProvider: true,
+            renameProvider: process.env.FAKE_NO_SYMBOL_RENAME
+              ? undefined
+              : process.env.FAKE_NO_PREPARE_RENAME
+                ? true
+                : { prepareProvider: true },
             typeDefinitionProvider: true,
             workspaceSymbolProvider: true,
           }),
@@ -152,6 +157,17 @@ function exerciseClientRequests() {
       registrations: [{ id: "hover", method: "textDocument/hover", registerOptions: {} }],
     });
   }
+  if (process.env.FAKE_DYNAMIC_SYMBOL_RENAME) {
+    serverRequest("client/registerCapability", {
+      registrations: [
+        {
+          id: "symbol-rename",
+          method: "textDocument/rename",
+          registerOptions: process.env.FAKE_DYNAMIC_PREPARE_RENAME ? { prepareProvider: true } : {},
+        },
+      ],
+    });
+  }
   if (process.env.FAKE_CLIENT_EDGE_REQUESTS) {
     serverRequest("workspace/configuration", {});
     serverRequest("client/registerCapability", { registrations: [{}] });
@@ -179,7 +195,9 @@ function handle(message) {
     case "initialize": {
       const workspaceCapabilities = message.params.capabilities.workspace;
       if (workspaceCapabilities.workspaceEdit.resourceOperations) log("BAD_RESOURCE_OPERATIONS");
-      if (workspaceCapabilities.workspaceEdit.documentChanges) log("BAD_DOCUMENT_CHANGES");
+      if (workspaceCapabilities.workspaceEdit.documentChanges !== true) {
+        log("MISSING_DOCUMENT_CHANGES");
+      }
       if (
         workspaceCapabilities.fileOperations.didCreate ||
         workspaceCapabilities.fileOperations.didDelete ||
@@ -295,6 +313,83 @@ function handle(message) {
           }),
         },
       });
+      break;
+    }
+    case "textDocument/prepareRename": {
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: process.env.FAKE_PREPARE_RENAME_NULL
+          ? null
+          : {
+              placeholder: "oldName",
+              range: {
+                end: { character: 13, line: 0 },
+                start: { character: 6, line: 0 },
+              },
+            },
+      });
+      break;
+    }
+    case "textDocument/rename": {
+      const uri = message.params.textDocument.uri;
+      const document = documents.get(uri) ?? { text: "", version: 1 };
+      const annotationId = process.env.FAKE_RENAME_ANNOTATION_CONFIRM ? "confirm" : undefined;
+      const response = {
+        id: message.id,
+        jsonrpc: "2.0",
+        result: {
+          ...(annotationId
+            ? {
+                changeAnnotations: {
+                  [annotationId]: { label: "Confirm rename", needsConfirmation: true },
+                },
+              }
+            : {}),
+          documentChanges: [
+            {
+              edits: [
+                {
+                  ...(annotationId ? { annotationId } : {}),
+                  newText: message.params.newName,
+                  range: {
+                    end: { character: 13, line: 0 },
+                    start: { character: 6, line: 0 },
+                  },
+                },
+                {
+                  newText: message.params.newName,
+                  range: {
+                    end: { character: 23, line: 0 },
+                    start: { character: 16, line: 0 },
+                  },
+                },
+              ],
+              textDocument: { uri, version: document.version },
+            },
+            ...(process.env.FAKE_RENAME_SECOND_URI
+              ? [
+                  {
+                    edits: [
+                      {
+                        newText: "N",
+                        range: {
+                          end: { character: 1, line: 0 },
+                          start: { character: 0, line: 0 },
+                        },
+                      },
+                    ],
+                    textDocument: { uri: process.env.FAKE_RENAME_SECOND_URI, version: null },
+                  },
+                ]
+              : []),
+          ],
+        },
+      };
+      const renameDelay = Number(process.env.FAKE_RENAME_DELAY_MS ?? "0");
+      const respond = () => send(response);
+      if (renameDelay > 0) setTimeout(respond, renameDelay);
+      else respond();
       break;
     }
     case "textDocument/declaration":

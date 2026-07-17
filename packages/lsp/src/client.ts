@@ -47,6 +47,12 @@ export interface DocumentSynchronization {
   readonly version: number;
 }
 
+export interface OpenDocumentState {
+  readonly text: string;
+  readonly uri: string;
+  readonly version: number;
+}
+
 export interface FreshDiagnostics {
   readonly diagnostics: readonly Diagnostic[];
   readonly observed: boolean;
@@ -386,6 +392,11 @@ export class LspClient {
               implementation: { dynamicRegistration: true, linkSupport: true },
               publishDiagnostics: { versionSupport: true },
               references: { dynamicRegistration: true },
+              rename: {
+                dynamicRegistration: true,
+                honorsChangeAnnotations: false,
+                prepareSupport: true,
+              },
               synchronization: {
                 didSave: true,
                 dynamicRegistration: false,
@@ -405,7 +416,7 @@ export class LspClient {
               },
               symbol: { dynamicRegistration: true },
               workspaceEdit: {
-                documentChanges: false,
+                documentChanges: true,
               },
               workspaceFolders: true,
             },
@@ -445,6 +456,53 @@ export class LspClient {
 
   documentText(uri: string): string | undefined {
     return this.#documents.get(uri)?.text;
+  }
+
+  documentState(uri: string): { readonly text: string; readonly version: number } | undefined {
+    const document = this.#documents.get(uri);
+    return document === undefined ? undefined : { text: document.text, version: document.version };
+  }
+
+  openDocumentStates(): readonly OpenDocumentState[] {
+    return [...this.#documents].map(([uri, document]) => ({
+      text: document.text,
+      uri,
+      version: document.version,
+    }));
+  }
+
+  supportsSymbolRename(): boolean {
+    const provider = this.#capabilities?.renameProvider;
+    if (provider !== undefined && provider !== false) return true;
+    for (const registration of this.#dynamicRegistrations.values()) {
+      if (registration.method === "textDocument/rename") return true;
+    }
+    return false;
+  }
+
+  supportsPrepareRename(): boolean {
+    const provider: unknown = this.#capabilities?.renameProvider;
+    if (
+      typeof provider === "object" &&
+      provider !== null &&
+      "prepareProvider" in provider &&
+      provider.prepareProvider === true
+    ) {
+      return true;
+    }
+    for (const registration of this.#dynamicRegistrations.values()) {
+      const options: unknown = registration.registerOptions;
+      if (
+        registration.method === "textDocument/rename" &&
+        typeof options === "object" &&
+        options !== null &&
+        "prepareProvider" in options &&
+        options.prepareProvider === true
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   supportsWillRenameFiles(oldPath?: string, newPath?: string): boolean {
