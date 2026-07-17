@@ -72,6 +72,12 @@ Servers are started lazily per detected workspace root and reused for the
 session. Missing or failed servers are not retried on every write. Run `/lsp`
 to see servers that are running, unavailable, or failed.
 
+In TUI mode, the footer shows a compact `󰒋` icon while LSP is healthy or has
+not yet needed a server. It expands only for actionable states such as
+`LSP: TypeScript failed · Go unavailable`; `/lsp` retains the full roots and
+messages. The status returns to the icon after recovery and is cleared during
+session shutdown or reload.
+
 ## Watched workspace files
 
 When a running server dynamically registers `workspace/didChangeWatchedFiles`,

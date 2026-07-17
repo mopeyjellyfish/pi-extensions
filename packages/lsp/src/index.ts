@@ -20,6 +20,7 @@ import type {
   CodeActionOutcome,
   FileLifecycleOutcome,
   LspService,
+  LspStatus,
   MutationSnapshot,
   RenameOutcome,
   SymbolRenameOutcome,
@@ -30,6 +31,8 @@ import type { Diagnostic } from "vscode-languageserver-protocol";
 const DEFAULT_INLINE_WAIT_MS = 500;
 const MAX_RENAME_OUTPUT_BYTES = 8192;
 const MESSAGE_TYPE = "mopeyjellyfish-pi-lsp-diagnostics";
+const LSP_HEALTHY_ICON = "󰒋";
+const LSP_STATUS_REFRESH_MS = 2000;
 const UNICODE_SPACES = /[\u{A0}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}]/gu;
 
 const QueryOperation = Type.Union([
@@ -283,6 +286,24 @@ function renameSummary(cwd: string, outcome: RenameOutcome): string {
     .content;
 }
 
+function lspFooterStatus(statuses: readonly LspStatus[]): string {
+  const actionable = statuses.filter(
+    (status) =>
+      status.state === "failed" ||
+      status.state === "unavailable" ||
+      (status.state === "running" && status.message !== undefined),
+  );
+  if (actionable.length === 0) return LSP_HEALTHY_ICON;
+  const visible = actionable.slice(0, 2).map((status) => {
+    const state = status.state === "running" ? "degraded" : status.state;
+    return `${status.name} ${state}`;
+  });
+  if (actionable.length > visible.length) {
+    visible.push(`+${String(actionable.length - visible.length)}`);
+  }
+  return `LSP: ${visible.join(" · ")}`;
+}
+
 export function createLspExtension(options: LspExtensionOptions = {}): (pi: ExtensionAPI) => void {
   return (pi: ExtensionAPI): void => {
     const serviceFactory =
@@ -293,6 +314,28 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
     const mutationQueues = new Map<string, Promise<void>>();
     let mutationRegistration = Promise.resolve();
     let service: LspService | undefined;
+    let statusGeneration = 0;
+    let statusTimer: ReturnType<typeof setInterval> | undefined;
+
+    const stopFooterRefresh = (): void => {
+      if (statusTimer !== undefined) clearInterval(statusTimer);
+      statusTimer = undefined;
+    };
+
+    const refreshFooterStatus = (ctx: ExtensionContext, generation = statusGeneration): void => {
+      if (ctx.mode !== "tui" || generation !== statusGeneration || service === undefined) return;
+      ctx.ui.setStatus("lsp", lspFooterStatus(service.status()));
+    };
+
+    const startFooterRefresh = (ctx: ExtensionContext): void => {
+      stopFooterRefresh();
+      if (ctx.mode !== "tui") return;
+      const generation = statusGeneration;
+      statusTimer = setInterval(() => {
+        refreshFooterStatus(ctx, generation);
+      }, LSP_STATUS_REFRESH_MS);
+      statusTimer.unref();
+    };
 
     const withMutationTransaction = async <T>(
       path: string,
@@ -391,12 +434,17 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
     };
 
     pi.on("session_start", async (_event, ctx) => {
+      statusGeneration += 1;
+      stopFooterRefresh();
       if (service) await service.shutdown();
       service = serviceFactory(ctx);
-      if (ctx.mode === "tui") ctx.ui.setStatus("lsp", "LSP: ready");
+      refreshFooterStatus(ctx);
+      startFooterRefresh(ctx);
     });
 
     pi.on("session_shutdown", async (_event, ctx) => {
+      statusGeneration += 1;
+      stopFooterRefresh();
       const current = service;
       service = undefined;
       if (ctx.mode === "tui") ctx.ui.setStatus("lsp", undefined);
@@ -404,15 +452,25 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
     });
 
     pi.on("tool_result", (event, ctx) => {
+      if (
+        event.toolName === "write" ||
+        event.toolName === "edit" ||
+        event.toolName.startsWith("lsp_")
+      ) {
+        refreshFooterStatus(ctx);
+      }
       if (!isReadToolResult(event) || event.isError) return;
       const rawPath = event.input["path"];
       if (typeof rawPath !== "string") return;
       const path = normalizePath(ctx.cwd, rawPath);
+      const generation = statusGeneration;
       const warm = async (): Promise<void> => {
         try {
           await ensureService(ctx).warmFile(path, ctx.signal);
         } catch {
           // Language-server warmup is best effort after a successful read.
+        } finally {
+          refreshFooterStatus(ctx, generation);
         }
       };
       void warm();
