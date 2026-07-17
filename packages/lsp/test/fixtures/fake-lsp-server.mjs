@@ -36,9 +36,8 @@ function serverRequest(method, params) {
   nextServerRequestId += 1;
 }
 
-function publish(uri, version, text) {
-  if (process.env.FAKE_NO_DIAGNOSTICS) return;
-  const diagnostics = text.includes("BROKEN")
+function diagnosticsFor(text) {
+  return text.includes("BROKEN")
     ? [
         {
           code: "FAKE1",
@@ -52,6 +51,11 @@ function publish(uri, version, text) {
         },
       ]
     : [];
+}
+
+function publish(uri, version, text) {
+  if (process.env.FAKE_NO_DIAGNOSTICS) return;
+  const diagnostics = diagnosticsFor(text);
   const publishedVersion = process.env.FAKE_STALE_VERSION ? Math.max(0, version - 1) : version;
   const params = {
     diagnostics,
@@ -98,6 +102,15 @@ function initializeResult() {
             typeDefinitionProvider: true,
             workspaceSymbolProvider: true,
           }),
+      ...(process.env.FAKE_PULL_DIAGNOSTICS
+        ? {
+            diagnosticProvider: {
+              identifier: "fake",
+              interFileDependencies: true,
+              workspaceDiagnostics: Boolean(process.env.FAKE_WORKSPACE_DIAGNOSTICS),
+            },
+          }
+        : {}),
       ...(process.env.FAKE_POSITION_ENCODING
         ? { positionEncoding: process.env.FAKE_POSITION_ENCODING }
         : {}),
@@ -145,6 +158,11 @@ function exerciseClientRequests() {
     serverRequest("client/registerCapability", {});
   }
   serverRequest("client/unregisterCapability", { unregisterations: [] });
+  if (process.env.FAKE_DIAGNOSTIC_REFRESH) {
+    setTimeout(() => {
+      serverRequest("workspace/diagnostic/refresh", null);
+    }, 50);
+  }
   if (process.env.FAKE_UNREGISTER_RENAME) {
     setTimeout(() => {
       serverRequest("client/unregisterCapability", {
@@ -214,6 +232,69 @@ function handle(message) {
       documents.set(doc.uri, { text, version: doc.version });
       log(`didChangeVersion:${String(doc.version)}`);
       publish(doc.uri, doc.version, text);
+      break;
+    }
+    case "textDocument/diagnostic": {
+      if (message.params.previousResultId && !process.env.FAKE_FORCE_FULL_DIAGNOSTICS) {
+        send({
+          id: message.id,
+          jsonrpc: "2.0",
+          result: { kind: "unchanged", resultId: `${message.params.previousResultId}-next` },
+        });
+        break;
+      }
+      const uri = message.params.textDocument.uri;
+      const document = documents.get(uri) ?? { text: "", version: 0 };
+      const relatedFile = process.env.FAKE_RELATED_DIAGNOSTIC_FILE;
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: {
+          items: diagnosticsFor(document.text),
+          kind: "full",
+          ...(relatedFile
+            ? {
+                relatedDocuments: {
+                  [pathToFileURL(relatedFile).href]: {
+                    items: diagnosticsFor("BROKEN"),
+                    kind: "full",
+                    resultId: "related-1",
+                  },
+                },
+              }
+            : {}),
+          resultId: `document-${String(document.version)}`,
+        },
+      });
+      break;
+    }
+    case "workspace/diagnostic": {
+      const previous = new Map(
+        message.params.previousResultIds.map((item) => [item.uri, item.value]),
+      );
+      send({
+        id: message.id,
+        jsonrpc: "2.0",
+        result: {
+          items: [...documents].map(([uri, document]) => {
+            const previousResultId = previous.get(uri);
+            return previousResultId && !process.env.FAKE_FORCE_FULL_DIAGNOSTICS
+              ? {
+                  kind: "unchanged",
+                  resultId: `${String(previousResultId)}-next`,
+                  uri,
+                  version: document.version,
+                }
+              : {
+                  items: diagnosticsFor(document.text),
+                  kind: "full",
+                  resultId: `workspace-${String(document.version)}`,
+                  uri,
+                  version: document.version,
+                };
+          }),
+        },
+      });
       break;
     }
     case "textDocument/declaration":

@@ -14,6 +14,7 @@ import { Type } from "typebox";
 import { renderDiagnostics } from "./diagnostics.ts";
 import { LspManager } from "./manager.ts";
 import { renderQueryOutcome } from "./query.ts";
+import { renderValidationOutcome } from "./validation.ts";
 
 import type { LspService, MutationSnapshot, RenameOutcome } from "./manager.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -51,6 +52,22 @@ const QueryParameters = Type.Object(
       Type.String({ description: "File path for document queries or workspace selection" }),
     ),
     query: Type.Optional(Type.String({ description: "Symbol search text for workspaceSymbols" })),
+  },
+  { additionalProperties: false },
+);
+
+const ValidateParameters = Type.Object(
+  {
+    paths: Type.Optional(
+      Type.Array(Type.String({ description: "File path to validate" }), {
+        description: "Document paths or workspace selectors",
+        maxItems: 32,
+      }),
+    ),
+    scope: Type.Union([Type.Literal("document"), Type.Literal("workspace")]),
+    severity: Type.Optional(
+      Type.Union([Type.Literal("error"), Type.Literal("warning"), Type.Literal("all")]),
+    ),
   },
   { additionalProperties: false },
 );
@@ -337,6 +354,45 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
             items: outcome.items.slice(0, 100),
             omitted: outcome.omitted,
             operation: outcome.operation,
+            serverNames: outcome.serverNames,
+          },
+        };
+      },
+    });
+
+    pi.registerTool({
+      name: "lsp_validate",
+      label: "LSP Validate",
+      description:
+        "Explicitly validate documents or a language-server workspace using LSP 3.17 pull diagnostics when available and synchronized push diagnostics otherwise.",
+      promptSnippet: "Validate current files or workspaces through language-server diagnostics",
+      promptGuidelines: [
+        "Use lsp_validate before finishing language-sensitive changes when focused compiler or test feedback is unavailable or when the server supports richer diagnostics.",
+        "Prefer document-scoped lsp_validate calls; use workspace scope explicitly because workspace diagnostics may be broader and slower.",
+      ],
+      parameters: ValidateParameters,
+      async execute(_toolCallId, input, signal, _onUpdate, ctx) {
+        if (!ctx.isProjectTrusted()) throw new Error("lsp_validate requires a trusted project.");
+        const outcome = await ensureService(ctx).validate(
+          {
+            ...(input.paths === undefined
+              ? {}
+              : { paths: input.paths.map((path) => normalizePath(ctx.cwd, path)) }),
+            scope: input.scope,
+            severity: input.severity ?? "error",
+          },
+          signal,
+        );
+        return {
+          content: [{ text: renderValidationOutcome(ctx.cwd, outcome), type: "text" }],
+          details: {
+            diagnosticCount: outcome.diagnostics.reduce(
+              (count, group) => count + group.diagnostics.length,
+              0,
+            ),
+            files: outcome.diagnostics.map((group) => group.path).slice(0, 64),
+            omitted: outcome.omitted,
+            scope: outcome.scope,
             serverNames: outcome.serverNames,
           },
         };

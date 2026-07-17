@@ -49,6 +49,9 @@ describe("LspClient", () => {
     expect(client.id).toBe("fake");
     expect(client.name).toBe("Fake LSP");
     expect(client.root).toBe(root);
+    expect(client.supportsDocumentDiagnostics()).toBe(false);
+    expect(client.supportsWorkspaceDiagnostics()).toBe(false);
+    expect(client.diagnosticIdentifier()).toBeUndefined();
     const synchronization = await client.syncDocument(file, "typescript", "BROKEN\n");
     const diagnostics = await client.freshDiagnostics(synchronization, undefined, 1000);
     expect(diagnostics).toMatchObject([{ code: "FAKE1", message: "synthetic failure" }]);
@@ -257,6 +260,34 @@ describe("LspClient", () => {
     await expect(client.start()).rejects.toThrow(
       `unsupported position encoding ${unsupportedEncoding}`,
     );
+    await client.shutdown();
+  });
+
+  it("tracks pull diagnostic capabilities and refresh requests", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-pull-diagnostics-"));
+    const client = new LspClient({
+      args: [fixture],
+      command: process.execPath,
+      env: {
+        ...process.env,
+        FAKE_DIAGNOSTIC_REFRESH: "1",
+        FAKE_PULL_DIAGNOSTICS: "1",
+        FAKE_WORKSPACE_DIAGNOSTICS: "1",
+      },
+      id: "fake",
+      name: "Fake LSP",
+      root,
+    });
+    await client.start();
+    expect(client.supportsDocumentDiagnostics()).toBe(true);
+    expect(client.supportsWorkspaceDiagnostics()).toBe(true);
+    expect(client.diagnosticIdentifier()).toBe("fake");
+    expect(client.diagnosticRefreshSequence).toBe(0);
+    await new Promise<void>((resolveDelay) => {
+      setTimeout(resolveDelay, 75);
+    });
+    expect(client.diagnosticRefreshSequence).toBe(1);
     await client.shutdown();
   });
 
