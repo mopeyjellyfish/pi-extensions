@@ -146,6 +146,16 @@ describe("LspManager semantic rename", () => {
       { kind: "class", name: "Example" },
       { containerName: "Example", kind: "function", name: "method" },
     ]);
+    const hierarchyCases = [
+      ["callHierarchyIncoming", "caller", "incomingCall:function"],
+      ["callHierarchyOutgoing", "callee", "outgoingCall:function"],
+      ["typeHierarchySubtypes", "ChildType", "subtype:class"],
+      ["typeHierarchySupertypes", "ParentType", "supertype:class"],
+    ] as const;
+    for (const [operation, name, kind] of hierarchyCases) {
+      const hierarchy = await manager.query({ column: 7, line: 1, operation, path: file });
+      expect(hierarchy.items[0]).toMatchObject({ kind, name, path: file });
+    }
     const selectedWorkspace = await manager.query({
       operation: "workspaceSymbols",
       path: file,
@@ -203,7 +213,47 @@ describe("LspManager semantic rename", () => {
     await expect(
       unsupported.query({ column: 1, line: 1, operation: "definition", path: file }),
     ).rejects.toThrow("does not support");
+    await expect(
+      unsupported.query({
+        column: 1,
+        line: 1,
+        operation: "callHierarchyIncoming",
+        path: file,
+      }),
+    ).rejects.toThrow("does not support");
     await unsupported.shutdown();
+
+    const boundedHierarchy = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_HIERARCHY_RESULTS: "205" },
+      trusted: true,
+    });
+    const boundedCalls = await boundedHierarchy.query({
+      column: 1,
+      line: 1,
+      operation: "callHierarchyIncoming",
+      path: file,
+    });
+    expect(boundedCalls.items).toHaveLength(200);
+    expect(boundedCalls.omitted).toBe(5);
+    await boundedHierarchy.shutdown();
+
+    const excessiveRoots = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_HIERARCHY_ROOTS: "9" },
+      trusted: true,
+    });
+    await expect(
+      excessiveRoots.query({
+        column: 1,
+        line: 1,
+        operation: "typeHierarchySubtypes",
+        path: file,
+      }),
+    ).rejects.toThrow("exceeds the 8 root limit");
+    await excessiveRoots.shutdown();
 
     const nullHover = new LspManager({
       cwd: root,

@@ -11,7 +11,10 @@ import { introducedDiagnostics } from "./diagnostics.ts";
 import {
   normalizeDocumentSymbols,
   normalizeHover,
+  normalizeIncomingCalls,
   normalizeLocations,
+  normalizeOutgoingCalls,
+  normalizeTypeHierarchy,
   normalizeWorkspaceSymbols,
   QUERY_ITEM_LIMIT,
   queryMethod,
@@ -32,6 +35,9 @@ import type { ServerDefinition } from "./servers.ts";
 import type { ValidationOutcome, ValidationRequest } from "./validation.ts";
 import type { WorkspaceEditFileChange } from "./workspace-edit.ts";
 import type {
+  CallHierarchyIncomingCall,
+  CallHierarchyItem,
+  CallHierarchyOutgoingCall,
   CodeAction,
   CodeActionContext,
   Command,
@@ -42,6 +48,7 @@ import type {
   Location,
   LocationLink,
   SymbolInformation,
+  TypeHierarchyItem,
   WorkspaceDiagnosticReport,
   WorkspaceDocumentDiagnosticReport,
   WorkspaceEdit,
@@ -640,6 +647,18 @@ export class LspManager implements LspService {
       throw new Error(`${request.operation} requires line and column.`);
     }
     const position = toLspPosition(text, request.line, request.column);
+    if (
+      request.operation === "callHierarchyIncoming" ||
+      request.operation === "callHierarchyOutgoing"
+    ) {
+      return this.#queryCallHierarchy(route, uri, position, request.operation, signal);
+    }
+    if (
+      request.operation === "typeHierarchySubtypes" ||
+      request.operation === "typeHierarchySupertypes"
+    ) {
+      return this.#queryTypeHierarchy(route, uri, position, request.operation, signal);
+    }
     if (request.operation === "hover") {
       const raw = await route.client.request<Hover | null>(
         queryMethod(request.operation),
@@ -672,6 +691,90 @@ export class LspManager implements LspService {
       items,
       omitted: Math.max(0, count - items.length),
       operation: request.operation,
+      serverNames: [route.client.name],
+    };
+  }
+
+  async #queryCallHierarchy(
+    route: ClientRoute,
+    uri: string,
+    position: { readonly character: number; readonly line: number },
+    operation: "callHierarchyIncoming" | "callHierarchyOutgoing",
+    signal: AbortSignal,
+  ): Promise<LspQueryOutcome> {
+    const prepared = await route.client.request<readonly CallHierarchyItem[] | null>(
+      "textDocument/prepareCallHierarchy",
+      { position, textDocument: { uri } },
+      signal,
+    );
+    if ((prepared?.length ?? 0) > 8) {
+      throw new Error("The LSP call hierarchy prepare response exceeds the 8 root limit.");
+    }
+    const roots = prepared ?? [];
+    const items: LspQueryOutcome["items"][number][] = [];
+    let omitted = 0;
+    for (const item of roots) {
+      const incoming = operation === "callHierarchyIncoming";
+      const raw = incoming
+        ? await route.client.request<readonly CallHierarchyIncomingCall[] | null>(
+            "callHierarchy/incomingCalls",
+            { item },
+            signal,
+          )
+        : await route.client.request<readonly CallHierarchyOutgoingCall[] | null>(
+            "callHierarchy/outgoingCalls",
+            { item },
+            signal,
+          );
+      const normalized = incoming
+        ? normalizeIncomingCalls(raw as readonly CallHierarchyIncomingCall[] | null)
+        : normalizeOutgoingCalls(raw as readonly CallHierarchyOutgoingCall[] | null);
+      const accepted = normalized.slice(0, Math.max(0, QUERY_ITEM_LIMIT - items.length));
+      items.push(...accepted);
+      omitted += Math.max(0, (raw?.length ?? 0) - accepted.length);
+    }
+    return {
+      items,
+      omitted,
+      operation,
+      serverNames: [route.client.name],
+    };
+  }
+
+  async #queryTypeHierarchy(
+    route: ClientRoute,
+    uri: string,
+    position: { readonly character: number; readonly line: number },
+    operation: "typeHierarchySubtypes" | "typeHierarchySupertypes",
+    signal: AbortSignal,
+  ): Promise<LspQueryOutcome> {
+    const prepared = await route.client.request<readonly TypeHierarchyItem[] | null>(
+      "textDocument/prepareTypeHierarchy",
+      { position, textDocument: { uri } },
+      signal,
+    );
+    if ((prepared?.length ?? 0) > 8) {
+      throw new Error("The LSP type hierarchy prepare response exceeds the 8 root limit.");
+    }
+    const roots = prepared ?? [];
+    const items: LspQueryOutcome["items"][number][] = [];
+    let omitted = 0;
+    for (const item of roots) {
+      const subtypes = operation === "typeHierarchySubtypes";
+      const raw = await route.client.request<readonly TypeHierarchyItem[] | null>(
+        subtypes ? "typeHierarchy/subtypes" : "typeHierarchy/supertypes",
+        { item },
+        signal,
+      );
+      const normalized = normalizeTypeHierarchy(raw, subtypes ? "subtype" : "supertype");
+      const accepted = normalized.slice(0, Math.max(0, QUERY_ITEM_LIMIT - items.length));
+      items.push(...accepted);
+      omitted += Math.max(0, (raw?.length ?? 0) - accepted.length);
+    }
+    return {
+      items,
+      omitted,
+      operation,
       serverNames: [route.client.name],
     };
   }

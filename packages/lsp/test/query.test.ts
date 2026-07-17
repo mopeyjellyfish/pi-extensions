@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeDocumentSymbols,
   normalizeHover,
+  normalizeIncomingCalls,
   normalizeLocations,
+  normalizeOutgoingCalls,
+  normalizeTypeHierarchy,
   normalizeWorkspaceSymbols,
   queryMethod,
   queryNeedsPosition,
@@ -12,6 +15,7 @@ import {
 } from "../src/query.ts";
 
 import type {
+  CallHierarchyItem,
   DocumentSymbol,
   Hover,
   Location,
@@ -31,6 +35,8 @@ describe("LSP query normalization", () => {
     expect(queryNeedsPosition("definition")).toBe(true);
     expect(queryNeedsPosition("documentSymbols")).toBe(false);
     expect(queryMethod("typeDefinition")).toBe("textDocument/typeDefinition");
+    expect(queryMethod("callHierarchyIncoming")).toBe("textDocument/prepareCallHierarchy");
+    expect(queryMethod("typeHierarchySubtypes")).toBe("textDocument/prepareTypeHierarchy");
   });
 
   it("normalizes locations and location links", () => {
@@ -159,6 +165,25 @@ describe("LSP query normalization", () => {
       ]),
     ).toMatchObject([{ containerName: "Example", line: 3, name: "value" }]);
     expect(normalizeWorkspaceSymbols(null)).toEqual([]);
+
+    const hierarchyItem: CallHierarchyItem = {
+      detail: "Example",
+      kind: 12,
+      name: "run",
+      range: flatLocation.range,
+      selectionRange: flatLocation.range,
+      uri: flatLocation.uri,
+    };
+    expect(
+      normalizeIncomingCalls([{ from: hierarchyItem, fromRanges: [flatLocation.range] }]),
+    ).toMatchObject([{ containerName: "Example", kind: "incomingCall:function", name: "run" }]);
+    expect(
+      normalizeOutgoingCalls([{ fromRanges: [flatLocation.range], to: hierarchyItem }]),
+    ).toMatchObject([{ kind: "outgoingCall:function", name: "run" }]);
+    expect(normalizeTypeHierarchy([hierarchyItem], "supertype")).toMatchObject([
+      { kind: "supertype:function", name: "run" },
+    ]);
+    expect(normalizeTypeHierarchy(null, "subtype")).toEqual([]);
   });
 
   it("sanitizes hover text and renders bounded results", () => {

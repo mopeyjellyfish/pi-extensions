@@ -87,8 +87,11 @@ Use `lsp_query` for explicit, token-bounded semantic navigation and code discove
 ```
 
 Supported operations are `declaration`, `definition`, `typeDefinition`,
-`implementation`, `references`, `hover`, `documentSymbols`, and
-`workspaceSymbols`. Lines and UTF-16 columns are one-based. Document operations
+`implementation`, `references`, `hover`, `documentSymbols`, `workspaceSymbols`,
+`callHierarchyIncoming`, `callHierarchyOutgoing`, `typeHierarchySubtypes`, and
+`typeHierarchySupertypes`. Hierarchy operations prepare the symbol at the given
+position, then return bounded related calls or types. Lines and UTF-16 columns
+are one-based. Document operations
 synchronize the current file under Pi's mutation queue before requesting a
 result. Workspace symbol queries can use `path` to select one server; without a
 path they fan out only to already-running servers. Results are deduplicated,

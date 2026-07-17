@@ -32,6 +32,8 @@ const MESSAGE_TYPE = "mopeyjellyfish-pi-lsp-diagnostics";
 const UNICODE_SPACES = /[\u{A0}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}]/gu;
 
 const QueryOperation = Type.Union([
+  Type.Literal("callHierarchyIncoming"),
+  Type.Literal("callHierarchyOutgoing"),
   Type.Literal("declaration"),
   Type.Literal("definition"),
   Type.Literal("documentSymbols"),
@@ -39,6 +41,8 @@ const QueryOperation = Type.Union([
   Type.Literal("implementation"),
   Type.Literal("references"),
   Type.Literal("typeDefinition"),
+  Type.Literal("typeHierarchySubtypes"),
+  Type.Literal("typeHierarchySupertypes"),
   Type.Literal("workspaceSymbols"),
 ]);
 
@@ -431,11 +435,11 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
       name: "lsp_query",
       label: "LSP Query",
       description:
-        "Query language-server semantics for definitions, declarations, type definitions, implementations, references, hover information, and document or workspace symbols.",
+        "Query language-server semantics for navigation, references, hover information, symbols, incoming or outgoing calls, and subtype or supertype hierarchies.",
       promptSnippet:
-        "Query semantic code navigation and symbols through the active language server",
+        "Query semantic navigation, symbols, call graphs, and type hierarchies through the active language server",
       promptGuidelines: [
-        "Use lsp_query for semantic definitions, references, implementations, symbols, and inferred type documentation when lexical search is ambiguous or expensive.",
+        "Use lsp_query for semantic definitions, references, implementations, symbols, call relationships, type hierarchies, and inferred type documentation when lexical search is ambiguous or expensive.",
         "Use one-based line and UTF-16 column values with lsp_query position operations.",
       ],
       parameters: QueryParameters,

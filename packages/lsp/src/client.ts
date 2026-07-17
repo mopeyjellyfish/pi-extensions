@@ -378,6 +378,7 @@ export class LspClient {
           capabilities: {
             general: { positionEncodings: ["utf-16"] },
             textDocument: {
+              callHierarchy: { dynamicRegistration: true },
               codeAction: {
                 codeActionLiteralSupport: {
                   codeActionKind: {
@@ -417,6 +418,7 @@ export class LspClient {
                 willSaveWaitUntil: false,
               },
               typeDefinition: { dynamicRegistration: true, linkSupport: true },
+              typeHierarchy: { dynamicRegistration: true },
             },
             workspace: {
               applyEdit: false,
@@ -598,16 +600,23 @@ export class LspClient {
 
   supportsQuery(operation: LspQueryOperation): boolean {
     const capabilities = this.#capabilities;
-    const provider = {
-      declaration: capabilities?.declarationProvider,
-      definition: capabilities?.definitionProvider,
-      documentSymbols: capabilities?.documentSymbolProvider,
-      hover: capabilities?.hoverProvider,
-      implementation: capabilities?.implementationProvider,
-      references: capabilities?.referencesProvider,
-      typeDefinition: capabilities?.typeDefinitionProvider,
-      workspaceSymbols: capabilities?.workspaceSymbolProvider,
-    }[operation];
+    const provider =
+      capabilities === undefined
+        ? undefined
+        : {
+            callHierarchyIncoming: capabilities.callHierarchyProvider,
+            callHierarchyOutgoing: capabilities.callHierarchyProvider,
+            declaration: capabilities.declarationProvider,
+            definition: capabilities.definitionProvider,
+            documentSymbols: capabilities.documentSymbolProvider,
+            hover: capabilities.hoverProvider,
+            implementation: capabilities.implementationProvider,
+            references: capabilities.referencesProvider,
+            typeDefinition: capabilities.typeDefinitionProvider,
+            typeHierarchySubtypes: capabilities.typeHierarchyProvider,
+            typeHierarchySupertypes: capabilities.typeHierarchyProvider,
+            workspaceSymbols: capabilities.workspaceSymbolProvider,
+          }[operation];
     if (provider !== undefined && provider !== false) return true;
     const method = queryMethod(operation);
     for (const registration of this.#dynamicRegistrations.values()) {
