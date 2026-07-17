@@ -227,6 +227,29 @@ any changed document state is synchronized back to the server.
 
 Raw shell moves bypass this protocol and cannot receive the same guarantee.
 
+## Capability matrix
+
+This package intentionally implements an agent-oriented subset of LSP 3.17; it
+does not claim full editor coverage.
+
+| Workflow                 | LSP methods and capabilities                                                                                   | Pi surface                                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Document synchronization | `didOpen`, negotiated full or incremental `didChange`, `didSave`, `didClose`                                   | Automatic for routed files                                                     |
+| Diagnostics              | Push diagnostics plus document/workspace pull diagnostics, result IDs, related reports, and diagnostic refresh | Mutation results, deferred messages, `lsp_validate`                            |
+| Navigation               | Declaration, definition, type definition, implementation, and references                                       | `lsp_query`                                                                    |
+| Inspection               | Hover, document symbols, and bounded workspace-symbol fan-out                                                  | `lsp_query`                                                                    |
+| Relationships            | Prepare/incoming/outgoing call hierarchy and prepare/subtype/supertype hierarchy                               | `lsp_query`                                                                    |
+| Symbol rename            | `prepareRename` and `rename`                                                                                   | `lsp_rename_symbol` preview/apply                                              |
+| Restricted code actions  | `codeAction` and optional `codeAction/resolve`                                                                 | `lsp_code_action` list/apply for `quickfix` and `source.organizeImports`       |
+| Workspace edits          | `changes` and versioned `documentChanges` text edits                                                           | Canonical queues, validation, preview where applicable, transactional rollback |
+| Watched files            | Dynamic `didChangeWatchedFiles` registration                                                                   | Automatic bounded notifications                                                |
+| File lifecycle           | Will/did create, delete, and rename filters and notifications                                                  | `lsp_create_file`, `lsp_delete_file`, `lsp_rename_file`                        |
+| Server lifecycle         | Initialize, initialized, shutdown, exit, cancellation, configuration, and workspace folders                    | Lazy per-workspace stdio clients and `/lsp` status                             |
+
+The client deliberately declines resource operations and interactive change
+annotations, rejects unsolicited `workspace/applyEdit`, and never executes a
+server command.
+
 ## Trust and safety
 
 The extension starts language-server processes only when Pi reports the
@@ -244,9 +267,15 @@ and finally `SIGKILL` for the server and its descendants. Windows shutdown uses
 
 ## Current limitations
 
-- The initial release supports stdio language servers and push diagnostics.
+- Only stdio language-server transport is supported.
 - Server installation and upgrades remain user-controlled.
 - Server-specific initialization settings are not yet configurable.
+- Completion, signature help, formatting, semantic tokens, inlay hints, folding,
+  code lens, document links, colors, notebook synchronization, and other
+  editor-centric presentation features are not implemented.
+- Code-action commands, interactive confirmations, and workspace resource
+  operations are rejected; supported refactors must resolve to validated text
+  edits.
 - Multi-file text edits cannot be made truly atomic by the filesystem; rollback
   after a partial external failure is best effort.
 - File operations performed through `bash` are not intercepted.

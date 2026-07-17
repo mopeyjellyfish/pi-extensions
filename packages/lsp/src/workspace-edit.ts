@@ -11,7 +11,7 @@ const MAX_TEXT_EDITS = 512;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_INSERTED_BYTES = 2 * 1024 * 1024;
 
-export interface WorkspaceDocumentState {
+interface WorkspaceDocumentState {
   readonly text: string;
   readonly version: number;
 }
