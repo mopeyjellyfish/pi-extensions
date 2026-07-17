@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -362,14 +362,79 @@ describe("LspManager semantic rename", () => {
       trusted: true,
     });
     const controller = new AbortController();
+    const started = Date.now();
     const cancelled = manager.warmFile(file, controller.signal);
+    const shared = manager.warmFile(file);
     setTimeout(() => {
       controller.abort();
     }, 10);
     await expect(cancelled).rejects.toThrow(/abort/i);
+    expect(Date.now() - started).toBeLessThan(80);
+    await expect(shared).resolves.toBeUndefined();
     await expect(manager.warmFile(file)).resolves.toBeUndefined();
     expect(manager.status()).toMatchObject([{ state: "running" }]);
     await manager.shutdown();
+  });
+
+  it("supports same-file alias renames through an intermediate path", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-manager-case-rename-"));
+    const oldPath = join(root, "Original.ts");
+    const aliasPath = join(root, "original.ts");
+    await writeFile(oldPath, "clean\n");
+    try {
+      await symlink(oldPath, aliasPath);
+    } catch (error) {
+      if (!(error instanceof Error) || !("code" in error) || error.code !== "EEXIST") throw error;
+      // A case-insensitive filesystem already resolves the alias to the source file.
+    }
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: { ...process.env, FAKE_RENAME_NULL: "1" },
+      trusted: true,
+    });
+    await manager.renameFile(oldPath, aliasPath);
+    expect(await readdir(root)).toContain("original.ts");
+    await expect(readFile(aliasPath, "utf8")).resolves.toBe("clean\n");
+    await manager.shutdown();
+  });
+
+  it("uses the destination language identity and rejects unsupported suffixes", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-manager-language-rename-"));
+    const oldPath = join(root, "old.ts");
+    const newPath = join(root, "new.js");
+    const log = join(root, "server.log");
+    await writeFile(oldPath, "clean\n");
+    const definition = fakeDefinition();
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [
+        {
+          ...definition,
+          extensions: [".js", ".ts"],
+          languageIds: { ".js": "javascript", ".ts": "typescript" },
+        },
+      ],
+      env: { ...process.env, FAKE_LSP_LOG: log, FAKE_RENAME_NULL: "1" },
+      trusted: true,
+    });
+    await manager.renameFile(oldPath, newPath);
+    expect(await readFile(log, "utf8")).toContain("didOpenLanguage:javascript");
+    await manager.shutdown();
+
+    const unsupportedPath = join(root, "unsupported.ts");
+    await writeFile(unsupportedPath, "clean\n");
+    const unsupported = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      trusted: true,
+    });
+    await expect(
+      unsupported.renameFile(unsupportedPath, join(root, "unsupported.py")),
+    ).rejects.toThrow("preserve one language-server workspace");
+    await unsupported.shutdown();
   });
 
   it("keeps server state current when rename preflight edits the renamed file", async () => {
@@ -396,17 +461,25 @@ describe("LspManager semantic rename", () => {
     const root = await mkdtemp(join(tmpdir(), "pi-lsp-rename-warning-"));
     const oldPath = join(root, "old.ts");
     const newPath = join(root, "new.ts");
+    const imports = join(root, "imports.ts");
     await writeFile(join(root, "package.json"), "{}");
     await writeFile(oldPath, "clean\n");
+    await writeFile(imports, 'export { value } from "./old";\n');
     const manager = new LspManager({
       cwd: root,
       definitions: [fakeDefinition()],
-      env: { ...process.env, FAKE_EXIT_AFTER_WILL_RENAME: "1", FAKE_RENAME_NULL: "1" },
+      env: {
+        ...process.env,
+        FAKE_EXIT_AFTER_WILL_RENAME: "1",
+        FAKE_IMPORT_FILE: imports,
+      },
       trusted: true,
     });
+    await manager.warmFile(imports);
     const outcome = await manager.renameFile(oldPath, newPath);
     expect(outcome.warning).toContain("rename committed");
     await expect(readFile(newPath, "utf8")).resolves.toBe("clean\n");
+    await expect(manager.snapshot(imports)).resolves.toBeUndefined();
     await manager.shutdown();
   });
 });
