@@ -79,16 +79,24 @@ function initializeResult() {
   } else if (process.env.FAKE_NUMERIC_SYNC) {
     textDocumentSync = 1;
   }
+  const renameGlob = process.env.FAKE_RENAME_GLOB ?? "**/*";
+  const renamePattern = {
+    glob: renameGlob,
+    ...(process.env.FAKE_RENAME_IGNORE_CASE ? { options: { ignoreCase: true } } : {}),
+  };
   return {
     capabilities: {
+      ...(process.env.FAKE_POSITION_ENCODING
+        ? { positionEncoding: process.env.FAKE_POSITION_ENCODING }
+        : {}),
       textDocumentSync,
       ...(process.env.FAKE_NO_RENAME
         ? {}
         : {
             workspace: {
               fileOperations: {
-                didRename: { filters: [{ pattern: { glob: "**/*" } }] },
-                willRename: { filters: [{ pattern: { glob: "**/*" } }] },
+                didRename: { filters: [{ pattern: renamePattern }] },
+                willRename: { filters: [{ pattern: renamePattern }] },
               },
             },
           }),
@@ -103,7 +111,15 @@ function exerciseClientRequests() {
   serverRequest("workspace/applyEdit", { edit: { changes: {} } });
   serverRequest("client/registerCapability", {
     registrations: process.env.FAKE_DYNAMIC_RENAME
-      ? [{ id: "rename", method: "workspace/willRenameFiles", registerOptions: {} }]
+      ? [
+          {
+            id: "rename",
+            method: "workspace/willRenameFiles",
+            registerOptions: {
+              filters: [{ scheme: "file", pattern: { glob: "**/*.{ts,tsx}" } }],
+            },
+          },
+        ]
       : [],
   });
   if (process.env.FAKE_CLIENT_EDGE_REQUESTS) {
@@ -112,6 +128,13 @@ function exerciseClientRequests() {
     serverRequest("client/registerCapability", {});
   }
   serverRequest("client/unregisterCapability", { unregisterations: [] });
+  if (process.env.FAKE_UNREGISTER_RENAME) {
+    setTimeout(() => {
+      serverRequest("client/unregisterCapability", {
+        unregisterations: [{ id: "rename", method: "workspace/willRenameFiles" }],
+      });
+    }, 50);
+  }
 }
 
 function handle(message) {
@@ -121,12 +144,12 @@ function handle(message) {
     case "initialize": {
       const workspaceCapabilities = message.params.capabilities.workspace;
       if (workspaceCapabilities.workspaceEdit.resourceOperations) log("BAD_RESOURCE_OPERATIONS");
+      if (workspaceCapabilities.workspaceEdit.documentChanges) log("BAD_DOCUMENT_CHANGES");
       if (
         workspaceCapabilities.fileOperations.didCreate ||
         workspaceCapabilities.fileOperations.didDelete ||
         workspaceCapabilities.fileOperations.willCreate ||
-        workspaceCapabilities.fileOperations.willDelete ||
-        workspaceCapabilities.fileOperations.dynamicRegistration
+        workspaceCapabilities.fileOperations.willDelete
       ) {
         log("BAD_FILE_OPERATION_CAPABILITIES");
       }
@@ -163,6 +186,7 @@ function handle(message) {
     }
     case "textDocument/didOpen": {
       const doc = message.params.textDocument;
+      log(`didOpenLanguage:${String(doc.languageId)}`);
       documents.set(doc.uri, { text: doc.text, version: doc.version });
       publish(doc.uri, doc.version, doc.text);
       break;

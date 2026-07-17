@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,7 +98,40 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
       ((ctx: ExtensionContext) =>
         new LspManager({ cwd: ctx.cwd, trusted: ctx.isProjectTrusted() }));
     const inlineWaitMs = options.inlineWaitMs ?? DEFAULT_INLINE_WAIT_MS;
+    const mutationQueues = new Map<string, Promise<void>>();
     let service: LspService | undefined;
+
+    const withMutationTransaction = async <T>(
+      path: string,
+      signal: AbortSignal | undefined,
+      callback: () => Promise<T>,
+    ): Promise<T> => {
+      let queueKey = path;
+      try {
+        queueKey = await realpath(path);
+      } catch {
+        // The built-in write tool may be creating a new path.
+      }
+      const previous = mutationQueues.get(queueKey) ?? Promise.resolve();
+      const operation = (async (): Promise<T> => {
+        await previous;
+        if (signal?.aborted) throw new Error("LSP mutation transaction aborted.");
+        return callback();
+      })();
+      const tail = (async (): Promise<void> => {
+        try {
+          await operation;
+        } catch {
+          // Failed transactions must not break the next queued mutation.
+        }
+      })();
+      mutationQueues.set(queueKey, tail);
+      try {
+        return await operation;
+      } finally {
+        if (mutationQueues.get(queueKey) === tail) mutationQueues.delete(queueKey);
+      }
+    };
 
     const ensureService = (ctx: ExtensionContext): LspService => {
       service ??= serviceFactory(ctx);
@@ -184,16 +217,18 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
       ...write,
       async execute(toolCallId, input, signal, onUpdate, ctx) {
         const path = normalizePath(ctx.cwd, input.path);
-        const current = ensureService(ctx);
-        const snapshot = await safeSnapshot(current, path);
-        const result = await createWriteToolDefinition(ctx.cwd).execute(
-          toolCallId,
-          input,
-          signal,
-          onUpdate,
-          ctx,
-        );
-        return enrich(current, ctx.cwd, result, path, input.content, snapshot, signal);
+        return withMutationTransaction(path, signal, async () => {
+          const current = ensureService(ctx);
+          const snapshot = await safeSnapshot(current, path);
+          const result = await createWriteToolDefinition(ctx.cwd).execute(
+            toolCallId,
+            input,
+            signal,
+            onUpdate,
+            ctx,
+          );
+          return enrich(current, ctx.cwd, result, path, input.content, snapshot, signal);
+        });
       },
     });
 
@@ -202,22 +237,24 @@ export function createLspExtension(options: LspExtensionOptions = {}): (pi: Exte
       ...edit,
       async execute(toolCallId, input, signal, onUpdate, ctx) {
         const path = normalizePath(ctx.cwd, input.path);
-        const current = ensureService(ctx);
-        const snapshot = await safeSnapshot(current, path);
-        const result = await createEditToolDefinition(ctx.cwd).execute(
-          toolCallId,
-          input,
-          signal,
-          onUpdate,
-          ctx,
-        );
-        let text: string;
-        try {
-          text = await readFile(path, "utf8");
-        } catch {
-          return result;
-        }
-        return enrich(current, ctx.cwd, result, path, text, snapshot, signal);
+        return withMutationTransaction(path, signal, async () => {
+          const current = ensureService(ctx);
+          const snapshot = await safeSnapshot(current, path);
+          const result = await createEditToolDefinition(ctx.cwd).execute(
+            toolCallId,
+            input,
+            signal,
+            onUpdate,
+            ctx,
+          );
+          let text: string;
+          try {
+            text = await readFile(path, "utf8");
+          } catch {
+            return result;
+          }
+          return enrich(current, ctx.cwd, result, path, text, snapshot, signal);
+        });
       },
     });
 

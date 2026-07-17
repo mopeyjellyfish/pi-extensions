@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { once } from "node:events";
 import { lstat, mkdir, readFile, realpath, rename } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -60,6 +62,11 @@ export interface LspService {
   warmFile(path: string, signal?: AbortSignal): Promise<void>;
 }
 
+interface ClientRoute {
+  readonly client: LspClient;
+  readonly languageId: string;
+}
+
 export interface LspManagerOptions {
   readonly clientFactory?: (options: LspClientOptions) => LspClient;
   readonly cwd: string;
@@ -87,6 +94,21 @@ function combinedSignal(session: AbortSignal, signal?: AbortSignal): AbortSignal
 function combineWarnings(...warnings: (string | undefined)[]): string | undefined {
   const combined = warnings.filter((warning): warning is string => warning !== undefined).join(" ");
   return combined || undefined;
+}
+
+async function waitForSharedOperation<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (signal === undefined) return operation;
+  if (signal.aborted) throw new Error("LSP operation aborted.");
+  const cleanup = new AbortController();
+  const cancelled = (async (): Promise<never> => {
+    await once(signal, "abort", { signal: cleanup.signal });
+    throw new Error("LSP operation aborted.");
+  })();
+  try {
+    return await Promise.race([operation, cancelled]);
+  } finally {
+    cleanup.abort();
+  }
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -143,19 +165,24 @@ export class LspManager implements LspService {
 
   async warmFile(path: string, signal?: AbortSignal): Promise<void> {
     const absolutePath = resolve(path);
-    const existing = this.#warming.get(absolutePath);
-    if (existing) return existing;
-    const operation = this.#warmFile(absolutePath, signal);
-    this.#warming.set(absolutePath, operation);
-    try {
-      await operation;
-    } finally {
-      if (this.#warming.get(absolutePath) === operation) this.#warming.delete(absolutePath);
+    let operation = this.#warming.get(absolutePath);
+    if (operation === undefined) {
+      operation = (async (): Promise<void> => {
+        try {
+          await this.#warmFile(absolutePath);
+        } finally {
+          if (this.#warming.get(absolutePath) === operation) {
+            this.#warming.delete(absolutePath);
+          }
+        }
+      })();
+      this.#warming.set(absolutePath, operation);
     }
+    await waitForSharedOperation(operation, signal);
   }
 
-  async #warmFile(absolutePath: string, signal?: AbortSignal): Promise<void> {
-    const operationSignal = combinedSignal(this.#session.signal, signal);
+  async #warmFile(absolutePath: string): Promise<void> {
+    const operationSignal = this.#session.signal;
     const content = await readFile(absolutePath, "utf8");
     if (Buffer.byteLength(content, "utf8") > MAX_SYNC_FILE_BYTES) return;
     const resolved = await this.#clientForFile(absolutePath, operationSignal);
@@ -234,15 +261,13 @@ export class LspManager implements LspService {
         `No installed LSP server is available for ${oldPath}.${hints ? ` ${hints}` : ""}`,
       );
     }
-    if (
-      !isInside(resolved.client.root, oldAbsolute) ||
-      !isInside(resolved.client.root, newAbsolute)
-    ) {
-      throw new Error("LSP semantic renames must remain inside one detected workspace.");
-    }
-    const oldStat = await lstat(oldAbsolute);
-    if (!oldStat.isFile()) throw new Error("LSP semantic rename currently supports files only.");
-    if (await exists(newAbsolute)) throw new Error(`Rename destination already exists: ${newPath}`);
+    const { destination, intermediatePath } = await this.#prepareRenameDestination(
+      resolved,
+      oldAbsolute,
+      newAbsolute,
+      newPath,
+      operationSignal,
+    );
     const oldContent = await readFile(oldAbsolute, "utf8");
     await resolved.client.syncDocument(oldAbsolute, resolved.languageId, oldContent);
     const workspaceEdit = await resolved.client.willRenameFiles(
@@ -256,23 +281,24 @@ export class LspManager implements LspService {
       oldAbsolute,
       newAbsolute,
       operationSignal,
+      intermediatePath,
     );
 
-    let notificationWarning: string | undefined;
-    try {
-      await resolved.client.didRenameFiles(oldAbsolute, newAbsolute);
-    } catch (error) {
-      notificationWarning = `The file rename committed, but ${resolved.client.name} did not accept didRenameFiles: ${error instanceof Error ? error.message : String(error)}`;
-    }
-    this.#baselines.delete(oldAbsolute);
     const synchronizedPaths = transaction.changedFiles.map((path) =>
       resolve(path) === oldAbsolute ? newAbsolute : path,
     );
+    const affected = [...new Set([oldAbsolute, newAbsolute, ...synchronizedPaths])];
+    for (const path of affected) this.#baselines.delete(path);
+    let notificationWarning: string | undefined;
+    try {
+      await resolved.client.didRenameFiles(oldAbsolute, newAbsolute, destination.languageId);
+    } catch (error) {
+      notificationWarning = `The file rename committed, but ${resolved.client.name} did not accept didRenameFiles: ${error instanceof Error ? error.message : String(error)}`;
+    }
     const synchronizationWarning = (
       await this.#synchronizeChangedFiles(synchronizedPaths, operationSignal)
     ).at(0);
     const warning = combineWarnings(notificationWarning, synchronizationWarning);
-    const affected = [...new Set([newAbsolute, ...synchronizedPaths])];
     const diagnostics = warning ? [] : await this.#collectDiagnostics(affected, operationSignal);
     return {
       changedFiles: transaction.changedFiles,
@@ -284,12 +310,37 @@ export class LspManager implements LspService {
     };
   }
 
+  async #prepareRenameDestination(
+    source: ClientRoute,
+    oldPath: string,
+    newPath: string,
+    displayNewPath: string,
+    signal: AbortSignal,
+  ): Promise<{ readonly destination: ClientRoute; readonly intermediatePath?: string }> {
+    if (!isInside(source.client.root, oldPath) || !isInside(source.client.root, newPath)) {
+      throw new Error("LSP semantic renames must remain inside one detected workspace.");
+    }
+    const destination = await this.#clientForFile(newPath, signal);
+    if (destination?.client !== source.client) {
+      throw new Error("LSP semantic renames must preserve one language-server workspace.");
+    }
+    const oldStat = await lstat(oldPath);
+    if (!oldStat.isFile()) throw new Error("LSP semantic rename currently supports files only.");
+    if (!(await exists(newPath))) return { destination };
+    const [canonicalOld, canonicalNew] = await Promise.all([realpath(oldPath), realpath(newPath)]);
+    if (canonicalOld !== canonicalNew) {
+      throw new Error(`Rename destination already exists: ${displayNewPath}`);
+    }
+    return { destination, intermediatePath: `${newPath}.pi-lsp-case-${randomUUID()}` };
+  }
+
   async #applySemanticRename(
     workspaceEdit: WorkspaceEdit | null,
     workspaceRoot: string,
     oldPath: string,
     newPath: string,
     signal: AbortSignal,
+    intermediatePath?: string,
   ): Promise<Awaited<ReturnType<typeof applyWorkspaceEdit>>> {
     return applyWorkspaceEdit(
       workspaceEdit,
@@ -297,9 +348,27 @@ export class LspManager implements LspService {
       async () => {
         if (signal.aborted) throw new Error("LSP rename aborted before filesystem mutation.");
         await mkdir(dirname(newPath), { recursive: true });
-        await rename(oldPath, newPath);
+        if (intermediatePath === undefined) {
+          await rename(oldPath, newPath);
+          return;
+        }
+        await rename(oldPath, intermediatePath);
+        try {
+          await rename(intermediatePath, newPath);
+        } catch (error) {
+          try {
+            await rename(intermediatePath, oldPath);
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [error, rollbackError],
+              "Case-only file rename failed and rollback was incomplete.",
+              { cause: rollbackError },
+            );
+          }
+          throw error;
+        }
       },
-      [oldPath, newPath],
+      [oldPath, newPath, ...(intermediatePath ? [intermediatePath] : [])],
     );
   }
 
@@ -377,10 +446,7 @@ export class LspManager implements LspService {
     return isInside(canonicalRoot, await realpath(existing));
   }
 
-  async #clientForFile(
-    path: string,
-    signal?: AbortSignal,
-  ): Promise<{ readonly client: LspClient; readonly languageId: string } | undefined> {
+  async #clientForFile(path: string, signal?: AbortSignal): Promise<ClientRoute | undefined> {
     if (signal?.aborted) throw new Error("LSP operation aborted.");
     if (!this.#trusted) return undefined;
     const absolutePath = resolve(path);
@@ -400,8 +466,7 @@ export class LspManager implements LspService {
         starting = this.#startClient(definition, root, key);
         this.#starting.set(key, starting);
       }
-      const client = await starting;
-      if (signal?.aborted) throw new Error("LSP operation aborted.");
+      const client = await waitForSharedOperation(starting, signal);
       if (client) return { client, languageId };
     }
     return undefined;

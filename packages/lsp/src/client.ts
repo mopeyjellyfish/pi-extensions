@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { basename } from "node:path";
+import { basename, matchesGlob, relative } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
@@ -15,8 +15,11 @@ import type { ChildProcess, ChildProcessWithoutNullStreams } from "node:child_pr
 import type { MessageConnection } from "vscode-jsonrpc";
 import type {
   Diagnostic,
+  FileOperationRegistrationOptions,
   InitializeResult,
   PublishDiagnosticsParams,
+  RegistrationParams,
+  UnregistrationParams,
   WorkspaceEdit,
 } from "vscode-languageserver-protocol";
 
@@ -56,6 +59,23 @@ interface OpenDocument {
   readonly languageId: string;
   readonly text: string;
   readonly version: number;
+}
+
+type FileOperationMethod = "workspace/didRenameFiles" | "workspace/willRenameFiles";
+
+interface FileOperationFilterShape {
+  readonly pattern: {
+    readonly glob: string;
+    readonly matches?: "file" | "folder";
+    readonly options?: { readonly ignoreCase?: boolean };
+  };
+  readonly scheme?: string;
+}
+
+interface DynamicRegistration {
+  readonly id: string;
+  readonly method: string;
+  readonly registerOptions: unknown;
 }
 
 interface SynchronizationOptions {
@@ -98,12 +118,41 @@ function abortedError(): Error {
   return new Error("LSP operation aborted.");
 }
 
+function isFileOperationRegistrationOptions(
+  value: unknown,
+): value is FileOperationRegistrationOptions {
+  if (typeof value !== "object" || value === null || !("filters" in value)) return false;
+  return Array.isArray(value.filters);
+}
+
+function matchesFileOperationFilter(
+  root: string,
+  filter: FileOperationFilterShape,
+  filePath: string,
+): boolean {
+  if (filter.scheme !== undefined && filter.scheme !== "file") return false;
+  if (filter.pattern.matches === "folder") return false;
+  const candidate = relative(root, filePath).replaceAll("\\", "/");
+  const glob = filter.pattern.glob;
+  const ignoreCase = filter.pattern.options?.ignoreCase === true;
+  return ignoreCase
+    ? matchesGlob(candidate.toLowerCase(), glob.toLowerCase())
+    : matchesGlob(candidate, glob);
+}
+
 function delay(milliseconds: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.reject(abortedError());
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(resolve, milliseconds);
-    const abort = () => {
+    const cleanup = (): void => {
+      signal?.removeEventListener("abort", abort);
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, milliseconds);
+    const abort = (): void => {
       clearTimeout(timer);
+      cleanup();
       reject(abortedError());
     };
     signal?.addEventListener("abort", abort, { once: true });
@@ -192,7 +241,7 @@ export class LspClient {
   readonly #options: LspClientOptions;
   readonly #diagnostics = new Map<string, PublishedDiagnostics>();
   readonly #documents = new Map<string, OpenDocument>();
-  readonly #dynamicRegistrations = new Set<string>();
+  readonly #dynamicRegistrations = new Map<string, DynamicRegistration>();
   readonly #syncQueues = new Map<string, Promise<void>>();
   #capabilities: InitializeResult["capabilities"] | undefined;
   #connection: MessageConnection | undefined;
@@ -278,16 +327,29 @@ export class LspClient {
         uri: pathToFileURL(this.#options.root).href,
       },
     ]);
-    connection.onRequest(
-      "client/registerCapability",
-      (params: { registrations?: { method?: string }[] }) => {
-        for (const registration of params.registrations ?? []) {
-          if (registration.method) this.#dynamicRegistrations.add(registration.method);
-        }
-        return null;
-      },
-    );
-    connection.onRequest("client/unregisterCapability", () => null);
+    connection.onRequest("client/registerCapability", (params: RegistrationParams) => {
+      for (const registration of params.registrations) {
+        const candidate = registration as {
+          id?: unknown;
+          method?: unknown;
+          registerOptions?: unknown;
+        };
+        if (typeof candidate.id !== "string" || typeof candidate.method !== "string") continue;
+        this.#dynamicRegistrations.set(candidate.id, {
+          id: candidate.id,
+          method: candidate.method,
+          registerOptions: candidate.registerOptions,
+        });
+      }
+      return null;
+    });
+    connection.onRequest("client/unregisterCapability", (params: UnregistrationParams) => {
+      for (const unregistration of params.unregisterations) {
+        const candidate = unregistration as { id?: unknown };
+        if (typeof candidate.id === "string") this.#dynamicRegistrations.delete(candidate.id);
+      }
+      return null;
+    });
     connection.onRequest("window/workDoneProgress/create", () => null);
     connection.onRequest("workspace/applyEdit", () => ({
       applied: false,
@@ -300,6 +362,7 @@ export class LspClient {
         "initialize",
         {
           capabilities: {
+            general: { positionEncodings: ["utf-16"] },
             textDocument: {
               publishDiagnostics: { versionSupport: true },
               synchronization: {
@@ -314,11 +377,11 @@ export class LspClient {
               configuration: true,
               fileOperations: {
                 didRename: true,
-                dynamicRegistration: false,
+                dynamicRegistration: true,
                 willRename: true,
               },
               workspaceEdit: {
-                documentChanges: true,
+                documentChanges: false,
               },
               workspaceFolders: true,
             },
@@ -336,6 +399,14 @@ export class LspClient {
         },
         signal,
       );
+      if (
+        initialize.capabilities.positionEncoding !== undefined &&
+        initialize.capabilities.positionEncoding !== "utf-16"
+      ) {
+        throw new Error(
+          `${this.name} selected unsupported position encoding ${initialize.capabilities.positionEncoding}.`,
+        );
+      }
       this.#capabilities = initialize.capabilities;
       await connection.sendNotification("initialized", {});
     } catch (error) {
@@ -352,10 +423,36 @@ export class LspClient {
     return this.#documents.get(uri)?.text;
   }
 
-  supportsWillRenameFiles(): boolean {
-    return (
-      this.#capabilities?.workspace?.fileOperations?.willRename !== undefined ||
-      this.#dynamicRegistrations.has("workspace/willRenameFiles")
+  supportsWillRenameFiles(oldPath?: string, newPath?: string): boolean {
+    return this.#supportsFileOperation("workspace/willRenameFiles", oldPath, newPath);
+  }
+
+  supportsDidRenameFiles(oldPath?: string, newPath?: string): boolean {
+    return this.#supportsFileOperation("workspace/didRenameFiles", oldPath, newPath);
+  }
+
+  #supportsFileOperation(method: FileOperationMethod, oldPath?: string, newPath?: string): boolean {
+    const registrations: FileOperationRegistrationOptions[] = [];
+    const staticOptions =
+      method === "workspace/willRenameFiles"
+        ? this.#capabilities?.workspace?.fileOperations?.willRename
+        : this.#capabilities?.workspace?.fileOperations?.didRename;
+    if (staticOptions) registrations.push(staticOptions);
+    for (const registration of this.#dynamicRegistrations.values()) {
+      if (
+        registration.method === method &&
+        isFileOperationRegistrationOptions(registration.registerOptions)
+      ) {
+        registrations.push(registration.registerOptions);
+      }
+    }
+    if (oldPath === undefined || newPath === undefined) return registrations.length > 0;
+    return registrations.some((registration) =>
+      registration.filters.some(
+        (filter) =>
+          matchesFileOperationFilter(this.root, filter, oldPath) ||
+          matchesFileOperationFilter(this.root, filter, newPath),
+      ),
     );
   }
 
@@ -390,7 +487,7 @@ export class LspClient {
     signal?: AbortSignal,
     timeoutMs = REQUEST_TIMEOUT_MS,
   ): Promise<readonly Diagnostic[]> {
-    const result = await this.freshDiagnosticsResult(synchronization, signal, timeoutMs);
+    const result = await this.freshDiagnosticsResult(synchronization, signal, timeoutMs, true);
     return result.diagnostics;
   }
 
@@ -398,6 +495,7 @@ export class LspClient {
     synchronization: DocumentSynchronization,
     signal?: AbortSignal,
     timeoutMs = REQUEST_TIMEOUT_MS,
+    acceptUnversioned = false,
   ): Promise<FreshDiagnostics> {
     const started = Date.now();
     let candidateSequence = -1;
@@ -409,7 +507,7 @@ export class LspClient {
         if (publication.version === synchronization.version) {
           return { diagnostics: publication.diagnostics, observed: true };
         }
-        if (publication.version === undefined) {
+        if (publication.version === undefined && acceptUnversioned) {
           if (publication.sequence !== candidateSequence) {
             candidateSequence = publication.sequence;
             settledAt = Date.now();
@@ -428,7 +526,7 @@ export class LspClient {
     newPath: string,
     signal?: AbortSignal,
   ): Promise<WorkspaceEdit | null> {
-    if (!this.supportsWillRenameFiles()) {
+    if (!this.supportsWillRenameFiles(oldPath, newPath)) {
       throw new Error(`${this.name} does not support workspace/willRenameFiles.`);
     }
     return this.#request<WorkspaceEdit | null>(
@@ -438,15 +536,17 @@ export class LspClient {
     );
   }
 
-  async didRenameFiles(oldPath: string, newPath: string): Promise<void> {
+  async didRenameFiles(oldPath: string, newPath: string, newLanguageId?: string): Promise<void> {
     const connection = this.#requiredConnection();
-    await delay(20);
-    if (this.#process === undefined || !isRunning(this.#process)) {
-      throw new Error(`${this.name} exited before workspace/didRenameFiles.`);
+    if (this.supportsDidRenameFiles(oldPath, newPath)) {
+      await delay(20);
+      if (this.#process === undefined || !isRunning(this.#process)) {
+        throw new Error(`${this.name} exited before workspace/didRenameFiles.`);
+      }
+      await connection.sendNotification("workspace/didRenameFiles", {
+        files: [{ newUri: pathToFileURL(newPath).href, oldUri: pathToFileURL(oldPath).href }],
+      });
     }
-    await connection.sendNotification("workspace/didRenameFiles", {
-      files: [{ newUri: pathToFileURL(newPath).href, oldUri: pathToFileURL(oldPath).href }],
-    });
     const oldUri = pathToFileURL(oldPath).href;
     const newUri = pathToFileURL(newPath).href;
     const previous = this.#documents.get(oldUri);
@@ -454,7 +554,11 @@ export class LspClient {
     this.#diagnostics.delete(oldUri);
     if (previous) {
       const sync = synchronizationOptions(this.#capabilities?.textDocumentSync);
-      const reopened = { ...previous, version: 1 };
+      const reopened = {
+        ...previous,
+        languageId: newLanguageId ?? previous.languageId,
+        version: 1,
+      };
       if (sync.openClose) {
         await connection.sendNotification("textDocument/didClose", {
           textDocument: { uri: oldUri },

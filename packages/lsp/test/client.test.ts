@@ -1,3 +1,4 @@
+import { getEventListeners } from "node:events";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -70,6 +71,7 @@ describe("LspClient", () => {
     expect(calls).toContain("workspace/configuration");
     expect(calls).toContain("workspace/applyEdit");
     expect(calls).not.toContain("BAD_RESOURCE_OPERATIONS");
+    expect(calls).not.toContain("BAD_DOCUMENT_CHANGES");
     expect(calls).not.toContain("BAD_FILE_OPERATION_CAPABILITIES");
     expect(calls).toContain("shutdown");
   });
@@ -118,6 +120,12 @@ describe("LspClient", () => {
     expect(second.version).toBe(2);
     await expect(client.freshDiagnostics(second, undefined, 1000)).resolves.toHaveLength(1);
     expect(client.documentText(second.uri)).toBe("BROKEN\n");
+    await expect(client.freshDiagnosticsResult(second, undefined, 100)).resolves.toMatchObject({
+      observed: false,
+    });
+    const listenerController = new AbortController();
+    await client.freshDiagnosticsResult(second, listenerController.signal, 100);
+    expect(getEventListeners(listenerController.signal, "abort")).toHaveLength(0);
     expect(await readFile(log, "utf8")).toContain("didChangeVersion:2");
     await client.shutdown();
   });
@@ -162,7 +170,12 @@ describe("LspClient", () => {
     const dynamic = new LspClient({
       args: [fixture],
       command: process.execPath,
-      env: { ...process.env, FAKE_DYNAMIC_RENAME: "1", FAKE_NO_RENAME: "1" },
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_RENAME: "1",
+        FAKE_NO_RENAME: "1",
+        FAKE_UNREGISTER_RENAME: "1",
+      },
       id: "fake",
       name: "Fake LSP",
       root,
@@ -173,14 +186,62 @@ describe("LspClient", () => {
         resolveDelay();
       }, 25);
     });
-    expect(dynamic.supportsWillRenameFiles()).toBe(true);
+    expect(dynamic.supportsWillRenameFiles(oldPath, newPath)).toBe(true);
+    expect(dynamic.supportsWillRenameFiles(join(root, "old.py"), join(root, "new.py"))).toBe(false);
     await expect(dynamic.willRenameFiles(oldPath, newPath)).resolves.toBeNull();
     const controller = new AbortController();
     controller.abort();
     await expect(dynamic.willRenameFiles(oldPath, newPath, controller.signal)).rejects.toThrow(
       /abort/i,
     );
+    await new Promise<void>((resolveDelay) => {
+      setTimeout(() => {
+        resolveDelay();
+      }, 50);
+    });
+    expect(dynamic.supportsWillRenameFiles()).toBe(false);
     await dynamic.shutdown();
+
+    const filteredLog = join(root, "filtered.log");
+    const filtered = new LspClient({
+      args: [fixture],
+      command: process.execPath,
+      env: {
+        ...process.env,
+        FAKE_LSP_LOG: filteredLog,
+        FAKE_RENAME_GLOB: "**/*.TS",
+        FAKE_RENAME_IGNORE_CASE: "1",
+      },
+      id: "filtered",
+      name: "Filtered LSP",
+      root,
+    });
+    await filtered.start();
+    expect(filtered.supportsWillRenameFiles(oldPath, newPath)).toBe(true);
+    expect(filtered.supportsWillRenameFiles(join(root, "old.py"), join(root, "new.py"))).toBe(
+      false,
+    );
+    await filtered.didRenameFiles(join(root, "old.py"), join(root, "new.py"));
+    await filtered.shutdown();
+    expect(await readFile(filteredLog, "utf8")).not.toContain("workspace/didRenameFiles");
+  });
+
+  it("rejects unsupported position encodings", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-position-encoding-"));
+    const unsupportedEncoding = ["utf", "8"].join("-");
+    const client = new LspClient({
+      args: [fixture],
+      command: process.execPath,
+      env: { ...process.env, FAKE_POSITION_ENCODING: unsupportedEncoding },
+      id: "fake",
+      name: "Fake LSP",
+      root,
+    });
+    await expect(client.start()).rejects.toThrow(
+      `unsupported position encoding ${unsupportedEncoding}`,
+    );
+    await client.shutdown();
   });
 
   it("respects disabled and legacy numeric document synchronization", async () => {

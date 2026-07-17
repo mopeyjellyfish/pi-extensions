@@ -228,6 +228,60 @@ describe("Pi LSP extension", () => {
     await expect(readFile(join(cwd, "ok.ts"), "utf8")).resolves.toBe("ok\n");
   });
 
+  it("serializes same-file snapshots, mutations, and diagnostics", async () => {
+    expect.hasAssertions();
+    const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-transaction-"));
+    const path = join(cwd, "example.ts");
+    const events: string[] = [];
+    const snapshot = vi.fn().mockImplementation(async () => {
+      let text = "missing";
+      try {
+        text = (await readFile(path, "utf8")).trim();
+      } catch {
+        // The first transaction snapshots a file that has not been created yet.
+      }
+      events.push(`snapshot:${text}`);
+    });
+    const diagnoseMutation = vi.fn().mockImplementation(async (_path: string, text: string) => {
+      events.push(`diagnose:${text.trim()}`);
+      if (text === "first\n") {
+        await new Promise<void>((resolveDelay) => {
+          setTimeout(resolveDelay, 30);
+        });
+      }
+      return [];
+    });
+    const state = harness(fakeService({ diagnoseMutation, snapshot }), 100);
+    const ctx = context(cwd);
+    await emit(state, "session_start", {}, ctx);
+    const write = requiredTool(state, "write");
+
+    await Promise.all([
+      write.execute(
+        "write-first",
+        { content: "first\n", path: "example.ts" },
+        undefined,
+        undefined,
+        ctx,
+      ),
+      write.execute(
+        "write-second",
+        { content: "second\n", path: "example.ts" },
+        undefined,
+        undefined,
+        ctx,
+      ),
+    ]);
+
+    expect(events).toEqual([
+      "snapshot:missing",
+      "diagnose:first",
+      "snapshot:first",
+      "diagnose:second",
+    ]);
+    await expect(readFile(path, "utf8")).resolves.toBe("second\n");
+  });
+
   it("delegates semantic renames and cleans up the session", async () => {
     expect.hasAssertions();
     const cwd = await mkdtemp(join(tmpdir(), "pi-lsp-rename-"));
