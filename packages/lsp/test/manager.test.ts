@@ -1416,6 +1416,29 @@ describe("LspManager semantic rename", () => {
     await writeFile(destination, "existing\n");
     await expect(manager.renameFile(file, destination)).rejects.toThrow("already exists");
     await manager.shutdown();
+
+    const racedSource = join(root, "raced-source.ts");
+    const racedDestination = join(root, "raced-destination.ts");
+    const raceLog = join(root, "rename-race.log");
+    await writeFile(racedSource, "source\n");
+    const racing = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_LSP_LOG: raceLog,
+        FAKE_RENAME_DELAY_MS: "100",
+        FAKE_RENAME_NULL: "1",
+      },
+      trusted: true,
+    });
+    const racedRename = racing.renameFile(racedSource, racedDestination);
+    await waitForLog(raceLog, "workspace/willRenameFiles");
+    await writeFile(racedDestination, "concurrent\n");
+    await expect(racedRename).rejects.toThrow("destination already exists");
+    await expect(readFile(racedSource, "utf8")).resolves.toBe("source\n");
+    await expect(readFile(racedDestination, "utf8")).resolves.toBe("concurrent\n");
+    await racing.shutdown();
   });
 
   it("short-circuits unsupported, oversized, and unstarted document operations", async () => {

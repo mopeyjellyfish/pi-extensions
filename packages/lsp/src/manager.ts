@@ -86,7 +86,7 @@ export interface CodeActionRequest {
   readonly title?: string;
 }
 
-export interface CodeActionSummary {
+interface CodeActionSummary {
   readonly applicable: boolean;
   readonly disabledReason?: string;
   readonly isPreferred: boolean;
@@ -187,7 +187,7 @@ interface ClientRoute {
   readonly languageId: string;
 }
 
-export interface WorkspaceWatcher {
+interface WorkspaceWatcher {
   close(): void;
   onError?(listener: (error: Error) => void): void;
 }
@@ -1396,6 +1396,8 @@ export class LspManager implements LspService {
     const oldContent = await readFile(oldAbsolute, "utf8");
     await resolved.client.syncDocument(oldAbsolute, resolved.languageId, oldContent);
     const expectedDocuments = await this.#snapshotClientDocuments(resolved.client);
+    const sourceIdentity = await lstat(oldAbsolute, { bigint: true });
+    const sourceCanonicalPath = await realpath(oldAbsolute);
     const workspaceEdit = await resolved.client.willRenameFiles(
       oldAbsolute,
       newAbsolute,
@@ -1409,6 +1411,9 @@ export class LspManager implements LspService {
       newAbsolute,
       operationSignal,
       expectedDocuments,
+      oldContent,
+      sourceCanonicalPath,
+      sourceIdentity,
       intermediatePath,
     );
 
@@ -1470,6 +1475,9 @@ export class LspManager implements LspService {
     newPath: string,
     signal: AbortSignal,
     expectedDocuments: ReadonlyMap<string, { readonly text: string; readonly version: number }>,
+    sourceText: string,
+    sourceCanonicalPath: string,
+    sourceIdentity: { readonly dev: bigint; readonly ino: bigint },
     intermediatePath?: string,
   ): Promise<Awaited<ReturnType<typeof applyWorkspaceEdit>>> {
     return applyWorkspaceEdit(workspaceEdit, workspaceRoot, {
@@ -1477,12 +1485,31 @@ export class LspManager implements LspService {
       documentState: (path) => this.#documentStateForClientPath(sourceClient, path),
       expectedDocumentState: (path) => expectedDocuments.get(path),
       signal,
-      whileApplied: async () => {
+      whileApplied: async (changedFiles) => {
         if (signal.aborted) throw new Error("LSP rename aborted before filesystem mutation.");
+        const [currentCanonicalPath, currentIdentity] = await Promise.all([
+          realpath(oldPath),
+          lstat(oldPath, { bigint: true }),
+        ]);
+        if (
+          currentCanonicalPath !== sourceCanonicalPath ||
+          currentIdentity.dev !== sourceIdentity.dev ||
+          currentIdentity.ino !== sourceIdentity.ino
+        ) {
+          throw new Error("LSP rename source identity changed before commit.");
+        }
+        if (!changedFiles.includes(oldPath) && (await readFile(oldPath, "utf8")) !== sourceText) {
+          throw new Error("LSP rename source changed after willRenameFiles.");
+        }
         await mkdir(dirname(newPath), { recursive: true });
         if (intermediatePath === undefined) {
+          if (await exists(newPath))
+            throw new Error(`Rename destination already exists: ${newPath}`);
           await rename(oldPath, newPath);
           return;
+        }
+        if ((await realpath(newPath)) !== sourceCanonicalPath) {
+          throw new Error("Case-only rename destination changed before commit.");
         }
         await rename(oldPath, intermediatePath);
         try {
