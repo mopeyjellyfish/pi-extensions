@@ -165,6 +165,43 @@ function exerciseClientRequests() {
       registrations: [{ id: "hover", method: "textDocument/hover", registerOptions: {} }],
     });
   }
+  if (process.env.FAKE_DYNAMIC_WATCHED_FILES) {
+    const watcherCount = Number(process.env.FAKE_WATCHER_COUNT ?? "1");
+    serverRequest("client/registerCapability", {
+      registrations: [
+        {
+          id: "watched-files",
+          method: "workspace/didChangeWatchedFiles",
+          registerOptions: process.env.FAKE_MALFORMED_WATCHER_OPTIONS
+            ? {}
+            : {
+                watchers: process.env.FAKE_MALFORMED_WATCHER
+                  ? [null]
+                  : Array.from({ length: watcherCount }, () => ({
+                      globPattern: process.env.FAKE_WATCHER_BASE_URI
+                        ? {
+                            baseUri: process.env.FAKE_WATCHER_BASE_OBJECT
+                              ? { uri: process.env.FAKE_WATCHER_BASE_URI }
+                              : process.env.FAKE_WATCHER_BASE_URI,
+                            pattern: process.env.FAKE_WATCHER_GLOB ?? "**/*.ts",
+                          }
+                        : (process.env.FAKE_WATCHER_GLOB ?? "**/*.ts"),
+                      ...(process.env.FAKE_WATCHER_OMIT_KIND
+                        ? {}
+                        : { kind: Number(process.env.FAKE_WATCHER_KIND ?? "7") }),
+                    })),
+              },
+        },
+      ],
+    });
+    if (process.env.FAKE_UNREGISTER_WATCHED_FILES) {
+      setTimeout(() => {
+        serverRequest("client/unregisterCapability", {
+          unregisterations: [{ id: "watched-files", method: "workspace/didChangeWatchedFiles" }],
+        });
+      }, 50);
+    }
+  }
   if (process.env.FAKE_DYNAMIC_CODE_ACTION) {
     serverRequest("client/registerCapability", {
       registrations: [
@@ -254,6 +291,13 @@ function handle(message) {
     }
     case "exit": {
       if (!process.env.FAKE_IGNORE_EXIT) process.stdin.destroy();
+      break;
+    }
+    case "workspace/didChangeWatchedFiles": {
+      log(`watchedBatch:${String(message.params.changes?.length ?? 0)}`);
+      for (const change of message.params.changes ?? []) {
+        log(`watched:${String(change.type)}:${String(change.uri)}`);
+      }
       break;
     }
     case "textDocument/didOpen": {

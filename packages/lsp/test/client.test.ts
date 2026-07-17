@@ -243,6 +243,7 @@ describe("LspClient", () => {
         FAKE_DYNAMIC_QUERY: "1",
         FAKE_DYNAMIC_PREPARE_RENAME: "1",
         FAKE_DYNAMIC_SYMBOL_RENAME: "1",
+        FAKE_DYNAMIC_WATCHED_FILES: "1",
         FAKE_NO_CODE_ACTION: "1",
         FAKE_NO_QUERY: "1",
         FAKE_NO_SYMBOL_RENAME: "1",
@@ -257,6 +258,8 @@ describe("LspClient", () => {
     });
     expect(dynamicQuery.supportsCodeActions()).toBe(true);
     expect(dynamicQuery.supportsCodeActionResolve()).toBe(true);
+    expect(dynamicQuery.watchedFileRegistrations()).toHaveLength(1);
+    await dynamicQuery.notify("workspace/didChangeWatchedFiles", { changes: [] });
     expect(dynamicQuery.supportsQuery("hover")).toBe(true);
     expect(dynamicQuery.supportsQuery("definition")).toBe(false);
     expect(dynamicQuery.supportsSymbolRename()).toBe(true);
