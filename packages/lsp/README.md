@@ -1,6 +1,6 @@
 # `@mopeyjellyfish/pi-lsp`
 
-Give Pi LSP-aware file writes, edits, and semantic file renames.
+Give Pi LSP-aware file writes, edits, semantic navigation, validation, and refactoring.
 
 The extension keeps Pi's built-in `write` and `edit` schemas, renderers,
 argument compatibility, and file-mutation queues. After a successful mutation,
@@ -133,7 +133,30 @@ Clean files add no model-facing output. Results are sanitized and limited to
 eight errors and 2 KiB. A diagnostic that merely moves because lines were
 inserted or removed is not reported as new.
 
-## Semantic renames
+## Semantic symbol renames
+
+Use `lsp_rename_symbol` to rename an identifier through
+`textDocument/prepareRename` and `textDocument/rename`:
+
+```json
+{
+  "path": "src/service.ts",
+  "line": 18,
+  "column": 14,
+  "newName": "createAccount",
+  "dryRun": true
+}
+```
+
+The tool defaults to dry-run mode. It validates versioned document edits against
+the exact synchronized text and version, requires request-time snapshots for
+unversioned targets, rejects stale edits, resource operations, overlaps, unsafe
+annotations, and edits outside the workspace, and reports bounded per-file edit
+and byte counts. Apply mode acquires canonical
+mutation queues for every affected file, writes transactionally with rollback,
+resynchronizes changed documents, and reports post-edit diagnostics.
+
+## Semantic file renames
 
 Use `lsp_rename_file` instead of `mv`, `git mv`, or write-plus-delete:
 

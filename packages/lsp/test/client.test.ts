@@ -51,6 +51,8 @@ describe("LspClient", () => {
     expect(client.root).toBe(root);
     expect(client.supportsDocumentDiagnostics()).toBe(false);
     expect(client.supportsWorkspaceDiagnostics()).toBe(false);
+    expect(client.supportsSymbolRename()).toBe(true);
+    expect(client.supportsPrepareRename()).toBe(true);
     expect(client.diagnosticIdentifier()).toBeUndefined();
     const synchronization = await client.syncDocument(file, "typescript", "BROKEN\n");
     const diagnostics = await client.freshDiagnostics(synchronization, undefined, 1000);
@@ -74,7 +76,7 @@ describe("LspClient", () => {
     expect(calls).toContain("workspace/configuration");
     expect(calls).toContain("workspace/applyEdit");
     expect(calls).not.toContain("BAD_RESOURCE_OPERATIONS");
-    expect(calls).not.toContain("BAD_DOCUMENT_CHANGES");
+    expect(calls).not.toContain("MISSING_DOCUMENT_CHANGES");
     expect(calls).not.toContain("BAD_FILE_OPERATION_CAPABILITIES");
     expect(calls).toContain("shutdown");
   });
@@ -231,7 +233,14 @@ describe("LspClient", () => {
     const dynamicQuery = new LspClient({
       args: [fixture],
       command: process.execPath,
-      env: { ...process.env, FAKE_DYNAMIC_QUERY: "1", FAKE_NO_QUERY: "1" },
+      env: {
+        ...process.env,
+        FAKE_DYNAMIC_QUERY: "1",
+        FAKE_DYNAMIC_PREPARE_RENAME: "1",
+        FAKE_DYNAMIC_SYMBOL_RENAME: "1",
+        FAKE_NO_QUERY: "1",
+        FAKE_NO_SYMBOL_RENAME: "1",
+      },
       id: "dynamic-query",
       name: "Dynamic Query LSP",
       root,
@@ -242,6 +251,8 @@ describe("LspClient", () => {
     });
     expect(dynamicQuery.supportsQuery("hover")).toBe(true);
     expect(dynamicQuery.supportsQuery("definition")).toBe(false);
+    expect(dynamicQuery.supportsSymbolRename()).toBe(true);
+    expect(dynamicQuery.supportsPrepareRename()).toBe(true);
     await dynamicQuery.shutdown();
   });
 
