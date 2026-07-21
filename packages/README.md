@@ -11,6 +11,7 @@ packages/<name>/
 ├── README.md
 ├── package.json
 ├── skills/             # when pi.skills is declared
+├── prompts/            # when pi.prompts is declared
 ├── tsconfig.json       # when pi.extensions is declared
 ├── src/index.ts        # when pi.extensions is declared
 └── test/
@@ -23,14 +24,15 @@ The manifest validator requires:
 - `license: "MIT"`, `type: "module"`, and `engines.node: ">=22.20.0"`;
 - `files` containing `README.md`, `CHANGELOG.md`, `LICENSE`, and each declared resource directory;
 - the `pi-package` keyword and `pi-extension` for packages with extensions;
-- one or more existing `pi.extensions` or `pi.skills` entrypoints;
+- one or more existing `pi.extensions`, `pi.skills`, or `pi.prompts` entrypoints;
 - `@earendil-works/pi-coding-agent: "*"` in `peerDependencies` for extension packages;
 - canonical Git repository metadata whose `directory` matches the workspace path;
 - a package-local `test` script, plus `typecheck` for extension packages;
+- prompt templates resolving to top-level Markdown files in each declared prompt directory;
 - no dependency duplicated across dependency sections;
 - Pi host packages only in `peerDependencies`.
 
-The root aggregate must resolve to every package extension and skill with no unmanaged resources. The standard aggregate globs cover `src/index.ts` and `skills/`; a package that deliberately declares another resource layout must add matching root `pi` patterns in the same change. An external Pi package included by the private root Git aggregate must be declared in `dependencies`, and the root `pi` manifest must reference its resources under `node_modules/`. `npm pack` must include each declared resource, package manifest, README, changelog, and license.
+The root aggregate must resolve to every package extension, skill, and prompt with no unmanaged resources. The standard aggregate globs cover `src/index.ts`, `skills/`, and `prompts/`; a package that deliberately declares another resource layout must add matching root `pi` patterns in the same change. An external Pi package included by the private root Git aggregate must be declared in `dependencies`, and the root `pi` manifest must reference its resources under `node_modules/`. `npm pack` must include each declared resource, package manifest, README, changelog, and license.
 
 ## Releases
 

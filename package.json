@@ -18,6 +18,9 @@
     ],
     "skills": [
       "./packages/*/skills"
+    ],
+    "prompts": [
+      "./packages/*/prompts"
     ]
   },
   "scripts": {

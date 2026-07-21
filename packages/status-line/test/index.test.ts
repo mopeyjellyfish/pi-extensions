@@ -192,6 +192,16 @@ describe("pi-status-line extension", () => {
       total: 5,
       version: 1,
     });
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      activeSlice: "VS-002",
+      appetite: "attention",
+      attention: "appetite attention",
+      phase: "build",
+      status: "active",
+      title: "Status integration",
+      version: 1,
+      workflowId: "workflow-1",
+    });
 
     const ctx = context(harness);
     await emitLifecycle(harness, "session_start", ctx);
@@ -209,6 +219,7 @@ describe("pi-status-line extension", () => {
         new Map([
           ["mopeyjellyfish-pi-todo", "todo 2/5"],
           ["mopeyjellyfish-pi-worktrunk", "worktree: example-feature"],
+          ["mopeyjellyfish-pi-development-workflow", "flow build · VS-002 · appetite!"],
           ["review", "review ready"],
         ]),
       ),
@@ -221,8 +232,10 @@ describe("pi-status-line extension", () => {
     expect(rendered).toContain("think:high");
     expect(rendered).toContain(" 18.5%/272k 󰁨");
     expect(rendered).toContain("  15k · $0.12");
+    expect(rendered).toContain("flow build · VS-002 · appetite!");
     expect(rendered).toContain(" 2/5 · Implement integration");
     expect(rendered).toContain("review ready");
+    expect(rendered.match(/flow build/gu)).toHaveLength(1);
     expect(rendered).not.toContain("worktree: example-feature");
 
     harness.exec.mockResolvedValueOnce({
@@ -290,6 +303,158 @@ describe("pi-status-line extension", () => {
 
     emitBus(harness, "subagents:rpc:v1:ready", { version: 1 });
     expect(requests).toHaveLength(4);
+    await emitLifecycle(harness, "session_shutdown", ctx);
+  });
+
+  it("validates development-workflow summaries and clears the segment", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    await emitLifecycle(harness, "session_start", ctx);
+    const component = harness.footerFactory?.(
+      { requestRender: harness.renders },
+      testTheme,
+      footerData(new Map()),
+    );
+    for (const invalidWorkflow of [
+      null,
+      {
+        appetite: "active",
+        phase: "build",
+        status: "active",
+        title: "x",
+        version: 2,
+        workflowId: "w",
+      },
+      {
+        appetite: "wat",
+        phase: "build",
+        status: "active",
+        title: "x",
+        version: 1,
+        workflowId: "w",
+      },
+      {
+        appetite: "active",
+        phase: "wat",
+        status: "active",
+        title: "x",
+        version: 1,
+        workflowId: "w",
+      },
+      {
+        appetite: "active",
+        phase: "build",
+        status: "wat",
+        title: "x",
+        version: 1,
+        workflowId: "w",
+      },
+      {
+        appetite: "active",
+        phase: "build",
+        status: "active",
+        title: " ",
+        version: 1,
+        workflowId: "w",
+      },
+      {
+        appetite: "active",
+        phase: "build",
+        status: "active",
+        title: "x",
+        version: 1,
+        workflowId: "",
+      },
+      {
+        activeSlice: " ",
+        appetite: "active",
+        phase: "build",
+        status: "active",
+        title: "x",
+        version: 1,
+        workflowId: "w",
+      },
+      {
+        appetite: "active",
+        attention: " ",
+        phase: "build",
+        status: "active",
+        title: "x",
+        version: 1,
+        workflowId: "w",
+      },
+    ]) {
+      emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", invalidWorkflow);
+    }
+    expect(component?.render(160).join(" ")).not.toContain("flow build");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      appetite: "expired",
+      phase: "review",
+      status: "blocked",
+      title: "Review",
+      version: 1,
+      workflowId: "workflow-2",
+    });
+    const reviewStatus = component?.render(180).join(" ");
+    expect(reviewStatus).toContain("flow review · blocked");
+    expect(reviewStatus).not.toContain("appetite!");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      appetite: "active",
+      attention: "human decision required",
+      phase: "build",
+      status: "blocked",
+      title: "Blocked",
+      version: 1,
+      workflowId: "workflow-3",
+    });
+    expect(component?.render(180).join(" ")).toContain("flow build · blocked");
+    expect(component?.render(180).join(" ")).not.toContain("appetite!");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      appetite: "active",
+      attention: "waiting",
+      phase: "build",
+      status: "paused",
+      title: "Paused",
+      version: 1,
+      workflowId: "workflow-4",
+    });
+    expect(component?.render(180).join(" ")).toContain("flow build · paused");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      appetite: "active",
+      attention: "workspace identity changed; refresh evidence",
+      phase: "build",
+      status: "active",
+      title: "Drifted",
+      version: 1,
+      workflowId: "workflow-drifted",
+    });
+    expect(component?.render(180).join(" ")).toContain("flow build · attention");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      appetite: "active",
+      attention: "ready_to_ship",
+      phase: "ship",
+      status: "active",
+      title: "Ready",
+      version: 1,
+      workflowId: "workflow-5",
+    });
+    expect(component?.render(180).join(" ")).toContain("flow ship · ready");
+    expect(component?.render(180).join(" ")).not.toContain("attention");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
+      appetite: "expired",
+      attention: "completed: accepted",
+      phase: "ship",
+      status: "completed",
+      title: "Completed",
+      version: 1,
+      workflowId: "workflow-6",
+    });
+    expect(component?.render(180).join(" ")).toContain("flow ship · completed");
+    expect(component?.render(180).join(" ")).not.toContain("attention");
+    expect(component?.render(180).join(" ")).not.toContain("appetite!");
+    emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", undefined);
+    expect(component?.render(180).join(" ")).not.toContain("flow review");
     await emitLifecycle(harness, "session_shutdown", ctx);
   });
 

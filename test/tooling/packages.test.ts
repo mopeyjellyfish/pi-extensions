@@ -8,8 +8,10 @@ import {
   discoverProductionPackages,
   findForbiddenPackedPaths,
   loadFixturePackage,
+  requiredPackedPaths,
   validatePackage,
   validateRootAggregate,
+  resolvePackagePrompts,
   resolvePackageSkills,
   type PackageDescriptor,
 } from "../../scripts/lib/packages.ts";
@@ -86,6 +88,43 @@ async function rootWithDependencyExtension(includeDependency: boolean): Promise<
     "utf8",
   );
   return root;
+}
+
+async function rootWithPromptAggregate(includePrompts: boolean): Promise<{
+  readonly descriptor: PackageDescriptor;
+  readonly root: string;
+}> {
+  const root = await mkdtemp(join(tmpdir(), "pi-prompt-aggregate-test-"));
+  temporaryRoots.push(root);
+  const packageRoot = join(root, "packages", "prompts");
+  await mkdir(join(packageRoot, "prompts"), { recursive: true });
+  await writeFile(
+    join(packageRoot, "prompts", "example.md"),
+    "---\ndescription: Example prompt\n---\n\nRun the example.\n",
+    "utf8",
+  );
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({
+      private: true,
+      workspaces: ["packages/*"],
+      engines: { node: ">=22.20.0" },
+      devDependencies: { "@types/node": "22.20.0" },
+      pi: {
+        extensions: ["./packages/*/src/index.ts"],
+        ...(includePrompts ? { prompts: ["./packages/*/prompts"] } : {}),
+      },
+    }),
+    "utf8",
+  );
+  return {
+    descriptor: {
+      kind: "production",
+      manifest: { pi: { prompts: ["./prompts"] } },
+      root: packageRoot,
+    },
+    root,
+  };
 }
 
 async function rootWithSkillAggregate(includeSkills: boolean): Promise<{
@@ -175,6 +214,57 @@ describe("package contracts", () => {
     await expect(validatePackage(await skillOnlyPackage())).resolves.toEqual([]);
   });
 
+  it("requires the root Pi package to aggregate production prompts", async () => {
+    expect.hasAssertions();
+    const missing = await rootWithPromptAggregate(false);
+    await expect(validateRootAggregate([missing.descriptor], missing.root)).resolves.toContainEqual(
+      "Root pi.prompts must contain the aggregate prompt glob.",
+    );
+    const aggregated = await rootWithPromptAggregate(true);
+    await expect(validateRootAggregate([aggregated.descriptor], aggregated.root)).resolves.toEqual(
+      [],
+    );
+    await expect(resolvePackagePrompts(aggregated.descriptor)).resolves.toHaveLength(1);
+  });
+
+  it("rejects prompt paths outside a package and unmanaged aggregate prompts", async () => {
+    expect.hasAssertions();
+    const invalid = await rootWithPromptAggregate(true);
+    await writeFile(
+      join(invalid.root, "packages", "outside.md"),
+      "---\ndescription: Outside\n---\n\nOutside.\n",
+      "utf8",
+    );
+    const invalidDescriptor: PackageDescriptor = {
+      ...invalid.descriptor,
+      manifest: { pi: { prompts: ["../outside.md"] } },
+    };
+    await expect(validatePackage(invalidDescriptor)).resolves.toContainEqual(
+      expect.stringMatching(/resolves outside its package/iu),
+    );
+
+    const unmanagedRoot = await rootWithPromptAggregate(true);
+    const unmanaged = join(unmanagedRoot.root, "packages", "unmanaged", "prompts");
+    await mkdir(unmanaged, { recursive: true });
+    await writeFile(
+      join(unmanaged, "extra.md"),
+      "---\ndescription: Extra\n---\n\nExtra.\n",
+      "utf8",
+    );
+    await expect(
+      validateRootAggregate([unmanagedRoot.descriptor], unmanagedRoot.root),
+    ).resolves.toContainEqual(expect.stringMatching(/includes unmanaged prompt/iu));
+  });
+
+  it("requires every resolved prompt in the packed-resource contract", async () => {
+    expect.hasAssertions();
+    const fixture = await rootWithPromptAggregate(true);
+    const required = await requiredPackedPaths(fixture.descriptor);
+    expect(required).toContain("prompts/example.md");
+    const simulatedPack = new Set(required.filter((path) => path !== "prompts/example.md"));
+    expect(required.filter((path) => !simulatedPack.has(path))).toEqual(["prompts/example.md"]);
+  });
+
   it("requires the root Pi package to aggregate production skills", async () => {
     expect.hasAssertions();
     const missing = await rootWithSkillAggregate(false);
@@ -201,6 +291,7 @@ describe("package contracts", () => {
     expect.hasAssertions();
     const packages = await discoverProductionPackages();
     expect(packages.map((descriptor) => descriptor.manifest["name"])).toEqual([
+      "@mopeyjellyfish/pi-development-workflow",
       "@mopeyjellyfish/pi-git-conventions",
       "@mopeyjellyfish/pi-github",
       "@mopeyjellyfish/pi-lsp",
@@ -213,6 +304,14 @@ describe("package contracts", () => {
     for (const descriptor of packages) {
       await expect(validatePackage(descriptor)).resolves.toEqual([]);
     }
+    const developmentWorkflow = packages.find(
+      (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-development-workflow",
+    );
+    if (developmentWorkflow === undefined) {
+      throw new Error("Development workflow package was not discovered.");
+    }
+    await expect(resolvePackagePrompts(developmentWorkflow)).resolves.toHaveLength(6);
+    await expect(resolvePackageSkills(developmentWorkflow)).resolves.toHaveLength(4);
     const gitConventions = packages.find(
       (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-git-conventions",
     );

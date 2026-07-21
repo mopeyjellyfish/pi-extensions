@@ -38,6 +38,7 @@ export interface PackageDescriptor {
 
 interface PackageResources {
   readonly extensions: readonly string[];
+  readonly prompts: readonly string[];
   readonly skills: readonly string[];
 }
 
@@ -45,6 +46,7 @@ function packageResources(manifest: Record<string, unknown>): PackageResources {
   const pi = manifest["pi"];
   return {
     extensions: (isRecord(pi) ? stringArray(pi["extensions"]) : undefined) ?? [],
+    prompts: (isRecord(pi) ? stringArray(pi["prompts"]) : undefined) ?? [],
     skills: (isRecord(pi) ? stringArray(pi["skills"]) : undefined) ?? [],
   };
 }
@@ -217,6 +219,7 @@ function validateManifestLists(descriptor: PackageDescriptor, errors: string[]):
     ...REQUIRED_FILES,
     ...(descriptor.kind === "production" ? REQUIRED_PRODUCTION_FILES : []),
     ...(resources.extensions.length > 0 ? ["src/"] : []),
+    ...(resources.prompts.length > 0 ? ["prompts/"] : []),
     ...(resources.skills.length > 0 ? ["skills/"] : []),
   ];
   for (const requiredFile of requiredFiles) {
@@ -267,10 +270,45 @@ async function resolveSkillPatterns(
   return [...new Set(resolved)].sort((left, right) => left.localeCompare(right));
 }
 
+async function resolvePromptPatterns(
+  packageRoot: string,
+  patterns: readonly string[],
+): Promise<string[]> {
+  const resolved: string[] = [];
+  for (const pattern of patterns) {
+    const matches = await glob(pattern, { cwd: packageRoot, nodir: false });
+    if (matches.length === 0) throw new Error(`${pattern} does not match a prompt entrypoint.`);
+    for (const match of matches) {
+      const absolute = resolve(packageRoot, match);
+      const packageRelative = relative(packageRoot, absolute);
+      if (packageRelative.startsWith(".."))
+        throw new Error(`${pattern} resolves outside its package.`);
+      const information = await stat(absolute);
+      if (information.isDirectory()) {
+        resolved.push(
+          ...(await glob("*.md", { absolute: true, cwd: absolute })).map((prompt) =>
+            toPosixPath(resolve(prompt)),
+          ),
+        );
+      } else if (absolute.endsWith(".md")) {
+        resolved.push(toPosixPath(absolute));
+      }
+    }
+  }
+  if (resolved.length === 0) {
+    throw new Error("pi.prompts must resolve to at least one top-level Markdown prompt.");
+  }
+  return [...new Set(resolved)].sort((left, right) => left.localeCompare(right));
+}
+
 async function validatePiResources(descriptor: PackageDescriptor, errors: string[]): Promise<void> {
   const resources = packageResources(descriptor.manifest);
-  if (resources.extensions.length === 0 && resources.skills.length === 0) {
-    errors.push("pi must declare at least one extension or skill entrypoint.");
+  if (
+    resources.extensions.length === 0 &&
+    resources.prompts.length === 0 &&
+    resources.skills.length === 0
+  ) {
+    errors.push("pi must declare at least one extension, prompt, or skill entrypoint.");
     return;
   }
   try {
@@ -278,6 +316,9 @@ async function validatePiResources(descriptor: PackageDescriptor, errors: string
       ...(resources.extensions.length === 0
         ? []
         : [resolveExtensionPatterns(descriptor.root, resources.extensions)]),
+      ...(resources.prompts.length === 0
+        ? []
+        : [resolvePromptPatterns(descriptor.root, resources.prompts)]),
       ...(resources.skills.length === 0
         ? []
         : [resolveSkillPatterns(descriptor.root, resources.skills)]),
@@ -297,6 +338,7 @@ async function validateRequiredPaths(
     "README.md",
     "package.json",
     ...(resources.extensions.length > 0 ? ["src/index.ts"] : []),
+    ...(resources.prompts.length > 0 ? ["prompts"] : []),
     ...(resources.skills.length > 0 ? ["skills"] : []),
   ];
   if (descriptor.kind === "production") {
@@ -355,12 +397,18 @@ export async function validatePackage(descriptor: PackageDescriptor): Promise<st
   return errors.map((error) => `${basename(descriptor.root)}: ${error}`);
 }
 
-export async function resolvePackageEntrypoints(descriptor: PackageDescriptor): Promise<string[]> {
+async function resolvePackageEntrypoints(descriptor: PackageDescriptor): Promise<string[]> {
   const extensions = packageResources(descriptor.manifest).extensions;
   if (extensions.length === 0) {
     return [];
   }
   return await resolveExtensionPatterns(descriptor.root, extensions);
+}
+
+export async function resolvePackagePrompts(descriptor: PackageDescriptor): Promise<string[]> {
+  const prompts = packageResources(descriptor.manifest).prompts;
+  if (prompts.length === 0) return [];
+  return await resolvePromptPatterns(descriptor.root, prompts);
 }
 
 export async function resolvePackageSkills(descriptor: PackageDescriptor): Promise<string[]> {
@@ -369,6 +417,27 @@ export async function resolvePackageSkills(descriptor: PackageDescriptor): Promi
     return [];
   }
   return await resolveSkillPatterns(descriptor.root, skills);
+}
+
+export async function requiredPackedPaths(descriptor: PackageDescriptor): Promise<string[]> {
+  const required = ["LICENSE", "README.md", "package.json"];
+  if (descriptor.kind === "production") required.push("CHANGELOG.md");
+  for (const entrypoint of packageResources(descriptor.manifest).extensions) {
+    if (entrypoint.includes("*")) {
+      for (const resolved of await resolvePackageEntrypoints(descriptor)) {
+        required.push(toPosixPath(relative(descriptor.root, resolved)));
+      }
+    } else {
+      required.push(entrypoint.replace(/^\.\//u, ""));
+    }
+  }
+  for (const prompt of await resolvePackagePrompts(descriptor)) {
+    required.push(toPosixPath(relative(descriptor.root, prompt)));
+  }
+  for (const skill of await resolvePackageSkills(descriptor)) {
+    required.push(toPosixPath(relative(descriptor.root, skill)));
+  }
+  return [...new Set(required)].sort((left, right) => left.localeCompare(right));
 }
 
 function nodeTypesMatchMinimumRuntime(value: unknown): boolean {
@@ -462,6 +531,14 @@ async function collectRootDependencyEntrypoints(
   return entrypoints;
 }
 
+async function collectPackagePrompts(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
+  const prompts = new Set<string>();
+  for (const descriptor of packages) {
+    for (const prompt of await resolvePackagePrompts(descriptor)) prompts.add(prompt);
+  }
+  return prompts;
+}
+
 async function collectPackageSkills(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
   const skills = new Set<string>();
   for (const descriptor of packages) {
@@ -511,6 +588,25 @@ export async function validateRootAggregate(
     packageEntrypoints.add(entrypoint);
   }
   errors.push(...compareAggregateEntrypoints(root, aggregate, packageEntrypoints));
+  const packagePrompts = await collectPackagePrompts(packages);
+  if (packagePrompts.size > 0 && resources.prompts.length === 0) {
+    errors.push("Root pi.prompts must contain the aggregate prompt glob.");
+  } else if (resources.prompts.length > 0) {
+    const aggregatePrompts = new Set(await resolvePromptPatterns(root, resources.prompts));
+    errors.push(
+      ...[...packagePrompts]
+        .filter((path) => !aggregatePrompts.has(path))
+        .map(
+          (path) => `Root prompt aggregate does not include ${toPosixPath(relative(root, path))}.`,
+        ),
+      ...[...aggregatePrompts]
+        .filter((path) => !packagePrompts.has(path))
+        .map(
+          (path) =>
+            `Root prompt aggregate includes unmanaged prompt ${toPosixPath(relative(root, path))}.`,
+        ),
+    );
+  }
   const packageSkills = await collectPackageSkills(packages);
   if (packageSkills.size > 0 && resources.skills.length === 0) {
     errors.push("Root pi.skills must contain the aggregate skill glob.");

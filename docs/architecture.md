@@ -8,7 +8,7 @@ A package must not depend on undeclared modules or on another workspace by accid
 
 ## Runtime model
 
-Pi loads extension TypeScript and Agent Skills directly. Extension packages therefore publish reviewed TypeScript source rather than a generated build directory, while skill-only packages publish their Markdown resources without fake extension scaffolding. Package manifests identify resources under `pi.extensions` and `pi.skills`; the root aggregate globs must resolve to exactly the same production resources.
+Pi loads extension TypeScript and Agent Skills directly. Extension packages therefore publish reviewed TypeScript source rather than a generated build directory, while skill-only packages publish their Markdown resources without fake extension scaffolding. Package manifests identify resources under `pi.extensions`, `pi.skills`, and `pi.prompts`; the root aggregate globs must resolve to exactly the same production resources.
 
 Extension factories perform registration and bounded initialization only. Long-lived processes, sockets, watchers, and timers start from `session_start` or from the command or tool that needs them. Every session-scoped resource has idempotent cleanup in `session_shutdown`.
 
@@ -45,7 +45,7 @@ Once registered, package changelogs are generator-owned release artifacts. Relea
 
 ## Verification layers
 
-1. Manifest validation checks package structure, release metadata, dependency placement, Pi resources, aggregate coverage, and npm pack contents.
+1. Manifest validation checks package structure, release metadata, dependency placement, Pi extension/skill/prompt resources, aggregate coverage, and npm pack contents.
 2. Unit and integration tests exercise extension logic and skill contracts deterministically.
 3. Source smoke tests load each package with the real Pi CLI.
 4. Packed smoke tests install the exact npm artifact with production dependencies and repeat Pi loading.

@@ -1,6 +1,6 @@
 import { cp, copyFile, mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { glob } from "glob";
@@ -10,6 +10,7 @@ import {
   discoverProductionPackages,
   findForbiddenPackedPaths,
   loadFixturePackage,
+  resolvePackagePrompts,
   resolvePackageSkills,
   type PackageDescriptor,
 } from "./lib/packages.ts";
@@ -161,6 +162,12 @@ async function assertRpcLifecycle(
   }
 }
 
+async function expectedPromptCommands(descriptor: PackageDescriptor): Promise<string[]> {
+  return (await resolvePackagePrompts(descriptor))
+    .map((path) => basename(path, ".md"))
+    .sort((left, right) => left.localeCompare(right));
+}
+
 async function expectedSkillCommands(descriptor: PackageDescriptor): Promise<string[]> {
   const commands: string[] = [];
   for (const path of await resolvePackageSkills(descriptor)) {
@@ -205,6 +212,7 @@ async function smokePath(
   await assertListModels(extensionPath, cwd, isolatedEnvironment(listModelsHome, listModelsMarker));
   const expectedCommands = [
     ...(descriptor.kind === "fixture" ? ["fixture-health"] : []),
+    ...(await expectedPromptCommands(descriptor)),
     ...(await expectedSkillCommands(descriptor)),
   ];
   await assertRpcLifecycle(
