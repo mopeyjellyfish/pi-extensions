@@ -59,6 +59,7 @@ describe("development workflow package resources", () => {
     expect.hasAssertions();
     const main = await text("skills/pi-development-workflow/SKILL.md");
     const pitch = await text("skills/pi-development-workflow/references/pitch.md");
+    const specTemplate = await text("skills/pi-development-workflow/templates/spec.md");
     const slices = await text("skills/pi-development-workflow/references/slices.md");
     const build = await text("skills/pi-development-workflow/references/build.md");
     const ship = await text("skills/pi-development-workflow/references/review-and-ship.md");
@@ -72,8 +73,18 @@ describe("development workflow package resources", () => {
     expect(main).toContain("Git conventions");
     expect(main).toContain("pi-subagents");
     expect(main).toContain("Worktrunk");
+    expect(main).toContain("Without LSP");
+    expect(main).toContain("Without web search");
+    expect(main).toMatch(
+      /raw idea[\s\S]*set boundaries[\s\S]*rough out[\s\S]*de-risk[\s\S]*write the pitch[\s\S]*approve/iu,
+    );
     expect(pitch).toMatch(/Problem[\s\S]*Appetite[\s\S]*Solution[\s\S]*Rabbit Holes[\s\S]*No-Gos/u);
     expect(pitch).toMatch(/rough, solved, and bounded/iu);
+    expect(pitch).toContain("missing capability");
+    expect(pitch).toContain("agent-effort envelope");
+    expect(pitch).toContain("mandatory wall-clock backstop");
+    expect(specTemplate).toContain("does not exist yet");
+    expect(specTemplate).toContain("agent-effort envelope");
     expect(slices).toContain("first demonstrable slice");
     expect(slices).toContain("Reject horizontal phases");
     expect(build).toMatch(/RED[\s\S]*GREEN[\s\S]*REFACTOR/u);
@@ -84,18 +95,27 @@ describe("development workflow package resources", () => {
   it("defines evidence-based design, quality, and debugging flows without numeric gates", async () => {
     expect.hasAssertions();
     const grill = await text("skills/pi-design-grill/SKILL.md");
+    const grillQuestions = await text("skills/pi-design-grill/references/questions.md");
     const audit = await text("skills/pi-quality-audit/SKILL.md");
     const debug = await text("skills/pi-systematic-debugging/SKILL.md");
+    const debugLoop = await text("skills/pi-systematic-debugging/references/debug-loop.md");
 
     expect(grill).toContain("name: pi-design-grill");
     expect(grill).toMatch(/Problem[\s\S]*Appetite[\s\S]*Solution[\s\S]*Rabbit Holes[\s\S]*No-Gos/u);
-    expect(grill).toContain("one decisive question at a time");
+    expect(grill).toMatch(/Question tool[\s\S]*2–4 related questions[\s\S]*batch/iu);
+    expect(grill).toContain("recommended answer");
+    expect(grillQuestions).toContain("missing capability");
+    expect(grillQuestions).toContain("decision dependencies");
+    expect(grillQuestions).toContain("agent effort");
     expect(audit).toContain("name: pi-quality-audit");
     expect(audit).toContain("Never invent a numeric quality score");
     expect(audit).toContain("Clean Code metrics");
     expect(debug).toContain("name: pi-systematic-debugging");
     expect(debug).toMatch(
-      /Reproduce[\s\S]*Triage[\s\S]*Isolate[\s\S]*hypotheses[\s\S]*root cause[\s\S]*RED[\s\S]*GREEN[\s\S]*Refactor[\s\S]*verification[\s\S]*review/iu,
+      /feedback loop[\s\S]*Reproduce[\s\S]*minimise[\s\S]*hypotheses[\s\S]*Instrument[\s\S]*regression test[\s\S]*RED[\s\S]*GREEN[\s\S]*verification[\s\S]*review/iu,
+    );
+    expect(debugLoop).toMatch(
+      /Phase 1[\s\S]*red-capable[\s\S]*Phase 2[\s\S]*Phase 3[\s\S]*3–5 ranked[\s\S]*Phase 4[\s\S]*one variable at a time[\s\S]*\[DEBUG-[\s\S]*Phase 5[\s\S]*correct seam/iu,
     );
   });
 
@@ -113,7 +133,14 @@ describe("development workflow package resources", () => {
     expect(readme).toContain("Deliberately excluded");
     expect(readme).toContain("hill charts");
     expect(readme).toContain("exhaustive upfront task plans");
+    expect(readme).toContain("agent-effort appetite");
+    expect(readme).toContain("mandatory wall-clock backstop");
+    expect(readme).toContain("/dev-workflow backstop 2d");
+    expect(readme).toContain("wall-clock backstop continues to elapse");
+    expect(readme).toContain("Circuit commands are available only after the backstop expires");
     expect(readme).toContain("circuit extend 1d");
+    expect(readme).not.toContain("when appetite expires");
+    expect(readme).not.toContain("appetite warnings");
     expect(readme).toContain(
       "does not authorize commit, push, pull request, merge, release, publish, deploy",
     );

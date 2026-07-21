@@ -239,7 +239,7 @@ function circuitAction(
     throw new Error("circuit outcome must be finish, reshape, extend, or abandon.");
   }
   return {
-    ...(outcome === "extend" ? { duration: required(parts[2], "new appetite") } : {}),
+    ...(outcome === "extend" ? { duration: required(parts[2], "new backstop duration") } : {}),
     kind: "circuit",
     now,
     outcome,
@@ -253,10 +253,10 @@ function approvalAction(value: string | undefined, now: number): WorkflowAction 
   return { gate, kind: "approve", now };
 }
 
-function showAppetiteWarning(summary: WorkflowSummaryEventV1): boolean {
+function showBackstopWarning(summary: WorkflowSummaryEventV1): boolean {
   return (
     summary.phase === "build" &&
-    (summary.appetite === "attention" || summary.appetite === "expired")
+    (summary.backstop === "attention" || summary.backstop === "expired")
   );
 }
 
@@ -264,7 +264,8 @@ function directAction(command: string, reason: string | undefined, now: number):
   const parts = command.split(/\s+/u).filter(Boolean);
   switch (parts[0]) {
     case "appetite":
-      return { duration: required(parts[1], "duration"), kind: "set_appetite" };
+    case "backstop":
+      return { duration: required(parts[1], "duration"), kind: "set_backstop" };
     case "approve":
       return approvalAction(parts[1], now);
     case "slice":
@@ -381,7 +382,7 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     pi.events.emit(SUMMARY_EVENT, summary);
     if (current.mode === "tui") {
       const slice = summary.activeSlice === undefined ? "" : ` · ${summary.activeSlice}`;
-      const appetiteWarning = showAppetiteWarning(summary) ? " · appetite!" : "";
+      const backstopWarning = showBackstopWarning(summary) ? " · backstop!" : "";
       const statusLabel =
         summary.status === "blocked" ||
         summary.status === "paused" ||
@@ -390,13 +391,13 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
           ? summary.status
           : summary.attention === "ready_to_ship"
             ? "ready"
-            : summary.attention === undefined || appetiteWarning !== ""
+            : summary.attention === undefined || backstopWarning !== ""
               ? undefined
               : "attention";
       const attention = statusLabel === undefined ? "" : ` · ${statusLabel}`;
       current.ui.setStatus(
         STATUS_KEY,
-        `flow ${summary.phase}${slice}${appetiteWarning}${attention}`,
+        `flow ${summary.phase}${slice}${backstopWarning}${attention}`,
       );
     }
   };
@@ -696,7 +697,7 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     const adoptedPhase = phase(parts[1]);
     if (PHASES.indexOf(adoptedPhase) >= PHASES.indexOf("build")) {
       throw new Error(
-        "Adoption into build or later requires active appetite accounting and is not supported by this command.",
+        "Adoption into build or later requires active wall-clock backstop accounting and is not supported by this command.",
       );
     }
     const spec = required(parts[2], "spec path");

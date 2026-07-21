@@ -213,7 +213,7 @@ async function advanceToBuild(
   }
   await tool(harness, ctx, { action: "request_transition", reason: "understood", to: "pitch" });
   await command(harness, ctx, "approve discover");
-  await command(harness, ctx, "appetite 1d");
+  await command(harness, ctx, "backstop 1d");
   await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
   await tool(harness, ctx, {
     action: "record_evidence",
@@ -277,7 +277,7 @@ describe("development workflow extension", () => {
       to: "pitch",
     });
     await command(harness, ctx, "approve discover");
-    await command(harness, ctx, "appetite 1d");
+    await command(harness, ctx, "backstop 1d");
     await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
     await tool(harness, ctx, {
       action: "record_evidence",
@@ -342,7 +342,7 @@ describe("development workflow extension", () => {
     });
     expect(harness.summaries.at(-1)).toMatchObject({
       activeSlice: "VS-001",
-      appetite: "active",
+      backstop: "active",
       phase: "build",
       version: 1,
     });
@@ -420,9 +420,11 @@ describe("development workflow extension", () => {
     await command(harness, ctx, "approve ship");
     expect(harness.notifications.at(-1)?.message).toMatch(/not an approval gate/iu);
     await command(harness, ctx, "circuit finish -- no expiry");
-    expect(harness.notifications.at(-1)?.message).toMatch(/only after appetite expiry/iu);
+    expect(harness.notifications.at(-1)?.message).toMatch(
+      /only after wall-clock backstop expiry/iu,
+    );
     await command(harness, ctx, "circuit extend -- missing duration");
-    expect(harness.notifications.at(-1)?.message).toMatch(/new appetite/iu);
+    expect(harness.notifications.at(-1)?.message).toMatch(/new backstop duration/iu);
     await command(harness, ctx, "circuit wrong -- no");
     expect(harness.notifications.at(-1)?.message).toMatch(/outcome/iu);
     await command(harness, ctx, "unknown");
@@ -645,6 +647,15 @@ describe("development workflow extension", () => {
       }),
     );
     await command(harness, ctx, "circuit finish -- retain useful scope");
+    expect(harness.notifications.at(-1)?.message).toMatch(/RED\/GREEN/iu);
+    for (const evidenceKind of ["red", "green", "focused-verification", "regression-verification"])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} refreshed after reroute`,
+        evidenceKind,
+        reference: `reroute:${evidenceKind}`,
+      });
+    await command(harness, ctx, "circuit finish -- retain useful scope");
     const finished = (await tool(harness, ctx, { action: "status" })).details.snapshot;
     expect(finished).toMatchObject({
       phase: "review",
@@ -808,7 +819,9 @@ describe("development workflow extension", () => {
     ])
       await expect(tool(harness, ctx, input)).rejects.toThrow(/required/iu);
 
-    await tool(harness, ctx, { action: "record_outcome", outcome: "Local observation completed" });
+    await expect(
+      tool(harness, ctx, { action: "record_outcome", outcome: "Local observation completed" }),
+    ).rejects.toThrow(/ship phase/iu);
     await tool(harness, ctx, {
       action: "record_evidence",
       claim: "Problem",
@@ -817,7 +830,7 @@ describe("development workflow extension", () => {
       sensitivity: "private",
     });
     const status = await tool(harness, ctx, { action: "status" });
-    expect(status.details.snapshot?.outcomes).toEqual(["Local observation completed"]);
+    expect(status.details.snapshot?.outcomes).toEqual([]);
     expect(status.details.snapshot?.evidence[0]).toMatchObject({ sensitivity: "private" });
   });
 });

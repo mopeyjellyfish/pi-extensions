@@ -4,7 +4,7 @@ Pitch: [PITCH-001](spec.md)
 
 ## Appetite
 
-Repeat the approved fixed time box and variable-scope policy.
+Repeat the approved agent-effort envelope, cuttable scope, fixed quality floors, and the separate mandatory wall-clock circuit-breaker backstop.
 
 ## No-Gos
 

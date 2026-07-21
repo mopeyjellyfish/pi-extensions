@@ -43,7 +43,7 @@ const baseView: StatusLineView = {
   tokens: 28_000_000,
   workflow: {
     activeSlice: "VS-002",
-    appetite: "attention",
+    backstop: "attention",
     attention: "attention",
     phase: "build",
   },
@@ -59,7 +59,7 @@ describe("Powerlevel10k status rendering", () => {
     expect(line).not.toContain("\u{E0B0}");
     expect(line).not.toContain("\u{E0B2}");
     expect(plain).toContain(
-      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨    28M · $1.23   2 !1  flow build · VS-002 · appetite!   2/5 · Implement status integration",
+      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨    28M · $1.23   2 !1  flow build · VS-002 · backstop!   2/5 · Implement status integration",
     );
 
     const styled = renderStatusLine(baseView, 240, testTheme);
@@ -68,7 +68,7 @@ describe("Powerlevel10k status rendering", () => {
     expect(styled).toContain("\u{1B}[38;5;3m 72.5%/372k 󰁨\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;4m  28M · $1.23\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;5m 2 !1\u{1B}[0m");
-    expect(styled).toContain("\u{1B}[38;5;3mflow build · VS-002 · appetite!\u{1B}[0m");
+    expect(styled).toContain("\u{1B}[38;5;3mflow build · VS-002 · backstop!\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 2/5 · Implement status integration\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;5m\u{1B}[0m");
   });
@@ -122,14 +122,14 @@ describe("Powerlevel10k status rendering", () => {
     expect(stripAnsi(renderStatusLine({ ...baseView, costUsd: 101 }, 240))).toContain("$101");
   });
 
-  it("renders workflow appetite states and sanitizes slice text", () => {
+  it("renders workflow backstop states and sanitizes slice text", () => {
     expect.hasAssertions();
     const expired = renderStatusLine(
       {
         ...baseView,
         workflow: {
           activeSlice: "VS-003\nunsafe",
-          appetite: "expired",
+          backstop: "expired",
           phase: "review",
         },
       },
@@ -137,7 +137,7 @@ describe("Powerlevel10k status rendering", () => {
       testTheme,
     );
     expect(stripAnsi(expired)).toContain("flow review · VS-003 unsafe");
-    expect(stripAnsi(expired)).not.toContain("appetite!");
+    expect(stripAnsi(expired)).not.toContain("backstop!");
     expect(expired).toContain("\u{1B}[38;5;5mflow review");
     expect(visibleWidth(expired)).toBeLessThanOrEqual(300);
 
@@ -145,20 +145,20 @@ describe("Powerlevel10k status rendering", () => {
       renderStatusLine(
         {
           ...baseView,
-          workflow: { appetite: "active", attention: "blocked", phase: "build" },
+          workflow: { backstop: "active", attention: "blocked", phase: "build" },
         },
         300,
         testTheme,
       ),
     );
     expect(blocked).toContain("flow build · blocked");
-    expect(blocked).not.toContain("appetite!");
+    expect(blocked).not.toContain("backstop!");
 
     const paused = stripAnsi(
       renderStatusLine(
         {
           ...baseView,
-          workflow: { appetite: "active", attention: "paused", phase: "build" },
+          workflow: { backstop: "active", attention: "paused", phase: "build" },
         },
         300,
         testTheme,
@@ -169,7 +169,7 @@ describe("Powerlevel10k status rendering", () => {
     const completed = renderStatusLine(
       {
         ...baseView,
-        workflow: { appetite: "expired", attention: "completed", phase: "ship" },
+        workflow: { backstop: "expired", attention: "completed", phase: "ship" },
       },
       300,
       testTheme,
@@ -177,12 +177,12 @@ describe("Powerlevel10k status rendering", () => {
     expect(stripAnsi(completed)).toContain("flow ship · completed");
     expect(completed).toContain("\u{1B}[38;5;2mflow ship · completed");
     expect(completed).not.toContain("\u{1B}[38;5;3mflow ship");
-    expect(stripAnsi(completed)).not.toContain("appetite!");
+    expect(stripAnsi(completed)).not.toContain("backstop!");
 
     const ready = renderStatusLine(
       {
         ...baseView,
-        workflow: { appetite: "active", attention: "ready", phase: "ship" },
+        workflow: { backstop: "active", attention: "ready", phase: "ship" },
       },
       300,
       testTheme,

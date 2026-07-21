@@ -194,8 +194,8 @@ describe("pi-status-line extension", () => {
     });
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
       activeSlice: "VS-002",
-      appetite: "attention",
-      attention: "appetite attention",
+      backstop: "attention",
+      attention: "backstop attention",
       phase: "build",
       status: "active",
       title: "Status integration",
@@ -219,7 +219,7 @@ describe("pi-status-line extension", () => {
         new Map([
           ["mopeyjellyfish-pi-todo", "todo 2/5"],
           ["mopeyjellyfish-pi-worktrunk", "worktree: example-feature"],
-          ["mopeyjellyfish-pi-development-workflow", "flow build · VS-002 · appetite!"],
+          ["mopeyjellyfish-pi-development-workflow", "flow build · VS-002 · backstop!"],
           ["review", "review ready"],
         ]),
       ),
@@ -232,7 +232,7 @@ describe("pi-status-line extension", () => {
     expect(rendered).toContain("think:high");
     expect(rendered).toContain(" 18.5%/272k 󰁨");
     expect(rendered).toContain("  15k · $0.12");
-    expect(rendered).toContain("flow build · VS-002 · appetite!");
+    expect(rendered).toContain("flow build · VS-002 · backstop!");
     expect(rendered).toContain(" 2/5 · Implement integration");
     expect(rendered).toContain("review ready");
     expect(rendered.match(/flow build/gu)).toHaveLength(1);
@@ -319,7 +319,7 @@ describe("pi-status-line extension", () => {
     for (const invalidWorkflow of [
       null,
       {
-        appetite: "active",
+        backstop: "active",
         phase: "build",
         status: "active",
         title: "x",
@@ -327,7 +327,7 @@ describe("pi-status-line extension", () => {
         workflowId: "w",
       },
       {
-        appetite: "wat",
+        backstop: "wat",
         phase: "build",
         status: "active",
         title: "x",
@@ -335,7 +335,7 @@ describe("pi-status-line extension", () => {
         workflowId: "w",
       },
       {
-        appetite: "active",
+        backstop: "active",
         phase: "wat",
         status: "active",
         title: "x",
@@ -343,7 +343,7 @@ describe("pi-status-line extension", () => {
         workflowId: "w",
       },
       {
-        appetite: "active",
+        backstop: "active",
         phase: "build",
         status: "wat",
         title: "x",
@@ -351,7 +351,7 @@ describe("pi-status-line extension", () => {
         workflowId: "w",
       },
       {
-        appetite: "active",
+        backstop: "active",
         phase: "build",
         status: "active",
         title: " ",
@@ -359,7 +359,7 @@ describe("pi-status-line extension", () => {
         workflowId: "w",
       },
       {
-        appetite: "active",
+        backstop: "active",
         phase: "build",
         status: "active",
         title: "x",
@@ -368,7 +368,7 @@ describe("pi-status-line extension", () => {
       },
       {
         activeSlice: " ",
-        appetite: "active",
+        backstop: "active",
         phase: "build",
         status: "active",
         title: "x",
@@ -376,7 +376,7 @@ describe("pi-status-line extension", () => {
         workflowId: "w",
       },
       {
-        appetite: "active",
+        backstop: "active",
         attention: " ",
         phase: "build",
         status: "active",
@@ -389,7 +389,7 @@ describe("pi-status-line extension", () => {
     }
     expect(component?.render(160).join(" ")).not.toContain("flow build");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
-      appetite: "expired",
+      backstop: "expired",
       phase: "review",
       status: "blocked",
       title: "Review",
@@ -398,9 +398,9 @@ describe("pi-status-line extension", () => {
     });
     const reviewStatus = component?.render(180).join(" ");
     expect(reviewStatus).toContain("flow review · blocked");
-    expect(reviewStatus).not.toContain("appetite!");
+    expect(reviewStatus).not.toContain("backstop!");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
-      appetite: "active",
+      backstop: "active",
       attention: "human decision required",
       phase: "build",
       status: "blocked",
@@ -409,9 +409,9 @@ describe("pi-status-line extension", () => {
       workflowId: "workflow-3",
     });
     expect(component?.render(180).join(" ")).toContain("flow build · blocked");
-    expect(component?.render(180).join(" ")).not.toContain("appetite!");
+    expect(component?.render(180).join(" ")).not.toContain("backstop!");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
-      appetite: "active",
+      backstop: "active",
       attention: "waiting",
       phase: "build",
       status: "paused",
@@ -421,7 +421,7 @@ describe("pi-status-line extension", () => {
     });
     expect(component?.render(180).join(" ")).toContain("flow build · paused");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
-      appetite: "active",
+      backstop: "active",
       attention: "workspace identity changed; refresh evidence",
       phase: "build",
       status: "active",
@@ -431,7 +431,7 @@ describe("pi-status-line extension", () => {
     });
     expect(component?.render(180).join(" ")).toContain("flow build · attention");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
-      appetite: "active",
+      backstop: "active",
       attention: "ready_to_ship",
       phase: "ship",
       status: "active",
@@ -442,7 +442,7 @@ describe("pi-status-line extension", () => {
     expect(component?.render(180).join(" ")).toContain("flow ship · ready");
     expect(component?.render(180).join(" ")).not.toContain("attention");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", {
-      appetite: "expired",
+      backstop: "expired",
       attention: "completed: accepted",
       phase: "ship",
       status: "completed",
@@ -452,7 +452,7 @@ describe("pi-status-line extension", () => {
     });
     expect(component?.render(180).join(" ")).toContain("flow ship · completed");
     expect(component?.render(180).join(" ")).not.toContain("attention");
-    expect(component?.render(180).join(" ")).not.toContain("appetite!");
+    expect(component?.render(180).join(" ")).not.toContain("backstop!");
     emitBus(harness, "mopeyjellyfish:pi-development-workflow:summary:v1", undefined);
     expect(component?.render(180).join(" ")).not.toContain("flow review");
     await emitLifecycle(harness, "session_shutdown", ctx);

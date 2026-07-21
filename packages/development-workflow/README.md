@@ -21,11 +21,12 @@ Included:
 
 - a five-part pitch: Problem, Appetite, Solution, Rabbit Holes, and No-Gos;
 - rough, solved, and bounded pitch review;
-- fixed-time appetite with variable scope and fixed quality/safety floors;
+- an agent-effort appetite with variable scope and fixed quality/safety floors;
+- a mandatory wall-clock backstop for circuit-breaking, kept separate from the effort appetite;
 - early integrated, demonstrable vertical slices;
 - discovered work inside the active slice;
 - slice status only: `planned`, `active`, `blocked`, `verified`, or `cut`;
-- explicit circuit-breaker outcomes when appetite expires.
+- explicit circuit-breaker outcomes when the wall-clock backstop expires.
 
 Deliberately excluded:
 
@@ -33,6 +34,12 @@ Deliberately excluded:
 - mandatory organization-wide cycles and cool-downs;
 - hill charts, scope maps, percentages, and exhaustive upfront task plans;
 - automatic remote Git, release, deployment, publication, or destructive actions.
+
+## From idea to agreed slices
+
+A workflow may start from a defect, friction or risk in existing behavior, or a valuable capability that does not exist yet. The agent first inspects repository truth, then uses batched Question-tool interviews to clarify the motivating story, desired outcome, demand, constraints, and user-owned decisions.
+
+Shaping follows four passes: set boundaries, the agent-effort appetite, and the mandatory wall-clock backstop; rough out macro solution elements; de-risk rabbit holes and cut scope; then write and grill the pitch. The user explicitly agrees to the pitch before approving it. Only then does planning produce an evolving slice map and the first integrated, demonstrable vertical slice for separate agreement and approval.
 
 ## Artifacts
 
@@ -80,8 +87,10 @@ Start and inspect:
 ```text
 /dev-workflow start Add safe widget import
 /dev-workflow status
-/dev-workflow appetite 2d
+/dev-workflow backstop 2d
 ```
+
+The pitch defines how much agent effort is justified across breadth, novelty, integrations, research, migration, and hardening. Before Pitch approval, the mandatory `backstop 2d` command records the ledger timer required by the circuit breaker; it is not a substitute for that effort-and-scope decision. `appetite 2d` remains a compatibility alias. Pausing suspends workflow mutation, but the wall-clock backstop continues to elapse.
 
 The model records bounded artifacts/evidence and requests the next transition with `development_workflow`. The user approves gates directly:
 
@@ -108,16 +117,18 @@ Other direct controls:
 /dev-workflow abandon -- pitch no longer worth the appetite
 ```
 
-When appetite expires, forward build mutation stops until the user decides:
+If the agent-effort envelope is exhausted before the timer, stop and ask the user to cut unfinished scope and finish through normal Build approval, rewind the pitch, or abandon the workflow.
+
+Circuit commands are available only after the backstop expires:
 
 ```text
 /dev-workflow circuit finish -- review the verified useful scope
 /dev-workflow circuit reshape -- the shaped solution was wrong
-/dev-workflow circuit extend 1d -- explicit new appetite decision
-/dev-workflow circuit abandon -- do not spend more time
+/dev-workflow circuit extend 1d -- explicit new backstop and effort decision
+/dev-workflow circuit abandon -- do not spend more effort
 ```
 
-`circuit finish` keeps verified slices, atomically cuts every unfinished slice, and enters Review; it does not require separate cut commands after expiry. No extension silently extends the appetite or lowers repository quality gates.
+`circuit finish` keeps verified slices, atomically cuts every unfinished slice, and enters Review; it does not require separate cut commands after expiry. No extension silently expands effort, extends the backstop, or lowers repository quality gates.
 
 ## Adoption and migration
 
@@ -140,13 +151,15 @@ Recovery starts a bounded replacement snapshot and preserves the prior entry in 
 The package does not depend on other extensions. When available, its skills route work through Worktrunk, Question, Todo, LSP, web search, GitHub, Git conventions, and pi-subagents. Fallbacks are explicit:
 
 - without Worktrunk, confirm the current workspace and do not create a hidden raw-worktree manager;
-- without Question, ask one conversational question or record an unresolved decision and remain blocked;
+- without Question, ask the same compact numbered batch conversationally, or record an unresolved decision and remain blocked;
 - without Todo, follow the active slice sequentially and report current/next work without creating another state store;
+- without LSP, use bounded repository search plus compiler, typechecker, and test evidence, and disclose reduced semantic precision;
+- without web search, use repository-local evidence, disclose that external research was not performed, and never imply current external facts were verified;
 - without Git metadata, label freshness identity unavailable; without Git conventions, follow repository instructions and preview explicitly authorized mutations;
 - without GitHub tooling, provide the relevant command or URL and wait for separately authorized remote action rather than inventing a client;
 - without pi-subagents, review sequentially and label same-context review reduced assurance; the label is recorded separately and never substitutes for intent, correctness, maintainability, or risk/operations evidence.
 
-`@mopeyjellyfish/pi-status-line` optionally consumes the versioned summary event, shows phase, active slice, appetite warnings, and other blocked/paused attention, and suppresses the extension's compact fallback status. Missing status-line support does not affect workflow behavior.
+`@mopeyjellyfish/pi-status-line` optionally consumes the versioned summary event, shows phase, active slice, backstop warnings, and other blocked/paused attention, and suppresses the extension's compact fallback status. Missing status-line support does not affect workflow behavior.
 
 ## Trust and shipping
 

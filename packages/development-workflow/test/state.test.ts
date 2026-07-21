@@ -7,12 +7,12 @@ import {
 } from "../src/artifacts.ts";
 import {
   STATE_TYPE,
-  appetiteState,
+  backstopState,
   applyWorkflowAction,
   createWorkflow,
   formatWorkflow,
   isWorkflowSnapshot,
-  parseAppetite,
+  parseBackstop,
   snapshotFromBranch,
   workflowSummary,
   type WorkflowSnapshot,
@@ -99,7 +99,7 @@ function toBuild(now = 1000): WorkflowSnapshot {
     { artifact: "spec", kind: "record_artifact", path: "specs/change/spec.md" },
     now,
   );
-  state = applyWorkflowAction(state, { duration: "2d", kind: "set_appetite" }, now);
+  state = applyWorkflowAction(state, { duration: "2d", kind: "set_backstop" }, now);
   state = applyWorkflowAction(state, evidence("pitch-review"), now);
   state = applyWorkflowAction(
     state,
@@ -192,7 +192,7 @@ describe("workflow reducer", () => {
     expect.hasAssertions();
     let state = toBuild();
     expect(state.phase).toBe("build");
-    expect(state.appetite?.startedAt).toBe(1000);
+    expect(state.backstop?.startedAt).toBe(1000);
     state = applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "active" }, 1001);
     state = applyWorkflowAction(state, evidence("red"), 1002);
     state = applyWorkflowAction(state, evidence("green"), 1003);
@@ -230,8 +230,9 @@ describe("workflow reducer", () => {
     expect(state).toMatchObject({ phase: "ship", status: "active", attention: "ready_to_ship" });
     expect(state.outcomes).toHaveLength(1);
     expect(formatWorkflow(state, 1010)).toContain("Phase: ship");
+    expect(formatWorkflow(state, 1010)).toContain("Backstop: not_started");
     expect(workflowSummary(state, 1010)).toMatchObject({
-      appetite: "not_started",
+      backstop: "not_started",
       phase: "ship",
       version: 1,
     });
@@ -354,7 +355,7 @@ describe("workflow reducer", () => {
     ).toThrow(/reason/iu);
     state = applyWorkflowAction(
       state,
-      { id: "VS-002", kind: "set_slice", reason: "outside appetite", status: "cut" },
+      { id: "VS-002", kind: "set_slice", reason: "outside backstop", status: "cut" },
       1004,
     );
     expect(state.slices[1]?.status).toBe("cut");
@@ -363,16 +364,23 @@ describe("workflow reducer", () => {
     ).toThrow(/not registered/iu);
   });
 
-  it("derives appetite boundaries, pauses time, and requires explicit circuit decisions", () => {
+  it("derives backstop boundaries, keeps wall-clock time running while paused, and requires explicit circuit decisions", () => {
     expect.hasAssertions();
-    expect(parseAppetite("2d")).toEqual({ label: "2d", milliseconds: 172_800_000 });
-    for (const value of ["", "two days", "0h", "13w"]) expect(() => parseAppetite(value)).toThrow();
+    expect(parseBackstop("2d")).toEqual({ label: "2d", milliseconds: 172_800_000 });
+    for (const value of ["", "two days", "0h", "13w"]) expect(() => parseBackstop(value)).toThrow();
     let state = toBuild(1000);
-    const duration = state.appetite?.durationMs ?? 0;
-    expect(appetiteState(state, 1000)).toBe("active");
-    expect(appetiteState(state, 1000 + duration * 0.8)).toBe("attention");
-    expect(appetiteState(state, 1000 + duration)).toBe("expired");
+    const duration = state.backstop?.durationMs ?? 0;
+    expect(backstopState(state, 1000)).toBe("active");
+    expect(backstopState(state, 1000 + duration * 0.8)).toBe("attention");
+    expect(backstopState(state, 1000 + duration)).toBe("expired");
 
+    expect(() =>
+      applyWorkflowAction(
+        state,
+        { kind: "circuit", now: 4000, outcome: "abandon", reason: "not expired" },
+        4000,
+      ),
+    ).toThrow(/only after/iu);
     state = applyWorkflowAction(
       state,
       { kind: "pause", now: 2000, reason: "waiting on user" },
@@ -382,23 +390,24 @@ describe("workflow reducer", () => {
     expect(() =>
       applyWorkflowAction(state, { kind: "pause", now: 2100, reason: "again" }, 2100),
     ).toThrow(/already paused/iu);
-    state = applyWorkflowAction(state, { kind: "resume", now: 3000 }, 3000);
-    expect(state.appetite?.pausedMs).toBe(1000);
-    expect(() => applyWorkflowAction(state, { kind: "resume", now: 3100 }, 3100)).toThrow(
-      /only a paused/iu,
-    );
-
-    const expiredAt = 1000 + duration + 2000;
-    expect(() =>
-      applyWorkflowAction(state, { kind: "record_outcome", outcome: "keep building" }, expiredAt),
-    ).toThrow(/circuit breaker/iu);
+    const expiredAt = 1000 + duration;
+    expect(backstopState(state, expiredAt)).toBe("expired");
     expect(() =>
       applyWorkflowAction(
         state,
-        { kind: "circuit", now: 4000, outcome: "abandon", reason: "not expired" },
-        4000,
+        { kind: "circuit", now: expiredAt, outcome: "abandon", reason: "resume first" },
+        expiredAt,
       ),
-    ).toThrow(/only after/iu);
+    ).toThrow(/paused/iu);
+    state = applyWorkflowAction(state, { kind: "resume", now: expiredAt }, expiredAt);
+    expect(state).toMatchObject({ backstop: { startedAt: 1000 }, status: "active" });
+    expect(() =>
+      applyWorkflowAction(state, { kind: "resume", now: expiredAt + 1 }, expiredAt + 1),
+    ).toThrow(/only a paused/iu);
+
+    expect(() =>
+      applyWorkflowAction(state, { kind: "record_outcome", outcome: "keep building" }, expiredAt),
+    ).toThrow(/circuit breaker/iu);
     const withEvidence = applyWorkflowAction(state, evidence("expiry-observation"), expiredAt);
     expect(withEvidence.evidence.at(-1)?.kind).toBe("expiry-observation");
     const extended = applyWorkflowAction(
@@ -412,14 +421,14 @@ describe("workflow reducer", () => {
       },
       expiredAt,
     );
-    expect(extended.appetite?.label).toBe("1d");
+    expect(extended.backstop?.label).toBe("1d");
     expect(extended.attention).toMatch(/explicitly extended/iu);
   });
 
   it("finishes verified scope, reshapes, abandons, and rewinds with stale evidence", () => {
     expect.hasAssertions();
     let state = toBuild();
-    const expired = 1000 + (state.appetite?.durationMs ?? 0);
+    const expired = 1000 + (state.backstop?.durationMs ?? 0);
     expect(() =>
       applyWorkflowAction(
         state,
@@ -432,7 +441,7 @@ describe("workflow reducer", () => {
       { id: "VS-001", kind: "set_slice", status: "verified" },
       1001,
     );
-    const withUnfinishedScope = {
+    const withUnfinishedScope: WorkflowSnapshot = {
       ...state,
       slices: [
         ...state.slices,
@@ -441,8 +450,18 @@ describe("workflow reducer", () => {
         { id: "VS-004", path: "slices/VS-004.md", status: "blocked" as const },
       ],
     };
+    expect(() =>
+      applyWorkflowAction(
+        withUnfinishedScope,
+        { kind: "circuit", now: expired, outcome: "finish", reason: "ship useful scope" },
+        expired,
+      ),
+    ).toThrow(/RED\/GREEN/iu);
+    let verifiedScope = withUnfinishedScope;
+    for (const kind of ["red", "green", "focused-verification", "regression-verification"])
+      verifiedScope = applyWorkflowAction(verifiedScope, evidence(kind), expired);
     const finished = applyWorkflowAction(
-      withUnfinishedScope,
+      verifiedScope,
       { kind: "circuit", now: expired, outcome: "finish", reason: "ship useful scope" },
       expired,
     );
@@ -477,34 +496,64 @@ describe("workflow reducer", () => {
         { kind: "circuit", now: expired, outcome: "extend", reason: "missing duration" },
         expired,
       ),
-    ).toThrow(/new appetite/iu);
+    ).toThrow(/new backstop duration/iu);
   });
 
-  it("invalidates gates and blocks affected slices when recorded artifacts disappear", () => {
+  it("invalidates downstream gates and evidence when recorded artifacts disappear", () => {
     expect.hasAssertions();
     let state = toBuild();
+    for (const kind of ["red", "green", "focused-verification", "regression-verification"])
+      state = applyWorkflowAction(state, evidence(kind), 1001);
     const before = state.revision;
     state = applyWorkflowAction(
       state,
       {
         kind: "observe_missing_artifacts",
-        paths: ["specs/change/spec.md", "specs/change/slices/VS-001.md"],
+        paths: ["specs/change/slices/VS-001.md"],
       },
-      1001,
+      1002,
     );
     expect(state.revision).toBe(before + 1);
     expect(state.attention).toMatch(/missing workflow artifacts/iu);
+    expect(state.phase).toBe("plan");
     expect(state.slices[0]?.status).toBe("blocked");
-    expect(state.gates.pitch).toBeUndefined();
+    expect(state.gates.pitch).toBe(true);
+    expect(state.gates.plan).toBeUndefined();
+    expect(state.evidence.find((item) => item.kind === "problem")?.stale).toBeUndefined();
+    expect(state.evidence.find((item) => item.kind === "pitch-review")?.stale).toBeUndefined();
+    expect(state.evidence.find((item) => item.kind === "validation-contract")?.stale).toBe(true);
+    expect(state.evidence.find((item) => item.kind === "red")?.stale).toBe(true);
     const unchanged = applyWorkflowAction(
       state,
       {
         kind: "observe_missing_artifacts",
-        paths: ["specs/change/spec.md", "specs/change/slices/VS-001.md"],
+        paths: ["specs/change/slices/VS-001.md"],
       },
-      1002,
+      1003,
     );
     expect(unchanged.revision).toBe(state.revision);
+
+    let recovered = applyWorkflowAction(unchanged, evidence("validation-contract"), 1004);
+    recovered = applyWorkflowAction(recovered, evidence("workspace-decision"), 1004);
+    recovered = applyWorkflowAction(
+      recovered,
+      { kind: "request_transition", reason: "artifact restored", to: "build" },
+      1004,
+    );
+    recovered = applyWorkflowAction(recovered, { gate: "plan", kind: "approve", now: 1004 }, 1004);
+    recovered = applyWorkflowAction(
+      recovered,
+      { id: "VS-001", kind: "set_slice", status: "verified" },
+      1005,
+    );
+    recovered = applyWorkflowAction(
+      recovered,
+      { kind: "request_transition", reason: "old checks must not count", to: "review" },
+      1005,
+    );
+    expect(() =>
+      applyWorkflowAction(recovered, { gate: "build", kind: "approve", now: 1005 }, 1005),
+    ).toThrow(/RED\/GREEN/iu);
   });
 
   it("stales only identity-bound evidence without rewinding Build state after drift", () => {
@@ -565,7 +614,7 @@ describe("workflow reducer", () => {
     expect(drifted.attention).toMatch(/identity changed/iu);
   });
 
-  it("preserves paused status and appetite accounting across workspace drift", () => {
+  it("preserves paused status and wall-clock backstop accounting across workspace drift", () => {
     expect.hasAssertions();
     let state = toBuild();
     state = applyWorkflowAction(state, { kind: "pause", now: 2000, reason: "waiting" }, 2000);
@@ -578,15 +627,15 @@ describe("workflow reducer", () => {
       3000,
     );
     expect(drifted).toMatchObject({
-      appetite: { pausedAt: 2000, startedAt: 1000 },
+      backstop: { startedAt: 1000 },
       phase: "build",
       status: "paused",
     });
     expect(isWorkflowSnapshot(drifted)).toBe(true);
-    expect(appetiteState(drifted, 5000)).toBe(appetiteState(state, 5000));
+    expect(backstopState(drifted, 5000)).toBe(backstopState(state, 5000));
   });
 
-  it("enforces paused, blocked, phase, cut, appetite, and completion invariants", () => {
+  it("enforces paused, blocked, phase, cut, backstop, and completion invariants", () => {
     expect.hasAssertions();
     let state = createWorkflow("Invariant", "/repo", 1);
     state = applyWorkflowAction(state, {
@@ -622,7 +671,7 @@ describe("workflow reducer", () => {
 
     let build = toBuild();
     expect(() =>
-      applyWorkflowAction(build, { duration: "1d", kind: "set_appetite" }, 1001),
+      applyWorkflowAction(build, { duration: "1d", kind: "set_backstop" }, 1001),
     ).toThrow(/before build/iu);
     expect(() =>
       applyWorkflowAction(
@@ -719,7 +768,7 @@ describe("workflow reducer", () => {
     ).toThrow();
   });
 
-  it("starts appetite only once when a rewound plan is re-approved", () => {
+  it("starts backstop only once when a rewound plan is re-approved", () => {
     expect.hasAssertions();
     let state = toBuild(1000);
     state = applyWorkflowAction(state, { kind: "pause", now: 2000, reason: "waiting" }, 2000);
@@ -733,7 +782,7 @@ describe("workflow reducer", () => {
       4001,
     );
     state = applyWorkflowAction(state, { gate: "plan", kind: "approve", now: 5000 }, 5000);
-    expect(state.appetite).toMatchObject({ pausedMs: 1000, startedAt: 1000 });
+    expect(state.backstop).toMatchObject({ startedAt: 1000 });
   });
 
   it("bounds every derived attention value at maximum accepted inputs", () => {
@@ -885,8 +934,8 @@ describe("workflow reducer", () => {
         })),
       },
       { ...initial, evidence: [{ claim: "", kind: "x", reference: "x", sensitivity: "public" }] },
-      { ...initial, appetite: { durationMs: Infinity, label: "1d", pausedMs: 0 } },
-      { ...initial, appetite: { durationMs: 10, label: "1d", pausedAt: 2, pausedMs: 0 } },
+      { ...initial, backstop: { durationMs: Infinity, label: "1d" } },
+      { ...initial, backstop: { durationMs: 10, label: "1d", pausedAt: 2, pausedMs: 0 } },
       { ...initial, gates: { pitch: true } },
       { ...initial, phase: "discover", status: "completed" },
       { ...initial, transitionRequest: { reason: "", to: "pitch" } },

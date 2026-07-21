@@ -53,7 +53,7 @@ interface TodoSummaryEventV1 {
 
 interface WorkflowSummaryEventV1 {
   readonly activeSlice?: string;
-  readonly appetite: "not_started" | "active" | "attention" | "expired";
+  readonly backstop: "not_started" | "active" | "attention" | "expired";
   readonly attention?: string;
   readonly phase: "discover" | "pitch" | "plan" | "build" | "review" | "ship";
   readonly status: "active" | "paused" | "blocked" | "abandoned" | "completed";
@@ -141,7 +141,7 @@ function todoSummary(value: unknown): TodoSummaryEventV1 | undefined {
 
 const WORKFLOW_PHASES = new Set(["discover", "pitch", "plan", "build", "review", "ship"]);
 const WORKFLOW_STATUSES = new Set(["active", "paused", "blocked", "abandoned", "completed"]);
-const APPETITE_STATES = new Set(["not_started", "active", "attention", "expired"]);
+const BACKSTOP_STATES = new Set(["not_started", "active", "attention", "expired"]);
 
 function optionalNonemptyString(value: unknown): boolean {
   return value === undefined || (typeof value === "string" && value.trim() !== "");
@@ -160,7 +160,7 @@ function validWorkflowState(value: Record<string, unknown>): boolean {
   return (
     WORKFLOW_PHASES.has(String(value["phase"])) &&
     WORKFLOW_STATUSES.has(String(value["status"])) &&
-    APPETITE_STATES.has(String(value["appetite"])) &&
+    BACKSTOP_STATES.has(String(value["backstop"])) &&
     optionalNonemptyString(value["activeSlice"]) &&
     optionalNonemptyString(value["attention"])
   );
@@ -285,7 +285,7 @@ function workflowStatusLineView(
   const attention = workflowAttention(summary);
   return {
     ...(summary.activeSlice === undefined ? {} : { activeSlice: summary.activeSlice }),
-    appetite: summary.appetite,
+    backstop: summary.backstop,
     ...(attention === undefined ? {} : { attention }),
     phase: summary.phase,
   };

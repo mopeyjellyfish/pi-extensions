@@ -6,7 +6,7 @@ export const PHASES = ["discover", "pitch", "plan", "build", "review", "ship"] a
 export type WorkflowPhase = (typeof PHASES)[number];
 export type WorkflowStatus = "active" | "paused" | "blocked" | "abandoned" | "completed";
 export type SliceStatus = "planned" | "active" | "blocked" | "verified" | "cut";
-export type AppetiteState = "not_started" | "active" | "attention" | "expired";
+export type BackstopState = "not_started" | "active" | "attention" | "expired";
 export type WorkflowIssueType = "blocker" | "decision";
 
 export interface WorkflowSlice {
@@ -38,11 +38,9 @@ export interface WorkflowDecisionResolution {
 }
 
 export interface WorkflowSnapshot {
-  readonly appetite?: {
+  readonly backstop?: {
     readonly durationMs: number;
     readonly label: string;
-    readonly pausedAt?: number;
-    readonly pausedMs: number;
     readonly startedAt?: number;
   };
   readonly artifacts: { readonly plan?: string; readonly spec?: string };
@@ -65,7 +63,7 @@ export interface WorkflowSnapshot {
 
 export interface WorkflowSummaryEventV1 {
   readonly activeSlice?: string;
-  readonly appetite: AppetiteState;
+  readonly backstop: BackstopState;
   readonly attention?: string;
   readonly phase: WorkflowPhase;
   readonly status: WorkflowStatus;
@@ -75,7 +73,7 @@ export interface WorkflowSummaryEventV1 {
 }
 
 export type WorkflowAction =
-  | { readonly kind: "set_appetite"; readonly duration: string }
+  | { readonly kind: "set_backstop"; readonly duration: string }
   | { readonly kind: "record_artifact"; readonly artifact: "plan" | "spec"; readonly path: string }
   | { readonly kind: "register_slice"; readonly id: string; readonly path: string }
   | {
@@ -133,7 +131,7 @@ const MAX_OUTCOMES = 50;
 const MAX_ISSUES = 20;
 const MAX_RESOLVED_DECISIONS = 50;
 const MAX_TEXT = 500;
-const MAX_APPETITE_MS = 12 * 7 * 24 * 60 * 60 * 1000;
+const MAX_BACKSTOP_MS = 12 * 7 * 24 * 60 * 60 * 1000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -188,28 +186,27 @@ function finiteTimestamp(value: unknown): value is number {
   );
 }
 
-export function parseAppetite(value: string): {
+export function parseBackstop(value: string): {
   readonly label: string;
   readonly milliseconds: number;
 } {
   const match = /^(\d+)([hdw])$/u.exec(value.trim());
   if (match?.[1] === undefined || match[2] === undefined)
-    throw new Error("Appetite must use Nh, Nd, or Nw syntax.");
+    throw new Error("The wall-clock backstop must use Nh, Nd, or Nw syntax.");
   const amount = Number(match[1]);
   const units: Readonly<Record<string, number>> = { d: 86_400_000, h: 3_600_000, w: 604_800_000 };
   const milliseconds = amount * (units[match[2]] ?? 0);
-  if (!Number.isSafeInteger(milliseconds) || milliseconds <= 0 || milliseconds > MAX_APPETITE_MS)
-    throw new Error("Appetite must be positive and no longer than 12 weeks.");
+  if (!Number.isSafeInteger(milliseconds) || milliseconds <= 0 || milliseconds > MAX_BACKSTOP_MS)
+    throw new Error("The wall-clock backstop must be positive and no longer than 12 weeks.");
   return { label: `${String(amount)}${match[2]}`, milliseconds };
 }
 
-export function appetiteState(snapshot: WorkflowSnapshot, now: number): AppetiteState {
-  const appetite = snapshot.appetite;
-  if (appetite?.startedAt === undefined) return "not_started";
-  const endpoint = appetite.pausedAt ?? now;
-  const elapsed = Math.max(0, endpoint - appetite.startedAt - appetite.pausedMs);
-  if (elapsed >= appetite.durationMs) return "expired";
-  return elapsed >= appetite.durationMs * 0.8 ? "attention" : "active";
+export function backstopState(snapshot: WorkflowSnapshot, now: number): BackstopState {
+  const backstop = snapshot.backstop;
+  if (backstop?.startedAt === undefined) return "not_started";
+  const elapsed = Math.max(0, now - backstop.startedAt);
+  if (elapsed >= backstop.durationMs) return "expired";
+  return elapsed >= backstop.durationMs * 0.8 ? "attention" : "active";
 }
 
 function clone(snapshot: WorkflowSnapshot): WorkflowSnapshot {
@@ -268,37 +265,16 @@ function isWorkspace(value: unknown): value is WorkflowSnapshot["workspace"] {
   );
 }
 
-function validOptionalTimestamp(value: unknown): boolean {
-  return value === undefined || finiteTimestamp(value);
-}
-
-function validAppetiteTimes(value: Record<string, unknown>): boolean {
-  const startedAt = value["startedAt"];
-  const pausedAt = value["pausedAt"];
-  if (!validOptionalTimestamp(startedAt) || !validOptionalTimestamp(pausedAt)) return false;
-  if (pausedAt === undefined) return true;
-  return (
-    finiteTimestamp(startedAt) &&
-    finiteTimestamp(pausedAt) &&
-    finiteTimestamp(value["pausedMs"]) &&
-    value["pausedMs"] <= Math.max(0, pausedAt - startedAt)
-  );
-}
-
-function isAppetite(value: unknown): value is NonNullable<WorkflowSnapshot["appetite"]> {
-  if (
-    !isRecord(value) ||
-    !exactKeys(value, ["durationMs", "label", "pausedMs"], ["startedAt", "pausedAt"])
-  )
-    return false;
+function isBackstop(value: unknown): value is NonNullable<WorkflowSnapshot["backstop"]> {
+  if (!isRecord(value) || !exactKeys(value, ["durationMs", "label"], ["startedAt"])) return false;
   const duration = value["durationMs"];
-  const coreValid =
+  return (
     validText(value["label"], 20) &&
     finiteTimestamp(duration) &&
     duration > 0 &&
-    duration <= MAX_APPETITE_MS &&
-    finiteTimestamp(value["pausedMs"]);
-  return coreValid && validAppetiteTimes(value);
+    duration <= MAX_BACKSTOP_MS &&
+    (value["startedAt"] === undefined || finiteTimestamp(value["startedAt"]))
+  );
 }
 
 function isEvidence(value: unknown): value is WorkflowEvidence {
@@ -370,22 +346,15 @@ function validUnresolvedStatus(status: WorkflowStatus, count: number): boolean {
   return status === "abandoned" || status === "completed" || count === 0;
 }
 
-function validPauseStatus(status: WorkflowStatus, appetite: WorkflowSnapshot["appetite"]): boolean {
-  if (status === "paused")
-    return appetite?.startedAt === undefined || appetite.pausedAt !== undefined;
-  return appetite?.pausedAt === undefined;
-}
-
 function validPhaseStatus(value: Record<string, unknown>): boolean {
   const phase = value["phase"] as WorkflowPhase;
   const status = value["status"] as WorkflowStatus;
   if (status === "completed" && phase !== "ship") return false;
   const unresolved = value["unresolved"] as readonly WorkflowIssue[];
   if (!validUnresolvedStatus(status, unresolved.length)) return false;
-  const appetite = value["appetite"] as WorkflowSnapshot["appetite"];
-  if (!validPauseStatus(status, appetite)) return false;
+  const backstop = value["backstop"] as WorkflowSnapshot["backstop"];
   const laterPhase = PHASES.indexOf(phase) >= PHASES.indexOf("build");
-  return !laterPhase || status === "abandoned" || appetite?.startedAt !== undefined;
+  return !laterPhase || status === "abandoned" || backstop?.startedAt !== undefined;
 }
 
 function validIdentity(value: Record<string, unknown>): boolean {
@@ -476,7 +445,7 @@ export function isWorkflowSnapshot(value: unknown): value is WorkflowSnapshot {
       "workflowId",
       "workspace",
     ],
-    ["appetite", "attention", "transitionRequest"],
+    ["backstop", "attention", "transitionRequest"],
   );
   if (!keysValid || !validIdentity(value)) return false;
   if (
@@ -489,8 +458,8 @@ export function isWorkflowSnapshot(value: unknown): value is WorkflowSnapshot {
   if (!validGates(value["gates"], phase) || !validTransition(value["transitionRequest"], phase))
     return false;
   const attentionValid = value["attention"] === undefined || validText(value["attention"]);
-  const appetiteValid = value["appetite"] === undefined || isAppetite(value["appetite"]);
-  return attentionValid && appetiteValid && validPhaseStatus(value);
+  const backstopValid = value["backstop"] === undefined || isBackstop(value["backstop"]);
+  return attentionValid && backstopValid && validPhaseStatus(value);
 }
 
 export function snapshotFromBranch(entries: readonly unknown[]): {
@@ -546,11 +515,11 @@ function requireDiscoverGate(snapshot: WorkflowSnapshot): void {
 function requirePitchGate(snapshot: WorkflowSnapshot): void {
   if (
     snapshot.artifacts.spec === undefined ||
-    snapshot.appetite === undefined ||
+    snapshot.backstop === undefined ||
     !fresh(snapshot, "pitch-review")
   )
     throw new Error(
-      "Pitch approval requires a valid spec artifact, appetite, and rough/solved/bounded pitch-review evidence.",
+      "Pitch approval requires a valid spec artifact, mandatory wall-clock backstop, and rough/solved/bounded pitch-review evidence.",
     );
 }
 
@@ -702,6 +671,32 @@ function observeWorkspace(
   });
 }
 
+const EVIDENCE_PHASE: Readonly<Record<string, WorkflowPhase>> = {
+  "expiry-observation": "build",
+  "final-verification": "review",
+  "focused-verification": "build",
+  green: "build",
+  "pitch-review": "pitch",
+  problem: "discover",
+  red: "build",
+  "regression-verification": "build",
+  research: "discover",
+  "research-not-needed": "discover",
+  "review-correctness": "review",
+  "review-intent": "review",
+  "review-maintainability": "review",
+  "review-reduced-assurance": "review",
+  "review-risk-operations": "review",
+  "tdd-exception": "build",
+  "validation-contract": "plan",
+  "workspace-decision": "plan",
+};
+
+function evidenceIsDownstream(item: WorkflowEvidence, target: WorkflowPhase): boolean {
+  const evidencePhase = EVIDENCE_PHASE[item.kind];
+  return evidencePhase === undefined || PHASES.indexOf(evidencePhase) >= PHASES.indexOf(target);
+}
+
 function observeMissing(snapshot: WorkflowSnapshot, paths: readonly string[]): WorkflowSnapshot {
   const missing = [...new Set(paths.map((path) => relativePath(path, "Missing artifact path")))];
   if (missing.length === 0) return clone(snapshot);
@@ -736,7 +731,10 @@ function observeMissing(snapshot: WorkflowSnapshot, paths: readonly string[]): W
   return next(snapshot, {
     attention,
     evidence: snapshot.evidence.map((item) =>
-      missing.includes(item.reference) ? { ...item, stale: true as const } : item,
+      missing.includes(item.reference) ||
+      (target !== undefined && evidenceIsDownstream(item, target))
+        ? { ...item, stale: true as const }
+        : item,
     ),
     gates,
     phase: rewindNeeded ? target : snapshot.phase,
@@ -771,7 +769,7 @@ function activeOnly(snapshot: WorkflowSnapshot, action: WorkflowAction): void {
 
 type ContentAction = Extract<
   WorkflowAction,
-  { kind: "set_appetite" | "record_artifact" | "register_slice" }
+  { kind: "set_backstop" | "record_artifact" | "register_slice" }
 >;
 type ProgressAction = Extract<
   WorkflowAction,
@@ -793,7 +791,7 @@ type ObservationAction = Extract<
 >;
 
 const CONTENT_ACTIONS = new Set<WorkflowAction["kind"]>([
-  "set_appetite",
+  "set_backstop",
   "record_artifact",
   "register_slice",
 ]);
@@ -832,12 +830,12 @@ function isResolutionAction(action: WorkflowAction): action is ResolutionAction 
 
 function applyContentAction(snapshot: WorkflowSnapshot, action: ContentAction): WorkflowSnapshot {
   switch (action.kind) {
-    case "set_appetite": {
-      if (snapshot.appetite?.startedAt !== undefined)
-        throw new Error("A started appetite can change only through a direct circuit extension.");
-      const parsed = parseAppetite(action.duration);
+    case "set_backstop": {
+      if (snapshot.backstop?.startedAt !== undefined)
+        throw new Error("A started backstop can change only through a direct circuit extension.");
+      const parsed = parseBackstop(action.duration);
       return next(snapshot, {
-        appetite: { durationMs: parsed.milliseconds, label: parsed.label, pausedMs: 0 },
+        backstop: { durationMs: parsed.milliseconds, label: parsed.label },
       });
     }
     case "record_artifact": {
@@ -956,12 +954,12 @@ function approve(
   gatePrerequisites(snapshot, action.gate);
   const target = PHASES[PHASES.indexOf(action.gate) + 1];
   if (target === undefined) throw new Error("Ship has no automatic approval transition.");
-  let appetite = snapshot.appetite;
-  if (action.gate === "plan" && appetite !== undefined && appetite.startedAt === undefined) {
-    appetite = { ...appetite, startedAt: action.now };
+  let backstop = snapshot.backstop;
+  if (action.gate === "plan" && backstop !== undefined && backstop.startedAt === undefined) {
+    backstop = { ...backstop, startedAt: action.now };
   }
   return next(snapshot, {
-    ...(appetite === undefined ? {} : { appetite }),
+    ...(backstop === undefined ? {} : { backstop }),
     attention: action.gate === "review" ? "ready_to_ship" : undefined,
     gates: { ...snapshot.gates, [action.gate]: true },
     phase: target,
@@ -970,18 +968,9 @@ function approve(
   });
 }
 
-function resume(snapshot: WorkflowSnapshot, now: number): WorkflowSnapshot {
+function resume(snapshot: WorkflowSnapshot): WorkflowSnapshot {
   if (snapshot.status !== "paused") throw new Error("Only a paused workflow can resume.");
-  const appetite = snapshot.appetite;
-  if (appetite === undefined) return next(snapshot, { attention: undefined, status: "active" });
-  const duration = appetite.pausedAt === undefined ? 0 : Math.max(0, now - appetite.pausedAt);
-  const runningAppetite = {
-    durationMs: appetite.durationMs,
-    label: appetite.label,
-    pausedMs: appetite.pausedMs + duration,
-    ...(appetite.startedAt === undefined ? {} : { startedAt: appetite.startedAt }),
-  };
-  return next(snapshot, { appetite: runningAppetite, attention: undefined, status: "active" });
+  return next(snapshot, { attention: undefined, status: "active" });
 }
 
 function applyFlowControlAction(
@@ -997,15 +986,11 @@ function applyFlowControlAction(
       return rewind(snapshot, action.phase, action.reason);
     case "pause":
       return next(snapshot, {
-        appetite:
-          snapshot.appetite?.startedAt === undefined
-            ? snapshot.appetite
-            : { ...snapshot.appetite, pausedAt: action.now },
         attention: boundedText(action.reason, "Pause reason"),
         status: "paused",
       });
     case "resume":
-      return resume(snapshot, action.now);
+      return resume(snapshot);
   }
 }
 
@@ -1013,9 +998,9 @@ function resolveCircuit(
   snapshot: WorkflowSnapshot,
   action: Extract<WorkflowAction, { kind: "circuit" }>,
 ): WorkflowSnapshot {
-  if (snapshot.phase !== "build" || appetiteState(snapshot, action.now) !== "expired")
+  if (snapshot.phase !== "build" || backstopState(snapshot, action.now) !== "expired")
     throw new Error(
-      "Circuit-breaker resolution is available only after appetite expiry during build.",
+      "Circuit-breaker resolution is available only after wall-clock backstop expiry during build.",
     );
   boundedText(action.reason, "Circuit-breaker reason");
   if (action.outcome === "abandon")
@@ -1024,29 +1009,31 @@ function resolveCircuit(
   if (action.outcome === "finish") {
     if (snapshot.slices.every((slice) => slice.status !== "verified"))
       throw new Error("Circuit finish requires at least one verified slice.");
+    const slices = snapshot.slices.map((slice) =>
+      slice.status === "verified" || slice.status === "cut"
+        ? slice
+        : { ...slice, status: "cut" as const },
+    );
+    requireBuildGate({ ...snapshot, slices });
     return next(snapshot, {
       attention: "circuit: finish verified scope",
       gates: { ...snapshot.gates, build: true },
       phase: "review",
-      slices: snapshot.slices.map((slice) =>
-        slice.status === "verified" || slice.status === "cut"
-          ? slice
-          : { ...slice, status: "cut" as const },
-      ),
+      slices,
       status: "active",
       transitionRequest: undefined,
     });
   }
-  if (action.duration === undefined) throw new Error("Circuit extend requires a new appetite.");
-  const parsed = parseAppetite(action.duration);
+  if (action.duration === undefined)
+    throw new Error("Circuit extend requires a new backstop duration.");
+  const parsed = parseBackstop(action.duration);
   return next(snapshot, {
-    appetite: {
+    backstop: {
       durationMs: parsed.milliseconds,
       label: parsed.label,
-      pausedMs: 0,
       startedAt: action.now,
     },
-    attention: derivedAttention("appetite explicitly extended: ", action.reason.trim()),
+    attention: derivedAttention("backstop explicitly extended: ", action.reason.trim()),
     status: "active",
   });
 }
@@ -1123,6 +1110,8 @@ function applyObservationAction(
 ): WorkflowSnapshot {
   switch (action.kind) {
     case "record_outcome":
+      if (snapshot.phase !== "ship")
+        throw new Error("Outcomes may be recorded only during the ship phase.");
       if (snapshot.outcomes.length >= MAX_OUTCOMES)
         throw new Error(`A workflow may contain at most ${String(MAX_OUTCOMES)} outcomes.`);
       return next(snapshot, {
@@ -1142,6 +1131,7 @@ function allowedAfterExpiry(action: WorkflowAction): boolean {
     "observe_missing_artifacts",
     "record_issue",
     "resolve_issue",
+    "resume",
     "circuit",
   ].includes(action.kind);
 }
@@ -1154,11 +1144,13 @@ export function applyWorkflowAction(
   if (!isWorkflowSnapshot(snapshot))
     throw new Error("Cannot mutate a malformed workflow snapshot.");
   activeOnly(snapshot, action);
-  if (action.kind === "set_appetite" && PHASES.indexOf(snapshot.phase) >= PHASES.indexOf("build"))
-    throw new Error("Appetite may be set only before build begins.");
-  const expired = snapshot.phase === "build" && appetiteState(snapshot, now) === "expired";
+  if (action.kind === "set_backstop" && PHASES.indexOf(snapshot.phase) >= PHASES.indexOf("build"))
+    throw new Error("The wall-clock backstop may be set only before build begins.");
+  const expired = snapshot.phase === "build" && backstopState(snapshot, now) === "expired";
   if (expired && !allowedAfterExpiry(action))
-    throw new Error("Appetite expired; resolve the circuit breaker before continuing.");
+    throw new Error(
+      "The wall-clock backstop expired; resolve the circuit breaker before continuing.",
+    );
   if (isContentAction(action)) return applyContentAction(snapshot, action);
   if (isProgressAction(action)) return applyProgressAction(snapshot, action);
   if (isFlowControlAction(action)) return applyFlowControlAction(snapshot, action);
@@ -1171,13 +1163,13 @@ export function workflowSummary(
   now = Date.now(),
 ): WorkflowSummaryEventV1 {
   const activeSlice = snapshot.slices.find((slice) => slice.status === "active")?.id;
-  const appetite =
+  const backstop =
     snapshot.phase === "build" && snapshot.status !== "abandoned" && snapshot.status !== "completed"
-      ? appetiteState(snapshot, now)
+      ? backstopState(snapshot, now)
       : "not_started";
   return {
     ...(activeSlice === undefined ? {} : { activeSlice }),
-    appetite,
+    backstop,
     ...(snapshot.attention === undefined ? {} : { attention: snapshot.attention }),
     phase: snapshot.phase,
     status: snapshot.status,
@@ -1194,5 +1186,5 @@ export function formatWorkflow(snapshot: WorkflowSnapshot, now = Date.now()): st
     snapshot.unresolved.length === 0
       ? "none"
       : snapshot.unresolved.map((item) => `${item.id} (${item.issueType})`).join(", ");
-  return `${summary.title}\nPhase: ${summary.phase}\nStatus: ${summary.status}\nSlice: ${slice}\nAppetite: ${summary.appetite}\nUnresolved: ${unresolved}\nRevision: ${String(snapshot.revision)}`;
+  return `${summary.title}\nPhase: ${summary.phase}\nStatus: ${summary.status}\nSlice: ${slice}\nBackstop: ${summary.backstop}\nUnresolved: ${unresolved}\nRevision: ${String(snapshot.revision)}`;
 }

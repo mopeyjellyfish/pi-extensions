@@ -30,7 +30,7 @@ export interface SubagentStatusLineView {
 
 export interface WorkflowStatusLineView {
   readonly activeSlice?: string;
-  readonly appetite: "not_started" | "active" | "attention" | "expired";
+  readonly backstop: "not_started" | "active" | "attention" | "expired";
   readonly attention?: "abandoned" | "attention" | "blocked" | "completed" | "paused" | "ready";
   readonly phase: "discover" | "pitch" | "plan" | "build" | "review" | "ship";
 }
@@ -196,10 +196,10 @@ function todoColor(todo: TodoStatusLineView | undefined): ThemeColor {
   return todo?.current === undefined ? "success" : "warning";
 }
 
-function appetiteWarning(workflow: WorkflowStatusLineView | undefined): boolean {
+function backstopWarning(workflow: WorkflowStatusLineView | undefined): boolean {
   return (
     workflow?.phase === "build" &&
-    (workflow.appetite === "attention" || workflow.appetite === "expired")
+    (workflow.backstop === "attention" || workflow.backstop === "expired")
   );
 }
 
@@ -215,8 +215,8 @@ function workflowAttentionColor(
 function workflowColor(workflow: WorkflowStatusLineView | undefined): ThemeColor {
   const attentionColor = workflowAttentionColor(workflow?.attention);
   if (attentionColor !== undefined) return attentionColor;
-  if (workflow?.appetite === "expired" && appetiteWarning(workflow)) return "error";
-  if (workflow?.appetite === "attention" && appetiteWarning(workflow)) return "warning";
+  if (workflow?.backstop === "expired" && backstopWarning(workflow)) return "error";
+  if (workflow?.backstop === "attention" && backstopWarning(workflow)) return "warning";
   return "accent";
 }
 
@@ -306,13 +306,13 @@ function workflowSegment(view: StatusLineView, options: RenderOptions): Segment 
   const workflow = view.workflow;
   if (!options.includeWorkflow || workflow === undefined) return undefined;
   const slice = workflow.activeSlice === undefined ? "" : ` · ${sanitize(workflow.activeSlice)}`;
-  const appetite = appetiteWarning(workflow) ? " · appetite!" : "";
+  const backstop = backstopWarning(workflow) ? " · backstop!" : "";
   const attention =
-    workflow.attention === undefined || (workflow.attention === "attention" && appetite !== "")
+    workflow.attention === undefined || (workflow.attention === "attention" && backstop !== "")
       ? ""
       : ` · ${workflow.attention}`;
   return {
-    text: compact(`flow ${workflow.phase}${slice}${appetite}${attention}`, options.workflowLimit),
+    text: compact(`flow ${workflow.phase}${slice}${backstop}${attention}`, options.workflowLimit),
     tone: "workflow",
   };
 }
