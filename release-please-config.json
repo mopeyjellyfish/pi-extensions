@@ -22,6 +22,9 @@
     { "type": "deps", "section": "Dependencies" }
   ],
   "packages": {
+    "packages/development-workflow": {
+      "release-type": "node"
+    },
     "packages/git-conventions": {
       "release-type": "node"
     },

@@ -13,15 +13,16 @@ its own README with setup and usage details.
 
 ## Packages
 
-| Package                                                                    | What it does                                                                        |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md) | Helps write Conventional Commits and safely rebase a branch onto its base.          |
-| [`@mopeyjellyfish/pi-question`](packages/question/README.md)               | Gives agents a structured way to ask clear questions.                               |
-| [`@mopeyjellyfish/pi-lsp`](packages/lsp/README.md)                         | Adds LSP diagnostics, navigation, validation, and safe semantic refactoring tools.  |
-| [`@mopeyjellyfish/pi-status-line`](packages/status-line/README.md)         | Shows a worktree-aware Powerlevel10k-style footer with todo progress.               |
-| [`@mopeyjellyfish/pi-todo`](packages/todo/README.md)                       | Keeps a small task list for the current Pi session.                                 |
-| [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)           | Searches the web through the selected model provider.                               |
-| [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)             | Creates and selects Worktrunk worktrees, then routes Pi tools to the selected path. |
+| Package                                                                              | What it does                                                                         |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| [`@mopeyjellyfish/pi-development-workflow`](packages/development-workflow/README.md) | Runs a bounded pitch, vertical-slice, TDD, review, and shipping workflow.            |
+| [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md)           | Helps write Conventional Commits and safely rebase a branch onto its base.           |
+| [`@mopeyjellyfish/pi-question`](packages/question/README.md)                         | Gives agents a structured way to ask clear questions.                                |
+| [`@mopeyjellyfish/pi-lsp`](packages/lsp/README.md)                                   | Adds LSP diagnostics, navigation, validation, and safe semantic refactoring tools.   |
+| [`@mopeyjellyfish/pi-status-line`](packages/status-line/README.md)                   | Shows worktree, todo, and development-workflow visibility in a Powerlevel10k footer. |
+| [`@mopeyjellyfish/pi-todo`](packages/todo/README.md)                                 | Keeps a small task list for the current Pi session.                                  |
+| [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)                     | Searches the web through the selected model provider.                                |
+| [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)                       | Creates and selects Worktrunk worktrees, then routes Pi tools to the selected path.  |
 
 The Worktrunk package needs
 [Worktrunk](https://worktrunk.dev) installed separately. It is an independent

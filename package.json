@@ -18,6 +18,9 @@
     ],
     "skills": [
       "./packages/*/skills"
+    ],
+    "prompts": [
+      "./packages/*/prompts"
     ]
   },
   "scripts": {
@@ -54,7 +57,7 @@
   "devDependencies": {
     "@commitlint/cli": "21.1.0",
     "@commitlint/config-conventional": "21.1.0",
-    "@earendil-works/pi-coding-agent": "0.80.6",
+    "@earendil-works/pi-coding-agent": "0.81.1",
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.2",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.0",
@@ -71,7 +74,7 @@
     "glob": "13.0.6",
     "globals": "17.7.0",
     "knip": "6.26.0",
-    "markdownlint-cli2": "0.23.0",
+    "markdownlint-cli2": "0.23.1",
     "prettier": "3.9.5",
     "semver": "7.8.5",
     "tar": "7.5.19",
@@ -82,5 +85,9 @@
   },
   "dependencies": {
     "@ff-labs/pi-fff": "0.9.6"
+  },
+  "overrides": {
+    "fast-uri": "3.1.4",
+    "protobufjs": "7.6.5"
   }
 }

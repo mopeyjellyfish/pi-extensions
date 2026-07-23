@@ -4,15 +4,14 @@ import {
   discoverProductionPackages,
   findForbiddenPackedPaths,
   loadFixturePackage,
-  resolvePackageEntrypoints,
-  resolvePackageSkills,
+  requiredPackedPaths,
   validatePackage,
   validateRootAggregate,
   type PackageDescriptor,
 } from "./lib/packages.ts";
 import { describeFailure, npmInvocation, runCommand } from "./lib/process.ts";
 import { validateReleaseConfiguration } from "./lib/releases.ts";
-import { isRecord, repositoryRoot, stringArray, toPosixPath } from "./lib/repository.ts";
+import { isRecord, repositoryRoot, toPosixPath } from "./lib/repository.ts";
 
 interface PackFile {
   readonly path: string;
@@ -53,24 +52,7 @@ async function validatePackedContents(descriptor: PackageDescriptor): Promise<st
 
   try {
     const packed = new Set(parsePackFiles(result.stdout).map((file) => file.path));
-    const required = ["LICENSE", "README.md", "package.json"];
-    if (descriptor.kind === "production") {
-      required.push("CHANGELOG.md");
-    }
-    const pi = isRecord(descriptor.manifest["pi"]) ? descriptor.manifest["pi"] : undefined;
-    for (const entrypoint of stringArray(pi?.["extensions"]) ?? []) {
-      if (entrypoint.includes("*")) {
-        for (const resolved of await resolvePackageEntrypoints(descriptor)) {
-          required.push(toPosixPath(relative(descriptor.root, resolved)));
-        }
-      } else {
-        required.push(entrypoint.replace(/^\.\//, ""));
-      }
-    }
-    for (const skill of await resolvePackageSkills(descriptor)) {
-      required.push(toPosixPath(relative(descriptor.root, skill)));
-    }
-    const missing = required
+    const missing = (await requiredPackedPaths(descriptor))
       .filter((path) => !packed.has(path))
       .map((path) => `${relative(repositoryRoot, descriptor.root)}: npm pack omits ${path}.`);
     const forbidden = findForbiddenPackedPaths([...packed]).map(

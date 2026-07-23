@@ -5,6 +5,7 @@ import {
   type StatusLineView,
   type SubagentStatusLineView,
   type TodoStatusLineView,
+  type WorkflowStatusLineView,
 } from "./powerline.ts";
 
 import type {
@@ -15,6 +16,8 @@ import type {
 
 const WORKTREE_ROUTE_EVENT = "mopeyjellyfish:pi-worktrunk:route:v1";
 const TODO_SUMMARY_EVENT = "mopeyjellyfish:pi-todo:summary:v1";
+const WORKFLOW_SUMMARY_EVENT = "mopeyjellyfish:pi-development-workflow:summary:v1";
+const WORKFLOW_STATUS_KEY = "mopeyjellyfish-pi-development-workflow";
 const WORKTREE_STATUS_KEY = "mopeyjellyfish-pi-worktrunk";
 const TODO_STATUS_KEY = "mopeyjellyfish-pi-todo";
 const SUBAGENT_STATUS_KEYS = new Set(["subagent-slash", "subagent-slash-text"]);
@@ -46,6 +49,17 @@ interface TodoSummaryEventV1 {
   };
   readonly total: number;
   readonly version: 1;
+}
+
+interface WorkflowSummaryEventV1 {
+  readonly activeSlice?: string;
+  readonly backstop: "not_started" | "active" | "attention" | "expired";
+  readonly attention?: string;
+  readonly phase: "discover" | "pitch" | "plan" | "build" | "review" | "ship";
+  readonly status: "active" | "paused" | "blocked" | "abandoned" | "completed";
+  readonly title: string;
+  readonly version: 1;
+  readonly workflowId: string;
 }
 
 interface SessionTotals {
@@ -125,6 +139,44 @@ function todoSummary(value: unknown): TodoSummaryEventV1 | undefined {
   };
 }
 
+const WORKFLOW_PHASES = new Set(["discover", "pitch", "plan", "build", "review", "ship"]);
+const WORKFLOW_STATUSES = new Set(["active", "paused", "blocked", "abandoned", "completed"]);
+const BACKSTOP_STATES = new Set(["not_started", "active", "attention", "expired"]);
+
+function optionalNonemptyString(value: unknown): boolean {
+  return value === undefined || (typeof value === "string" && value.trim() !== "");
+}
+
+function validWorkflowIdentity(value: Record<string, unknown>): boolean {
+  return (
+    typeof value["title"] === "string" &&
+    value["title"].trim() !== "" &&
+    typeof value["workflowId"] === "string" &&
+    value["workflowId"].trim() !== ""
+  );
+}
+
+function validWorkflowState(value: Record<string, unknown>): boolean {
+  return (
+    WORKFLOW_PHASES.has(String(value["phase"])) &&
+    WORKFLOW_STATUSES.has(String(value["status"])) &&
+    BACKSTOP_STATES.has(String(value["backstop"])) &&
+    optionalNonemptyString(value["activeSlice"]) &&
+    optionalNonemptyString(value["attention"])
+  );
+}
+
+function workflowSummary(value: unknown): WorkflowSummaryEventV1 | undefined {
+  if (
+    !isRecord(value) ||
+    value["version"] !== 1 ||
+    !validWorkflowIdentity(value) ||
+    !validWorkflowState(value)
+  )
+    return undefined;
+  return value as unknown as WorkflowSummaryEventV1;
+}
+
 function finiteNonnegative(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 }
@@ -195,10 +247,12 @@ function extensionStatusValues(
   routeActive: boolean,
   todoActive: boolean,
   subagentsActive: boolean,
+  workflowActive: boolean,
 ): string[] {
   return [...statuses]
     .filter(([key]) => key !== WORKTREE_STATUS_KEY || !routeActive)
     .filter(([key]) => key !== TODO_STATUS_KEY || !todoActive)
+    .filter(([key]) => key !== WORKFLOW_STATUS_KEY || !workflowActive)
     .filter(([key]) => !subagentsActive || !SUBAGENT_STATUS_KEYS.has(key))
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([, value]) => value);
@@ -212,6 +266,28 @@ function todoStatusLineView(
     closed: summary.closed,
     ...(summary.current === undefined ? {} : { current: summary.current.text }),
     total: summary.total,
+  };
+}
+
+function workflowAttention(summary: WorkflowSummaryEventV1): WorkflowStatusLineView["attention"] {
+  if (summary.status === "blocked") return "blocked";
+  if (summary.status === "paused") return "paused";
+  if (summary.status === "completed") return "completed";
+  if (summary.status === "abandoned") return "abandoned";
+  if (summary.attention === "ready_to_ship") return "ready";
+  return summary.attention === undefined ? undefined : "attention";
+}
+
+function workflowStatusLineView(
+  summary: WorkflowSummaryEventV1 | undefined,
+): WorkflowStatusLineView | undefined {
+  if (summary === undefined) return undefined;
+  const attention = workflowAttention(summary);
+  return {
+    ...(summary.activeSlice === undefined ? {} : { activeSlice: summary.activeSlice }),
+    backstop: summary.backstop,
+    ...(attention === undefined ? {} : { attention }),
+    phase: summary.phase,
   };
 }
 
@@ -239,6 +315,7 @@ function optionalViewDetails(
   subagents: SubagentStatusLineView | undefined,
   todo: TodoStatusLineView | undefined,
   totals: SessionTotals,
+  workflow: WorkflowStatusLineView | undefined,
 ): Partial<StatusLineView> {
   return {
     ...(branch === undefined ? {} : { branch }),
@@ -248,6 +325,7 @@ function optionalViewDetails(
     ...(model === undefined ? {} : { model }),
     ...(subagents === undefined ? {} : { subagents }),
     ...(todo === undefined ? {} : { todo }),
+    ...(workflow === undefined ? {} : { workflow }),
     ...totals,
   };
 }
@@ -256,6 +334,7 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
   let route: WorktreeRouteEventV1 | undefined;
   let subagents: SubagentStatusLineView | undefined;
   let todo: TodoSummaryEventV1 | undefined;
+  let workflow: WorkflowSummaryEventV1 | undefined;
   let ctx: ExtensionContext | undefined;
   let footerData: ReadonlyFooterDataProvider | undefined;
   let git: GitSnapshot | undefined;
@@ -341,6 +420,17 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     requestRender?.();
   });
 
+  const unsubscribeWorkflow = pi.events.on(WORKFLOW_SUMMARY_EVENT, (value) => {
+    if (value === undefined) {
+      workflow = undefined;
+    } else {
+      const next = workflowSummary(value);
+      if (next === undefined) return;
+      workflow = next;
+    }
+    requestRender?.();
+  });
+
   const unsubscribeSubagentReady = pi.events.on(SUBAGENT_RPC_READY_EVENT, (value) => {
     if (!isRecord(value) || value["version"] !== 1) return;
     requestSubagentStatus();
@@ -365,8 +455,10 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
       route !== undefined,
       todo !== undefined,
       subagents !== undefined,
+      workflow !== undefined,
     );
     const todoView = todoStatusLineView(todo);
+    const workflowView = workflowStatusLineView(workflow);
     const currentGit = git?.cwd === gitCwd ? git : undefined;
     const branch = branchLabel(currentGit, route, footerData?.getGitBranch());
     const context = contextStatus(currentContext);
@@ -383,6 +475,7 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
         subagents,
         todoView,
         totals,
+        workflowView,
       ),
       cwd: currentContext.cwd,
       extensionStatuses,
@@ -456,11 +549,13 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     for (const cleanup of subagentRequestCleanups) cleanup();
     unsubscribeRoute();
     unsubscribeTodo();
+    unsubscribeWorkflow();
     unsubscribeSubagentReady();
     unsubscribeSubagentStarted();
     unsubscribeSubagentComplete();
     unsubscribeSubagentControl();
     subagents = undefined;
+    workflow = undefined;
     ctx = undefined;
     footerData = undefined;
     requestRender = undefined;

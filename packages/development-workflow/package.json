@@ -1,0 +1,54 @@
+{
+  "name": "@mopeyjellyfish/pi-development-workflow",
+  "version": "0.0.0",
+  "description": "A Pi-native pitch, vertical-slice, TDD, review, and shipping workflow.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "skills/",
+    "prompts/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "pi-skill",
+    "development-workflow",
+    "shape-up",
+    "tdd"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/development-workflow"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/development-workflow/test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

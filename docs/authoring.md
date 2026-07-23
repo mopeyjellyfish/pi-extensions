@@ -36,6 +36,10 @@ Create `packages/<name>/` using the contract in [`packages/README.md`](../packag
 
 The package's `tsconfig.json` extends `../../tsconfig.base.json` and includes `src/**/*.ts` and `test/**/*.ts`. Tests use the shared Vitest configuration unless the package has a documented reason to specialize it.
 
+## Add prompt templates
+
+A package may declare `pi.prompts` alongside extensions and skills. Include `prompts/` in `files`; each declared directory exposes its top-level `.md` files as slash commands named after the filename. Prompt frontmatter may contain `description` and `argument-hint`. Keep prompts thin: route into the owning skill or extension instead of duplicating its workflow. The root private aggregate must include the package prompts through its `pi.prompts` glob, and package validation checks source and packed coverage.
+
 ## Create a skill-only package
 
 Pi packages may ship skills without a production extension. Declare

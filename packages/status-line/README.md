@@ -40,7 +40,8 @@ Segments appear in this order:
 5. context use and auto-compaction indicator;
 6. active-branch session tokens and cost;
 7. compact active/attention counts for an optional `pi-subagents` fleet;
-8. todo progress and the active item, or the next pending item.
+8. development-workflow phase, active vertical slice, and wall-clock backstop attention;
+9. todo progress and the active item, or the next pending item.
 
 For example:
 
@@ -59,17 +60,22 @@ vibes.
 
 ## First-party integrations
 
-The package consumes two optional, versioned Pi event-bus channels:
+The package consumes three optional, versioned Pi event-bus channels:
 
 - `mopeyjellyfish:pi-worktrunk:route:v1` supplies the routed worktree path and
   branch. The project-directory segment remains stable while Git status and the
   branch segment follow the active worktree instead of showing `main` or a
   duplicate Worktrunk status.
+- `mopeyjellyfish:pi-development-workflow:summary:v1` supplies the current
+  phase, active vertical slice, wall-clock backstop/circuit-breaker attention,
+  and truthful blocked, paused, ready, abandoned, or completed state. It renders as
+  `flow build · VS-002`, `flow build · VS-002 · backstop!`, or
+  `flow ship · completed`; informational terminal states are not warnings.
 - `mopeyjellyfish:pi-todo:summary:v1` supplies closed/total progress and the
   active or next item title. It renders as
   ` 2/5 · Implement status integration`.
 
-Both producer packages remain independently useful without this package. They
+All producer packages remain independently useful without this package. They
 retain their standard `setStatus()` fallback, and `pi-todo` retains its bounded
 widget. The status line filters those fallback keys only while the matching
 structured integration state is present.

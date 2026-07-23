@@ -28,6 +28,13 @@ export interface SubagentStatusLineView {
   readonly attention: number;
 }
 
+export interface WorkflowStatusLineView {
+  readonly activeSlice?: string;
+  readonly backstop: "not_started" | "active" | "attention" | "expired";
+  readonly attention?: "abandoned" | "attention" | "blocked" | "completed" | "paused" | "ready";
+  readonly phase: "discover" | "pitch" | "plan" | "build" | "review" | "ship";
+}
+
 export interface StatusLineView {
   readonly branch?: string;
   readonly context?: ContextStatusLineView;
@@ -41,6 +48,7 @@ export interface StatusLineView {
   readonly subagents?: SubagentStatusLineView;
   readonly todo?: TodoStatusLineView;
   readonly tokens?: number;
+  readonly workflow?: WorkflowStatusLineView;
 }
 
 interface Segment {
@@ -54,7 +62,8 @@ interface Segment {
     | "path"
     | "subagents"
     | "todo"
-    | "tokens";
+    | "tokens"
+    | "workflow";
 }
 
 interface RenderOptions {
@@ -69,8 +78,10 @@ interface RenderOptions {
   readonly includeSubagents: boolean;
   readonly includeTodo: boolean;
   readonly includeTokens: boolean;
+  readonly includeWorkflow: boolean;
   readonly modelLimit: number;
   readonly todoLimit: number;
+  readonly workflowLimit: number;
 }
 
 export function stripAnsi(value: string): string {
@@ -172,6 +183,8 @@ function colorSegment(segment: Segment, view: StatusLineView, theme: StatusLineT
       return theme.fg(subagentColor(view.subagents), segment.text);
     case "todo":
       return theme.fg(todoColor(view.todo), segment.text);
+    case "workflow":
+      return theme.fg(workflowColor(view.workflow), segment.text);
   }
 }
 
@@ -181,6 +194,30 @@ function subagentColor(subagents: SubagentStatusLineView | undefined): ThemeColo
 
 function todoColor(todo: TodoStatusLineView | undefined): ThemeColor {
   return todo?.current === undefined ? "success" : "warning";
+}
+
+function backstopWarning(workflow: WorkflowStatusLineView | undefined): boolean {
+  return (
+    workflow?.phase === "build" &&
+    (workflow.backstop === "attention" || workflow.backstop === "expired")
+  );
+}
+
+function workflowAttentionColor(
+  attention: WorkflowStatusLineView["attention"],
+): ThemeColor | undefined {
+  if (attention === "completed" || attention === "ready") return "success";
+  if (attention === "abandoned") return "muted";
+  if (attention === "blocked" || attention === "attention") return "warning";
+  return undefined;
+}
+
+function workflowColor(workflow: WorkflowStatusLineView | undefined): ThemeColor {
+  const attentionColor = workflowAttentionColor(workflow?.attention);
+  if (attentionColor !== undefined) return attentionColor;
+  if (workflow?.backstop === "expired" && backstopWarning(workflow)) return "error";
+  if (workflow?.backstop === "attention" && backstopWarning(workflow)) return "warning";
+  return "accent";
 }
 
 function contextText(context: ContextStatusLineView): string {
@@ -265,6 +302,21 @@ function todoSegment(view: StatusLineView, options: RenderOptions): Segment | un
     : undefined;
 }
 
+function workflowSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
+  const workflow = view.workflow;
+  if (!options.includeWorkflow || workflow === undefined) return undefined;
+  const slice = workflow.activeSlice === undefined ? "" : ` · ${sanitize(workflow.activeSlice)}`;
+  const backstop = backstopWarning(workflow) ? " · backstop!" : "";
+  const attention =
+    workflow.attention === undefined || (workflow.attention === "attention" && backstop !== "")
+      ? ""
+      : ` · ${workflow.attention}`;
+  return {
+    text: compact(`flow ${workflow.phase}${slice}${backstop}${attention}`, options.workflowLimit),
+    tone: "workflow",
+  };
+}
+
 function extensionSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
   if (!options.includeExtensions) return undefined;
   const text = view.extensionStatuses.map(sanitize).filter(Boolean).join(" · ");
@@ -282,6 +334,7 @@ function stateSegments(view: StatusLineView, options: RenderOptions): Segment[] 
     contextSegment(view, options),
     usageSegment(view, options),
     subagentSegment(view, options),
+    workflowSegment(view, options),
     todoSegment(view, options),
     extensionSegment(view, options),
   ].filter(definedSegment);
@@ -317,8 +370,10 @@ export function renderStatusLine(
       includeSubagents: true,
       includeTodo: true,
       includeTokens: true,
+      includeWorkflow: true,
       modelLimit: 28,
       todoLimit: 52,
+      workflowLimit: 44,
     },
     {
       branchLimit: 36,
@@ -332,8 +387,10 @@ export function renderStatusLine(
       includeSubagents: true,
       includeTodo: true,
       includeTokens: true,
+      includeWorkflow: true,
       modelLimit: 22,
       todoLimit: 30,
+      workflowLimit: 30,
     },
     {
       branchLimit: 28,
@@ -347,8 +404,10 @@ export function renderStatusLine(
       includeSubagents: true,
       includeTodo: true,
       includeTokens: false,
+      includeWorkflow: true,
       modelLimit: 18,
       todoLimit: 18,
+      workflowLimit: 22,
     },
     {
       branchLimit: 18,
@@ -362,8 +421,10 @@ export function renderStatusLine(
       includeSubagents: true,
       includeTodo: false,
       includeTokens: false,
+      includeWorkflow: false,
       modelLimit: 16,
       todoLimit: 0,
+      workflowLimit: 0,
     },
     {
       branchLimit: 14,
@@ -377,8 +438,10 @@ export function renderStatusLine(
       includeSubagents: false,
       includeTodo: false,
       includeTokens: false,
+      includeWorkflow: false,
       modelLimit: 0,
       todoLimit: 0,
+      workflowLimit: 0,
     },
   ] as const satisfies readonly RenderOptions[];
 
