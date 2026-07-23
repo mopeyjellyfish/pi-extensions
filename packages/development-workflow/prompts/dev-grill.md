@@ -5,4 +5,4 @@ argument-hint: "[specific concern]"
 
 # Grill the design
 
-Load the `pi-design-grill` skill. Read the current pitch, repository truth, and `development_workflow` status. Use the Question tool to ask the smallest useful batch of 2–4 independent questions, with recommended answers when evidence supports them; resolve dependent branches in later batches. Test rough, solved, and bounded shaping for: $ARGUMENTS. Do not manufacture user approval.
+Load the `pi-design-grill` skill. Read the current pitch, repository truth, and `development_workflow` status. Use the Question tool to ask the smallest useful batch of 2–4 independent questions, with recommended answers when evidence supports them; resolve dependent branches in later batches. After a redirect, address the clarification and reopen revised questions with the continuation ID. Test rough, solved, and bounded shaping for: $ARGUMENTS. Do not manufacture user approval.

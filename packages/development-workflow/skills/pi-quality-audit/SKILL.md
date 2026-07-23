@@ -18,4 +18,4 @@ Review evidence, not style preference:
 
 Classify findings by consequence and cite the exact file/behavior. Clean Code metrics, function length, best-current-practice comparisons, and complexity are useful signals, not universal gates. Never invent a numeric quality score.
 
-Prefer a fresh read-only reviewer via pi-subagents. If unavailable, audit sequentially and label the result reduced assurance. One worker owns fixes. Rerun affected checks after every accepted fix and record only bounded claims/references in `development_workflow`.
+Prefer one fresh Sol high read-only reviewer via pi-subagents for the active slice and affected diff. Add another only for a distinct risk domain. If unavailable, audit sequentially and label the result reduced assurance. One Terra worker owns fixes. Rerun affected checks after every accepted fix and record only bounded claims/references in `development_workflow`. Follow the development workflow's model-routing reference for exact model, context, and escalation rules.

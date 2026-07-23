@@ -54,6 +54,18 @@ function requiredHeading(body: string, heading: string): string {
   return content;
 }
 
+function requiredSubheading(section: string, heading: string): string {
+  const pattern = new RegExp(`^###\\s+${heading.replaceAll("-", "[- ]")}\\s*$`, "imu");
+  const match = pattern.exec(section);
+  if (match === null) throw new Error(`Missing required ${heading} subsection.`);
+  const start = match.index + match[0].length;
+  const remainder = section.slice(start);
+  const next = /^#{1,3}\s+/mu.exec(remainder);
+  const content = remainder.slice(0, next === null ? remainder.length : next.index).trim();
+  if (content.length < 3) throw new Error(`${heading} subsection must be substantive.`);
+  return content;
+}
+
 function exactKeys(frontmatter: ReadonlyMap<string, string>, allowed: readonly string[]): void {
   const unexpected = [...frontmatter.keys()].filter((key) => !allowed.includes(key));
   if (unexpected.length > 0) {
@@ -72,7 +84,12 @@ export function validatePlanDocument(source: string): ArtifactValidation {
   if (/^\s*(?:status|progress|complete|completed|active)\s*:/imu.test(normalized)) {
     throw new Error("Mutable status belongs in the workflow ledger, not plan.md.");
   }
-  for (const heading of ["Appetite", "No-Gos", "Vertical Slices", "Dependencies and Sequencing"]) {
+  if (/^#{1,6}\s+(?:Appetite|No[- ]Gos)\s*$/imu.test(normalized)) {
+    throw new Error(
+      "plan.md must link pitch boundaries instead of duplicating Appetite or No-Gos.",
+    );
+  }
+  for (const heading of ["Vertical Slices", "Dependencies and Sequencing"]) {
     requiredHeading(normalized, heading);
   }
   if (!/\[[^\]]*PITCH-[^\]]*\]\([^)]*spec\.md\)/iu.test(normalized)) {
@@ -106,12 +123,16 @@ export function validatePitchDocument(source: string): ArtifactValidation {
   const id = frontmatter.get("id");
   if (id === undefined || !/^PITCH-\d{3,}$/u.test(id))
     throw new Error("Pitch id must match PITCH-NNN.");
-  requiredHeading(body, "Problem");
-  requiredHeading(body, "Appetite");
+  const problem = requiredHeading(body, "Problem");
+  requiredSubheading(problem, "Research Basis");
+  const appetite = requiredHeading(body, "Appetite");
+  requiredSubheading(appetite, "Why This Is Worth the Investment");
+  requiredSubheading(appetite, "Agent Investment");
+  requiredSubheading(appetite, "Scope Control");
+  requiredSubheading(appetite, "Fixed Floors");
   const solution = requiredHeading(body, "Solution");
-  if (!/^###\s+Acceptance Signals\s*$/imu.test(solution)) {
-    throw new Error("Solution must contain an Acceptance Signals subsection.");
-  }
+  requiredSubheading(solution, "Agent Discretion");
+  requiredSubheading(solution, "Acceptance Signals");
   requiredHeading(body, "Rabbit Holes");
   requiredHeading(body, "No-Gos");
   return { id, valid: true };
@@ -144,6 +165,7 @@ export function validateSliceDocument(source: string): ArtifactValidation {
   const outcome = requiredHeading(body, "Observable Outcome");
   requiredHeading(body, "Pitch Fit");
   const boundaries = requiredHeading(body, "Boundaries Crossed");
+  requiredHeading(body, "Execution Profile");
   requiredHeading(body, "RED");
   requiredHeading(body, "GREEN");
   requiredHeading(body, "Verification");

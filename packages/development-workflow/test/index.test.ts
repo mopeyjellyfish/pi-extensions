@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -52,6 +52,26 @@ interface ExecResult {
 
 type ExecMock = Mock<(command: string, arguments_: readonly string[]) => Promise<ExecResult>>;
 
+function gitStdout(
+  arguments_: readonly string[],
+  branch = "feat/workflow",
+  head = "abc123",
+  changedPaths = "",
+  blob = "blob123",
+): string {
+  if (arguments_.includes("--abbrev-ref")) return `${branch}\n`;
+  if (arguments_[0] === "rev-parse") return `${head}\n`;
+  if (arguments_[0] === "diff") return changedPaths;
+  if (arguments_[0] === "ls-files") return "";
+  if (arguments_[0] === "hash-object") {
+    return `${arguments_
+      .slice(3)
+      .map(() => blob)
+      .join("\n")}\n`;
+  }
+  return "";
+}
+
 interface Harness {
   readonly bus: Map<string, Set<(data: unknown) => void>>;
   readonly commands: Map<string, RegisteredCommand>;
@@ -83,13 +103,12 @@ function createHarness(): Harness {
     ((event: Record<string, unknown>, context: ExtensionContext) => unknown)[]
   >();
   const notifications: { level: string; message: string }[] = [];
-  const exec: ExecMock = vi.fn((command: string, arguments_: readonly string[]) =>
+  const exec: ExecMock = vi.fn((_command: string, arguments_: readonly string[]) =>
     Promise.resolve({
       code: 0,
       killed: false,
       stderr: "",
-      stdout:
-        command === "git" && arguments_.includes("--abbrev-ref") ? "feat/workflow\n" : "abc123\n",
+      stdout: gitStdout(arguments_),
     }),
   );
   const statuses: (string | undefined)[] = [];
@@ -180,15 +199,15 @@ async function workspace(): Promise<{
   const slicePath = "specs/change/slices/VS-001.md";
   await writeFile(
     join(cwd, spec),
-    `---\nschema: dev-workflow/pitch-v1\nid: PITCH-001\n---\n# Problem\nConcrete failing workflow.\n# Appetite\nOne day with variable scope.\n# Solution\nA bounded branch ledger.\n### Acceptance Signals\nState restores after branching.\n# Rabbit Holes\nAvoid file watchers.\n# No-Gos\nNo remote mutations.\n`,
+    `---\nschema: dev-workflow/pitch-v1\nid: PITCH-001\n---\n# Problem\nConcrete failing workflow.\n### Research Basis\nReducer tests and session contracts establish the current behavior.\n# Appetite\n### Why This Is Worth the Investment\nReliable branch-local restoration justifies the bounded change.\n### Agent Investment\nChange the bounded reducer and session restoration seam.\n### Scope Control\nDeliver local restoration first and reshape on cross-project state.\n### Fixed Floors\nPreserve type safety, branch isolation, and focused verification.\n# Solution\nA bounded branch ledger.\n### Agent Discretion\nChoose reducer internals without changing the branch-local contract.\n### Acceptance Signals\nState restores after branching.\n# Rabbit Holes\nAvoid file watchers.\n# No-Gos\nNo remote mutations.\n`,
   );
   await writeFile(
     join(cwd, plan),
-    "# Plan\n\nPitch: [PITCH-001](./spec.md)\n\n## Appetite\n\nOne day with variable scope.\n\n## No-Gos\n\nNo remote mutation.\n\n## Vertical Slices\n\nThe first integrated slice is [VS-001](./slices/VS-001.md).\n\n## Dependencies and Sequencing\n\nVS-001 has no dependencies and is first.\n",
+    "# Plan\n\nPitch and boundaries: [PITCH-001](./spec.md)\n\n## Vertical Slices\n\nThe first integrated slice is [VS-001](./slices/VS-001.md).\n\n## Dependencies and Sequencing\n\nVS-001 has no dependencies and is first.\n",
   );
   await writeFile(
     join(cwd, slicePath),
-    `---\nschema: dev-workflow/vertical-slice-v1\nid: VS-001\ndepends_on: []\nrequirements: [REQ-001]\nrisk: medium\n---\n# Observable Outcome\nStart and restore a workflow.\n# Pitch Fit\nProves the ledger.\n# Boundaries Crossed\nCommand, reducer, and session entry.\n# RED\nPublic test fails.\n# GREEN\nMinimum path passes.\n# Verification\nFocused test and smoke.\n# Done When\nUser sees restored state.\n`,
+    `---\nschema: dev-workflow/vertical-slice-v1\nid: VS-001\ndepends_on: []\nrequirements: [REQ-001]\nrisk: medium\n---\n# Observable Outcome\nStart and restore a workflow.\n# Pitch Fit\nProves the ledger.\n# Boundaries Crossed\nCommand, reducer, and session entry.\n# Execution Profile\nTerra medium by default, Terra high for bounded difficulty, and Sol medium only after explicit plan revalidation.\n# RED\nPublic test fails.\n# GREEN\nMinimum path passes.\n# Verification\nFocused test and smoke.\n# Done When\nUser sees restored state.\n`,
   );
   return { cwd, plan, slice: slicePath, spec };
 }
@@ -201,7 +220,7 @@ async function advanceToBuild(
   await command(harness, ctx, "start Integrated workflow");
   for (const [evidenceKind, claim] of [
     ["problem", "Problem reproduced"],
-    ["research-not-needed", "Repository truth was sufficient"],
+    ["research", "Repository code and tests established the controlling behavior"],
   ] as const) {
     await tool(harness, ctx, {
       action: "record_evidence",
@@ -212,7 +231,6 @@ async function advanceToBuild(
     });
   }
   await tool(harness, ctx, { action: "request_transition", reason: "understood", to: "pitch" });
-  await command(harness, ctx, "approve discover");
   await command(harness, ctx, "backstop 1d");
   await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
   await tool(harness, ctx, {
@@ -267,8 +285,8 @@ describe("development workflow extension", () => {
     await tool(harness, ctx, {
       action: "record_evidence",
       claim: "Repository truth was sufficient",
-      evidenceKind: "research-not-needed",
-      reference: "decision:local",
+      evidenceKind: "research",
+      reference: "test:repository-reading",
       sensitivity: "public",
     });
     await tool(harness, ctx, {
@@ -276,7 +294,6 @@ describe("development workflow extension", () => {
       reason: "problem understood",
       to: "pitch",
     });
-    await command(harness, ctx, "approve discover");
     await command(harness, ctx, "backstop 1d");
     await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
     await tool(harness, ctx, {
@@ -363,6 +380,28 @@ describe("development workflow extension", () => {
     expect(harness.bus.get("mopeyjellyfish:pi-worktrunk:route:v1")?.size).toBe(0);
   });
 
+  it("registers a later vertical slice during Build without another Plan approval", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    await advanceToBuild(harness, ctx, files);
+    const laterSlice = "specs/change/slices/VS-002.md";
+    const source = (await readFile(join(files.cwd, files.slice), "utf8"))
+      .replace("id: VS-001", "id: VS-002")
+      .replace("Start and restore a workflow.", "Observe the next integrated behavior.");
+    await writeFile(join(files.cwd, laterSlice), source);
+    await tool(harness, ctx, { action: "register_slice", id: "VS-002", path: laterSlice });
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+      gates: { plan: true },
+      phase: "build",
+      slices: [
+        { id: "VS-001", status: "planned" },
+        { id: "VS-002", status: "planned" },
+      ],
+    });
+  });
+
   it("validates action fields, artifacts, cancellation, and direct approval errors atomically", async () => {
     expect.hasAssertions();
     const harness = createHarness();
@@ -389,7 +428,7 @@ describe("development workflow extension", () => {
     await expect(tool(harness, ctx, { action: "status" }, controller.signal)).rejects.toThrow();
     await command(harness, ctx, "approve discover");
     expect(harness.notifications.at(-1)?.level).toBe("error");
-    expect(harness.notifications.at(-1)?.message).toMatch(/request transition/iu);
+    expect(harness.notifications.at(-1)?.message).toMatch(/agent-owned/iu);
     expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.phase).toBe(
       "discover",
     );
@@ -444,11 +483,16 @@ describe("development workflow extension", () => {
     expect.hasAssertions();
     const harness = createHarness();
     const files = await workspace();
-    harness.exec
-      .mockResolvedValueOnce({ code: 1, killed: false, stderr: "detached", stdout: "" })
-      .mockResolvedValueOnce({ code: 0, killed: false, stderr: "", stdout: "head-only\n" })
-      .mockResolvedValueOnce({ code: 1, killed: false, stderr: "detached", stdout: "" })
-      .mockResolvedValueOnce({ code: 0, killed: false, stderr: "", stdout: "head-only\n" });
+    harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) => {
+      if (arguments_.includes("--abbrev-ref"))
+        return Promise.resolve({ code: 1, killed: false, stderr: "detached", stdout: "" });
+      return Promise.resolve({
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: arguments_[0] === "rev-parse" ? "head-only\n" : "",
+      });
+    });
     const ctx = context(harness, files.cwd);
     await command(harness, ctx, "start Detached");
     await tool(harness, ctx, {
@@ -458,8 +502,114 @@ describe("development workflow extension", () => {
       reference: "test",
     });
     const state = (await tool(harness, ctx, { action: "status" })).details.snapshot;
-    expect(state?.workspace).toEqual({ head: "head-only", path: files.cwd });
+    expect(state?.workspace).toMatchObject({ head: "head-only", path: files.cwd });
+    expect(state?.workspace.tree).toMatch(/^sha256:/u);
     expect(state?.evidence[0]).toMatchObject({ head: "head-only", sensitivity: "private" });
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "fingerprints symlink text without reading its external target",
+    async () => {
+      expect.hasAssertions();
+      const harness = createHarness();
+      const files = await workspace();
+      const external = await mkdtemp(join(tmpdir(), "dev-workflow-external-"));
+      roots.push(external);
+      const externalFile = join(external, "secret.txt");
+      await writeFile(externalFile, "external secret");
+      await symlink(externalFile, join(files.cwd, "linked-secret"));
+      harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) =>
+        Promise.resolve({
+          code: 0,
+          killed: false,
+          stderr: "",
+          stdout: gitStdout(arguments_, "feat/workflow", "abc123", "linked-secret\0"),
+        }),
+      );
+      const ctx = context(harness, files.cwd);
+
+      await command(harness, ctx, "start Symlink fingerprint");
+      const state = (await tool(harness, ctx, { action: "status" })).details.snapshot;
+
+      expect(state?.workspace.tree).toMatch(/^sha256:/u);
+      expect(
+        harness.exec.mock.calls.some(([, arguments_]) => arguments_[0] === "hash-object"),
+      ).toBe(false);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "rejects workflow artifacts whose symlink target escapes the workspace",
+    async () => {
+      expect.hasAssertions();
+      const harness = createHarness();
+      const files = await workspace();
+      const external = await mkdtemp(join(tmpdir(), "dev-workflow-artifact-external-"));
+      roots.push(external);
+      const externalSpec = join(external, "spec.md");
+      await writeFile(externalSpec, await readFile(join(files.cwd, files.spec), "utf8"));
+      const linkedSpec = "specs/change/linked-spec.md";
+      await symlink(externalSpec, join(files.cwd, linkedSpec));
+      const ctx = context(harness, files.cwd);
+      await command(harness, ctx, "start Artifact containment");
+      for (const evidenceKind of ["problem", "research"])
+        await tool(harness, ctx, {
+          action: "record_evidence",
+          claim: `${evidenceKind} recorded`,
+          evidenceKind,
+          reference: "test",
+        });
+      await tool(harness, ctx, {
+        action: "request_transition",
+        reason: "discovery complete",
+        to: "pitch",
+      });
+
+      await expect(
+        tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: linkedSpec }),
+      ).rejects.toThrow(/symlink target escapes/iu);
+    },
+  );
+
+  it("fails closed when dirty-tree fingerprint bounds or file assumptions are violated", async () => {
+    expect.hasAssertions();
+    const scenarios: readonly {
+      readonly changedPaths: string;
+      readonly hashOutput?: string;
+      readonly message: RegExp;
+    }[] = [
+      {
+        changedPaths: `${"x".repeat(100_001)}\0`,
+        message: /path-byte limit/iu,
+      },
+      {
+        changedPaths: `${Array.from({ length: 1001 }, (_, index) => `f-${String(index)}`).join("\0")}\0`,
+        message: /changed-path limit/iu,
+      },
+      { changedPaths: "../escape\0", message: /outside the workspace/iu },
+      { changedPaths: "specs\0", message: /directory or submodule/iu },
+      { changedPaths: "specs/change/spec.md\0", hashOutput: "", message: /unable to hash/iu },
+    ];
+
+    for (const scenario of scenarios) {
+      const harness = createHarness();
+      const files = await workspace();
+      harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) =>
+        Promise.resolve({
+          code: 0,
+          killed: false,
+          stderr: "",
+          stdout:
+            arguments_[0] === "hash-object" && scenario.hashOutput !== undefined
+              ? scenario.hashOutput
+              : gitStdout(arguments_, "feat/workflow", "abc123", scenario.changedPaths),
+        }),
+      );
+
+      await command(harness, context(harness, files.cwd), "start Bounded fingerprint");
+
+      expect(harness.notifications.at(-1)?.message).toMatch(scenario.message);
+    }
   });
 
   it("adopts from the routed Worktrunk path and rejects duplicate starts", async () => {
@@ -514,7 +664,7 @@ describe("development workflow extension", () => {
     await emit(harness, "session_shutdown", print);
   });
 
-  it("runs the full public chain through direct-human completion and permits a new start", async () => {
+  it("requires direct authorization, typed receipts, and direct completion for shipping", async () => {
     expect.hasAssertions();
     const harness = createHarness();
     const files = await workspace();
@@ -535,7 +685,6 @@ describe("development workflow extension", () => {
     }
     await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "verified" });
     await tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" });
-    await command(harness, ctx, "approve build");
     for (const evidenceKind of [
       "review-intent",
       "review-correctness",
@@ -551,42 +700,57 @@ describe("development workflow extension", () => {
       });
     }
     await tool(harness, ctx, { action: "request_transition", reason: "reviewed", to: "ship" });
-    await command(harness, ctx, "approve review");
-    await tool(harness, ctx, {
-      action: "record_outcome",
-      outcome: "PR merged after authorization",
-    });
+
+    await expect(
+      tool(harness, ctx, {
+        action: "record_outcome",
+        receipt: "PR #26 merged",
+        shipAction: "merge",
+      }),
+    ).rejects.toThrow(/direct human/iu);
 
     const validSlice = await readFile(join(files.cwd, files.slice), "utf8");
+    const readyTree = (await tool(harness, ctx, { action: "status" })).details.snapshot?.workspace
+      .tree;
     await writeFile(join(files.cwd, files.slice), "invalidated after review");
-    await command(harness, ctx, "complete -- accepted shipped outcome");
-    expect(harness.notifications.at(-1)).toMatchObject({ level: "error" });
+    await command(harness, ctx, "authorize merge -- merge the reviewed pull request");
     expect(harness.notifications.at(-1)?.message).toMatch(/frontmatter/iu);
-    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.phase).toBe("ship");
-    await writeFile(join(files.cwd, files.slice), validSlice);
+    await writeFile(
+      join(files.cwd, files.slice),
+      validSlice.replace(
+        "User sees restored state.",
+        "User sees restored state after a same-path content edit.",
+      ),
+    );
 
-    harness.exec.mockImplementation((commandName: string, arguments_: readonly string[]) =>
+    harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) =>
       Promise.resolve({
         code: 0,
         killed: false,
         stderr: "",
-        stdout:
-          commandName === "git" && arguments_.includes("--abbrev-ref")
-            ? "feat/workflow\n"
-            : "drifted-head\n",
+        stdout: gitStdout(
+          arguments_,
+          "feat/workflow",
+          "abc123",
+          `${files.slice}\0`,
+          "drifted-blob",
+        ),
       }),
     );
-    await command(harness, ctx, "complete -- accepted shipped outcome");
-    expect(harness.notifications.at(-1)).toMatchObject({ level: "error" });
-    expect(harness.notifications.at(-1)?.message).toMatch(/evidence/iu);
-    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+    await command(harness, ctx, "authorize merge -- merge the reviewed pull request");
+    expect(harness.notifications.at(-1)?.message).toMatch(/evidence|verification/iu);
+    const treeDrifted = (await tool(harness, ctx, { action: "status" })).details.snapshot;
+    expect(treeDrifted).toMatchObject({
+      outcomes: [],
       phase: "ship",
-      workspace: { head: "drifted-head" },
+      status: "active",
+      workspace: { head: "abc123", path: files.cwd },
     });
+    expect(treeDrifted?.workspace.tree).not.toBe(readyTree);
 
     for (const evidenceKind of [
       "problem",
-      "research-not-needed",
+      "research",
       "pitch-review",
       "validation-contract",
       "workspace-decision",
@@ -607,15 +771,178 @@ describe("development workflow extension", () => {
         reference: `refresh:${evidenceKind}`,
       });
     }
-    await command(harness, ctx, "complete -- accepted shipped outcome");
-    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.status).toBe(
-      "completed",
+    await command(harness, ctx, "authorize commit -- create the reviewed commit");
+    await command(harness, ctx, "authorize push -- duplicate authorization");
+    expect(harness.notifications.at(-1)?.message).toMatch(/already authorized/iu);
+    await command(harness, ctx, "cancel authorization -- retry after user clarification");
+    expect(
+      (await tool(harness, ctx, { action: "status" })).details.snapshot?.pendingShipAction,
+    ).toBeUndefined();
+    await command(harness, ctx, "authorize commit -- create the reviewed commit");
+    harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) =>
+      Promise.resolve({
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: gitStdout(arguments_, "feat/workflow", "commit-head", ""),
+      }),
     );
+    await tool(harness, ctx, {
+      action: "record_outcome",
+      receipt: "commit abc123 created",
+      shipAction: "commit",
+    });
+    const committed = (await tool(harness, ctx, { action: "status" })).details.snapshot;
+    expect(committed).toMatchObject({
+      outcomes: [{ action: "commit", receipt: "commit abc123 created" }],
+      status: "active",
+      workspace: { head: "commit-head" },
+    });
+    expect(committed?.evidence.some((item) => item.stale === true)).toBe(false);
+    await command(harness, ctx, "authorize push -- publish the committed branch");
+    await tool(harness, ctx, {
+      action: "record_outcome",
+      receipt: "origin updated",
+      shipAction: "push",
+    });
+    await command(harness, ctx, "authorize worktree-removal -- remove the finished worktree");
+    const mainWorkspace = await workspace();
+    const mainCtx = context(harness, mainWorkspace.cwd);
+    emitBus(harness, "mopeyjellyfish:pi-worktrunk:route:v1", {
+      activePath: mainWorkspace.cwd,
+      version: 1,
+    });
+    await expect(
+      tool(harness, mainCtx, {
+        action: "record_outcome",
+        receipt: "feature worktree removed",
+        shipAction: "worktree-removal",
+      }),
+    ).rejects.toThrow(/path still exists/iu);
+    await rm(files.cwd, { force: true, recursive: true });
+    let danglingSymlinkError = "path still exists (symlink test unavailable on Windows)";
+    if (process.platform !== "win32") {
+      await symlink(join(mainWorkspace.cwd, "missing-target"), files.cwd);
+      try {
+        await tool(harness, mainCtx, {
+          action: "record_outcome",
+          receipt: "feature worktree removed",
+          shipAction: "worktree-removal",
+        });
+        danglingSymlinkError = "receipt unexpectedly accepted";
+      } catch (error) {
+        danglingSymlinkError = error instanceof Error ? error.message : String(error);
+      }
+      await rm(files.cwd, { force: true });
+    }
+    expect(danglingSymlinkError).toMatch(/path still exists/iu);
+    await tool(harness, mainCtx, {
+      action: "record_outcome",
+      receipt: "feature worktree removed",
+      shipAction: "worktree-removal",
+    });
+    await command(harness, mainCtx, "finish -- requested shipping sequence is complete");
+    expect((await tool(harness, mainCtx, { action: "status" })).details.snapshot).toMatchObject({
+      outcomes: [
+        { action: "commit", receipt: "commit abc123 created" },
+        { action: "push", receipt: "origin updated" },
+        { action: "worktree-removal", receipt: "feature worktree removed" },
+      ],
+      status: "completed",
+    });
     expect(harness.statuses.at(-1)).toBe("flow ship · completed");
-    await command(harness, ctx, "start Follow-up workflow");
-    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.title).toBe(
+    await command(harness, mainCtx, "start Follow-up workflow");
+    expect((await tool(harness, mainCtx, { action: "status" })).details.snapshot?.title).toBe(
       "Follow-up workflow",
     );
+  });
+
+  it("revalidates artifacts and Git identity before agent-owned transitions", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    await advanceToBuild(harness, ctx, files);
+    for (const evidenceKind of ["red", "green", "focused-verification", "regression-verification"])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} passed`,
+        evidenceKind,
+        reference: `build:${evidenceKind}`,
+      });
+    await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "verified" });
+
+    const validSlice = await readFile(join(files.cwd, files.slice), "utf8");
+    await writeFile(join(files.cwd, files.slice), "malformed before transition");
+    await expect(
+      tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" }),
+    ).rejects.toThrow(/frontmatter/iu);
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.phase).toBe("build");
+    await writeFile(join(files.cwd, files.slice), validSlice);
+
+    harness.exec.mockImplementation((commandName: string, arguments_: readonly string[]) =>
+      Promise.resolve({
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout:
+          commandName === "git" && arguments_.includes("--abbrev-ref")
+            ? "feat/rerouted\n"
+            : "transition-head\n",
+      }),
+    );
+    await expect(
+      tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" }),
+    ).rejects.toThrow(/RED\/GREEN|verification/iu);
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+      phase: "build",
+      workspace: { branch: "feat/rerouted", head: "transition-head" },
+    });
+    for (const evidenceKind of ["red", "green", "focused-verification", "regression-verification"])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} refreshed`,
+        evidenceKind,
+        reference: `refresh:${evidenceKind}`,
+      });
+    await tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" });
+
+    for (const evidenceKind of [
+      "review-intent",
+      "review-correctness",
+      "review-maintainability",
+      "review-risk-operations",
+      "final-verification",
+    ])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} passed`,
+        evidenceKind,
+        reference: `review:${evidenceKind}`,
+      });
+    const validPlan = await readFile(join(files.cwd, files.plan), "utf8");
+    await writeFile(join(files.cwd, files.plan), "malformed before ship");
+    await expect(
+      tool(harness, ctx, { action: "request_transition", reason: "reviewed", to: "ship" }),
+    ).rejects.toThrow(/vertical slices|pitch spec|section/iu);
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.phase).toBe("review");
+    await writeFile(join(files.cwd, files.plan), validPlan);
+  });
+
+  it("rewinds instead of advancing when an artifact disappears before transition", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    await advanceToBuild(harness, ctx, files);
+    await rm(join(files.cwd, files.slice));
+    await expect(
+      tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" }),
+    ).rejects.toThrow(/ENOENT|no such file/iu);
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+      phase: "plan",
+      slices: [{ id: "VS-001", status: "blocked" }],
+    });
   });
 
   it("revalidates retained artifacts and routed Git identity before circuit finish", async () => {
@@ -702,7 +1029,7 @@ describe("development workflow extension", () => {
     const files = await workspace();
     const ctx = context(harness, files.cwd);
     await command(harness, ctx, "start Revalidate");
-    for (const evidenceKind of ["problem", "research-not-needed"]) {
+    for (const evidenceKind of ["problem", "research"]) {
       await tool(harness, ctx, {
         action: "record_evidence",
         claim: evidenceKind,
@@ -711,7 +1038,6 @@ describe("development workflow extension", () => {
       });
     }
     await tool(harness, ctx, { action: "request_transition", reason: "ready", to: "pitch" });
-    await command(harness, ctx, "approve discover");
     await command(harness, ctx, "appetite 1d");
     await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
     await tool(harness, ctx, {
@@ -820,7 +1146,11 @@ describe("development workflow extension", () => {
       await expect(tool(harness, ctx, input)).rejects.toThrow(/required/iu);
 
     await expect(
-      tool(harness, ctx, { action: "record_outcome", outcome: "Local observation completed" }),
+      tool(harness, ctx, {
+        action: "record_outcome",
+        receipt: "Local observation completed",
+        shipAction: "commit",
+      }),
     ).rejects.toThrow(/ship phase/iu);
     await tool(harness, ctx, {
       action: "record_evidence",

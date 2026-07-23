@@ -24,10 +24,21 @@ id: PITCH-001
 ---
 # Problem
 A developer loses the current decision when a session branches.
+### Research Basis
+Reducer tests and session restoration contracts establish the current behavior.
 # Appetite
-Two days; scope is variable and quality is fixed.
+### Why This Is Worth the Investment
+Reliable branch-local decisions justify a bounded extension change.
+### Agent Investment
+Change the bounded reducer and session restoration seam.
+### Scope Control
+Deliver branch-local restoration first and reshape if cross-project state is required.
+### Fixed Floors
+Preserve type safety, branch isolation, and focused verification.
 # Solution
 Use a branch-local ledger and a thin control command.
+### Agent Discretion
+Choose local reducer structure without changing the branch-local contract.
 ### Acceptance Signals
 The active branch restores exactly one valid state.
 # Rabbit Holes
@@ -38,11 +49,7 @@ No automatic remote Git actions.
 
 const plan = `# Plan
 
-Pitch: [PITCH-001](./spec.md)
-## Appetite
-Two days with variable scope.
-## No-Gos
-No project database.
+Pitch boundaries: [PITCH-001](./spec.md)
 ## Vertical Slices
 The first integrated slice is [VS-001](./slices/VS-001.md).
 ## Dependencies and Sequencing
@@ -62,6 +69,8 @@ A user starts a workflow and reads its state after restoration.
 This proves the canonical branch-local ledger.
 # Boundaries Crossed
 Pi command, reducer, custom session entry, and restored output.
+# Execution Profile
+Terra medium by default, Terra high for bounded difficulty, and Sol medium only after explicit plan revalidation.
 # RED
 A public behavior test fails before implementation.
 # GREEN
@@ -87,13 +96,16 @@ function evidence(kind: string) {
 function toBuild(now = 1000): WorkflowSnapshot {
   let state = createWorkflow("Feature", "/repo", 1);
   state = applyWorkflowAction(state, evidence("problem"), now);
-  state = applyWorkflowAction(state, evidence("research-not-needed"), now);
+  state = applyWorkflowAction(state, evidence("research"), now);
   state = applyWorkflowAction(
     state,
-    { kind: "request_transition", reason: "problem understood", to: "pitch" },
+    {
+      kind: "request_transition",
+      reason: "repository research established the problem",
+      to: "pitch",
+    },
     now,
   );
-  state = applyWorkflowAction(state, { gate: "discover", kind: "approve", now }, now);
   state = applyWorkflowAction(
     state,
     { artifact: "spec", kind: "record_artifact", path: "specs/change/spec.md" },
@@ -140,7 +152,13 @@ describe("workflow artifact contracts", () => {
     for (const invalid of [
       pitch.replace("id: PITCH-001", "id: feature"),
       pitch.replace("schema: dev-workflow/pitch-v1", "schema: wrong"),
+      pitch.replace("### Research Basis", "### Prior Work"),
+      pitch.replace("### Agent Investment", "### Effort"),
+      pitch.replace("### Scope Control", "### Scope"),
+      pitch.replace("### Fixed Floors", "### Quality"),
       pitch.replace("# Problem", "# Context"),
+      pitch.replace("### Why This Is Worth the Investment", "### Value"),
+      pitch.replace("### Agent Discretion", "### Fixed Implementation"),
       pitch.replace("### Acceptance Signals", "### Signals"),
       pitch.replace("id: PITCH-001", "id: PITCH-001\nstatus: active"),
       pitch.replace("A developer loses", "- [ ] A developer loses"),
@@ -152,10 +170,11 @@ describe("workflow artifact contracts", () => {
       expect(() => validatePitchDocument(invalid)).toThrow();
 
     for (const invalid of [
-      plan.replace("## Appetite", "## Budget"),
+      `${plan}\n## Appetite\nTwo days.`,
+      `${plan}\n## No-Gos\nNo remote actions.`,
       plan.replace("The first integrated slice", "The first item"),
       plan.replace("The first integrated slice is", "Backend first phase, then"),
-      plan.replace("Pitch: [PITCH-001](./spec.md)", "Pitch is nearby."),
+      plan.replace("Pitch boundaries: [PITCH-001](./spec.md)", "Pitch is nearby."),
       plan.replace("## Dependencies and Sequencing", "## Notes"),
       `${plan}\n## Backend\nBuild models first.`,
       `${plan}\nstatus: active`,
@@ -172,6 +191,7 @@ describe("workflow artifact contracts", () => {
       slice.replace("requirements: [REQ-001]", "requirements: [bad]"),
       slice.replace("risk: medium", "risk: extreme"),
       slice.replace("schema: dev-workflow/vertical-slice-v1", "schema: wrong"),
+      slice.replace("# Execution Profile", "# Worker Notes"),
       slice.replace("# Verification", "# Checks"),
       slice.replace(
         "Pi command, reducer, custom session entry, and restored output.",
@@ -208,7 +228,6 @@ describe("workflow reducer", () => {
       { kind: "request_transition", reason: "slice verified", to: "review" },
       1005,
     );
-    state = applyWorkflowAction(state, { gate: "build", kind: "approve", now: 1006 }, 1006);
     expect(state.phase).toBe("review");
     state = applyWorkflowAction(state, evidence("review-intent"), 1007);
     state = applyWorkflowAction(state, evidence("review-correctness"), 1007);
@@ -220,14 +239,31 @@ describe("workflow reducer", () => {
       { kind: "request_transition", reason: "review evidence accepted", to: "ship" },
       1008,
     );
-    state = applyWorkflowAction(state, { gate: "review", kind: "approve", now: 1009 }, 1009);
     state = applyWorkflowAction(
       state,
-      { kind: "record_outcome", outcome: "PR created after explicit authorization" },
+      {
+        action: "pull-request",
+        kind: "authorize_ship",
+        now: 1009,
+        reason: "open the reviewed pull request",
+      },
+      1009,
+    );
+    state = applyWorkflowAction(
+      state,
+      {
+        kind: "record_outcome",
+        receipt: "PR created after explicit authorization",
+        shipAction: "pull-request",
+      },
       1010,
     );
 
-    expect(state).toMatchObject({ phase: "ship", status: "active", attention: "ready_to_ship" });
+    expect(state).toMatchObject({
+      phase: "ship",
+      status: "active",
+      attention: "pull-request receipt recorded; authorize the next action or finish",
+    });
     expect(state.outcomes).toHaveLength(1);
     expect(formatWorkflow(state, 1010)).toContain("Phase: ship");
     expect(formatWorkflow(state, 1010)).toContain("Backstop: not_started");
@@ -244,18 +280,26 @@ describe("workflow reducer", () => {
     const initial = createWorkflow("Feature", "/repo", 1);
     expect(() =>
       applyWorkflowAction(initial, { gate: "discover", kind: "approve", now: 2 }, 2),
-    ).toThrow(/request transition/iu);
+    ).toThrow(/agent-owned/iu);
     expect(() =>
       applyWorkflowAction(initial, { kind: "request_transition", reason: "skip", to: "plan" }, 2),
     ).toThrow(/exactly one/iu);
-    const requested = applyWorkflowAction(
-      initial,
-      { kind: "request_transition", reason: "ready", to: "pitch" },
-      2,
-    );
+    const problemOnly = applyWorkflowAction(initial, evidence("problem"), 2);
     expect(() =>
-      applyWorkflowAction(requested, { gate: "discover", kind: "approve", now: 2 }, 2),
-    ).toThrow(/problem evidence/iu);
+      applyWorkflowAction(
+        problemOnly,
+        { kind: "request_transition", reason: "ready", to: "pitch" },
+        2,
+      ),
+    ).toThrow(/research evidence/iu);
+    const researched = applyWorkflowAction(problemOnly, evidence("research"), 2);
+    expect(
+      applyWorkflowAction(
+        researched,
+        { kind: "request_transition", reason: "ready", to: "pitch" },
+        2,
+      ).phase,
+    ).toBe("pitch");
     expect(() =>
       applyWorkflowAction(initial, { gate: "pitch", kind: "approve", now: 2 }, 2),
     ).toThrow(/while in discover/iu);
@@ -269,30 +313,36 @@ describe("workflow reducer", () => {
       { id: "VS-001", kind: "set_slice", status: "verified" },
       1001,
     );
-    state = applyWorkflowAction(
-      state,
-      { kind: "request_transition", reason: "implemented", to: "review" },
-      1002,
-    );
     expect(() =>
-      applyWorkflowAction(state, { gate: "build", kind: "approve", now: 1003 }, 1003),
+      applyWorkflowAction(
+        state,
+        { kind: "request_transition", reason: "implemented", to: "review" },
+        1003,
+      ),
     ).toThrow(/RED\/GREEN/iu);
     state = applyWorkflowAction(state, evidence("tdd-exception"), 1003);
     state = applyWorkflowAction(state, evidence("focused-verification"), 1003);
     state = applyWorkflowAction(state, evidence("regression-verification"), 1003);
-    state = applyWorkflowAction(state, { gate: "build", kind: "approve", now: 1004 }, 1004);
     state = applyWorkflowAction(
       state,
-      { kind: "request_transition", reason: "reviewed", to: "ship" },
-      1005,
+      { kind: "request_transition", reason: "implemented", to: "review" },
+      1004,
     );
     expect(() =>
-      applyWorkflowAction(state, { gate: "review", kind: "approve", now: 1006 }, 1006),
+      applyWorkflowAction(
+        state,
+        { kind: "request_transition", reason: "reviewed", to: "ship" },
+        1006,
+      ),
     ).toThrow(/intent, correctness/iu);
     state = applyWorkflowAction(state, evidence("review-reduced-assurance"), 1006);
     state = applyWorkflowAction(state, evidence("final-verification"), 1006);
     expect(() =>
-      applyWorkflowAction(state, { gate: "review", kind: "approve", now: 1007 }, 1007),
+      applyWorkflowAction(
+        state,
+        { kind: "request_transition", reason: "reviewed", to: "ship" },
+        1007,
+      ),
     ).toThrow(/intent, correctness/iu);
     for (const kind of [
       "review-intent",
@@ -303,32 +353,34 @@ describe("workflow reducer", () => {
       state = applyWorkflowAction(state, evidence(kind), 1007);
     }
     expect(
-      applyWorkflowAction(state, { gate: "review", kind: "approve", now: 1008 }, 1008).phase,
+      applyWorkflowAction(
+        state,
+        { kind: "request_transition", reason: "reviewed", to: "ship" },
+        1008,
+      ).phase,
     ).toBe("ship");
   });
 
   it("keeps one active slice, validates IDs and paths, and supports scope cuts", () => {
     expect.hasAssertions();
-    let planState = applyWorkflowAction(
-      toBuild(),
-      { kind: "rewind", phase: "plan", reason: "add another integrated slice" },
-      1001,
-    );
-    planState = applyWorkflowAction(
-      planState,
+    let state = toBuild();
+    state = applyWorkflowAction(
+      state,
       { id: "VS-002", kind: "register_slice", path: "slices/VS-002.md" },
       1001,
     );
+    expect(state).toMatchObject({ gates: { plan: true }, phase: "build" });
     expect(() =>
-      applyWorkflowAction(planState, { id: "bad", kind: "register_slice", path: "slice.md" }, 1001),
+      applyWorkflowAction(state, { id: "bad", kind: "register_slice", path: "slice.md" }, 1001),
     ).toThrow(/VS-NNN/iu);
     expect(() =>
-      applyWorkflowAction(
-        planState,
-        { id: "VS-001", kind: "register_slice", path: "other.md" },
-        1001,
-      ),
+      applyWorkflowAction(state, { id: "VS-001", kind: "register_slice", path: "other.md" }, 1001),
     ).toThrow(/already/iu);
+    const planState = applyWorkflowAction(
+      state,
+      { kind: "rewind", phase: "plan", reason: "check a replacement path" },
+      1001,
+    );
     expect(() =>
       applyWorkflowAction(
         planState,
@@ -336,14 +388,6 @@ describe("workflow reducer", () => {
         1001,
       ),
     ).toThrow(/relative/iu);
-    planState = applyWorkflowAction(planState, evidence("validation-contract"), 1001);
-    planState = applyWorkflowAction(planState, evidence("workspace-decision"), 1001);
-    planState = applyWorkflowAction(
-      planState,
-      { kind: "request_transition", reason: "updated slice map ready", to: "build" },
-      1001,
-    );
-    let state = applyWorkflowAction(planState, { gate: "plan", kind: "approve", now: 1001 }, 1001);
     state = applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "active" }, 1002);
     state = applyWorkflowAction(state, { id: "VS-002", kind: "set_slice", status: "active" }, 1003);
     expect(state.slices).toMatchObject([
@@ -406,7 +450,11 @@ describe("workflow reducer", () => {
     ).toThrow(/only a paused/iu);
 
     expect(() =>
-      applyWorkflowAction(state, { kind: "record_outcome", outcome: "keep building" }, expiredAt),
+      applyWorkflowAction(
+        state,
+        { kind: "record_outcome", receipt: "keep building", shipAction: "commit" },
+        expiredAt,
+      ),
     ).toThrow(/circuit breaker/iu);
     const withEvidence = applyWorkflowAction(state, evidence("expiry-observation"), expiredAt);
     expect(withEvidence.evidence.at(-1)?.kind).toBe("expiry-observation");
@@ -546,13 +594,12 @@ describe("workflow reducer", () => {
       { id: "VS-001", kind: "set_slice", status: "verified" },
       1005,
     );
-    recovered = applyWorkflowAction(
-      recovered,
-      { kind: "request_transition", reason: "old checks must not count", to: "review" },
-      1005,
-    );
     expect(() =>
-      applyWorkflowAction(recovered, { gate: "build", kind: "approve", now: 1005 }, 1005),
+      applyWorkflowAction(
+        recovered,
+        { kind: "request_transition", reason: "old checks must not count", to: "review" },
+        1005,
+      ),
     ).toThrow(/RED\/GREEN/iu);
   });
 
@@ -564,7 +611,7 @@ describe("workflow reducer", () => {
       state,
       {
         kind: "observe_workspace",
-        workspace: { branch: "feat/one", head: "abc", path: "/repo" },
+        workspace: { branch: "feat/one", head: "abc", path: "/repo", tree: "sha256:one" },
       },
       1002,
     );
@@ -579,6 +626,7 @@ describe("workflow reducer", () => {
           kind: "focused-verification",
           reference: "test",
           sensitivity: "private",
+          tree: "sha256:one",
         },
         kind: "record_evidence",
       },
@@ -588,16 +636,19 @@ describe("workflow reducer", () => {
       state,
       {
         kind: "observe_workspace",
-        workspace: { branch: "feat/one", head: "abc", path: "/repo" },
+        workspace: { branch: "feat/one", head: "abc", path: "/repo", tree: "sha256:one" },
       },
       1004,
     );
     expect(unchanged.revision).toBe(state.revision);
+    expect(unchanged.evidence.find((item) => item.kind === "focused-verification")?.tree).toBe(
+      "sha256:one",
+    );
     const drifted = applyWorkflowAction(
       state,
       {
         kind: "observe_workspace",
-        workspace: { branch: "feat/two", head: "def", path: "/other" },
+        workspace: { branch: "feat/one", head: "abc", path: "/repo", tree: "sha256:two" },
       },
       1005,
     );
@@ -667,7 +718,7 @@ describe("workflow reducer", () => {
     state = applyWorkflowAction(state, { kind: "resume", now: 3 });
     expect(() =>
       applyWorkflowAction(state, { id: "VS-001", kind: "register_slice", path: "slice.md" }),
-    ).toThrow(/plan phase/iu);
+    ).toThrow(/plan or build phase/iu);
 
     let build = toBuild();
     expect(() =>
@@ -709,9 +760,9 @@ describe("workflow reducer", () => {
     );
     expect(build.slices[0]?.status).toBe("planned");
 
-    expect(() => applyWorkflowAction(build, { kind: "complete", reason: "done" }, 1001)).toThrow(
-      /ready to ship/iu,
-    );
+    expect(() =>
+      applyWorkflowAction(build, { kind: "finish", now: 1001, reason: "done" }, 1001),
+    ).toThrow(/ready to ship/iu);
   });
 
   it("requires complete gate chains, unresolved-item resolution, and verified-or-cut ship scope", () => {
@@ -820,7 +871,7 @@ describe("workflow reducer", () => {
     expect(isWorkflowSnapshot(build)).toBe(true);
   });
 
-  it("completes only after ready-to-ship and a recorded outcome, then becomes terminal", () => {
+  it("requires matching typed receipts, supports multiple actions, and finishes explicitly", () => {
     expect.hasAssertions();
     let state = toBuild();
     state = applyWorkflowAction(
@@ -828,15 +879,13 @@ describe("workflow reducer", () => {
       { id: "VS-001", kind: "set_slice", status: "verified" },
       1001,
     );
-    for (const kind of ["red", "green", "focused-verification", "regression-verification"]) {
+    for (const kind of ["red", "green", "focused-verification", "regression-verification"])
       state = applyWorkflowAction(state, evidence(kind), 1001);
-    }
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "ready", to: "review" },
-      1001,
+      1002,
     );
-    state = applyWorkflowAction(state, { gate: "build", kind: "approve", now: 1002 }, 1002);
     for (const kind of [
       "review-intent",
       "review-correctness",
@@ -848,13 +897,111 @@ describe("workflow reducer", () => {
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "ready", to: "ship" },
-      1003,
+      1004,
     );
-    state = applyWorkflowAction(state, { gate: "review", kind: "approve", now: 1004 }, 1004);
-    expect(() => applyWorkflowAction(state, { kind: "complete", reason: "shipped" }, 1005)).toThrow(
-      /recorded outcome/iu,
+
+    expect(() =>
+      applyWorkflowAction(
+        state,
+        { kind: "record_outcome", receipt: "PR merged", shipAction: "merge" },
+        1005,
+      ),
+    ).toThrow(/direct human/iu);
+    state = applyWorkflowAction(
+      state,
+      { action: "merge", kind: "authorize_ship", now: 1005, reason: "merge reviewed PR" },
+      1005,
     );
-    state = applyWorkflowAction(state, { kind: "record_outcome", outcome: "PR merged" }, 1005);
+    expect(state.pendingShipAction).toMatchObject({
+      action: "merge",
+      path: "/repo",
+      timestamp: 1005,
+    });
+    expect(() =>
+      applyWorkflowAction(
+        state,
+        { action: "push", kind: "authorize_ship", now: 1005, reason: "also push" },
+        1005,
+      ),
+    ).toThrow(/already authorized/iu);
+    expect(() =>
+      applyWorkflowAction(state, { kind: "finish", now: 1005, reason: "too early" }, 1005),
+    ).toThrow(/pending merge/iu);
+    const cancelled = applyWorkflowAction(
+      state,
+      { kind: "cancel_ship", now: 1005, reason: "merge no longer requested" },
+      1005,
+    );
+    expect(cancelled.pendingShipAction).toBeUndefined();
+    expect(() =>
+      applyWorkflowAction(
+        cancelled,
+        { kind: "cancel_ship", now: 1005, reason: "nothing pending" },
+        1005,
+      ),
+    ).toThrow(/no ship authorization/iu);
+    state = applyWorkflowAction(
+      cancelled,
+      { action: "merge", kind: "authorize_ship", now: 1005, reason: "merge reviewed PR" },
+      1005,
+    );
+    const rerouted = applyWorkflowAction(
+      state,
+      { kind: "observe_workspace", workspace: { path: "/other-worktree" } },
+      1005,
+    );
+    expect(() =>
+      applyWorkflowAction(
+        rerouted,
+        { kind: "record_outcome", receipt: "PR merged", shipAction: "merge" },
+        1005,
+      ),
+    ).toThrow(/workspace changed/iu);
+    expect(() =>
+      applyWorkflowAction(
+        state,
+        { kind: "record_outcome", receipt: "origin updated", shipAction: "push" },
+        1005,
+      ),
+    ).toThrow(/does not match/iu);
+    state = applyWorkflowAction(
+      state,
+      { kind: "record_outcome", receipt: "PR merged", shipAction: "merge" },
+      1006,
+    );
+    expect(state).toMatchObject({
+      outcomes: [{ action: "merge", receipt: "PR merged", timestamp: 1006 }],
+      phase: "ship",
+      status: "active",
+    });
+    expect(state.pendingShipAction).toBeUndefined();
+
+    state = applyWorkflowAction(
+      state,
+      { action: "push", kind: "authorize_ship", now: 1007, reason: "publish merged branch" },
+      1007,
+    );
+    const editedAfterPushAuthorization = applyWorkflowAction(
+      state,
+      { kind: "observe_workspace", workspace: { path: "/repo", tree: "sha256:changed" } },
+      1007,
+    );
+    expect(() =>
+      applyWorkflowAction(
+        editedAfterPushAuthorization,
+        { kind: "record_outcome", receipt: "origin updated", shipAction: "push" },
+        1008,
+      ),
+    ).toThrow(/workspace changed/iu);
+    state = applyWorkflowAction(
+      state,
+      { kind: "record_outcome", receipt: "origin updated", shipAction: "push" },
+      1008,
+    );
+    expect(state.outcomes.map((item) => (typeof item === "string" ? item : item.action))).toEqual([
+      "merge",
+      "push",
+    ]);
     const staleReview = {
       ...state,
       evidence: state.evidence.map((item) =>
@@ -864,14 +1011,14 @@ describe("workflow reducer", () => {
     expect(() =>
       applyWorkflowAction(
         staleReview,
-        { kind: "complete", reason: "Human accepted completion" },
-        1006,
+        { kind: "finish", now: 1009, reason: "Human accepted completion" },
+        1009,
       ),
     ).toThrow(/final-verification/iu);
     state = applyWorkflowAction(
       state,
-      { kind: "complete", reason: "Human accepted completion" },
-      1006,
+      { kind: "finish", now: 1009, reason: "Human accepted completion" },
+      1009,
     );
     expect(state.status).toBe("completed");
     expect(() => applyWorkflowAction(state, evidence("late"))).toThrow(/cannot be mutated/iu);
@@ -897,6 +1044,10 @@ describe("workflow reducer", () => {
       corrupt: false,
       snapshot: resolved,
     });
+    const legacyOutcome = { ...resolved, outcomes: ["PR created before typed receipts"] };
+    expect(
+      snapshotFromBranch([{ customType: STATE_TYPE, data: legacyOutcome, type: "custom" }]),
+    ).toEqual({ corrupt: false, snapshot: legacyOutcome });
     expect(
       snapshotFromBranch([
         { customType: STATE_TYPE, data: valid, type: "custom" },
@@ -908,6 +1059,22 @@ describe("workflow reducer", () => {
   it("rejects malformed snapshots and bounded collections atomically", () => {
     expect.hasAssertions();
     const initial = createWorkflow("Atomic", "/repo", 1);
+    expect(isWorkflowSnapshot(initial)).toBe(true);
+    expect(
+      isWorkflowSnapshot({
+        ...initial,
+        evidence: [
+          {
+            claim: "bound",
+            kind: "problem",
+            reference: "test",
+            sensitivity: "private",
+            tree: "sha256:one",
+          },
+        ],
+        workspace: { path: "/repo", tree: "sha256:one" },
+      }),
+    ).toBe(true);
     for (const invalid of [
       null,
       {},
@@ -915,6 +1082,26 @@ describe("workflow reducer", () => {
       { ...initial, title: "" },
       { ...initial, workflowId: "bad id" },
       { ...initial, outcomes: [" "] },
+      {
+        ...initial,
+        outcomes: [{ action: "unknown", receipt: "done", timestamp: 1 }],
+      },
+      {
+        ...initial,
+        outcomes: [{ action: "merge", receipt: " ", timestamp: 1 }],
+      },
+      {
+        ...initial,
+        outcomes: [{ action: "merge", receipt: "done", timestamp: -1 }],
+      },
+      {
+        ...initial,
+        pendingShipAction: { action: "merge", reason: "approved", timestamp: 1 },
+      },
+      {
+        ...initial,
+        pendingShipAction: { action: "unknown", reason: "approved", timestamp: 1 },
+      },
       {
         ...initial,
         resolvedDecisions: [{ id: "DEC-001", reason: "chosen", timestamp: -1 }],
@@ -953,7 +1140,20 @@ describe("workflow reducer", () => {
       { ...initial, phase: "wat" },
       { ...initial, status: "wat" },
       { ...initial, workspace: {} },
+      { ...initial, workspace: { path: "/repo", tree: "" } },
       { ...initial, evidence: "bad" },
+      {
+        ...initial,
+        evidence: [
+          {
+            claim: "bound",
+            kind: "problem",
+            reference: "test",
+            sensitivity: "private",
+            tree: "",
+          },
+        ],
+      },
       {
         ...initial,
         slices: [

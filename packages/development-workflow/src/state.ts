@@ -8,6 +8,19 @@ export type WorkflowStatus = "active" | "paused" | "blocked" | "abandoned" | "co
 export type SliceStatus = "planned" | "active" | "blocked" | "verified" | "cut";
 export type BackstopState = "not_started" | "active" | "attention" | "expired";
 export type WorkflowIssueType = "blocker" | "decision";
+export const SHIP_ACTIONS = [
+  "commit",
+  "push",
+  "pull-request",
+  "merge",
+  "release",
+  "deploy",
+  "publish",
+  "worktree-removal",
+] as const;
+export type ShipAction = (typeof SHIP_ACTIONS)[number];
+export const CLEAN_TREE_FINGERPRINT =
+  "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 export interface WorkflowSlice {
   readonly id: string;
@@ -23,6 +36,38 @@ export interface WorkflowEvidence {
   readonly reference: string;
   readonly sensitivity: "public" | "private";
   readonly stale?: true;
+  readonly tree?: string;
+}
+
+export interface WorkflowWorkspace {
+  readonly branch?: string;
+  readonly head?: string;
+  readonly path: string;
+  readonly tree?: string;
+}
+
+export interface WorkflowShipReceipt {
+  readonly action: ShipAction;
+  readonly authorizationReason?: string;
+  readonly authorizedAt?: number;
+  readonly authorizedBranch?: string;
+  readonly authorizedHead?: string;
+  readonly authorizedPath?: string;
+  readonly authorizedTree?: string;
+  readonly branch?: string;
+  readonly head?: string;
+  readonly path?: string;
+  readonly receipt: string;
+  readonly timestamp: number;
+  readonly tree?: string;
+}
+
+export type WorkflowOutcome = WorkflowShipReceipt | string;
+
+export interface ShipAuthorization extends WorkflowWorkspace {
+  readonly action: ShipAction;
+  readonly reason: string;
+  readonly timestamp: number;
 }
 
 export interface WorkflowIssue {
@@ -47,7 +92,8 @@ export interface WorkflowSnapshot {
   readonly attention?: string;
   readonly evidence: readonly WorkflowEvidence[];
   readonly gates: Readonly<Partial<Record<WorkflowPhase, true>>>;
-  readonly outcomes: readonly string[];
+  readonly outcomes: readonly WorkflowOutcome[];
+  readonly pendingShipAction?: ShipAuthorization;
   readonly phase: WorkflowPhase;
   readonly resolvedDecisions: readonly WorkflowDecisionResolution[];
   readonly revision: number;
@@ -58,7 +104,7 @@ export interface WorkflowSnapshot {
   readonly unresolved: readonly WorkflowIssue[];
   readonly version: 1;
   readonly workflowId: string;
-  readonly workspace: { readonly branch?: string; readonly head?: string; readonly path: string };
+  readonly workspace: WorkflowWorkspace;
 }
 
 export interface WorkflowSummaryEventV1 {
@@ -113,16 +159,16 @@ export type WorkflowAction =
       readonly reason: string;
     }
   | { readonly kind: "abandon"; readonly reason: string }
-  | { readonly kind: "record_outcome"; readonly outcome: string }
-  | { readonly kind: "complete"; readonly reason: string }
   | {
-      readonly kind: "observe_workspace";
-      readonly workspace: {
-        readonly branch?: string;
-        readonly head?: string;
-        readonly path: string;
-      };
+      readonly action: ShipAction;
+      readonly kind: "authorize_ship";
+      readonly now: number;
+      readonly reason: string;
     }
+  | { readonly kind: "cancel_ship"; readonly now: number; readonly reason: string }
+  | { readonly kind: "finish"; readonly now: number; readonly reason: string }
+  | { readonly kind: "record_outcome"; readonly receipt: string; readonly shipAction: ShipAction }
+  | { readonly kind: "observe_workspace"; readonly workspace: WorkflowWorkspace }
   | { readonly kind: "observe_missing_artifacts"; readonly paths: readonly string[] };
 
 const MAX_SLICES = 50;
@@ -251,17 +297,21 @@ function isStatus(value: unknown): value is WorkflowStatus {
 function isSliceStatus(value: unknown): value is SliceStatus {
   return ["planned", "active", "blocked", "verified", "cut"].includes(String(value));
 }
+function isShipAction(value: unknown): value is ShipAction {
+  return SHIP_ACTIONS.includes(value as ShipAction);
+}
 
 function isWorkspace(value: unknown): value is WorkflowSnapshot["workspace"] {
   if (
     !isRecord(value) ||
-    !exactKeys(value, ["path"], ["branch", "head"]) ||
+    !exactKeys(value, ["path"], ["branch", "head", "tree"]) ||
     !validText(value["path"], 500)
   )
     return false;
   return (
     (value["branch"] === undefined || validText(value["branch"], 200)) &&
-    (value["head"] === undefined || validText(value["head"], 100))
+    (value["head"] === undefined || validText(value["head"], 100)) &&
+    (value["tree"] === undefined || validText(value["tree"], 100))
   );
 }
 
@@ -280,7 +330,11 @@ function isBackstop(value: unknown): value is NonNullable<WorkflowSnapshot["back
 function isEvidence(value: unknown): value is WorkflowEvidence {
   if (
     !isRecord(value) ||
-    !exactKeys(value, ["claim", "kind", "reference", "sensitivity"], ["branch", "head", "stale"])
+    !exactKeys(
+      value,
+      ["claim", "kind", "reference", "sensitivity"],
+      ["branch", "head", "stale", "tree"],
+    )
   )
     return false;
   return (
@@ -290,7 +344,70 @@ function isEvidence(value: unknown): value is WorkflowEvidence {
     (value["sensitivity"] === "public" || value["sensitivity"] === "private") &&
     (value["branch"] === undefined || validText(value["branch"], 200)) &&
     (value["head"] === undefined || validText(value["head"], 100)) &&
-    (value["stale"] === undefined || value["stale"] === true)
+    (value["stale"] === undefined || value["stale"] === true) &&
+    (value["tree"] === undefined || validText(value["tree"], 100))
+  );
+}
+
+function optionalText(value: unknown, maximum: number): boolean {
+  return value === undefined || validText(value, maximum);
+}
+
+function validOutcomeMetadata(value: Record<string, unknown>): boolean {
+  return (
+    optionalText(value["authorizationReason"], MAX_TEXT) &&
+    (value["authorizedAt"] === undefined || finiteTimestamp(value["authorizedAt"])) &&
+    optionalText(value["authorizedBranch"], 200) &&
+    optionalText(value["authorizedHead"], 100) &&
+    optionalText(value["authorizedPath"], 500) &&
+    optionalText(value["authorizedTree"], 100) &&
+    optionalText(value["branch"], 200) &&
+    optionalText(value["head"], 100) &&
+    optionalText(value["path"], 500) &&
+    optionalText(value["tree"], 100)
+  );
+}
+
+function isOutcome(value: unknown): value is WorkflowOutcome {
+  if (typeof value === "string") return validText(value);
+  return (
+    isRecord(value) &&
+    exactKeys(
+      value,
+      ["action", "receipt", "timestamp"],
+      [
+        "authorizationReason",
+        "authorizedAt",
+        "authorizedBranch",
+        "authorizedHead",
+        "authorizedPath",
+        "authorizedTree",
+        "branch",
+        "head",
+        "path",
+        "tree",
+      ],
+    ) &&
+    isShipAction(value["action"]) &&
+    validText(value["receipt"]) &&
+    finiteTimestamp(value["timestamp"]) &&
+    validOutcomeMetadata(value)
+  );
+}
+
+function isShipAuthorization(value: unknown): value is ShipAuthorization {
+  return (
+    isRecord(value) &&
+    exactKeys(value, ["action", "path", "reason", "timestamp"], ["branch", "head", "tree"]) &&
+    isShipAction(value["action"]) &&
+    isWorkspace({
+      ...(value["branch"] === undefined ? {} : { branch: value["branch"] }),
+      ...(value["head"] === undefined ? {} : { head: value["head"] }),
+      path: value["path"],
+      ...(value["tree"] === undefined ? {} : { tree: value["tree"] }),
+    }) &&
+    validText(value["reason"]) &&
+    finiteTimestamp(value["timestamp"])
   );
 }
 
@@ -389,11 +506,7 @@ function validCollections(value: Record<string, unknown>): boolean {
   if (!Array.isArray(evidence) || evidence.length > MAX_EVIDENCE || !evidence.every(isEvidence))
     return false;
   const outcomes = value["outcomes"];
-  if (
-    !Array.isArray(outcomes) ||
-    outcomes.length > MAX_OUTCOMES ||
-    outcomes.some((item) => !validText(item))
-  )
+  if (!Array.isArray(outcomes) || outcomes.length > MAX_OUTCOMES || !outcomes.every(isOutcome))
     return false;
   const unresolved = value["unresolved"];
   if (!Array.isArray(unresolved) || unresolved.length > MAX_ISSUES || !unresolved.every(isIssue))
@@ -445,7 +558,7 @@ export function isWorkflowSnapshot(value: unknown): value is WorkflowSnapshot {
       "workflowId",
       "workspace",
     ],
-    ["backstop", "attention", "transitionRequest"],
+    ["backstop", "attention", "pendingShipAction", "transitionRequest"],
   );
   if (!keysValid || !validIdentity(value)) return false;
   if (
@@ -457,9 +570,17 @@ export function isWorkflowSnapshot(value: unknown): value is WorkflowSnapshot {
   const phase = value["phase"] as WorkflowPhase;
   if (!validGates(value["gates"], phase) || !validTransition(value["transitionRequest"], phase))
     return false;
+  return validOptionalSnapshotState(value);
+}
+
+function validOptionalSnapshotState(value: Record<string, unknown>): boolean {
   const attentionValid = value["attention"] === undefined || validText(value["attention"]);
   const backstopValid = value["backstop"] === undefined || isBackstop(value["backstop"]);
-  return attentionValid && backstopValid && validPhaseStatus(value);
+  const pending = value["pendingShipAction"];
+  const pendingValid =
+    pending === undefined ||
+    (isShipAuthorization(pending) && value["phase"] === "ship" && value["status"] === "active");
+  return attentionValid && backstopValid && pendingValid && validPhaseStatus(value);
 }
 
 export function snapshotFromBranch(entries: readonly unknown[]): {
@@ -506,9 +627,9 @@ function requireScopeComplete(snapshot: WorkflowSnapshot, label: string): void {
 }
 
 function requireDiscoverGate(snapshot: WorkflowSnapshot): void {
-  if (!fresh(snapshot, "problem") || !fresh(snapshot, "research", "research-not-needed"))
+  if (!fresh(snapshot, "problem") || !fresh(snapshot, "research"))
     throw new Error(
-      "Discover approval requires problem evidence and research or a research-not-needed reason.",
+      "Discover transition requires problem evidence and fresh repository research evidence.",
     );
 }
 
@@ -536,7 +657,7 @@ function requirePlanGate(snapshot: WorkflowSnapshot): void {
 }
 
 function requireBuildGate(snapshot: WorkflowSnapshot): void {
-  requireScopeComplete(snapshot, "Build approval");
+  requireScopeComplete(snapshot, "Build transition");
   const cycle =
     fresh(snapshot, "tdd-exception") || (fresh(snapshot, "red") && fresh(snapshot, "green"));
   if (
@@ -545,12 +666,12 @@ function requireBuildGate(snapshot: WorkflowSnapshot): void {
     !fresh(snapshot, "regression-verification")
   )
     throw new Error(
-      "Build approval requires RED/GREEN (or justified TDD exception), focused verification, and regression verification evidence.",
+      "Build transition requires RED/GREEN (or justified TDD exception), focused verification, and regression verification evidence.",
     );
 }
 
 function requireReviewGate(snapshot: WorkflowSnapshot): void {
-  requireScopeComplete(snapshot, "Review approval");
+  requireScopeComplete(snapshot, "Review transition");
   if (
     !fresh(snapshot, "review-intent") ||
     !fresh(snapshot, "review-correctness") ||
@@ -559,7 +680,7 @@ function requireReviewGate(snapshot: WorkflowSnapshot): void {
     !fresh(snapshot, "final-verification")
   )
     throw new Error(
-      "Review approval requires intent, correctness, maintainability, risk/operations, and final-verification evidence.",
+      "Review transition requires intent, correctness, maintainability, risk/operations, and final-verification evidence.",
     );
 }
 
@@ -567,9 +688,9 @@ function gatePrerequisites(snapshot: WorkflowSnapshot, gate: Exclude<WorkflowPha
   const gateIndex = PHASES.indexOf(gate);
   const priorGates = PHASES.slice(0, gateIndex);
   if (priorGates.some((prior) => snapshot.gates[prior] !== true))
-    throw new Error("Approval requires the complete prerequisite gate chain.");
+    throw new Error("Transition requires the complete prerequisite gate chain.");
   if (snapshot.unresolved.length > 0)
-    throw new Error("Approval is blocked by unresolved decisions or blockers.");
+    throw new Error("Transition is blocked by unresolved decisions or blockers.");
   const target = PHASES[gateIndex + 1];
   if (snapshot.transitionRequest?.to !== target)
     throw new Error(`Request transition to ${String(target)} before approval.`);
@@ -603,6 +724,7 @@ function rewind(
     slices: snapshot.slices.map((slice) =>
       slice.status === "cut" ? slice : { ...slice, status: "planned" as const },
     ),
+    pendingShipAction: undefined,
     status: "active",
     transitionRequest: undefined,
     unresolved: [],
@@ -645,11 +767,15 @@ function observeWorkspace(
     ...(workspaceInput.head === undefined
       ? {}
       : { head: boundedText(workspaceInput.head, "Workspace HEAD", 100) }),
+    ...(workspaceInput.tree === undefined
+      ? {}
+      : { tree: boundedText(workspaceInput.tree, "Workspace tree", 100) }),
   };
   if (
     workspace.path === snapshot.workspace.path &&
     workspace.branch === snapshot.workspace.branch &&
-    workspace.head === snapshot.workspace.head
+    workspace.head === snapshot.workspace.head &&
+    workspace.tree === snapshot.workspace.tree
   )
     return clone(snapshot);
   const firstIdentity =
@@ -657,10 +783,14 @@ function observeWorkspace(
     snapshot.evidence.length === 0 &&
     Object.keys(snapshot.gates).length === 0;
   if (firstIdentity) return next(snapshot, { workspace });
-  const pathChanged = workspace.path !== snapshot.workspace.path;
+  const identityChanged =
+    workspace.path !== snapshot.workspace.path ||
+    workspace.branch !== snapshot.workspace.branch ||
+    workspace.head !== snapshot.workspace.head ||
+    workspace.tree !== snapshot.workspace.tree;
   const evidence = snapshot.evidence.map((item) =>
-    (item.branch !== undefined || item.head !== undefined) &&
-    (pathChanged || item.branch !== workspace.branch || item.head !== workspace.head)
+    (item.branch !== undefined || item.head !== undefined || item.tree !== undefined) &&
+    identityChanged
       ? { ...item, stale: true as const }
       : item,
   );
@@ -681,7 +811,6 @@ const EVIDENCE_PHASE: Readonly<Record<string, WorkflowPhase>> = {
   red: "build",
   "regression-verification": "build",
   research: "discover",
-  "research-not-needed": "discover",
   "review-correctness": "review",
   "review-intent": "review",
   "review-maintainability": "review",
@@ -783,7 +912,9 @@ type FlowControlAction = Extract<
 >;
 type ResolutionAction = Extract<
   WorkflowAction,
-  { kind: "resolve_issue" | "circuit" | "abandon" | "complete" }
+  {
+    kind: "resolve_issue" | "circuit" | "abandon" | "authorize_ship" | "cancel_ship" | "finish";
+  }
 >;
 type ObservationAction = Extract<
   WorkflowAction,
@@ -812,7 +943,9 @@ const RESOLUTION_ACTIONS = new Set<WorkflowAction["kind"]>([
   "resolve_issue",
   "circuit",
   "abandon",
-  "complete",
+  "authorize_ship",
+  "cancel_ship",
+  "finish",
 ]);
 
 function isContentAction(action: WorkflowAction): action is ContentAction {
@@ -855,7 +988,8 @@ function applyContentAction(snapshot: WorkflowSnapshot, action: ContentAction): 
       });
     }
     case "register_slice": {
-      if (snapshot.phase !== "plan") throw new Error("Slice registration requires the plan phase.");
+      if (snapshot.phase !== "plan" && snapshot.phase !== "build")
+        throw new Error("Slice registration requires the plan or build phase.");
       const id = boundedText(action.id, "Slice id", 30);
       if (!/^VS-\d{3,}$/u.test(id)) throw new Error("Slice id must match VS-NNN.");
       if (snapshot.slices.some((slice) => slice.id === id))
@@ -889,6 +1023,9 @@ function recordEvidence(
     ...(action.evidence.head === undefined
       ? {}
       : { head: boundedText(action.evidence.head, "Evidence HEAD", 100) }),
+    ...(action.evidence.tree === undefined
+      ? {}
+      : { tree: boundedText(action.evidence.tree, "Evidence tree", 100) }),
   };
   return next(snapshot, { evidence: [...snapshot.evidence, item] });
 }
@@ -923,7 +1060,11 @@ function recordIssue(
   });
 }
 
-function applyProgressAction(snapshot: WorkflowSnapshot, action: ProgressAction): WorkflowSnapshot {
+function applyProgressAction(
+  snapshot: WorkflowSnapshot,
+  action: ProgressAction,
+  now: number,
+): WorkflowSnapshot {
   switch (action.kind) {
     case "set_slice":
       return setSlice(snapshot, action.id, action.status, action.reason);
@@ -933,39 +1074,57 @@ function applyProgressAction(snapshot: WorkflowSnapshot, action: ProgressAction)
       return recordEvidence(snapshot, action);
     case "record_issue":
       return recordIssue(snapshot, action);
-    case "request_transition":
+    case "request_transition": {
       if (PHASES.indexOf(action.to) !== PHASES.indexOf(snapshot.phase) + 1)
         throw new Error("Transition requests must advance exactly one phase.");
-      return next(snapshot, {
-        transitionRequest: {
-          reason: boundedText(action.reason, "Transition reason"),
-          to: action.to,
-        },
-      });
+      const transitionRequest = {
+        reason: boundedText(action.reason, "Transition reason"),
+        to: action.to,
+      };
+      if (
+        snapshot.phase === "discover" ||
+        snapshot.phase === "build" ||
+        snapshot.phase === "review"
+      )
+        return advanceGate({ ...clone(snapshot), transitionRequest }, snapshot.phase, now);
+      return next(snapshot, { transitionRequest });
+    }
   }
+}
+
+function advanceGate(
+  snapshot: WorkflowSnapshot,
+  gate: Exclude<WorkflowPhase, "ship">,
+  now: number,
+): WorkflowSnapshot {
+  if (snapshot.phase !== gate)
+    throw new Error(`Cannot advance ${gate} while in ${snapshot.phase}.`);
+  gatePrerequisites(snapshot, gate);
+  const target = PHASES[PHASES.indexOf(gate) + 1];
+  if (target === undefined) throw new Error("Ship has no automatic approval transition.");
+  let backstop = snapshot.backstop;
+  if (gate === "plan" && backstop !== undefined && backstop.startedAt === undefined) {
+    backstop = { ...backstop, startedAt: now };
+  }
+  return next(snapshot, {
+    ...(backstop === undefined ? {} : { backstop }),
+    attention: gate === "review" ? "ready_to_ship" : undefined,
+    gates: { ...snapshot.gates, [gate]: true },
+    phase: target,
+    status: "active",
+    transitionRequest: undefined,
+  });
 }
 
 function approve(
   snapshot: WorkflowSnapshot,
   action: Extract<WorkflowAction, { kind: "approve" }>,
 ): WorkflowSnapshot {
-  if (snapshot.phase !== action.gate)
-    throw new Error(`Cannot approve ${action.gate} while in ${snapshot.phase}.`);
-  gatePrerequisites(snapshot, action.gate);
-  const target = PHASES[PHASES.indexOf(action.gate) + 1];
-  if (target === undefined) throw new Error("Ship has no automatic approval transition.");
-  let backstop = snapshot.backstop;
-  if (action.gate === "plan" && backstop !== undefined && backstop.startedAt === undefined) {
-    backstop = { ...backstop, startedAt: action.now };
-  }
-  return next(snapshot, {
-    ...(backstop === undefined ? {} : { backstop }),
-    attention: action.gate === "review" ? "ready_to_ship" : undefined,
-    gates: { ...snapshot.gates, [action.gate]: true },
-    phase: target,
-    status: "active",
-    transitionRequest: undefined,
-  });
+  if (action.gate !== "pitch" && action.gate !== "plan")
+    throw new Error(
+      `${action.gate} is agent-owned; record the required evidence and request its transition instead.`,
+    );
+  return advanceGate(snapshot, action.gate, action.now);
 }
 
 function resume(snapshot: WorkflowSnapshot): WorkflowSnapshot {
@@ -1065,11 +1224,11 @@ function resolveIssue(
   });
 }
 
-function complete(snapshot: WorkflowSnapshot, reason: string): WorkflowSnapshot {
+function requireCompletion(snapshot: WorkflowSnapshot): void {
   if (snapshot.phase !== "ship" || snapshot.gates.review !== true)
     throw new Error("Completion requires ready to ship state.");
   if (PHASES.slice(0, -1).some((gate) => snapshot.gates[gate] !== true))
-    throw new Error("Completion requires the full approved gate chain.");
+    throw new Error("Completion requires the full gate chain.");
   if (snapshot.unresolved.length > 0)
     throw new Error("Completion is blocked by unresolved decisions or blockers.");
   requireDiscoverGate(snapshot);
@@ -1077,9 +1236,83 @@ function complete(snapshot: WorkflowSnapshot, reason: string): WorkflowSnapshot 
   requirePlanGate(snapshot);
   requireBuildGate(snapshot);
   requireReviewGate(snapshot);
-  if (snapshot.outcomes.length === 0) throw new Error("Completion requires a recorded outcome.");
+}
+
+function authorizeShip(
+  snapshot: WorkflowSnapshot,
+  action: Extract<ResolutionAction, { kind: "authorize_ship" }>,
+): WorkflowSnapshot {
+  if (snapshot.pendingShipAction !== undefined)
+    throw new Error(
+      `Ship action ${snapshot.pendingShipAction.action} is already authorized and awaiting a receipt.`,
+    );
+  if (!finiteTimestamp(action.now)) throw new Error("Authorization timestamp must be valid.");
+  requireCompletion(snapshot);
+  const reason = boundedText(action.reason, "Ship authorization reason");
   return next(snapshot, {
-    attention: derivedAttention("completed: ", boundedText(reason, "Completion reason")),
+    attention: `authorized ${action.action}; awaiting receipt`,
+    pendingShipAction: {
+      action: action.action,
+      ...(snapshot.workspace.branch === undefined ? {} : { branch: snapshot.workspace.branch }),
+      ...(snapshot.workspace.head === undefined ? {} : { head: snapshot.workspace.head }),
+      path: snapshot.workspace.path,
+      reason,
+      timestamp: action.now,
+      ...(snapshot.workspace.tree === undefined ? {} : { tree: snapshot.workspace.tree }),
+    },
+  });
+}
+
+function cancelShip(
+  snapshot: WorkflowSnapshot,
+  action: Extract<ResolutionAction, { kind: "cancel_ship" }>,
+): WorkflowSnapshot {
+  if (snapshot.pendingShipAction === undefined)
+    throw new Error("No ship authorization is pending.");
+  if (!finiteTimestamp(action.now)) throw new Error("Cancellation timestamp must be valid.");
+  const reason = boundedText(action.reason, "Ship authorization cancellation reason");
+  return next(snapshot, {
+    attention: derivedAttention("ship authorization cancelled: ", reason),
+    pendingShipAction: undefined,
+  });
+}
+
+export function canFinishAfterWorktreeRemoval(snapshot: WorkflowSnapshot): boolean {
+  const last = snapshot.outcomes.at(-1);
+  return (
+    typeof last !== "string" &&
+    last?.action === "worktree-removal" &&
+    last.authorizedPath !== undefined &&
+    last.authorizedPath !== snapshot.workspace.path
+  );
+}
+
+function requireCompletionAfterWorktreeRemoval(snapshot: WorkflowSnapshot): void {
+  if (snapshot.phase !== "ship" || snapshot.gates.review !== true)
+    throw new Error("Completion requires ready to ship state.");
+  if (PHASES.slice(0, -1).some((gate) => snapshot.gates[gate] !== true))
+    throw new Error("Completion requires the full gate chain.");
+  if (snapshot.unresolved.length > 0)
+    throw new Error("Completion is blocked by unresolved decisions or blockers.");
+}
+
+function finishWorkflow(
+  snapshot: WorkflowSnapshot,
+  action: Extract<ResolutionAction, { kind: "finish" }>,
+): WorkflowSnapshot {
+  if (snapshot.pendingShipAction !== undefined)
+    throw new Error(
+      `Record or cancel the pending ${snapshot.pendingShipAction.action} authorization before finishing.`,
+    );
+  if (!finiteTimestamp(action.now)) throw new Error("Completion timestamp must be valid.");
+  if (canFinishAfterWorktreeRemoval(snapshot)) {
+    requireCompletionAfterWorktreeRemoval(snapshot);
+  } else {
+    requireCompletion(snapshot);
+  }
+  const reason = boundedText(action.reason, "Completion reason");
+  return next(snapshot, {
+    attention: derivedAttention("completed: ", reason),
     status: "completed",
   });
 }
@@ -1097,26 +1330,111 @@ function applyResolutionAction(
     case "abandon":
       return next(snapshot, {
         attention: boundedText(action.reason, "Abandon reason"),
+        pendingShipAction: undefined,
         status: "abandoned",
       });
-    case "complete":
-      return complete(snapshot, action.reason);
+    case "authorize_ship":
+      return authorizeShip(snapshot, action);
+    case "cancel_ship":
+      return cancelShip(snapshot, action);
+    case "finish":
+      return finishWorkflow(snapshot, action);
   }
+}
+
+function shipAuthorizationMatchesWorkspace(
+  authorization: ShipAuthorization,
+  workspace: WorkflowWorkspace,
+): boolean {
+  if (authorization.action === "worktree-removal") return authorization.path !== workspace.path;
+  if (authorization.path !== workspace.path || authorization.branch !== workspace.branch)
+    return false;
+  if (authorization.action === "commit") return true;
+  return authorization.head === workspace.head && authorization.tree === workspace.tree;
+}
+
+function bindEvidenceToWorkspace(
+  item: WorkflowEvidence,
+  workspace: WorkflowWorkspace,
+): WorkflowEvidence {
+  if (item.branch === undefined && item.head === undefined && item.tree === undefined) return item;
+  return {
+    claim: item.claim,
+    kind: item.kind,
+    reference: item.reference,
+    sensitivity: item.sensitivity,
+    ...(workspace.branch === undefined ? {} : { branch: workspace.branch }),
+    ...(workspace.head === undefined ? {} : { head: workspace.head }),
+    ...(workspace.tree === undefined ? {} : { tree: workspace.tree }),
+  };
+}
+
+function createShipReceipt(
+  pending: ShipAuthorization,
+  workspace: WorkflowWorkspace,
+  receipt: string,
+  now: number,
+): WorkflowShipReceipt {
+  return {
+    action: pending.action,
+    authorizationReason: pending.reason,
+    authorizedAt: pending.timestamp,
+    ...(pending.branch === undefined ? {} : { authorizedBranch: pending.branch }),
+    ...(pending.head === undefined ? {} : { authorizedHead: pending.head }),
+    authorizedPath: pending.path,
+    ...(pending.tree === undefined ? {} : { authorizedTree: pending.tree }),
+    ...(workspace.branch === undefined ? {} : { branch: workspace.branch }),
+    ...(workspace.head === undefined ? {} : { head: workspace.head }),
+    path: workspace.path,
+    receipt,
+    timestamp: now,
+    ...(workspace.tree === undefined ? {} : { tree: workspace.tree }),
+  };
+}
+
+function recordShipOutcome(
+  snapshot: WorkflowSnapshot,
+  action: Extract<ObservationAction, { kind: "record_outcome" }>,
+  now: number,
+): WorkflowSnapshot {
+  if (snapshot.phase !== "ship")
+    throw new Error("Outcomes may be recorded only during the ship phase.");
+  if (snapshot.outcomes.length >= MAX_OUTCOMES)
+    throw new Error(`A workflow may contain at most ${String(MAX_OUTCOMES)} outcomes.`);
+  const pending = snapshot.pendingShipAction;
+  if (pending === undefined)
+    throw new Error("A direct human must authorize this ship action before recording a receipt.");
+  if (pending.action !== action.shipAction)
+    throw new Error(
+      `Receipt action ${action.shipAction} does not match pending authorization ${pending.action}.`,
+    );
+  if (!shipAuthorizationMatchesWorkspace(pending, snapshot.workspace))
+    throw new Error(
+      `Workspace changed after ${pending.action} authorization; authorize the action again in the current workspace.`,
+    );
+  if (!finiteTimestamp(now)) throw new Error("Receipt timestamp must be valid.");
+  const receipt = boundedText(action.receipt, "Receipt");
+  const outcome = createShipReceipt(pending, snapshot.workspace, receipt, now);
+  const committedReviewedTree =
+    pending.action === "commit" && snapshot.workspace.tree === CLEAN_TREE_FINGERPRINT;
+  return next(snapshot, {
+    attention: `${action.shipAction} receipt recorded; authorize the next action or finish`,
+    evidence: committedReviewedTree
+      ? snapshot.evidence.map((item) => bindEvidenceToWorkspace(item, snapshot.workspace))
+      : snapshot.evidence,
+    outcomes: [...snapshot.outcomes, outcome],
+    pendingShipAction: undefined,
+  });
 }
 
 function applyObservationAction(
   snapshot: WorkflowSnapshot,
   action: ObservationAction,
+  now: number,
 ): WorkflowSnapshot {
   switch (action.kind) {
     case "record_outcome":
-      if (snapshot.phase !== "ship")
-        throw new Error("Outcomes may be recorded only during the ship phase.");
-      if (snapshot.outcomes.length >= MAX_OUTCOMES)
-        throw new Error(`A workflow may contain at most ${String(MAX_OUTCOMES)} outcomes.`);
-      return next(snapshot, {
-        outcomes: [...snapshot.outcomes, boundedText(action.outcome, "Outcome")],
-      });
+      return recordShipOutcome(snapshot, action, now);
     case "observe_workspace":
       return observeWorkspace(snapshot, action.workspace);
     case "observe_missing_artifacts":
@@ -1152,10 +1470,10 @@ export function applyWorkflowAction(
       "The wall-clock backstop expired; resolve the circuit breaker before continuing.",
     );
   if (isContentAction(action)) return applyContentAction(snapshot, action);
-  if (isProgressAction(action)) return applyProgressAction(snapshot, action);
+  if (isProgressAction(action)) return applyProgressAction(snapshot, action, now);
   if (isFlowControlAction(action)) return applyFlowControlAction(snapshot, action);
   if (isResolutionAction(action)) return applyResolutionAction(snapshot, action, now);
-  return applyObservationAction(snapshot, action);
+  return applyObservationAction(snapshot, action, now);
 }
 
 export function workflowSummary(

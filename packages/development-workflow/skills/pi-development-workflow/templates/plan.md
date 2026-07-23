@@ -1,14 +1,6 @@
 # Plan
 
-Pitch: [PITCH-001](spec.md)
-
-## Appetite
-
-Repeat the approved agent-effort envelope, cuttable scope, fixed quality floors, and the separate mandatory wall-clock circuit-breaker backstop.
-
-## No-Gos
-
-Repeat the exclusions that protect the appetite.
+Pitch and boundaries: [PITCH-001](spec.md)
 
 ## Vertical Slices
 
