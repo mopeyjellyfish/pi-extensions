@@ -25,7 +25,7 @@ import { isRecord, repositoryRoot } from "./lib/repository.ts";
 const piModulePath = fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"));
 const piCliPath = resolve(dirname(piModulePath), "cli.js");
 const RPC_REQUEST_ID = "pi-extension-smoke";
-const ROOT_AGGREGATE_INSTALL_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 120_000;
+const ROOT_AGGREGATE_INSTALL_TIMEOUT_MS = process.platform === "win32" ? 600_000 : 120_000;
 
 interface PackResult {
   readonly filename: string;
