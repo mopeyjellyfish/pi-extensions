@@ -5,4 +5,4 @@ argument-hint: "[constraint or focus]"
 
 # Continue development
 
-Load the `pi-development-workflow` skill and read `development_workflow` status. Continue only the current phase or active integrated slice, respecting this focus: $ARGUMENTS. During Build, proceed autonomously through well-scoped slices and stop only on a documented hard condition. Record evidence, then request rather than approve any consequential transition.
+Load the `pi-development-workflow` skill and read `development_workflow` status. Execute its exact computed Next action, respecting this focus: $ARGUMENTS. Present and consume a pending Refine-again/Approve-and-continue result in the same interaction. Run the required simplicity pass at Pitch, Plan, and each slice. During Build and Review, proceed autonomously with per-slice evidence and stop only on a documented hard condition.

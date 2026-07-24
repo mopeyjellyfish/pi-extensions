@@ -5,7 +5,7 @@ description: Pressure-test a feature or bug pitch for research grounding, proble
 
 # Pi Design Grill
 
-Read [references/questions.md](references/questions.md), the current pitch, workflow state, its Research Basis, and relevant repository truth. Complete the repository research pass before interviewing. Do not ask the user for facts that code, docs, history, experiments, or existing evidence can answer.
+Read [references/questions.md](references/questions.md), the current pitch, workflow state, its Research Basis, mandatory research.md, and relevant repository truth. Complete repository research and the bounded external prior-art disposition before interviewing. Do not ask the user for facts that code, docs, history, experiments, or existing evidence can answer.
 
 ## Interview loop
 
@@ -24,9 +24,10 @@ Without the Question tool, ask the same compact numbered batch conversationally 
 - **Research Basis:** require cited code, tests, contracts, experiments, and targeted primary sources with explicit implications; reject detached link lists and raw transcripts.
 - **Appetite:** define the qualitative agent investment through context surface, change depth, uncertainty allowance, validation burden, assurance, scope cuts, stop conditions, and fixed floors. Reject calendar estimates, token budgets, and vague size labels as substitutes.
 - **Solution:** connect fixed decisions, agent discretion, reused seams, rough macro elements, and flows without collapsing into either vagueness or implementation prescription.
+- **Simplicity:** challenge whether the behavior needs to exist, whether repository/stdlib/native/already-installed capability covers it, and which abstraction, configurability, wrapper, file, or speculative error path should be removed. Preserve fixed floors and explicitly accepted behavior.
 - **Acceptance Signals:** state decisive observable examples for users, operators, and dependent systems.
 - **Rabbit Holes:** pair each material risk with evidence, likely failure mode, containment, and an escalation or reshaping tripwire.
 - **No-Gos:** give the agent executable exclusions against adjacent work, opportunistic cleanup, and premature generalization, with the investment dimension each exclusion protects.
 - **Readiness:** verify that the pitch is rough, solved, bounded, internally consistent, and understandable by an implementing agent.
 
-Label facts, inferences, assumptions, and unresolved decisions. Interview relentlessly enough to reach shared understanding, but do not manufacture approval. Record blockers as evidence and request the pitch transition only when consequential ambiguity is resolved or explicitly accepted by the user.
+Label facts, inferences, assumptions, and unresolved decisions. Interview relentlessly enough to reach shared understanding, but do not manufacture approval. Do not exaggerate a risk, uncertainty, implementation difficulty, or recoverable tool failure into a blocker. Record a blocker only when safe progress requires a user-owned decision or changed boundary; state the evidence, consequence, and smallest decision needed. Once the artifact is coherent and simplified, request the transition and present the ledger's exact Refine-again/Approve-and-continue Question so the user's choice acts immediately.

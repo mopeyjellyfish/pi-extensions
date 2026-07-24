@@ -14,7 +14,7 @@ Preserve these Shape Up mechanics:
 
 This workflow then adapts execution for agents: begin with repository research before interviewing, express capacity as a qualitative agent-investment envelope, and vary scope while keeping correctness, safety, compatibility, accessibility, and verification floors fixed.
 
-The betting table, fixed staffing model, six-week cycle, cool-down period, and hill charts are Shape Up company-process mechanics we do **not copy**. Separately, this workflow adds no stand-ups or handoff meetings; those are generic ceremonies, not Shape Up practices. Human involvement is limited to product decisions the agent cannot own: agreeing to the pitch and first slice map, resolving consequential ambiguity, and authorizing external or destructive actions. Research, shaping, later-slice planning, implementation, verification, and review are execution work, not ceremonies.
+The betting table, fixed staffing model, six-week cycle, cool-down period, and hill charts are Shape Up company-process mechanics we do **not copy**. Separately, this workflow adds no stand-ups or handoff meetings; those are generic ceremonies, not Shape Up practices. Human involvement is limited to product decisions the agent cannot own: one Refine-again/Approve-and-continue checkpoint for the ready Research, Pitch, and first slice map; resolving consequential ambiguity; and authorizing external or destructive actions. Research, shaping, later-slice planning, implementation, verification, and review are execution work, not ceremonies.
 
 This is an adaptation of Ryan Singer's [Shape Up](https://basecamp.com/shapeup), especially [Principles of Shaping](https://basecamp.com/shapeup/1.1-chapter-02), [Set Boundaries](https://basecamp.com/shapeup/1.2-chapter-03), [Risks and Rabbit Holes](https://basecamp.com/shapeup/1.4-chapter-05), [Get One Piece Done](https://basecamp.com/shapeup/3.2-chapter-11), and [Map the Scopes](https://basecamp.com/shapeup/3.3-chapter-12). Singer's betting and staffing practices describe Basecamp; the reduced-ceremony agent mapping is ours.
 
@@ -25,12 +25,29 @@ Research belongs inside shaping, not after approval and not as a detached report
 1. Every workflow starts with repository truth: instructions, current behavior, public contracts, tests, types, constraints, history, and prior decisions.
 2. Reproduce or probe behavior when observation is cheaper and safer than inference.
 3. Separate facts answerable by code, documentation, experiments, or primary external sources from decisions only the user can make.
-4. Investigate external facts only when they could change the problem, appetite, solution elements, rabbit holes, no-gos, acceptance signals, or slice order.
+4. Run a bounded primary-source prior-art pass by default. Use `not-applicable` only when external precedent cannot affect the problem, appetite, solution, risks, acceptance signals, or slice order; use `unavailable` only with the attempted search, limitation, and resulting uncertainty.
 5. Prefer a bounded spike or prototype when reading cannot discriminate between plausible designs.
 6. Summarize conclusions, citations, and implications in the pitch's Research Basis. Link a bounded artifact under `research/` only when useful evidence cannot stay concise. Do not paste raw search results or transcripts into durable context.
 7. If an investigation neither changes nor confirms a pitch boundary, discard it from durable artifacts.
 
 A credible pitch shows what repository reading established, what further research taught us, and what each finding changed or confirmed. Research that merely accumulates links has not reduced shaping risk.
+
+## Make simplicity an explicit gate
+
+Strong models still overproduce code when assumptions, scope, and success are vague. This workflow therefore bakes a simplicity contract into Research, Pitch, Plan, and every slice:
+
+1. state material assumptions and competing interpretations before committing;
+2. ask whether the behavior needs to exist at all;
+3. reuse an existing repository seam before writing another;
+4. prefer the standard library, native platform, or an already-installed dependency;
+5. add only the minimum code that satisfies observable acceptance signals;
+6. make surgical changes and avoid speculative abstractions, configuration, wrappers, files, impossible-state handling, and unrelated cleanup;
+7. loop until deterministic checks pass;
+8. call something a blocker only when safe progress truly requires a human decision, changed approved boundary, protected fixed floor, backstop decision, or authorization.
+
+A fresh Terra-low read-only Simplifier applies this ladder to the ready Pitch, Plan, and each slice-shaped diff. It returns a terse delete/reuse list and names complexity that must remain. The orchestrator decides; the sole writer applies accepted simplifications and reruns checks. Simplicity is not line-count theater and never removes trust-boundary validation, data-loss prevention, security, accessibility, compatibility, or explicitly accepted behavior.
+
+This contract adapts the MIT-licensed [Karpathy Guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md)—think first, keep changes simple and surgical, define success, loop until verified—and [Ponytail](https://github.com/DietrichGebert/ponytail)—necessity, reuse, standard library/native capability, deletion before addition—without importing either package or their host-specific hooks.
 
 ## Make Appetite agent-operable
 

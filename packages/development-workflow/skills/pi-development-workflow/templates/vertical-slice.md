@@ -8,6 +8,8 @@ risk: medium
 
 # VS-001: Example behavior
 
+<!-- Remove {{TEMPLATE_GUIDANCE}} after replacing every instruction and placeholder. -->
+
 ## Observable Outcome
 
 Describe independently demonstrable behavior.
@@ -18,19 +20,41 @@ Explain how this advances the approved pitch.
 
 ## Boundaries Crossed
 
-Name every necessary boundary crossed by the outcome.
+Name the user-facing entry point, implementation seam, and verification or operational boundary crossed by the outcome.
 
 ## Execution Profile
 
-- Worker model: `openai-codex/gpt-5.6-terra`
-- Worker effort: medium
-- Selection reason: Ordinary vertical-slice implementation with understood boundaries.
-- Escalate when: State, lifecycle, security, concurrency, migration, debugging, or ambiguity exceeds the medium-effort contract.
-- Next tier: Terra high for difficult but bounded implementation.
-- Conceptual failure: Return to Sol planning, repair the plan, and retry Terra.
-- Frontier fallback: Sol medium only after the Sol planner or Oracle explicitly revalidates a sound plan whose implementation still needs frontier judgment.
-- Prohibited fallback: Never use Terra xhigh instead of replanning or Sol capability.
-- Context: Fresh child with this slice, the approved pitch, direct contracts, relevant repository neighborhood, and validation contract.
+### Worker Model
+
+`openai-codex/gpt-5.6-terra`
+
+### Worker Effort
+
+Medium.
+
+### Rationale
+
+Ordinary vertical-slice implementation with understood boundaries.
+
+### Escalation
+
+Use Terra high only for difficult but bounded implementation.
+
+### Conceptual Replanning
+
+Return conceptual failure to Sol planning, repair the plan, and retry Terra.
+
+### Frontier Fallback
+
+Sol medium only after the Sol planner or Oracle explicitly revalidates a sound plan whose implementation still needs frontier judgment.
+
+### Reviewer
+
+One fresh Sol high reviewer checks intent, correctness, maintainability, risk/operations, and final verification for this slice.
+
+## Simplification Pass
+
+Before verification, run the simplicity ladder against the affected diff: reuse existing seams, standard library, native features, and installed dependencies; delete superseded code; avoid speculative abstractions, configurability, wrappers, and files. A fresh Simplifier returns a concise delete/reuse list; accepted changes preserve fixed floors and rerun focused checks.
 
 ## RED
 

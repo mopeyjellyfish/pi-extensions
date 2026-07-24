@@ -21,7 +21,8 @@ Included:
 
 - a five-part pitch: Problem, Appetite, Solution, Rabbit Holes, and No-Gos;
 - a mandatory repository-reading and research stage whose implications are preserved in the pitch;
-- rough, solved, and bounded pitch review grounded in repository and targeted primary-source evidence;
+- rough, solved, bounded, and simplified pitch review grounded in repository and bounded primary-source prior-art evidence;
+- an adapted Karpathy/Ponytail simplicity contract: think first, surface assumptions, reuse existing/native capabilities, make surgical minimum changes, define verifiable success, and calibrate blockers without weakening fixed floors;
 - a human commitment explaining why the problem is worth investment, plus a qualitative agent-investment envelope with variable scope, explicit stop conditions, and fixed floors;
 - a mandatory wall-clock backstop for stale-work circuit-breaking, kept separate from appetite;
 - early integrated, demonstrable vertical slices with RED → GREEN → REFACTOR evidence;
@@ -42,9 +43,9 @@ Deliberately excluded:
 
 A workflow may start from a defect, friction or risk in existing behavior, or a valuable capability that does not exist yet. For non-trivial work, resolve the workspace first: when Worktrunk is available, inspect its status, activate an existing branch or PR, or ask before creating a feature branch. Start or adopt the workflow only after tools are routed, so evidence is gathered against the intended workspace instead of becoming stale immediately after a later switch.
 
-Discovery then reads repository truth: instructions, current behavior, relevant code paths, contracts, tests, history, and prior decisions; reproduces or probes when useful; and investigates only material facts the repository cannot answer. Ask the user only for product decisions after answerable facts are exhausted. Use repeated Question batches and summarize resolved decisions, changed assumptions, and pitch changes after each batch.
+Discovery reads repository truth and performs a bounded external prior-art pass by default. `research.md` records whether that pass was completed, not applicable, or unavailable, with a required rationale. Fresh-context Researcher routing uses Luna low for ordinary discovery and Terra low only for conflicts, provenance, or cross-boundary synthesis; Sol retains pitch synthesis. Ask the user only for product decisions after answerable facts are exhausted.
 
-The pitch preserves a concise Research Basis with citations and implications. Larger useful spikes, diagrams, or comparisons may live under `research/` and must be linked and summarized in the pitch; raw transcripts and detached link dumps are excluded. Shaping records why the problem is worth investment, sets a qualitative agent-investment envelope and separate wall-clock backstop, roughs out macro solution elements, de-risks rabbit holes, and grills the result. This is an explicit agent-native divergence from Shape Up's fixed-time appetite. The user agrees to the pitch and first integrated slice map; after Plan approval, the agent builds well-scoped slices autonomously and stops only on a hard boundary, risk, backstop, or authorization condition.
+The pitch preserves a concise Research Basis with citations and implications. Shaping records why the problem is worth investment, sets a qualitative agent-investment envelope and separate wall-clock backstop, roughs out macro solution elements, de-risks rabbit holes, and grills the result. A fresh Terra-low Simplifier reviews the ready Pitch and Plan artifacts; it returns a delete/reuse/stdlib/native list, while the orchestrator preserves complexity required by acceptance signals or fixed floors. This is an explicit agent-native divergence from Shape Up's fixed-time appetite. The user agrees to the pitch and first integrated slice map; after Plan approval, the agent builds well-scoped slices autonomously and stops only on a hard boundary, risk, backstop, or authorization condition.
 
 The [development philosophy](skills/pi-development-workflow/references/philosophy.md) explains the source-backed synthesis of Shape Up, Clean Code, deep-module design, specification-driven development, TDD/debugging skills, and agent-operable code. It also documents attribution corrections and practices deliberately not copied into this workflow.
 
@@ -54,9 +55,9 @@ Keep artifacts under a change directory:
 
 ```text
 specs/<change>/
+├── research.md            # mandatory dev-workflow/research-v1
 ├── spec.md
 ├── plan.md
-├── research/              # optional bounded supporting evidence
 ├── slices/
 │   ├── VS-001-<behavior>.md
 │   └── VS-002-<behavior>.md
@@ -74,7 +75,7 @@ id: PITCH-001
 
 It then contains the five Shape Up sections: Problem, Appetite, Solution, Rabbit Holes, and No-Gos. Problem contains the mandatory Research Basis; Appetite separates Agent Investment, Scope Control, and Fixed Floors; Solution distinguishes fixed decisions from Agent Discretion and nests Acceptance Signals. Rabbit Holes carry containment and tripwires, while No-Gos give the agent executable boundaries.
 
-Repository reading always appears in the Research Basis. A separate `research/RESEARCH-*.md` is optional and exists only for a decision-changing reproduction, spike, comparison, or diagram that cannot stay concise in `spec.md`; use the supplied research template and link its conclusion from the pitch. It is not a store for browsing history or raw output.
+`research.md` is mandatory and validates repository evidence, external prior-art disposition and evidence, options considered, an adopt/extend/compose/build/retain recommendation, pitch implications, a simplicity check, and unknowns. The pitch links it from Research Basis and adds substantive Prior Art, Alternatives, Shared Understanding, and a Simplicity Case.
 
 Each `VS-*.md` uses:
 
@@ -88,7 +89,7 @@ risk: medium
 ---
 ```
 
-It contains Observable Outcome, Pitch Fit, Boundaries Crossed, an Execution Profile, RED, GREEN, Verification, and Done When. `plan.md` is an evolving ordered slice index, not a task database. Mutable state belongs only to the Pi session ledger.
+It contains Observable Outcome, Pitch Fit, Boundaries Crossed, a validated Execution Profile, Simplification Pass, RED, GREEN, Verification, and Done When. `plan.md` is an evolving ordered slice index with a Simplification Review, not a task database. Mutable state belongs only to the Pi session ledger.
 
 ## Cost-aware subagent routing
 
@@ -97,7 +98,9 @@ The main chat is the sole orchestrator and decision authority. A typical OpenAI 
 | Role                     | Default                                                                                           | Context         |
 | ------------------------ | ------------------------------------------------------------------------------------------------- | --------------- |
 | Scout                    | Luna low; Terra low on incomplete or cross-boundary recon                                         | Fresh           |
+| Researcher               | Luna low for bounded discovery; Terra low for source conflict, provenance, or synthesis           | Fresh           |
 | Pitch/spec/slice planner | Sol high; xhigh only for defined hard-planning triggers                                           | Fresh           |
+| Simplifier               | Terra low, read-only; concise delete/reuse list for Pitch, Plan, and each slice                   | Fresh           |
 | Sole writer              | Terra medium by default; Terra high for difficult slices; Sol medium only after plan revalidation | Fresh per slice |
 | Slice reviewer           | One Sol high reviewer covering compliance and quality                                             | Fresh           |
 | Oracle                   | Triggered Sol high; xhigh only for defined hard-judgment triggers                                 | Forked          |
@@ -118,14 +121,9 @@ Start and inspect:
 
 The pitch's Appetite records why the problem deserves investment and a qualitative agent-execution boundary: context surface, change depth, uncertainty allowance, validation burden, assurance level, smallest valuable outcome, cut order, stop conditions, and fixed floors. This deliberately adapts Shape Up's fixed-time appetite; it is not a token budget or generic size score. Before Pitch approval, the mandatory `backstop 2d` command separately records a stale-work circuit breaker. `appetite 2d` remains a compatibility alias for that timer only. Pausing suspends workflow mutation, but the wall-clock backstop continues to elapse.
 
-The model records bounded artifacts/evidence and requests each next transition with `development_workflow`. Discover always requires both problem evidence and fresh `research` evidence from repository reading; that evidence may state that targeted external research was unnecessary, but repository research cannot be skipped. Discover, Build, and Review advance automatically only when their evidence gates pass. The user directly approves the two product commitments:
+The model records bounded artifacts/evidence and requests each next transition with `development_workflow`. Discover, Pitch, and Plan each create one exact **Refine again / Approve and continue** Question checkpoint only after readiness and simplification validate. The selected result is consumed in the same interaction: Refine records the decision and stays in phase; Approve refreshes the workspace and artifacts, records the decision, and advances immediately. Build and Review remain autonomous evidence gates with no routine human checkpoint. `/dev-workflow approve discover|pitch|plan` remains a documented compatibility fallback only.
 
-```text
-/dev-workflow approve pitch -- accept the researched, bounded pitch
-/dev-workflow approve plan -- accept the first integrated slice and slice map
-```
-
-After Plan approval, the agent owns autonomous TDD slice execution, independent review, and fresh verification. It does not stop at routine slice boundaries; it stops only when a pitch/No-Go boundary would change, a product or architecture decision is unapproved, a material rabbit hole or fixed floor is threatened, the backstop expires, or an external/destructive action needs authorization. Reaching Ship means ready for a separately authorized external action; it does not authorize that action.
+After Plan approval, the agent owns autonomous TDD slice execution, independent review, and fresh verification. Every new evidence record is phase-bound; Build RED/GREEN (or exception), focused/regression verification, worker handoff, and build-simplification evidence are bound to the active slice, while all five Review evidence kinds are bound independently to every retained slice. Legacy unbound evidence remains inspectable but never satisfies these gates. It does not stop at routine slice boundaries; it stops only when a pitch/No-Go boundary would change, a product or architecture decision is unapproved, a material rabbit hole or fixed floor is threatened, the backstop expires, or an external/destructive action needs authorization. Reaching Ship means ready for a separately authorized external action; it does not authorize that action.
 
 Shipping uses one direct authorization per action and a typed model receipt after the action actually occurs:
 
@@ -137,7 +135,9 @@ Shipping uses one direct authorization per action and a typed model receipt afte
 /dev-workflow finish -- requested shipping sequence is complete
 ```
 
-Authorization alone never claims execution. A receipt consumes only the matching authorization and leaves Ship open for another action. A commit receipt preserves the already-reviewed evidence only when the resulting worktree is clean; unexpected remaining edits keep it stale. If an authorized action is no longer wanted, use `/dev-workflow cancel authorization -- <reason>` rather than inventing a receipt. `finish` rejects an unconsumed authorization and may also close deliberately retained work without an external mutation. Authorize worktree removal last: its receipt requires the authorized path to be gone and allows the direct finish decision without rereading removed artifacts.
+Authorization alone never claims execution. A receipt consumes only the matching authorization and leaves Ship open for another action. Commit evidence is rebound only when branch/path are unchanged, the resulting tree is clean, HEAD is exactly one direct-child commit from the authorized HEAD, and the canonical commit delta fingerprint exactly equals the authorized dirty fingerprint. Zero, multiple, unrelated, partial, or extra commits fail closed. If an authorized action is no longer wanted, use `/dev-workflow cancel authorization -- <reason>` rather than inventing a receipt. `finish` rejects an unconsumed authorization and may also close deliberately retained work without an external mutation. Authorize worktree removal last: its receipt requires the authorized path to be gone and allows the direct finish decision without rereading removed artifacts.
+
+Every status response includes a pure computed `Next action`, prioritizing terminal and authorization states, pause/block/backstop/checkpoint conditions, missing artifacts/evidence, active-slice evidence, the first dependency-ready planned slice, automatic transitions, and Ship authorization or finish.
 
 Other direct controls:
 
@@ -172,10 +172,10 @@ Circuit commands are available only after the backstop expires:
 There is no project database. One workflow lives on each Pi session branch through versioned custom entries. Existing work can be adopted explicitly after creating a valid pitch:
 
 ```text
-/dev-workflow adopt plan specs/change/spec.md -- existing pitch and plan were reviewed
+/dev-workflow adopt specs/change/spec.md -- import existing artifacts without approvals
 ```
 
-Adoption records the reason and never infers prior approvals. Branching, rewind, and compaction replay the newest valid branch entry. If the newest entry is malformed, mutations stop until direct recovery:
+Adoption validates and imports artifacts but always begins at Discover with no inferred gate, evidence, checkpoint, or approval. Syntax claiming an approved Pitch or Plan is rejected. Branching, rewind, and compaction replay the newest valid branch entry. If the newest entry is malformed, mutations stop until direct recovery:
 
 ```text
 /dev-workflow recover -- malformed extension state after manual session editing

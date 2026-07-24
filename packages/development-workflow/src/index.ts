@@ -5,8 +5,16 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type, type Static } from "typebox";
 
-import { validatePitchDocument, validatePlanDocument, validateSliceDocument } from "./artifacts.ts";
 import {
+  validatePitchDocument,
+  validatePlanDocument,
+  validateResearchDocument,
+  validateSliceDocument,
+  type ArtifactValidation,
+} from "./artifacts.ts";
+import { checkpointSelection } from "./question.ts";
+import {
+  CLEAN_TREE_FINGERPRINT,
   PHASES,
   SHIP_ACTIONS,
   STATE_TYPE,
@@ -19,6 +27,7 @@ import {
   formatWorkflow,
   isWorkflowSnapshot,
   snapshotFromBranch,
+  resolveCheckpoint,
   workflowSummary,
   type SliceStatus,
   type WorkflowAction,
@@ -44,7 +53,8 @@ const MODEL_ACTIONS = [
 export const DevelopmentWorkflowParameters = Type.Object(
   {
     action: StringEnum(MODEL_ACTIONS),
-    artifact: Type.Optional(StringEnum(["plan", "spec"] as const)),
+    artifact: Type.Optional(StringEnum(["plan", "research", "spec"] as const)),
+    sliceId: Type.Optional(Type.String({ maxLength: 30, minLength: 1 })),
     claim: Type.Optional(Type.String({ maxLength: 500, minLength: 1 })),
     evidenceKind: Type.Optional(Type.String({ maxLength: 80, minLength: 1 })),
     id: Type.Optional(Type.String({ maxLength: 30, minLength: 1 })),
@@ -93,6 +103,18 @@ function recordOutcomeAction(input: DevelopmentWorkflowInput): WorkflowAction {
   };
 }
 
+function recordEvidenceAction(input: DevelopmentWorkflowInput): WorkflowAction {
+  ensureOnly(input, ["claim", "evidenceKind", "reference", "sensitivity", "sliceId"]);
+  const evidence: WorkflowEvidence = {
+    claim: required(input.claim, "claim"),
+    kind: required(input.evidenceKind, "evidenceKind"),
+    ...(input.sliceId === undefined ? {} : { sliceId: input.sliceId }),
+    reference: required(input.reference, "reference"),
+    sensitivity: input.sensitivity ?? "private",
+  };
+  return { evidence, kind: "record_evidence" };
+}
+
 function modelAction(input: DevelopmentWorkflowInput): WorkflowAction | undefined {
   switch (input.action) {
     case "status":
@@ -128,16 +150,8 @@ function modelAction(input: DevelopmentWorkflowInput): WorkflowAction | undefine
             throw new Error("sliceStatus is required.");
           })(),
       };
-    case "record_evidence": {
-      ensureOnly(input, ["claim", "evidenceKind", "reference", "sensitivity"]);
-      const evidence: WorkflowEvidence = {
-        claim: required(input.claim, "claim"),
-        kind: required(input.evidenceKind, "evidenceKind"),
-        reference: required(input.reference, "reference"),
-        sensitivity: input.sensitivity ?? "private",
-      };
-      return { evidence, kind: "record_evidence" };
-    }
+    case "record_evidence":
+      return recordEvidenceAction(input);
     case "request_transition":
       ensureOnly(input, ["reason", "to"]);
       return {
@@ -180,6 +194,29 @@ function pathEscapesWorkspace(root: string, absolute: string): boolean {
   return isAbsolute(fromRoot) || fromRoot === ".." || fromRoot.startsWith(`..${sep}`);
 }
 
+function authorizedWorkspaceIsClean(
+  authorization: { readonly branch?: string; readonly path: string },
+  workspace: WorkflowSnapshot["workspace"],
+): boolean {
+  return (
+    authorization.path === workspace.path &&
+    authorization.branch === workspace.branch &&
+    workspace.tree === CLEAN_TREE_FINGERPRINT
+  );
+}
+
+function sameCleanWorkspace(
+  left: WorkflowSnapshot["workspace"],
+  right: WorkflowSnapshot["workspace"],
+): boolean {
+  return (
+    left.path === right.path &&
+    left.branch === right.branch &&
+    left.head === right.head &&
+    left.tree === CLEAN_TREE_FINGERPRINT
+  );
+}
+
 function dirtyPaths(tracked: string, untracked: string): string[] {
   const names = `${tracked}${untracked}`;
   if (Buffer.byteLength(names, "utf8") > MAX_TREE_PATH_BYTES)
@@ -192,33 +229,67 @@ function dirtyPaths(tracked: string, untracked: string): string[] {
   return paths;
 }
 
+interface GitTreeEntry {
+  readonly mode: "100644" | "100755" | "120000";
+  readonly object: string;
+}
+
+function gitBlobObject(content: string, format: "sha1" | "sha256"): string {
+  const bytes = Buffer.from(content);
+  return createHash(format)
+    .update(`blob ${String(bytes.length)}\0`)
+    .update(bytes)
+    .digest("hex");
+}
+
+async function inspectPresentFingerprintPath(
+  absolute: string,
+  path: string,
+  treeEntries: ReadonlyMap<string, GitTreeEntry> | undefined,
+): Promise<{ readonly hashable?: true; readonly record: string; readonly symlink?: string }> {
+  const treeEntry = treeEntries?.get(path);
+  if (treeEntry !== undefined) return { record: `${treeEntry.mode}:${treeEntry.object}` };
+  const stats = await lstat(absolute);
+  if (treeEntries !== undefined)
+    throw new Error(`Committed Git tree is missing changed path: ${path}`);
+  if (stats.isSymbolicLink()) return { record: "120000:", symlink: await readlink(absolute) };
+  if (stats.isDirectory())
+    throw new Error(`Cannot fingerprint changed directory or submodule: ${path}`);
+  return {
+    hashable: true,
+    record: (stats.mode & 0o111) === 0 ? "100644:" : "100755:",
+  };
+}
+
 async function inspectFingerprintPaths(
   root: string,
   paths: readonly string[],
   signal: AbortSignal,
-): Promise<{ readonly hashable: string[]; readonly records: Map<string, string> }> {
+  treeEntries?: ReadonlyMap<string, GitTreeEntry>,
+): Promise<{
+  readonly hashable: string[];
+  readonly records: Map<string, string>;
+  readonly symlinks: ReadonlyMap<string, string>;
+}> {
   const hashable: string[] = [];
   const records = new Map<string, string>();
+  const symlinks = new Map<string, string>();
   for (const path of paths) {
     signal.throwIfAborted();
     const absolute = resolve(root, path);
     if (pathEscapesWorkspace(root, absolute))
       throw new Error("Git returned a worktree path outside the workspace.");
     try {
-      const stats = await lstat(absolute);
-      if (stats.isSymbolicLink()) {
-        records.set(path, `symlink:${await readlink(absolute)}`);
-      } else if (stats.isDirectory()) {
-        throw new Error(`Cannot fingerprint changed directory or submodule: ${path}`);
-      } else {
-        hashable.push(path);
-      }
+      const inspected = await inspectPresentFingerprintPath(absolute, path, treeEntries);
+      records.set(path, inspected.record);
+      if (inspected.hashable === true) hashable.push(path);
+      if (inspected.symlink !== undefined) symlinks.set(path, inspected.symlink);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       records.set(path, "deleted");
     }
   }
-  return { hashable, records };
+  return { hashable, records, symlinks };
 }
 
 function skipArtifactRefresh(snapshot: WorkflowSnapshot): boolean {
@@ -233,9 +304,9 @@ function skipArtifactRefresh(snapshot: WorkflowSnapshot): boolean {
 async function validateArtifact(
   cwd: string,
   path: string,
-  artifact: "plan" | "spec" | "slice",
+  artifact: "plan" | "research" | "spec" | "slice",
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<ArtifactValidation> {
   signal?.throwIfAborted();
   const absolute = resolve(cwd, path);
   if (pathEscapesWorkspace(cwd, absolute)) throw new Error("Artifact path escapes the workspace.");
@@ -251,9 +322,10 @@ async function validateArtifact(
       throw new Error(`Artifact exceeds ${String(MAX_ARTIFACT_BYTES)} bytes.`);
     }
     const source = buffer.toString("utf8", 0, bytesRead);
-    if (artifact === "spec") validatePitchDocument(source);
-    if (artifact === "slice") validateSliceDocument(source);
-    if (artifact === "plan") validatePlanDocument(source);
+    if (artifact === "research") return validateResearchDocument(source);
+    if (artifact === "spec") return validatePitchDocument(source);
+    if (artifact === "slice") return validateSliceDocument(source);
+    return validatePlanDocument(source);
   } finally {
     await file.close();
   }
@@ -456,9 +528,62 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
       ? refreshController.signal
       : AbortSignal.any([signal, refreshController.signal]);
 
-  const dirtyTreeFingerprint = async (path: string, signal: AbortSignal): Promise<string> => {
+  const fingerprintPaths = async (
+    path: string,
+    paths: readonly string[],
+    signal: AbortSignal,
+    treeEntries?: ReadonlyMap<string, GitTreeEntry>,
+  ): Promise<string> => {
+    const { hashable, records, symlinks } = await inspectFingerprintPaths(
+      path,
+      paths,
+      signal,
+      treeEntries,
+    );
+    if (symlinks.size > 0) {
+      const formatResult = await pi.exec("git", ["rev-parse", "--show-object-format"], {
+        cwd: path,
+        signal,
+        timeout: 2000,
+      });
+      const format = formatResult.stdout.trim();
+      if (formatResult.code !== 0 || (format !== "sha1" && format !== "sha256"))
+        throw new Error("Unable to determine the Git object format for symlink fingerprinting.");
+      for (const [relativePath, target] of symlinks)
+        records.set(relativePath, `120000:${gitBlobObject(target, format)}`);
+    }
+    for (let start = 0; start < hashable.length; start += HASH_BATCH_SIZE) {
+      signal.throwIfAborted();
+      const batch = hashable.slice(start, start + HASH_BATCH_SIZE);
+      const result = await pi.exec("git", ["hash-object", "--no-filters", "--", ...batch], {
+        cwd: path,
+        signal,
+        timeout: 2000,
+      });
+      signal.throwIfAborted();
+      const hashes = result.stdout.trim() === "" ? [] : result.stdout.trim().split("\n");
+      if (result.code !== 0 || hashes.length !== batch.length)
+        throw new Error("Unable to hash changed files within the fingerprint bounds.");
+      for (const [index, item] of batch.entries())
+        records.set(item, `${records.get(item) ?? ""}${hashes[index] ?? ""}`);
+    }
+    const digest = createHash("sha256");
+    for (const relativePath of paths) {
+      digest.update(relativePath);
+      digest.update("\0");
+      digest.update(records.get(relativePath) ?? "");
+      digest.update("\0");
+    }
+    return `sha256:${digest.digest("hex")}`;
+  };
+
+  const dirtyTreeFingerprint = async (
+    path: string,
+    head: string,
+    signal: AbortSignal,
+  ): Promise<string> => {
     const [trackedResult, untrackedResult] = await Promise.all([
-      pi.exec("git", ["diff", "--name-only", "-z", "HEAD", "--"], {
+      pi.exec("git", ["--no-replace-objects", "diff", "--name-only", "-z", head, "--"], {
         cwd: path,
         signal,
         timeout: 2000,
@@ -473,31 +598,7 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     if (trackedResult.code !== 0 || untrackedResult.code !== 0)
       throw new Error("Unable to fingerprint the current Git worktree.");
 
-    const paths = dirtyPaths(trackedResult.stdout, untrackedResult.stdout);
-    const { hashable, records } = await inspectFingerprintPaths(path, paths, signal);
-    for (let start = 0; start < hashable.length; start += HASH_BATCH_SIZE) {
-      signal.throwIfAborted();
-      const batch = hashable.slice(start, start + HASH_BATCH_SIZE);
-      const result = await pi.exec("git", ["hash-object", "--no-filters", "--", ...batch], {
-        cwd: path,
-        signal,
-        timeout: 2000,
-      });
-      signal.throwIfAborted();
-      const hashes = result.stdout.trim() === "" ? [] : result.stdout.trim().split("\n");
-      if (result.code !== 0 || hashes.length !== batch.length)
-        throw new Error("Unable to hash changed worktree files within the fingerprint bounds.");
-      for (const [index, item] of batch.entries()) records.set(item, hashes[index] ?? "");
-    }
-
-    const digest = createHash("sha256");
-    for (const relativePath of paths) {
-      digest.update(relativePath);
-      digest.update("\0");
-      digest.update(records.get(relativePath) ?? "");
-      digest.update("\0");
-    }
-    return `sha256:${digest.digest("hex")}`;
+    return fingerprintPaths(path, dirtyPaths(trackedResult.stdout, untrackedResult.stdout), signal);
   };
 
   const workspaceIdentity = async (
@@ -531,7 +632,7 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     const branch = branchResult.code === 0 ? branchResult.stdout.trim() : "";
     const head = headResult.code === 0 ? headResult.stdout.trim() : "";
     if (head === "") return { path };
-    const tree = await dirtyTreeFingerprint(path, signal);
+    const tree = await dirtyTreeFingerprint(path, head, signal);
     return {
       ...(branch === "" || branch === "HEAD" ? {} : { branch }),
       head,
@@ -626,6 +727,7 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     if (currentSnapshot === undefined || skipArtifactRefresh(currentSnapshot)) return;
     const workspacePath = effectivePath(current);
     const paths = [
+      currentSnapshot.artifacts.research,
       currentSnapshot.artifacts.spec,
       currentSnapshot.artifacts.plan,
       ...currentSnapshot.slices.map((slice) => slice.path),
@@ -660,12 +762,27 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
   ): Promise<void> => {
     const currentSnapshot = requireSnapshot();
     const cwd = effectivePath(current);
+    if (currentSnapshot.artifacts.research !== undefined)
+      await validateArtifact(cwd, currentSnapshot.artifacts.research, "research", signal);
     if (currentSnapshot.artifacts.spec !== undefined)
       await validateArtifact(cwd, currentSnapshot.artifacts.spec, "spec", signal);
     if (currentSnapshot.artifacts.plan !== undefined)
       await validateArtifact(cwd, currentSnapshot.artifacts.plan, "plan", signal);
     for (const slice of currentSnapshot.slices) {
-      if (retainSlice(slice)) await validateArtifact(cwd, slice.path, "slice", signal);
+      if (!retainSlice(slice)) continue;
+      const validation = await validateArtifact(cwd, slice.path, "slice", signal);
+      const registeredDependencies = slice.dependsOn ?? [];
+      const artifactDependencies = validation.dependsOn ?? [];
+      if (
+        validation.id !== slice.id ||
+        artifactDependencies.length !== registeredDependencies.length ||
+        artifactDependencies.some(
+          (dependency, index) => dependency !== registeredDependencies[index],
+        )
+      )
+        throw new Error(
+          `Slice ${slice.id} identity or dependency graph changed after registration.`,
+        );
     }
   };
 
@@ -728,6 +845,29 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
   };
   const unsubscribeRoute = pi.events.on("mopeyjellyfish:pi-worktrunk:route:v1", routeHandler);
 
+  // Question is optional. This listener is inert unless its exact, documented payload matches.
+  pi.on("tool_result", async (event, current) => {
+    const pending = snapshot?.pendingCheckpoint;
+    if (pending === undefined || stopped) return;
+    const selection = checkpointSelection(event, pending.phase, pending.question);
+    if (selection === undefined) return;
+    await serialize(async () => {
+      const latest = requireSnapshot();
+      const checkpoint = latest.pendingCheckpoint;
+      if (checkpoint === undefined) return;
+      const exact = checkpointSelection(event, checkpoint.phase, checkpoint.question);
+      if (exact === undefined) return;
+      await prepareFreshMutation(current, undefined, true);
+      persist(resolveCheckpoint(requireSnapshot(), exact, Date.now()), current);
+      notify(
+        current,
+        exact === "advance"
+          ? `Advanced from ${checkpoint.phase}.`
+          : `Refine ${checkpoint.phase} evidence.`,
+      );
+    });
+  });
+
   const lifecycleRefresh = async (current: ExtensionContext): Promise<void> => {
     stopped = false;
     ctx = current;
@@ -768,6 +908,97 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     });
   });
 
+  const committedTreeEntries = async (
+    path: string,
+    commit: string,
+    paths: readonly string[],
+    signal: AbortSignal,
+  ): Promise<ReadonlyMap<string, GitTreeEntry>> => {
+    const result = await pi.exec(
+      "git",
+      ["--no-replace-objects", "ls-tree", "-z", commit, "--", ...paths],
+      {
+        cwd: path,
+        signal,
+        timeout: 2000,
+      },
+    );
+    if (result.code !== 0) throw new Error("Unable to inspect committed Git tree entries.");
+    const entries = new Map<string, GitTreeEntry>();
+    for (const raw of result.stdout.split("\0").filter((item) => item !== "")) {
+      const separator = raw.indexOf("\t");
+      const metadata = separator === -1 ? [] : raw.slice(0, separator).split(" ");
+      const relativePath = separator === -1 ? "" : raw.slice(separator + 1);
+      const [mode, type, object] = metadata;
+      if (
+        (mode !== "100644" && mode !== "100755" && mode !== "120000") ||
+        type !== "blob" ||
+        object === undefined ||
+        !/^[0-9a-f]{40,64}$/u.test(object) ||
+        !paths.includes(relativePath) ||
+        entries.has(relativePath)
+      )
+        throw new Error("Committed Git tree returned an invalid changed-path entry.");
+      entries.set(relativePath, { mode, object });
+    }
+    return entries;
+  };
+
+  const validateCommitBinding = async (
+    current: ExtensionContext,
+    signal?: AbortSignal,
+  ): Promise<void> => {
+    const before = requireSnapshot().pendingShipAction;
+    if (before?.action !== "commit") return;
+    const effectiveSignal = combinedSignal(signal);
+    await refreshWorkspace(current, generation, effectiveSignal);
+    const after = requireSnapshot().workspace;
+    if (!authorizedWorkspaceIsClean(before, after))
+      throw new Error(
+        "Commit receipt requires the authorized branch/path and a clean resulting tree.",
+      );
+    if (before.head === undefined || after.head === undefined || before.tree === undefined)
+      throw new Error("Commit receipt requires authorized HEAD and dirty fingerprint provenance.");
+    const parents = await pi.exec(
+      "git",
+      ["--no-replace-objects", "rev-list", "--parents", "-n", "1", after.head],
+      {
+        cwd: after.path,
+        signal: effectiveSignal,
+        timeout: 2000,
+      },
+    );
+    const fields = parents.stdout.trim().split(/\s+/u);
+    if (
+      parents.code !== 0 ||
+      fields.length !== 2 ||
+      fields[0] !== after.head ||
+      fields[1] !== before.head
+    )
+      throw new Error(
+        "Commit receipt requires exactly one direct-child commit from the authorized HEAD.",
+      );
+    const changed = await pi.exec(
+      "git",
+      ["--no-replace-objects", "diff", "--name-only", "-z", before.head, after.head, "--"],
+      {
+        cwd: after.path,
+        signal: effectiveSignal,
+        timeout: 2000,
+      },
+    );
+    if (changed.code !== 0) throw new Error("Unable to fingerprint the authorized commit delta.");
+    const paths = dirtyPaths(changed.stdout, "");
+    const treeEntries = await committedTreeEntries(after.path, after.head, paths, effectiveSignal);
+    const digest = await fingerprintPaths(after.path, paths, effectiveSignal, treeEntries);
+    if (digest !== before.tree)
+      throw new Error("Commit delta does not exactly match the authorized dirty fingerprint.");
+    await refreshWorkspace(current, generation, effectiveSignal);
+    const finalWorkspace = requireSnapshot().workspace;
+    if (!sameCleanWorkspace(finalWorkspace, after))
+      throw new Error("Workspace changed during commit receipt validation; retry from review.");
+  };
+
   const prepareModelMutation = async (
     action: WorkflowAction,
     current: ExtensionContext,
@@ -775,6 +1006,10 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
   ): Promise<void> => {
     if (action.kind === "request_transition") {
       await prepareFreshMutation(current, signal, true);
+      return;
+    }
+    if (action.kind === "record_outcome" && action.shipAction === "commit") {
+      await validateCommitBinding(current, signal);
       return;
     }
     if (action.kind === "record_outcome" && action.shipAction === "worktree-removal") {
@@ -798,18 +1033,86 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     if (refreshKinds.includes(action.kind)) await prepareFreshMutation(current, signal);
   };
 
+  const validateActionArtifact = async (
+    action: WorkflowAction,
+    current: ExtensionContext,
+    signal?: AbortSignal,
+  ): Promise<ArtifactValidation | undefined> => {
+    if (action.kind === "record_artifact") {
+      await validateArtifact(effectivePath(current), action.path, action.artifact, signal);
+      return undefined;
+    }
+    return action.kind === "register_slice"
+      ? validateArtifact(effectivePath(current), action.path, "slice", signal)
+      : undefined;
+  };
+
+  const evidenceSliceId = (
+    action: Extract<WorkflowAction, { kind: "record_evidence" }>,
+    currentSnapshot: WorkflowSnapshot,
+  ): string | undefined => {
+    const active = currentSnapshot.slices.find((slice) => slice.status === "active")?.id;
+    if (active !== undefined || currentSnapshot.phase !== "review") return active;
+    return currentSnapshot.slices.find(
+      (slice) =>
+        slice.status === "verified" &&
+        currentSnapshot.evidence.every(
+          (item) =>
+            item.phase !== "review" ||
+            item.sliceId !== slice.id ||
+            item.kind !== action.evidence.kind ||
+            item.stale === true,
+        ),
+    )?.id;
+  };
+
+  const bindModelAction = (
+    action: WorkflowAction,
+    currentSnapshot: WorkflowSnapshot,
+    sliceValidation: ArtifactValidation | undefined,
+  ): WorkflowAction => {
+    if (action.kind === "register_slice") {
+      if (sliceValidation?.id !== action.id)
+        throw new Error(
+          `Slice document id ${sliceValidation?.id ?? "unknown"} does not match requested id ${action.id}.`,
+        );
+      return sliceValidation.dependsOn === undefined
+        ? action
+        : { ...action, dependsOn: sliceValidation.dependsOn };
+    }
+    if (action.kind !== "record_evidence") return action;
+    const sliceId = action.evidence.sliceId ?? evidenceSliceId(action, currentSnapshot);
+    return {
+      ...action,
+      evidence: {
+        ...action.evidence,
+        ...(sliceId === undefined ? {} : { sliceId }),
+        ...(currentSnapshot.workspace.branch === undefined
+          ? {}
+          : { branch: currentSnapshot.workspace.branch }),
+        ...(currentSnapshot.workspace.head === undefined
+          ? {}
+          : { head: currentSnapshot.workspace.head }),
+        ...(currentSnapshot.workspace.tree === undefined
+          ? {}
+          : { tree: currentSnapshot.workspace.tree }),
+      },
+    };
+  };
+
   pi.registerTool({
     name: "development_workflow",
     label: "Development Workflow",
     description:
-      "Read or update the current pitch-and-slices workflow. The model may record artifacts/evidence, blockers or decision requests, register or update non-cut slice state, request evidence-gated transitions, and record a typed receipt for a directly authorized ship action. Pitch/Plan approvals, ship authorization/completion, resolutions, and circuit decisions require /dev-workflow.",
+      "Read or update the deterministic research, pitch, slices, build, review, and ship workflow. The model records phase/slice-bound artifacts and evidence, follows the computed next action, and requests shaping checkpoints. Exact Question results approve Discover/Pitch/Plan in the same interaction; shipping authorization/completion, resolutions, and circuit decisions remain direct.",
     executionMode: "sequential",
     promptSnippet:
       "Track the researched pitch, integrated slices, evidence gates, and human product decisions",
     promptGuidelines: [
       "Use development_workflow status before workflow mutations and request, rather than approve, consequential transitions.",
-      "Resolve the effective workspace before starting the ledger, then begin with repository reading and record fresh research evidence before requesting Pitch; external research is targeted, not mandatory.",
-      "Use development_workflow to register integrated demonstrable slices and record bounded evidence references; use todo only for discovered work inside the active slice.",
+      "Resolve the effective workspace before starting the ledger, then create validated research.md from repository truth plus the bounded external prior-art pass before requesting Pitch.",
+      "Run and record the required Pitch, Plan, and per-slice simplification passes; prefer existing seams, standard library, native capability, installed dependencies, and the minimum surgical change without weakening fixed floors.",
+      "Use development_workflow to register integrated demonstrable slices and record bounded evidence references with the computed slice ID; use todo only for discovered work inside the active slice.",
       "Never use development_workflow to claim a commit, push, pull request, merge, release, deployment, or other external outcome before it actually occurs.",
     ],
     parameters: DevelopmentWorkflowParameters,
@@ -825,31 +1128,13 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
           };
         }
         await prepareModelMutation(action, current, signal);
-        if (action.kind === "record_artifact")
-          await validateArtifact(effectivePath(current), action.path, action.artifact, signal);
-        if (action.kind === "register_slice")
-          await validateArtifact(effectivePath(current), action.path, "slice", signal);
+        const sliceValidation = await validateActionArtifact(action, current, signal);
         signal?.throwIfAborted();
         const currentSnapshot = requireSnapshot();
-        const boundAction: WorkflowAction =
-          action.kind === "record_evidence"
-            ? {
-                ...action,
-                evidence: {
-                  ...action.evidence,
-                  ...(currentSnapshot.workspace.branch === undefined
-                    ? {}
-                    : { branch: currentSnapshot.workspace.branch }),
-                  ...(currentSnapshot.workspace.head === undefined
-                    ? {}
-                    : { head: currentSnapshot.workspace.head }),
-                  ...(currentSnapshot.workspace.tree === undefined
-                    ? {}
-                    : { tree: currentSnapshot.workspace.tree }),
-                },
-              }
-            : action;
-        const next = applyWorkflowAction(currentSnapshot, boundAction);
+        const next = applyWorkflowAction(
+          currentSnapshot,
+          bindModelAction(action, currentSnapshot, sliceValidation),
+        );
         persist(next, current);
         return {
           content: [{ type: "text", text: `${input.action} recorded.\n${formatWorkflow(next)}` }],
@@ -886,33 +1171,25 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
     if (snapshot !== undefined || corrupt)
       throw new Error("Adopt requires an empty, valid workflow ledger.");
     const parts = command.split(/\s+/u);
-    const adoptedPhase = phase(parts[1]);
-    if (PHASES.indexOf(adoptedPhase) >= PHASES.indexOf("build")) {
+    if (parts[1] === "pitch" || parts[1] === "plan")
       throw new Error(
-        "Adoption into build or later requires active wall-clock backstop accounting and is not supported by this command.",
+        "Adoption never infers approved Pitch or Plan semantics; it always starts at Discover.",
       );
-    }
-    const spec = required(parts[2], "spec path");
+    const spec = required(parts[1], "spec path");
     const adoptionReason = required(reason, "adoption reason");
     const identity = await workspaceIdentity(current, refreshController.signal);
     await validateArtifact(identity.path, spec, "spec", refreshController.signal);
     const initial = createWorkflow(`Adopted ${spec}`, identity.path, Date.now());
-    const relativeSpec = relative(identity.path, resolve(identity.path, spec));
-    const priorGates = Object.fromEntries(
-      PHASES.slice(0, PHASES.indexOf(adoptedPhase)).map((gate) => [gate, true]),
-    ) as Partial<Record<WorkflowPhase, true>>;
     const adopted = {
       ...initial,
-      artifacts: { spec: relativeSpec },
-      attention: derivedAttention(`adopted at ${adoptedPhase}: `, adoptionReason),
-      gates: priorGates,
-      phase: adoptedPhase,
+      artifacts: { spec: relative(identity.path, resolve(identity.path, spec)) },
+      attention: derivedAttention("adopted artifacts; begin discovery: ", adoptionReason),
       revision: 1,
       workspace: identity,
     } satisfies WorkflowSnapshot;
     if (!isWorkflowSnapshot(adopted)) throw new Error("Adopted workflow is invalid.");
     persist(adopted, current);
-    notify(current, `Workflow adopted at ${adoptedPhase}.`);
+    notify(current, "Artifacts adopted; discovery starts without inferred gates or evidence.");
   };
 
   const recoverCommand = (reason: string | undefined, current: ExtensionContext): void => {
@@ -972,5 +1249,11 @@ export default function developmentWorkflowExtension(pi: ExtensionAPI): void {
   });
 }
 
-export { validatePitchDocument, validatePlanDocument, validateSliceDocument } from "./artifacts.ts";
+export {
+  validatePitchDocument,
+  validatePlanDocument,
+  validateResearchDocument,
+  validateSliceDocument,
+} from "./artifacts.ts";
+export { checkpointQuestion, checkpointSelection } from "./question.ts";
 export * from "./state.ts";

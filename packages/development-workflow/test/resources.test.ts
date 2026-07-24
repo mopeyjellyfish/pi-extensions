@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { validatePitchDocument, validatePlanDocument } from "../src/artifacts.ts";
+import {
+  validatePitchDocument,
+  validatePlanDocument,
+  validateResearchDocument,
+  validateSliceDocument,
+} from "../src/artifacts.ts";
 
 const root = join(import.meta.dirname, "..");
 
@@ -62,6 +67,7 @@ describe("development workflow package resources", () => {
     const pitch = await text("skills/pi-development-workflow/references/pitch.md");
     const specTemplate = await text("skills/pi-development-workflow/templates/spec.md");
     const researchTemplate = await text("skills/pi-development-workflow/templates/research.md");
+    const planTemplate = await text("skills/pi-development-workflow/templates/plan.md");
     const slices = await text("skills/pi-development-workflow/references/slices.md");
     const build = await text("skills/pi-development-workflow/references/build.md");
     const ship = await text("skills/pi-development-workflow/references/review-and-ship.md");
@@ -71,7 +77,7 @@ describe("development workflow package resources", () => {
     expect(main).toContain("name: pi-development-workflow");
     expect(main).toContain("Todo only for work discovered inside the active slice");
     expect(main).toContain("Research before interviewing");
-    expect(main).toContain("Record fresh `research` evidence for every workflow");
+    expect(main).toContain("mandatory `research.md`");
     expect(main).toContain("Question");
     expect(main).toContain("LSP");
     expect(main).toContain("web search");
@@ -80,7 +86,7 @@ describe("development workflow package resources", () => {
     expect(main).toContain("pi-subagents");
     expect(main).toContain("Worktrunk");
     expect(main).toMatch(/Worktrunk[\s\S]*before starting or adopting the ledger/iu);
-    expect(main).toContain("reopen the revised questions with its continuation ID");
+    expect(main).toContain("exactly one Refine/Advance Question checkpoint");
     expect(main).toMatch(/After Plan approval[\s\S]*mainly autonomously/iu);
     expect(main).toContain("Do not add routine checkpoints");
     expect(main).toContain("why the problem deserves investment");
@@ -88,12 +94,14 @@ describe("development workflow package resources", () => {
     expect(main).toContain("Without LSP");
     expect(main).toContain("Without web search");
     expect(main).toContain("references/philosophy.md");
-    expect(main).toContain("Discover, Build, and Review advance");
-    expect(main).toContain(
-      "Only the researched Pitch and first-slice Plan require direct user approval",
-    );
+    expect(main).toContain("Build and Review advance autonomously");
+    expect(main).toContain("compatibility fallback only");
+    expect(main).toContain("pitch-simplification");
+    expect(main).toContain("plan-simplification");
+    expect(main).toContain("build-simplification");
+    expect(main).toMatch(/complexity[\s\S]*not a blocker/iu);
     expect(main).toMatch(
-      /raw idea[\s\S]*set boundaries[\s\S]*rough out[\s\S]*de-risk[\s\S]*write the pitch[\s\S]*approve/iu,
+      /raw idea[\s\S]*set boundaries[\s\S]*rough out[\s\S]*de-risk[\s\S]*write and simplify the pitch[\s\S]*approve/iu,
     );
     expect(philosophy).toMatch(/agent-native Shape Up/iu);
     expect(philosophy).toMatch(/betting table[\s\S]*not copy/iu);
@@ -115,6 +123,11 @@ describe("development workflow package resources", () => {
     expect(philosophy).toContain(
       "https://akitaonrails.com/en/2026/04/20/clean-code-for-ai-agents/",
     );
+    expect(philosophy).toContain(
+      "https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md",
+    );
+    expect(philosophy).toContain("https://github.com/DietrichGebert/ponytail");
+    expect(philosophy).toMatch(/needs? to exist[\s\S]*standard library[\s\S]*minimum code/iu);
     expect(philosophy).not.toContain("94% quality");
     expect(pitch).toMatch(/Problem[\s\S]*Appetite[\s\S]*Solution[\s\S]*Rabbit Holes[\s\S]*No-Gos/u);
     expect(pitch).toMatch(/rough, solved, and bounded/iu);
@@ -131,12 +144,20 @@ describe("development workflow package resources", () => {
     expect(specTemplate).toContain("### Agent Investment");
     expect(specTemplate).toContain("### Scope Control");
     expect(specTemplate).toContain("### Fixed Floors");
+    expect(specTemplate).toContain("### Simplicity Case");
     expect(specTemplate).toContain("### Agent Discretion");
-    expect(validatePitchDocument(specTemplate)).toEqual({ id: "PITCH-001", valid: true });
+    expect(() => validatePitchDocument(specTemplate)).toThrow(/template guidance/iu);
     expect(researchTemplate).toContain("schema: dev-workflow/research-v1");
     expect(researchTemplate).toContain("Repository Evidence");
-    expect(researchTemplate).toContain("Findings and Pitch Implications");
+    expect(researchTemplate).toContain("External Prior Art");
+    expect(researchTemplate).toContain("Options Considered");
+    expect(researchTemplate).toContain("Recommendation");
+    expect(researchTemplate).toContain("Pitch Implications");
+    expect(researchTemplate).toContain("Simplicity Check");
     expect(researchTemplate).toContain("not a browsing diary");
+    expect(() => validateResearchDocument(researchTemplate)).toThrow(/template guidance/iu);
+    expect(planTemplate).toContain("Simplification Review");
+    expect(() => validatePlanDocument(planTemplate)).toThrow(/template guidance/iu);
     expect(slices).toContain("first demonstrable slice");
     expect(slices).toContain("Reject horizontal phases");
     expect(slices).toContain("without another approval or routine checkpoint");
@@ -153,6 +174,16 @@ describe("development workflow package resources", () => {
     expect(modelRouting).toContain("openai-codex/gpt-5.6-terra:low");
     expect(modelRouting).toContain("openai-codex/gpt-5.6-terra:medium");
     expect(modelRouting).toContain("openai-codex/gpt-5.6-terra:high");
+    const researcherProfile = modelRouting
+      .split("\n")
+      .find((line) => line.startsWith("| Researcher"));
+    expect(researcherProfile).toContain("gpt-5.6-luna:low");
+    expect(researcherProfile).toContain("Terra low");
+    const simplifierProfile = modelRouting
+      .split("\n")
+      .find((line) => line.startsWith("| Simplifier"));
+    expect(simplifierProfile).toContain("gpt-5.6-terra:low");
+    expect(simplifierProfile).toContain("read-only");
     const plannerProfile = modelRouting
       .split("\n")
       .find((line) => line.startsWith("| Pitch/spec/slice planner"));
@@ -183,10 +214,12 @@ describe("development workflow package resources", () => {
     expect(ship).toMatch(/one fresh Sol high reviewer[\s\S]*active slice/iu);
     expect(ship).toMatch(/accepted fixes[\s\S]*cap Terra at high[\s\S]*Sol medium/iu);
     expect(sliceTemplate).toContain("## Execution Profile");
-    expect(sliceTemplate).toContain("Worker effort: medium");
-    expect(sliceTemplate).toContain("Next tier: Terra high");
-    expect(sliceTemplate).toContain("Conceptual failure: Return to Sol planning");
+    expect(sliceTemplate).toContain("### Worker Effort");
+    expect(sliceTemplate).toContain("Terra high");
+    expect(sliceTemplate).toContain("### Conceptual Replanning");
+    expect(sliceTemplate).toContain("## Simplification Pass");
     expect(sliceTemplate).toMatch(/Sol medium[\s\S]*explicitly revalidates/iu);
+    expect(() => validateSliceDocument(sliceTemplate)).toThrow(/template guidance/iu);
   });
 
   it("defines evidence-based design, quality, and debugging flows without numeric gates", async () => {
@@ -221,7 +254,7 @@ describe("development workflow package resources", () => {
   it("ships a compact plan template that links rather than duplicates pitch boundaries", async () => {
     expect.hasAssertions();
     const planTemplate = await text("skills/pi-development-workflow/templates/plan.md");
-    expect(validatePlanDocument(planTemplate)).toEqual({ id: "plan", valid: true });
+    expect(() => validatePlanDocument(planTemplate)).toThrow(/template guidance/iu);
     expect(planTemplate).toContain("Pitch and boundaries");
     expect(planTemplate).not.toContain("## Appetite");
     expect(planTemplate).not.toContain("## No-Gos");
@@ -236,20 +269,19 @@ describe("development workflow package resources", () => {
     expect(readme).toContain("exhaustive upfront task plans");
     expect(readme).toContain("qualitative agent-investment envelope");
     expect(readme).toContain("For non-trivial work, resolve the workspace first");
-    expect(readme).toContain("Discovery then reads repository truth");
+    expect(readme).toContain("Discovery reads repository truth");
     expect(readme).toContain("Problem contains the mandatory Research Basis");
     expect(readme).toContain("mandatory wall-clock backstop");
     expect(readme).toContain("/dev-workflow backstop 2d");
     expect(readme).toContain("wall-clock backstop continues to elapse");
     expect(readme).toContain("Circuit commands are available only after the backstop expires");
-    expect(readme).toContain("Discover, Build, and Review advance automatically");
-    expect(readme).toContain("/dev-workflow approve pitch");
-    expect(readme).toContain("/dev-workflow approve plan");
+    expect(readme).toContain("Build and Review remain autonomous evidence gates");
+    expect(readme).toContain("/dev-workflow approve discover|pitch|plan");
     expect(readme).toContain("/dev-workflow authorize commit");
     expect(readme).toContain("/dev-workflow cancel authorization");
     expect(readme).toContain("/dev-workflow finish");
     expect(readme).toContain("stops only when a pitch/No-Go boundary would change");
-    expect(readme).not.toContain("/dev-workflow approve discover");
+    expect(readme).toContain("compatibility fallback only");
     expect(readme).not.toContain("/dev-workflow approve build");
     expect(readme).not.toContain("/dev-workflow approve review");
     expect(readme).toContain("circuit extend 1d");
@@ -258,5 +290,12 @@ describe("development workflow package resources", () => {
     expect(readme).toContain(
       "does not authorize commit, push, pull request, merge, release, publish, deploy",
     );
+  });
+});
+
+describe("approved workflow hardening resources", () => {
+  it("documents a single Refine-again/Approve-and-continue checkpoint", async () => {
+    expect.hasAssertions();
+    expect(await text("README.md")).toContain("Refine again / Approve and continue");
   });
 });

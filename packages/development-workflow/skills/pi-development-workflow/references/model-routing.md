@@ -10,11 +10,37 @@ When pi-subagents and the OpenAI Codex GPT-5.6 models are available, explicitly 
 | ------------------------ | ----------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Main orchestrator        | `openai-codex/gpt-5.6-sol:high`     | Parent session                           | The user may select Sol xhigh for ambiguous shaping, architecture, conflicting review evidence, or exceptional synthesis.                                                                                                                                                                                    |
 | Scout                    | `openai-codex/gpt-5.6-luna:low`     | Fresh                                    | Rerun with `openai-codex/gpt-5.6-terra:low` when ownership is unclear, behavior crosses packages, repository evidence conflicts, or the first pass reports incomplete confidence.                                                                                                                            |
+| Researcher               | `openai-codex/gpt-5.6-luna:low`     | Fresh                                    | Discover bounded repository and primary-source prior art. Escalate to Terra low only when sources conflict, provenance is unclear, or cross-boundary synthesis is necessary. Sol owns pitch synthesis and every product decision.                                                                            |
 | Pitch/spec/slice planner | `openai-codex/gpt-5.6-sol:high`     | Fresh                                    | Use Sol xhigh for ambiguous shaping, architecture, conflicting requirements, security, concurrency, migrations, or repeated worker failure that suggests the plan is wrong. The planner writes for a Terra worker, not for itself.                                                                           |
+| Simplifier               | `openai-codex/gpt-5.6-terra:low`    | Fresh, read-only                         | Run once on the ready Pitch, Plan, and each implemented slice. Return a concise delete/reuse/stdlib/native list. Complexity alone is not a blocker; send conflicts with acceptance signals or fixed floors back to Sol planning rather than increasing simplifier effort.                                    |
 | Worker                   | `openai-codex/gpt-5.6-terra:medium` | Fresh per slice                          | Use Terra high for difficult but bounded implementation. If the Sol planner or Oracle has explicitly revalidated a sound plan and frontier judgment remains inseparable from implementation, use `openai-codex/gpt-5.6-sol:medium`. Do not use Terra xhigh as a substitute for replanning or Sol capability. |
 | Reviewer                 | `openai-codex/gpt-5.6-sol:high`     | Fresh                                    | Use one reviewer per slice. Add another reviewer only for a genuinely distinct risk domain that the first review contract cannot cover.                                                                                                                                                                      |
 | Oracle                   | `openai-codex/gpt-5.6-sol:high`     | Forked                                   | Invoke only for decision drift, hidden contradictions, or trajectory uncertainty. Use Sol xhigh for architecture, conflicting requirements or prior decisions, security, concurrency, migrations, unresolved reviewer disagreement, or repeated worker failure.                                              |
 | Fix worker               | Same worker ladder                  | Resume for narrow fixes; otherwise fresh | Keep Terra at or below high. If an accepted finding exposes a plan gap, return to Sol planning; use Sol medium only for a sound plan whose fix still needs frontier judgment.                                                                                                                                |
+
+## Operating contract for every role
+
+Apply these rules to Sol, Terra, and Luna work rather than relying on model strength to compensate for an unclear contract:
+
+1. **Think before acting:** state material assumptions, surface genuinely different interpretations, and ask only when ambiguity changes product behavior, architecture, scope, or a fixed floor. If a simpler route exists, say so before committing to complexity.
+2. **Use the minimum sufficient mechanism:** first ask whether the behavior needs to exist; then prefer an existing repository seam, standard library, native platform capability, or already-installed dependency; only then add the minimum code that works. Do not add speculative abstraction, flexibility, configuration, error handling for impossible states, or scaffolding “for later.”
+3. **Change surgically:** touch only what the approved artifact and affected contracts require. Do not hide unrelated cleanup inside a slice. Match existing style unless the style itself violates the pitch or a fixed floor.
+4. **Define success before execution:** use observable acceptance signals and a deterministic validation contract, then loop autonomously until those checks pass or a real hard boundary fires.
+5. **Calibrate blockers:** uncertainty, inconvenience, a failed command, or removable complexity is not automatically a blocker. Report a blocker only when safe progress cannot continue without a user-owned decision, changed pitch/No-Go, threatened fixed floor, expired backstop, or authorization. State evidence, consequence, and smallest decision needed without exaggeration.
+
+These rules adapt the MIT-licensed [Karpathy Guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md) and Ponytail’s [minimum-solution ladder](https://github.com/DietrichGebert/ponytail) to this workflow. They are bounded by repository truth and fixed floors: never simplify away trust-boundary validation, data-loss prevention, security, accessibility, compatibility, or explicitly accepted behavior.
+
+## Simplifier contract
+
+The Simplifier is a short, fresh, read-only counterweight—not another planner and never a writer. Give it only the ready artifact or slice-shaped diff, acceptance signals, fixed floors, and direct seams. It returns:
+
+- what does not need to exist;
+- what can reuse repository code, standard library, native capability, or an installed dependency;
+- abstractions, configuration, wrappers, files, branches, and speculative error paths to delete or avoid;
+- any deliberate complexity that must remain because an acceptance signal or fixed floor requires it;
+- **no findings** when the artifact is already minimal.
+
+The orchestrator accepts or rejects each suggestion, has the writer apply accepted simplifications, reruns affected checks, and records `pitch-simplification`, `plan-simplification`, or slice-bound `build-simplification` evidence. A simplicity suggestion is non-blocking unless its evidence exposes an actual approved-boundary or fixed-floor violation.
 
 ## Worker-effort rubric
 
@@ -36,7 +62,9 @@ Fresh children receive only the approved pitch, active slice, direct contracts, 
 Keep handoffs compact and preferably file-backed:
 
 - scouts return relevant entry points, seams, risks, and confidence gaps;
+- researchers return dated primary-source citations, applicability, confidence gaps, candidate adopt/extend/compose/build/retain routes, and pitch implications;
 - planners return a rough, solved, bounded pitch/spec or an executable vertical slice with RED, minimum GREEN, verification, and escalation boundaries;
+- simplifiers return a terse delete/reuse list, required complexity, and blocker-calibrated findings;
 - workers return changed files, checks with outcomes, evidence, surprises, and decisions needing the orchestrator;
 - the single reviewer reads the active slice and affected diff once, then reports both pitch/slice compliance and correctness, maintainability, verification, and material risk findings.
 

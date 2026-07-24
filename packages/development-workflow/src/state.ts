@@ -1,3 +1,5 @@
+import { checkpointQuestion, isCheckpointQuestion, type CheckpointSelection } from "./question.ts";
+
 export const STATE_TYPE = "mopeyjellyfish-pi-development-workflow-state";
 export const SUMMARY_EVENT = "mopeyjellyfish:pi-development-workflow:summary:v1";
 export const STATUS_KEY = "mopeyjellyfish-pi-development-workflow";
@@ -8,6 +10,30 @@ export type WorkflowStatus = "active" | "paused" | "blocked" | "abandoned" | "co
 export type SliceStatus = "planned" | "active" | "blocked" | "verified" | "cut";
 export type BackstopState = "not_started" | "active" | "attention" | "expired";
 export type WorkflowIssueType = "blocker" | "decision";
+export const EVIDENCE_KINDS = [
+  "problem",
+  "research",
+  "pitch-simplification",
+  "pitch-review",
+  "validation-contract",
+  "workspace-decision",
+  "plan-simplification",
+  "red",
+  "green",
+  "tdd-exception",
+  "focused-verification",
+  "regression-verification",
+  "worker-handoff",
+  "build-simplification",
+  "review-intent",
+  "review-correctness",
+  "review-maintainability",
+  "review-risk-operations",
+  "final-verification",
+  "review-reduced-assurance",
+  "expiry-observation",
+] as const;
+export type EvidenceKind = (typeof EVIDENCE_KINDS)[number];
 export const SHIP_ACTIONS = [
   "commit",
   "push",
@@ -23,6 +49,7 @@ export const CLEAN_TREE_FINGERPRINT =
   "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 export interface WorkflowSlice {
+  readonly dependsOn?: readonly string[];
   readonly id: string;
   readonly path: string;
   readonly status: SliceStatus;
@@ -33,8 +60,11 @@ export interface WorkflowEvidence {
   readonly claim: string;
   readonly head?: string;
   readonly kind: string;
+  /** Missing only on inspectable legacy v1 records, which never satisfy new gates. */
+  readonly phase?: WorkflowPhase;
   readonly reference: string;
   readonly sensitivity: "public" | "private";
+  readonly sliceId?: string;
   readonly stale?: true;
   readonly tree?: string;
 }
@@ -88,11 +118,27 @@ export interface WorkflowSnapshot {
     readonly label: string;
     readonly startedAt?: number;
   };
-  readonly artifacts: { readonly plan?: string; readonly spec?: string };
+  readonly artifacts: {
+    readonly plan?: string;
+    readonly research?: string;
+    readonly spec?: string;
+  };
   readonly attention?: string;
   readonly evidence: readonly WorkflowEvidence[];
+  readonly checkpointDecisions?: readonly {
+    readonly phase: "discover" | "pitch" | "plan";
+    readonly reason: string;
+    readonly selection: "refine" | "advance";
+    readonly timestamp: number;
+  }[];
   readonly gates: Readonly<Partial<Record<WorkflowPhase, true>>>;
   readonly outcomes: readonly WorkflowOutcome[];
+  readonly pendingCheckpoint?: {
+    readonly phase: "discover" | "pitch" | "plan";
+    readonly question: Readonly<Record<string, unknown>>;
+    readonly reason: string;
+    readonly to: WorkflowPhase;
+  };
   readonly pendingShipAction?: ShipAuthorization;
   readonly phase: WorkflowPhase;
   readonly resolvedDecisions: readonly WorkflowDecisionResolution[];
@@ -120,8 +166,17 @@ export interface WorkflowSummaryEventV1 {
 
 export type WorkflowAction =
   | { readonly kind: "set_backstop"; readonly duration: string }
-  | { readonly kind: "record_artifact"; readonly artifact: "plan" | "spec"; readonly path: string }
-  | { readonly kind: "register_slice"; readonly id: string; readonly path: string }
+  | {
+      readonly kind: "record_artifact";
+      readonly artifact: "plan" | "research" | "spec";
+      readonly path: string;
+    }
+  | {
+      readonly dependsOn?: readonly string[];
+      readonly kind: "register_slice";
+      readonly id: string;
+      readonly path: string;
+    }
   | {
       readonly kind: "set_slice";
       readonly id: string;
@@ -327,25 +382,40 @@ function isBackstop(value: unknown): value is NonNullable<WorkflowSnapshot["back
   );
 }
 
+function validEvidenceBinding(value: Record<string, unknown>): boolean {
+  const sliceId = value["sliceId"];
+  return (
+    (value["phase"] === undefined || isPhase(value["phase"])) &&
+    (sliceId === undefined || (typeof sliceId === "string" && /^VS-\d{3,}$/u.test(sliceId)))
+  );
+}
+
+function validEvidenceWorkspace(value: Record<string, unknown>): boolean {
+  return (
+    (value["branch"] === undefined || validText(value["branch"], 200)) &&
+    (value["head"] === undefined || validText(value["head"], 100)) &&
+    (value["stale"] === undefined || value["stale"] === true) &&
+    (value["tree"] === undefined || validText(value["tree"], 100))
+  );
+}
+
 function isEvidence(value: unknown): value is WorkflowEvidence {
   if (
     !isRecord(value) ||
     !exactKeys(
       value,
       ["claim", "kind", "reference", "sensitivity"],
-      ["branch", "head", "stale", "tree"],
+      ["branch", "head", "phase", "sliceId", "stale", "tree"],
     )
   )
     return false;
   return (
     validText(value["claim"]) &&
     validText(value["kind"], 80) &&
+    validEvidenceBinding(value) &&
     validText(value["reference"]) &&
     (value["sensitivity"] === "public" || value["sensitivity"] === "private") &&
-    (value["branch"] === undefined || validText(value["branch"], 200)) &&
-    (value["head"] === undefined || validText(value["head"], 100)) &&
-    (value["stale"] === undefined || value["stale"] === true) &&
-    (value["tree"] === undefined || validText(value["tree"], 100))
+    validEvidenceWorkspace(value)
   );
 }
 
@@ -414,11 +484,16 @@ function isShipAuthorization(value: unknown): value is ShipAuthorization {
 function isSlice(value: unknown): value is WorkflowSlice {
   return (
     isRecord(value) &&
-    exactKeys(value, ["id", "path", "status"]) &&
+    exactKeys(value, ["id", "path", "status"], ["dependsOn"]) &&
     typeof value["id"] === "string" &&
     /^VS-\d{3,}$/u.test(value["id"]) &&
     validRelativePath(value["path"]) &&
-    isSliceStatus(value["status"])
+    isSliceStatus(value["status"]) &&
+    (value["dependsOn"] === undefined ||
+      (Array.isArray(value["dependsOn"]) &&
+        value["dependsOn"].every(
+          (dependency) => typeof dependency === "string" && /^VS-\d{3,}$/u.test(dependency),
+        )))
   );
 }
 
@@ -488,17 +563,33 @@ function validIdentity(value: Record<string, unknown>): boolean {
 }
 
 function validArtifacts(value: unknown): boolean {
-  if (!isRecord(value) || !exactKeys(value, [], ["plan", "spec"])) return false;
+  if (!isRecord(value) || !exactKeys(value, [], ["plan", "research", "spec"])) return false;
   const planValid = value["plan"] === undefined || validRelativePath(value["plan"]);
+  const researchValid = value["research"] === undefined || validRelativePath(value["research"]);
   const specValid = value["spec"] === undefined || validRelativePath(value["spec"]);
-  return planValid && specValid;
+  return planValid && researchValid && specValid;
+}
+
+function validSliceGraph(slices: readonly WorkflowSlice[]): boolean {
+  for (const [index, slice] of slices.entries()) {
+    const dependencies = slice.dependsOn ?? [];
+    if (new Set(dependencies).size !== dependencies.length || dependencies.includes(slice.id))
+      return false;
+    const prior = new Set(slices.slice(0, index).map((candidate) => candidate.id));
+    if (dependencies.some((dependency) => !prior.has(dependency))) return false;
+  }
+  return true;
 }
 
 function validSlices(value: unknown): boolean {
   if (!Array.isArray(value) || value.length > MAX_SLICES || !value.every(isSlice)) return false;
   const slices = value as readonly WorkflowSlice[];
   const unique = new Set(slices.map((item) => item.id)).size === slices.length;
-  return unique && slices.filter((item) => item.status === "active").length <= 1;
+  return (
+    unique &&
+    validSliceGraph(slices) &&
+    slices.filter((item) => item.status === "active").length <= 1
+  );
 }
 
 function validCollections(value: Record<string, unknown>): boolean {
@@ -558,7 +649,14 @@ export function isWorkflowSnapshot(value: unknown): value is WorkflowSnapshot {
       "workflowId",
       "workspace",
     ],
-    ["backstop", "attention", "pendingShipAction", "transitionRequest"],
+    [
+      "backstop",
+      "attention",
+      "checkpointDecisions",
+      "pendingCheckpoint",
+      "pendingShipAction",
+      "transitionRequest",
+    ],
   );
   if (!keysValid || !validIdentity(value)) return false;
   if (
@@ -573,14 +671,57 @@ export function isWorkflowSnapshot(value: unknown): value is WorkflowSnapshot {
   return validOptionalSnapshotState(value);
 }
 
+function validCheckpointDecisions(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (Array.isArray(value) &&
+      value.length <= MAX_RESOLVED_DECISIONS &&
+      value.every(
+        (decision: unknown) =>
+          isRecord(decision) &&
+          exactKeys(decision, ["phase", "reason", "selection", "timestamp"]) &&
+          (decision["phase"] === "discover" ||
+            decision["phase"] === "pitch" ||
+            decision["phase"] === "plan") &&
+          validText(decision["reason"]) &&
+          (decision["selection"] === "refine" || decision["selection"] === "advance") &&
+          finiteTimestamp(decision["timestamp"]),
+      ))
+  );
+}
+
+function validPendingCheckpoint(value: Record<string, unknown>): boolean {
+  const checkpoint = value["pendingCheckpoint"];
+  if (checkpoint === undefined) return true;
+  if (!isRecord(checkpoint) || !exactKeys(checkpoint, ["phase", "question", "reason", "to"]))
+    return false;
+  const phase = checkpoint["phase"];
+  const workflowId = value["workflowId"];
+  if (
+    (phase !== "discover" && phase !== "pitch" && phase !== "plan") ||
+    phase !== value["phase"] ||
+    typeof workflowId !== "string" ||
+    !isCheckpointQuestion(checkpoint["question"], phase, workflowId) ||
+    !validText(checkpoint["reason"]) ||
+    !isPhase(checkpoint["to"])
+  )
+    return false;
+  return PHASES.indexOf(checkpoint["to"]) === PHASES.indexOf(phase) + 1;
+}
+
 function validOptionalSnapshotState(value: Record<string, unknown>): boolean {
-  const attentionValid = value["attention"] === undefined || validText(value["attention"]);
-  const backstopValid = value["backstop"] === undefined || isBackstop(value["backstop"]);
   const pending = value["pendingShipAction"];
   const pendingValid =
     pending === undefined ||
     (isShipAuthorization(pending) && value["phase"] === "ship" && value["status"] === "active");
-  return attentionValid && backstopValid && pendingValid && validPhaseStatus(value);
+  return (
+    (value["attention"] === undefined || validText(value["attention"])) &&
+    (value["backstop"] === undefined || isBackstop(value["backstop"])) &&
+    validCheckpointDecisions(value["checkpointDecisions"]) &&
+    validPendingCheckpoint(value) &&
+    pendingValid &&
+    validPhaseStatus(value)
+  );
 }
 
 export function snapshotFromBranch(entries: readonly unknown[]): {
@@ -612,24 +753,59 @@ function next(snapshot: WorkflowSnapshot, patch: SnapshotPatch): WorkflowSnapsho
   return result;
 }
 
-function fresh(snapshot: WorkflowSnapshot, ...kinds: readonly string[]): boolean {
-  return kinds.some((kind) =>
-    snapshot.evidence.some((item) => item.kind === kind && item.stale !== true),
+function fresh(snapshot: WorkflowSnapshot, phase: WorkflowPhase, kind: EvidenceKind): boolean {
+  return snapshot.evidence.some(
+    (item) => item.kind === kind && item.phase === phase && item.stale !== true,
   );
+}
+
+function freshForSlice(
+  snapshot: WorkflowSnapshot,
+  phase: "build" | "review",
+  sliceId: string,
+  kind: EvidenceKind,
+): boolean {
+  return snapshot.evidence.some(
+    (item) =>
+      item.kind === kind && item.phase === phase && item.sliceId === sliceId && item.stale !== true,
+  );
+}
+
+function requireSliceBuildEvidence(snapshot: WorkflowSnapshot, sliceId: string): void {
+  const cycle =
+    freshForSlice(snapshot, "build", sliceId, "tdd-exception") ||
+    (freshForSlice(snapshot, "build", sliceId, "red") &&
+      freshForSlice(snapshot, "build", sliceId, "green"));
+  if (
+    !cycle ||
+    !freshForSlice(snapshot, "build", sliceId, "focused-verification") ||
+    !freshForSlice(snapshot, "build", sliceId, "regression-verification") ||
+    !freshForSlice(snapshot, "build", sliceId, "worker-handoff") ||
+    !freshForSlice(snapshot, "build", sliceId, "build-simplification")
+  )
+    throw new Error(
+      `Slice ${sliceId} requires RED/GREEN (or a TDD exception), focused/regression verification, worker-handoff, and simplification evidence.`,
+    );
 }
 
 function requireScopeComplete(snapshot: WorkflowSnapshot, label: string): void {
   if (
-    snapshot.slices.length === 0 ||
+    snapshot.slices.every((slice) => slice.status !== "verified") ||
     snapshot.slices.some((slice) => slice.status !== "verified" && slice.status !== "cut")
   )
-    throw new Error(`${label} requires every retained slice to be verified or cut.`);
+    throw new Error(
+      `${label} requires at least one verified slice and every other slice to be verified or cut.`,
+    );
 }
 
 function requireDiscoverGate(snapshot: WorkflowSnapshot): void {
-  if (!fresh(snapshot, "problem") || !fresh(snapshot, "research"))
+  if (
+    snapshot.artifacts.research === undefined ||
+    !fresh(snapshot, "discover", "problem") ||
+    !fresh(snapshot, "discover", "research")
+  )
     throw new Error(
-      "Discover transition requires problem evidence and fresh repository research evidence.",
+      "Discover transition requires validated research.md plus fresh problem and research evidence.",
     );
 }
 
@@ -637,10 +813,11 @@ function requirePitchGate(snapshot: WorkflowSnapshot): void {
   if (
     snapshot.artifacts.spec === undefined ||
     snapshot.backstop === undefined ||
-    !fresh(snapshot, "pitch-review")
+    !fresh(snapshot, "pitch", "pitch-simplification") ||
+    !fresh(snapshot, "pitch", "pitch-review")
   )
     throw new Error(
-      "Pitch approval requires a valid spec artifact, mandatory wall-clock backstop, and rough/solved/bounded pitch-review evidence.",
+      "Pitch approval requires a valid spec artifact, mandatory wall-clock backstop, simplification evidence, and rough/solved/bounded pitch-review evidence.",
     );
 }
 
@@ -648,40 +825,35 @@ function requirePlanGate(snapshot: WorkflowSnapshot): void {
   if (
     snapshot.artifacts.plan === undefined ||
     snapshot.slices.length === 0 ||
-    !fresh(snapshot, "validation-contract") ||
-    !fresh(snapshot, "workspace-decision")
+    !fresh(snapshot, "plan", "validation-contract") ||
+    !fresh(snapshot, "plan", "workspace-decision") ||
+    !fresh(snapshot, "plan", "plan-simplification")
   )
     throw new Error(
-      "Plan approval requires plan.md, an integrated slice, validation-contract evidence, and a workspace-decision.",
+      "Plan approval requires plan.md, an integrated slice, validation-contract, workspace-decision, and simplification evidence.",
     );
 }
 
 function requireBuildGate(snapshot: WorkflowSnapshot): void {
   requireScopeComplete(snapshot, "Build transition");
-  const cycle =
-    fresh(snapshot, "tdd-exception") || (fresh(snapshot, "red") && fresh(snapshot, "green"));
-  if (
-    !cycle ||
-    !fresh(snapshot, "focused-verification") ||
-    !fresh(snapshot, "regression-verification")
-  )
-    throw new Error(
-      "Build transition requires RED/GREEN (or justified TDD exception), focused verification, and regression verification evidence.",
-    );
+  for (const slice of snapshot.slices.filter((item) => item.status === "verified"))
+    requireSliceBuildEvidence(snapshot, slice.id);
 }
 
 function requireReviewGate(snapshot: WorkflowSnapshot): void {
   requireScopeComplete(snapshot, "Review transition");
-  if (
-    !fresh(snapshot, "review-intent") ||
-    !fresh(snapshot, "review-correctness") ||
-    !fresh(snapshot, "review-maintainability") ||
-    !fresh(snapshot, "review-risk-operations") ||
-    !fresh(snapshot, "final-verification")
-  )
-    throw new Error(
-      "Review transition requires intent, correctness, maintainability, risk/operations, and final-verification evidence.",
-    );
+  for (const slice of snapshot.slices.filter((item) => item.status === "verified")) {
+    for (const kind of [
+      "review-intent",
+      "review-correctness",
+      "review-maintainability",
+      "review-risk-operations",
+      "final-verification",
+    ] as const) {
+      if (!freshForSlice(snapshot, "review", slice.id, kind))
+        throw new Error(`Review transition requires ${kind} evidence for ${slice.id}.`);
+    }
+  }
 }
 
 function gatePrerequisites(snapshot: WorkflowSnapshot, gate: Exclude<WorkflowPhase, "ship">): void {
@@ -724,11 +896,50 @@ function rewind(
     slices: snapshot.slices.map((slice) =>
       slice.status === "cut" ? slice : { ...slice, status: "planned" as const },
     ),
+    pendingCheckpoint: undefined,
     pendingShipAction: undefined,
     status: "active",
     transitionRequest: undefined,
     unresolved: [],
   });
+}
+
+function validateSliceChange(
+  snapshot: WorkflowSnapshot,
+  existing: WorkflowSlice,
+  status: SliceStatus,
+  reason: string | undefined,
+  restore: boolean,
+): void {
+  if (restore) {
+    if (existing.status !== "cut") throw new Error("Only cut scope may be restored directly.");
+    boundedText(reason, "Scope restoration reason");
+    return;
+  }
+  if (status === "cut") {
+    if (existing.status === "verified" || existing.status === "cut")
+      throw new Error("Verified and cut slices are terminal.");
+    boundedText(reason, "Scope-cut reason");
+    return;
+  }
+  const legal: Readonly<Record<SliceStatus, readonly SliceStatus[]>> = {
+    active: ["blocked", "verified"],
+    blocked: ["active"],
+    cut: [],
+    planned: ["active"],
+    verified: [],
+  };
+  if (!legal[existing.status].includes(status))
+    throw new Error(`Illegal slice transition ${existing.status} -> ${status}.`);
+  if (status === "active") {
+    if (snapshot.slices.some((slice) => slice.status === "active"))
+      throw new Error("A second active slice is not allowed.");
+    for (const dependency of existing.dependsOn ?? []) {
+      if (snapshot.slices.find((slice) => slice.id === dependency)?.status !== "verified")
+        throw new Error(`Slice ${existing.id} requires verified dependency ${dependency}.`);
+    }
+  }
+  if (status === "verified") requireSliceBuildEvidence(snapshot, existing.id);
 }
 
 function setSlice(
@@ -741,18 +952,10 @@ function setSlice(
   if (snapshot.phase !== "build") throw new Error("Slice status changes require the build phase.");
   const existing = snapshot.slices.find((slice) => slice.id === id);
   if (existing === undefined) throw new Error(`Slice ${id} is not registered.`);
-  if (existing.status === "cut" && !restore)
-    throw new Error("Cut scope is terminal unless a direct human deliberately restores it.");
-  if (status === "cut") boundedText(reason, "Scope-cut reason");
-  if (restore) boundedText(reason, "Scope restoration reason");
-  const slices = snapshot.slices.map((slice) =>
-    slice.id === id
-      ? { ...slice, status }
-      : status === "active" && slice.status === "active"
-        ? { ...slice, status: "planned" as const }
-        : slice,
-  );
-  return next(snapshot, { slices });
+  validateSliceChange(snapshot, existing, status, reason, restore);
+  return next(snapshot, {
+    slices: snapshot.slices.map((slice) => (slice.id === id ? { ...slice, status } : slice)),
+  });
 }
 
 function observeWorkspace(
@@ -801,12 +1004,13 @@ function observeWorkspace(
   });
 }
 
-const EVIDENCE_PHASE: Readonly<Record<string, WorkflowPhase>> = {
+const EVIDENCE_PHASE: Readonly<Record<EvidenceKind, WorkflowPhase>> = {
   "expiry-observation": "build",
   "final-verification": "review",
   "focused-verification": "build",
   green: "build",
   "pitch-review": "pitch",
+  "pitch-simplification": "pitch",
   problem: "discover",
   red: "build",
   "regression-verification": "build",
@@ -817,13 +1021,35 @@ const EVIDENCE_PHASE: Readonly<Record<string, WorkflowPhase>> = {
   "review-reduced-assurance": "review",
   "review-risk-operations": "review",
   "tdd-exception": "build",
+  "build-simplification": "build",
+  "plan-simplification": "plan",
   "validation-contract": "plan",
   "workspace-decision": "plan",
+  "worker-handoff": "build",
 };
 
 function evidenceIsDownstream(item: WorkflowEvidence, target: WorkflowPhase): boolean {
-  const evidencePhase = EVIDENCE_PHASE[item.kind];
+  const evidencePhase = EVIDENCE_KINDS.includes(item.kind as EvidenceKind)
+    ? EVIDENCE_PHASE[item.kind as EvidenceKind]
+    : undefined;
   return evidencePhase === undefined || PHASES.indexOf(evidencePhase) >= PHASES.indexOf(target);
+}
+
+function missingArtifactTarget(
+  snapshot: WorkflowSnapshot,
+  missing: readonly string[],
+  slices: readonly WorkflowSlice[],
+): WorkflowPhase | undefined {
+  if (snapshot.artifacts.research !== undefined && missing.includes(snapshot.artifacts.research))
+    return "discover";
+  if (snapshot.artifacts.spec !== undefined && missing.includes(snapshot.artifacts.spec))
+    return "pitch";
+  const planMissing =
+    snapshot.artifacts.plan !== undefined && missing.includes(snapshot.artifacts.plan);
+  const sliceMissing = slices.some(
+    (slice, index) => slice.status !== snapshot.slices[index]?.status,
+  );
+  return planMissing || sliceMissing ? "plan" : undefined;
 }
 
 function observeMissing(snapshot: WorkflowSnapshot, paths: readonly string[]): WorkflowSnapshot {
@@ -835,18 +1061,10 @@ function observeMissing(snapshot: WorkflowSnapshot, paths: readonly string[]): W
       ? { ...slice, status: "blocked" as const }
       : slice,
   );
-  const specMissing =
-    snapshot.artifacts.spec !== undefined && missing.includes(snapshot.artifacts.spec);
-  const planMissing =
-    snapshot.artifacts.plan !== undefined && missing.includes(snapshot.artifacts.plan);
   const sliceMissing = slices.some(
     (slice, index) => slice.status !== snapshot.slices[index]?.status,
   );
-  const target: WorkflowPhase | undefined = specMissing
-    ? "pitch"
-    : planMissing || sliceMissing
-      ? "plan"
-      : undefined;
+  const target = missingArtifactTarget(snapshot, missing, slices);
   const rewindNeeded =
     target !== undefined && PHASES.indexOf(snapshot.phase) > PHASES.indexOf(target);
   if (!rewindNeeded && snapshot.attention === attention && !sliceMissing) return clone(snapshot);
@@ -867,8 +1085,9 @@ function observeMissing(snapshot: WorkflowSnapshot, paths: readonly string[]): W
     ),
     gates,
     phase: rewindNeeded ? target : snapshot.phase,
+    pendingCheckpoint: target === undefined ? snapshot.pendingCheckpoint : undefined,
     slices,
-    transitionRequest: rewindNeeded ? undefined : snapshot.transitionRequest,
+    transitionRequest: target === undefined ? snapshot.transitionRequest : undefined,
   });
 }
 
@@ -961,49 +1180,103 @@ function isResolutionAction(action: WorkflowAction): action is ResolutionAction 
   return RESOLUTION_ACTIONS.has(action.kind);
 }
 
+function recordArtifact(
+  snapshot: WorkflowSnapshot,
+  action: Extract<ContentAction, { kind: "record_artifact" }>,
+): WorkflowSnapshot {
+  const requiredPhase: WorkflowPhase =
+    action.artifact === "research" ? "discover" : action.artifact === "spec" ? "pitch" : "plan";
+  if (snapshot.phase !== requiredPhase)
+    throw new Error(`${action.artifact} replacement requires the ${requiredPhase} phase.`);
+  return next(snapshot, {
+    artifacts: {
+      ...snapshot.artifacts,
+      [action.artifact]: relativePath(action.path, "Artifact path"),
+    },
+    gates: Object.fromEntries(
+      Object.entries(snapshot.gates).filter(
+        ([gate]) => PHASES.indexOf(gate as WorkflowPhase) < PHASES.indexOf(requiredPhase),
+      ),
+    ),
+  });
+}
+
+function registerSlice(
+  snapshot: WorkflowSnapshot,
+  action: Extract<ContentAction, { kind: "register_slice" }>,
+): WorkflowSnapshot {
+  if (snapshot.phase !== "plan" && snapshot.phase !== "build")
+    throw new Error("Slice registration requires the plan or build phase.");
+  const id = boundedText(action.id, "Slice id", 30);
+  if (!/^VS-\d{3,}$/u.test(id)) throw new Error("Slice id must match VS-NNN.");
+  if (snapshot.slices.some((slice) => slice.id === id))
+    throw new Error(`Slice ${id} is already registered.`);
+  if (snapshot.slices.length >= MAX_SLICES)
+    throw new Error(`A workflow may contain at most ${String(MAX_SLICES)} slices.`);
+  const dependencies = action.dependsOn ?? [];
+  if (new Set(dependencies).size !== dependencies.length)
+    throw new Error(`Slice ${id} contains duplicate dependencies.`);
+  if (dependencies.includes(id)) throw new Error(`Slice ${id} must not depend on itself.`);
+  const unknown = dependencies.find((dependency) =>
+    snapshot.slices.every((slice) => slice.id !== dependency),
+  );
+  if (unknown !== undefined)
+    throw new Error(`Slice ${id} depends on unregistered slice ${unknown}.`);
+  return next(snapshot, {
+    slices: [
+      ...snapshot.slices,
+      {
+        ...(dependencies.length === 0 ? {} : { dependsOn: [...dependencies] }),
+        id,
+        path: relativePath(action.path, "Slice path"),
+        status: "planned",
+      },
+    ],
+  });
+}
+
 function applyContentAction(snapshot: WorkflowSnapshot, action: ContentAction): WorkflowSnapshot {
-  switch (action.kind) {
-    case "set_backstop": {
-      if (snapshot.backstop?.startedAt !== undefined)
-        throw new Error("A started backstop can change only through a direct circuit extension.");
-      const parsed = parseBackstop(action.duration);
-      return next(snapshot, {
-        backstop: { durationMs: parsed.milliseconds, label: parsed.label },
-      });
-    }
-    case "record_artifact": {
-      const requiredPhase = action.artifact === "spec" ? "pitch" : "plan";
-      if (snapshot.phase !== requiredPhase)
-        throw new Error(`${action.artifact} replacement requires the ${requiredPhase} phase.`);
-      return next(snapshot, {
-        artifacts: {
-          ...snapshot.artifacts,
-          [action.artifact]: relativePath(action.path, "Artifact path"),
-        },
-        gates: Object.fromEntries(
-          Object.entries(snapshot.gates).filter(
-            ([gate]) => PHASES.indexOf(gate as WorkflowPhase) < PHASES.indexOf(requiredPhase),
-          ),
-        ),
-      });
-    }
-    case "register_slice": {
-      if (snapshot.phase !== "plan" && snapshot.phase !== "build")
-        throw new Error("Slice registration requires the plan or build phase.");
-      const id = boundedText(action.id, "Slice id", 30);
-      if (!/^VS-\d{3,}$/u.test(id)) throw new Error("Slice id must match VS-NNN.");
-      if (snapshot.slices.some((slice) => slice.id === id))
-        throw new Error(`Slice ${id} is already registered.`);
-      if (snapshot.slices.length >= MAX_SLICES)
-        throw new Error(`A workflow may contain at most ${String(MAX_SLICES)} slices.`);
-      return next(snapshot, {
-        slices: [
-          ...snapshot.slices,
-          { id, path: relativePath(action.path, "Slice path"), status: "planned" },
-        ],
-      });
-    }
+  if (action.kind === "record_artifact") return recordArtifact(snapshot, action);
+  if (action.kind === "register_slice") return registerSlice(snapshot, action);
+  if (snapshot.backstop?.startedAt !== undefined)
+    throw new Error("A started backstop can change only through a direct circuit extension.");
+  const parsed = parseBackstop(action.duration);
+  return next(snapshot, { backstop: { durationMs: parsed.milliseconds, label: parsed.label } });
+}
+
+const SLICE_EVIDENCE = new Set<EvidenceKind>([
+  "red",
+  "green",
+  "tdd-exception",
+  "focused-verification",
+  "regression-verification",
+  "worker-handoff",
+  "build-simplification",
+  "review-intent",
+  "review-correctness",
+  "review-maintainability",
+  "review-risk-operations",
+  "final-verification",
+  "review-reduced-assurance",
+]);
+
+function requireEvidenceSlice(
+  snapshot: WorkflowSnapshot,
+  kind: EvidenceKind,
+  legalPhase: WorkflowPhase,
+  sliceId: string | undefined,
+): void {
+  if (!SLICE_EVIDENCE.has(kind)) {
+    if (sliceId !== undefined) throw new Error(`${kind} evidence must not specify sliceId.`);
+    return;
   }
+  const slice = snapshot.slices.find((candidate) => candidate.id === sliceId);
+  if (sliceId === undefined || slice === undefined)
+    throw new Error(`${kind} evidence requires a registered sliceId.`);
+  if (legalPhase === "build" && slice.status !== "active")
+    throw new Error(`${kind} evidence requires its slice to be active.`);
+  if (legalPhase === "review" && slice.status !== "verified")
+    throw new Error(`${kind} evidence requires its slice to be verified.`);
 }
 
 function recordEvidence(
@@ -1012,10 +1285,19 @@ function recordEvidence(
 ): WorkflowSnapshot {
   if (snapshot.evidence.length >= MAX_EVIDENCE)
     throw new Error(`A workflow may contain at most ${String(MAX_EVIDENCE)} evidence records.`);
+  const kind = boundedText(action.evidence.kind, "Evidence kind", 80) as EvidenceKind;
+  if (!EVIDENCE_KINDS.includes(kind)) throw new Error("Evidence kind is not registered.");
+  const legalPhase = EVIDENCE_PHASE[kind];
+  if (legalPhase !== snapshot.phase)
+    throw new Error(`${kind} evidence is legal only during ${legalPhase}.`);
+  const sliceId = action.evidence.sliceId;
+  requireEvidenceSlice(snapshot, kind, legalPhase, sliceId);
   const item: WorkflowEvidence = {
     claim: boundedText(action.evidence.claim, "Evidence claim"),
-    kind: boundedText(action.evidence.kind, "Evidence kind", 80),
+    kind,
+    phase: snapshot.phase,
     reference: boundedText(action.evidence.reference, "Evidence reference"),
+    ...(sliceId === undefined ? {} : { sliceId }),
     sensitivity: action.evidence.sensitivity,
     ...(action.evidence.branch === undefined
       ? {}
@@ -1083,11 +1365,32 @@ function applyProgressAction(
       };
       if (
         snapshot.phase === "discover" ||
-        snapshot.phase === "build" ||
-        snapshot.phase === "review"
-      )
-        return advanceGate({ ...clone(snapshot), transitionRequest }, snapshot.phase, now);
-      return next(snapshot, { transitionRequest });
+        snapshot.phase === "pitch" ||
+        snapshot.phase === "plan"
+      ) {
+        if (snapshot.pendingCheckpoint !== undefined)
+          throw new Error("A unique Refine/Advance checkpoint is already pending.");
+        if (snapshot.phase === "discover") requireDiscoverGate(snapshot);
+        if (snapshot.phase === "pitch") requirePitchGate(snapshot);
+        if (snapshot.phase === "plan") requirePlanGate(snapshot);
+        return next(snapshot, {
+          pendingCheckpoint: {
+            phase: snapshot.phase,
+            question: checkpointQuestion(
+              snapshot.phase,
+              `${snapshot.workflowId}-${snapshot.phase}-${String(snapshot.revision + 1)}`,
+            ),
+            reason: transitionRequest.reason,
+            to: action.to,
+          },
+          transitionRequest,
+        });
+      }
+      return advanceGate(
+        { ...clone(snapshot), transitionRequest },
+        snapshot.phase as Exclude<WorkflowPhase, "ship">,
+        now,
+      );
     }
   }
 }
@@ -1116,14 +1419,40 @@ function advanceGate(
   });
 }
 
+export function resolveCheckpoint(
+  snapshot: WorkflowSnapshot,
+  selection: CheckpointSelection,
+  now: number,
+): WorkflowSnapshot {
+  const { pendingCheckpoint: pending, ...withoutCheckpoint } = clone(snapshot);
+  if (pending === undefined) throw new Error("No workflow checkpoint is pending.");
+  const decision = {
+    phase: pending.phase,
+    reason: pending.reason,
+    selection,
+    timestamp: now,
+  } as const;
+  const checkpointDecisions = [...(snapshot.checkpointDecisions ?? []), decision];
+  if (selection === "refine")
+    return next(snapshot, {
+      attention: `checkpoint: refine ${pending.phase}`,
+      checkpointDecisions,
+      pendingCheckpoint: undefined,
+      transitionRequest: undefined,
+    });
+  return advanceGate({ ...withoutCheckpoint, checkpointDecisions }, pending.phase, now);
+}
+
 function approve(
   snapshot: WorkflowSnapshot,
   action: Extract<WorkflowAction, { kind: "approve" }>,
 ): WorkflowSnapshot {
-  if (action.gate !== "pitch" && action.gate !== "plan")
+  if (action.gate !== "discover" && action.gate !== "pitch" && action.gate !== "plan")
     throw new Error(
       `${action.gate} is agent-owned; record the required evidence and request its transition instead.`,
     );
+  if (snapshot.pendingCheckpoint?.phase === action.gate)
+    return resolveCheckpoint(snapshot, "advance", action.now);
   return advanceGate(snapshot, action.gate, action.now);
 }
 
@@ -1248,6 +1577,16 @@ function authorizeShip(
     );
   if (!finiteTimestamp(action.now)) throw new Error("Authorization timestamp must be valid.");
   requireCompletion(snapshot);
+  if (
+    action.action === "commit" &&
+    (snapshot.workspace.branch === undefined ||
+      snapshot.workspace.head === undefined ||
+      snapshot.workspace.tree === undefined ||
+      snapshot.workspace.tree === CLEAN_TREE_FINGERPRINT)
+  )
+    throw new Error(
+      "Commit authorization requires branch/HEAD identity and a non-clean reviewed worktree fingerprint.",
+    );
   const reason = boundedText(action.reason, "Ship authorization reason");
   return next(snapshot, {
     attention: `authorized ${action.action}; awaiting receipt`,
@@ -1361,8 +1700,10 @@ function bindEvidenceToWorkspace(
   return {
     claim: item.claim,
     kind: item.kind,
+    ...(item.phase === undefined ? {} : { phase: item.phase }),
     reference: item.reference,
     sensitivity: item.sensitivity,
+    ...(item.sliceId === undefined ? {} : { sliceId: item.sliceId }),
     ...(workspace.branch === undefined ? {} : { branch: workspace.branch }),
     ...(workspace.head === undefined ? {} : { head: workspace.head }),
     ...(workspace.tree === undefined ? {} : { tree: workspace.tree }),
@@ -1497,6 +1838,115 @@ export function workflowSummary(
   };
 }
 
+function discoverNextAction(snapshot: WorkflowSnapshot): string | undefined {
+  if (snapshot.artifacts.research === undefined) return "record validated research.md";
+  if (!fresh(snapshot, "discover", "problem")) return "record problem evidence";
+  return fresh(snapshot, "discover", "research") ? undefined : "record research evidence";
+}
+
+function pitchNextAction(snapshot: WorkflowSnapshot): string | undefined {
+  if (snapshot.artifacts.spec === undefined) return "record validated spec.md";
+  if (snapshot.backstop === undefined) return "set wall-clock backstop";
+  if (!fresh(snapshot, "pitch", "pitch-simplification"))
+    return "run the simplicity pass and record pitch-simplification evidence";
+  return fresh(snapshot, "pitch", "pitch-review") ? undefined : "record pitch-review evidence";
+}
+
+function planNextAction(snapshot: WorkflowSnapshot): string | undefined {
+  if (snapshot.artifacts.plan === undefined || snapshot.slices.length === 0)
+    return "record validated plan.md and first slice";
+  if (!fresh(snapshot, "plan", "validation-contract")) return "record validation-contract evidence";
+  if (!fresh(snapshot, "plan", "workspace-decision")) return "record workspace-decision evidence";
+  return fresh(snapshot, "plan", "plan-simplification")
+    ? undefined
+    : "run the simplicity pass and record plan-simplification evidence";
+}
+
+function shapingNextAction(snapshot: WorkflowSnapshot): string | undefined {
+  if (snapshot.phase === "discover") return discoverNextAction(snapshot);
+  if (snapshot.phase === "pitch") return pitchNextAction(snapshot);
+  return snapshot.phase === "plan" ? planNextAction(snapshot) : undefined;
+}
+
+function activeSliceNextAction(snapshot: WorkflowSnapshot, active: WorkflowSlice): string {
+  const cycle =
+    freshForSlice(snapshot, "build", active.id, "tdd-exception") ||
+    (freshForSlice(snapshot, "build", active.id, "red") &&
+      freshForSlice(snapshot, "build", active.id, "green"));
+  if (!cycle) return `record RED/GREEN or tdd-exception evidence for ${active.id}`;
+  for (const kind of [
+    "focused-verification",
+    "regression-verification",
+    "worker-handoff",
+    "build-simplification",
+  ] as const) {
+    if (!freshForSlice(snapshot, "build", active.id, kind))
+      return `record ${kind} evidence for ${active.id}`;
+  }
+  return `verify active slice ${active.id}`;
+}
+
+function inactiveBuildNextAction(snapshot: WorkflowSnapshot): string {
+  const ready = snapshot.slices.find(
+    (slice) =>
+      slice.status === "planned" &&
+      (slice.dependsOn ?? []).every(
+        (dependency) =>
+          snapshot.slices.find((candidate) => candidate.id === dependency)?.status === "verified",
+      ),
+  );
+  if (ready !== undefined) return `activate dependency-ready slice ${ready.id}`;
+  const blocked = snapshot.slices.find((slice) => slice.status === "blocked");
+  if (blocked !== undefined) return `reactivate or cut blocked slice ${blocked.id}`;
+  return snapshot.slices.some((slice) => slice.status === "planned")
+    ? "repair the slice dependency graph before continuing"
+    : "request automatic transition to review";
+}
+
+function reviewNextAction(snapshot: WorkflowSnapshot): string {
+  for (const slice of snapshot.slices.filter((item) => item.status === "verified")) {
+    for (const kind of [
+      "review-intent",
+      "review-correctness",
+      "review-maintainability",
+      "review-risk-operations",
+      "final-verification",
+    ] as const) {
+      if (!freshForSlice(snapshot, "review", slice.id, kind))
+        return `record ${kind} evidence for ${slice.id}`;
+    }
+  }
+  return "request automatic transition to ship";
+}
+
+function interruptedNextAction(snapshot: WorkflowSnapshot, now: number): string | undefined {
+  if (snapshot.status === "abandoned" || snapshot.status === "completed") return "terminal";
+  if (snapshot.pendingShipAction !== undefined)
+    return `record authorized ${snapshot.pendingShipAction.action} receipt`;
+  if (snapshot.status === "paused") return "resume workflow";
+  if (snapshot.unresolved.length > 0 || snapshot.status === "blocked")
+    return "resolve unresolved decision or blocker";
+  if (snapshot.phase === "build" && backstopState(snapshot, now) === "expired")
+    return "resolve expired backstop circuit";
+  return snapshot.pendingCheckpoint === undefined
+    ? undefined
+    : `answer ${snapshot.pendingCheckpoint.phase} checkpoint: Refine again or Approve and continue`;
+}
+
+export function workflowNextAction(snapshot: WorkflowSnapshot, now = Date.now()): string {
+  const interrupted = interruptedNextAction(snapshot, now);
+  if (interrupted !== undefined) return interrupted;
+  const shaping = shapingNextAction(snapshot);
+  if (shaping !== undefined) return shaping;
+  const active = snapshot.slices.find((slice) => slice.status === "active");
+  if (snapshot.phase === "build" && active !== undefined)
+    return activeSliceNextAction(snapshot, active);
+  if (snapshot.phase === "build") return inactiveBuildNextAction(snapshot);
+  if (snapshot.phase === "review") return reviewNextAction(snapshot);
+  if (snapshot.phase === "ship") return "authorize next ship action or finish";
+  return `request automatic transition to ${PHASES[PHASES.indexOf(snapshot.phase) + 1] ?? "ship"}`;
+}
+
 export function formatWorkflow(snapshot: WorkflowSnapshot, now = Date.now()): string {
   const summary = workflowSummary(snapshot, now);
   const slice = summary.activeSlice ?? "no active slice";
@@ -1504,5 +1954,9 @@ export function formatWorkflow(snapshot: WorkflowSnapshot, now = Date.now()): st
     snapshot.unresolved.length === 0
       ? "none"
       : snapshot.unresolved.map((item) => `${item.id} (${item.issueType})`).join(", ");
-  return `${summary.title}\nPhase: ${summary.phase}\nStatus: ${summary.status}\nSlice: ${slice}\nBackstop: ${summary.backstop}\nUnresolved: ${unresolved}\nRevision: ${String(snapshot.revision)}`;
+  const question =
+    snapshot.pendingCheckpoint === undefined
+      ? ""
+      : `\nQuestion input: ${JSON.stringify(snapshot.pendingCheckpoint.question)}`;
+  return `${summary.title}\nPhase: ${summary.phase}\nStatus: ${summary.status}\nSlice: ${slice}\nBackstop: ${summary.backstop}\nUnresolved: ${unresolved}\nNext action: ${workflowNextAction(snapshot, now)}${question}\nRevision: ${String(snapshot.revision)}`;
 }

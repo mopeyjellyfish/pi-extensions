@@ -3,26 +3,34 @@ schema: dev-workflow/research-v1
 id: RESEARCH-001
 ---
 
-# Research Question
+<!-- Remove {{TEMPLATE_GUIDANCE}} after replacing every instruction and placeholder. -->
 
-State the material uncertainty and which pitch section it can change or confirm.
+# Research
 
 ## Repository Evidence
 
-Cite the governing instructions, code paths, symbols, contracts, tests, history, and observed behavior. Record findings and implications, not a browsing diary.
+Cite governing instructions, code paths, symbols, contracts, tests, history, and observed behavior. Record findings and implications, not a browsing diary.
 
-## External Evidence
+## External Prior Art
 
-Cite dated primary sources only when repository truth cannot answer a material fact. Otherwise state why external research was unnecessary; repository research itself is never skipped.
+Disposition: completed. Rationale: the bounded default pass found [replace with a primary source](https://example.invalid/replace-me); its implication is that the pitch should adopt, extend, compose, build, or retain the named route. Replace this placeholder. If the pass need not or cannot run, replace this disposition and supply the rationale or attempt/limitation/uncertainty evidence required by the pitch reference.
 
-## Experiment or Reproduction
+## Options Considered
 
-Describe the bounded probe, inputs, observable result, and limitations when direct observation was useful. Omit this section when no experiment was needed.
+Compare at least two viable routes—adopt, extend, compose, build, reuse, or retain current behavior—and state their important tradeoffs.
 
-## Findings and Pitch Implications
+## Recommendation
 
-For each supported conclusion, name the affected Problem, Appetite, Solution, Acceptance Signal, Rabbit Hole, No-Go, or slice-order decision and how it changed or confirmed that boundary.
+Build the bounded change because repository seams support a narrow implementation.
 
-## Remaining Unknowns
+## Pitch Implications
 
-List only consequential unknowns, their decision owner, and the evidence or tripwire that will resolve them. Do not keep raw transcripts, unfiltered command output, or detached links.
+Name how the evidence changes or confirms Problem, Appetite, Solution, Acceptance Signals, Rabbit Holes, No-Gos, or slice order.
+
+## Simplicity Check
+
+State why the behavior needs to exist, what existing repository seam can be reused, whether the standard library or native platform already solves it, and which dependency, abstraction, configurability, or extra file is deliberately unnecessary. Preserve correctness, security, accessibility, compatibility, and other fixed floors.
+
+## Unknowns
+
+List only consequential unknowns, their decision owner, and the evidence or tripwire that resolves them. Do not keep raw transcripts, unfiltered output, or detached links.

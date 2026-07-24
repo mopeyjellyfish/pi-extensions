@@ -4,11 +4,11 @@ Turn a raw idea, missing capability, or defect into an agreed `specs/<change>/sp
 
 ## 0. Read and research before interviewing
 
-Start with repository truth before asking the user questions or drafting a solution. Read the nearest instructions, current behavior, public interfaces, tests, types, history, dependencies, and existing decisions. Reproduce the behavior or run a bounded probe when observation is more reliable than inference. Then use primary external sources only for material facts the repository cannot answer.
+Start with repository truth before asking the user questions or drafting a solution. Read the nearest instructions, current behavior, public interfaces, tests, types, history, dependencies, and existing decisions. Reproduce the behavior or run a bounded probe when observation is more reliable than inference. Then run the bounded primary-source prior-art pass by default; use `not-applicable` only when external precedent cannot affect the pitch and `unavailable` only with the attempted search, limitation, and resulting uncertainty.
 
-Record fresh `research` evidence in the ledger for every workflow. In the pitch's **Research Basis**, cite the code, tests, documentation, experiments, and external sources that confirm or change the pitch, and state each implication. When a spike, comparison, or diagram is too substantial to summarize, keep a bounded decision-focused artifact under `specs/<change>/research/` and link it from the pitch. Never preserve raw transcripts, unfiltered search results, or notes that do not affect the pitch.
+Create mandatory `research.md` with repository evidence, an external prior-art disposition (`completed`, `not-applicable`, or `unavailable`) and rationale, options considered, one adopt/extend/compose/build/retain recommendation, pitch implications, and unknowns. The pitch's **Research Basis** links that artifact, while **Prior Art**, **Alternatives**, and **Shared Understanding** preserve the decision-ready synthesis. Never preserve raw transcripts, unfiltered search results, or notes that do not affect the pitch.
 
-Repository research is mandatory even when external research is unnecessary. Do not ask the user for facts the codebase can answer.
+Repository research and the bounded prior-art disposition are mandatory even when external research is not applicable. Do not ask the user for facts the codebase can answer.
 
 ## 1. Set boundaries
 
@@ -34,7 +34,9 @@ Before Pitch approval, record the ledger's mandatory wall-clock backstop as an `
 
 A weak appetite says only “two days” or “medium.” A useful appetite first states why the outcome merits investment, then says, for example: understand and change one existing package and its public contract; reuse the current persistence seam; permit one bounded provider spike; require focused, regression, source-smoke, and independent review evidence; cut migration and generalized plugin support first; reshape if a new credential model or cross-package protocol is required; preserve security and compatibility floors.
 
-## 2. Rough out the elements
+## 2. Rough out and simplify the elements
+
+Before adding machinery, ask in order: does the behavior need to exist; can an existing repository seam solve it; does the standard library, native platform, or an installed dependency already cover it; and what is the minimum new code that preserves fixed floors. Surface material assumptions and genuinely different interpretations. Reject single-use abstractions, speculative configurability, “for later” scaffolding, and blockers inflated from ordinary implementation work.
 
 Describe the macro **Solution**: affordances, reused seams, system boundaries, data or control flows, and observable Acceptance Signals. Distinguish fixed product or architectural decisions from local implementation choices the agent may make. Use a breadboard, state/sequence sketch, or fat-marker diagram when it clarifies the concept. Stay abstract enough to leave implementation discretion while concrete enough that an agent can derive integrated behavior and decisive tests.
 
@@ -47,6 +49,10 @@ Every investigation must confirm or change at least one pitch element: Problem e
 List **Rabbit Holes** that could consume the investment envelope: technical unknowns, migrations, edge cases, policy decisions, integration traps, or accidental generality. For each one, pair evidence and the likely failure mode with a containment, cut, spike, escalation owner, or observable tripwire. A generic risk list is not useful to an implementing agent.
 
 Declare **No-Gos** as executable boundaries: adjacent features, platforms, use cases, refactors, or generalized solutions the agent must not pursue. State which investment dimension the exclusion protects and any condition that would justify reshaping it later.
+
+Before the Pitch checkpoint, run one fresh Terra-low read-only Simplifier on the ready pitch. The Simplifier returns a terse delete/reuse/stdlib/native list and any complexity required by acceptance signals or fixed floors. The orchestrator applies accepted changes, reruns relevant validation, and records `pitch-simplification` before the Pitch transition. Simplicity findings are non-blocking unless they expose a real approved-boundary or fixed-floor violation.
+
+At the end of Discover and Pitch, request the next transition once. Present the ready artifact and copy the ledger's exact Refine-again/Approve-and-continue Question payload. Its exact submitted result refines or advances in the same interaction. Redirected, cancelled, unavailable, custom, noted, malformed, or unrelated results do not move the workflow.
 
 ## 4. Write and grill the pitch
 
@@ -79,6 +85,6 @@ The pitch is ready for explicit user agreement only when it is rough, solved, an
 - **Buildable:** fixed decisions, implementation discretion, and acceptance signals let an agent derive the first demonstrable vertical slice without inventing product behavior.
 - **Evidence-grounded:** the Research Basis cites repository reading for every pitch and targeted external evidence where needed; unknowns and implications remain explicit.
 
-Record only stable IDs in frontmatter. Do not add status, progress, owner, completion flags, or checklists; `development_workflow` is the sole mutable authority. After the user agrees with the pitch and the model requests the transition, ask the user to approve it with `/dev-workflow approve pitch`.
+Record only stable IDs in frontmatter. Do not add status, progress, owner, completion flags, or checklists; `development_workflow` is the sole mutable authority. When the model is confident, it requests the transition and presents the exact Question. **Refine again** stays in Pitch; **Approve and continue** refreshes the artifact and advances immediately. Never ask the user to run a second approval command unless Question is unavailable and the compatibility fallback is necessary.
 
 Shape Up references: [principles](https://basecamp.com/shapeup/1.1-chapter-02), [set boundaries](https://basecamp.com/shapeup/1.2-chapter-03), [find the elements](https://basecamp.com/shapeup/1.3-chapter-04), [risks and rabbit holes](https://basecamp.com/shapeup/1.4-chapter-05), and [write the pitch](https://basecamp.com/shapeup/1.5-chapter-06).

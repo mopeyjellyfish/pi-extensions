@@ -5,6 +5,8 @@ id: PITCH-001
 
 # Pitch
 
+<!-- Remove {{TEMPLATE_GUIDANCE}} after replacing every instruction and placeholder. -->
+
 ## Problem
 
 ### Motivating Story
@@ -17,7 +19,19 @@ Describe the current behavior and the relevant code paths, tests, contracts, pri
 
 ### Research Basis
 
-Cite the repository evidence and any primary external sources that confirm or change this pitch. Summarize each finding's implication. Link bounded supporting material under `research/` only when the conclusion cannot stay concise here; never attach raw transcripts or search dumps.
+Link the mandatory validated research artifact: [RESEARCH-001](./research.md). Summarize the repository findings and their pitch implications; never attach raw transcripts or search dumps.
+
+### Prior Art
+
+Summarize the bounded external prior-art disposition and the strongest relevant precedent.
+
+### Alternatives
+
+Explain the substantive adopt, extend, compose, build, or retain options considered and why the recommendation wins.
+
+### Shared Understanding
+
+State the agreed fixed user decisions, assumptions, boundaries, and remaining uncertainty. Separate them explicitly from agent discretion and name what would require another refinement loop.
 
 ### Desired Change
 
@@ -48,6 +62,10 @@ State the correctness, safety, security, accessibility, compatibility, maintaina
 ### Shaped Approach
 
 Describe the macro elements, reused seams, system boundaries, data or control flows, and rough diagrams that make the approach buildable.
+
+### Simplicity Case
+
+Apply the simplicity ladder: does this need to exist; can an existing repository seam, standard library, native platform feature, or installed dependency solve it; what code can be deleted or avoided; and why the remaining design is the minimum that preserves every fixed floor. Do not add speculative abstraction, configurability, or “for later” scaffolding.
 
 ### Agent Discretion
 

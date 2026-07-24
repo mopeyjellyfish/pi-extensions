@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   validatePitchDocument,
   validatePlanDocument,
+  validateResearchDocument,
   validateSliceDocument,
 } from "../src/artifacts.ts";
 import {
@@ -13,7 +14,9 @@ import {
   formatWorkflow,
   isWorkflowSnapshot,
   parseBackstop,
+  resolveCheckpoint,
   snapshotFromBranch,
+  workflowNextAction,
   workflowSummary,
   type WorkflowSnapshot,
 } from "../src/state.ts";
@@ -25,7 +28,13 @@ id: PITCH-001
 # Problem
 A developer loses the current decision when a session branches.
 ### Research Basis
-Reducer tests and session restoration contracts establish the current behavior.
+[RESEARCH-001](./research.md) records repository and prior-art evidence.
+### Prior Art
+Branch-local ledgers preserve replayable state without a project database.
+### Alternatives
+Retaining implicit chat state and building a project database were considered.
+### Shared Understanding
+Agreed fixed decisions require bounded branch-local restoration without remote mutation; reducer structure remains agent discretion.
 # Appetite
 ### Why This Is Worth the Investment
 Reliable branch-local decisions justify a bounded extension change.
@@ -37,6 +46,8 @@ Deliver branch-local restoration first and reshape if cross-project state is req
 Preserve type safety, branch isolation, and focused verification.
 # Solution
 Use a branch-local ledger and a thin control command.
+### Simplicity Case
+Reuse the existing session-entry and reducer seams; add no dependency, watcher, project database, speculative abstraction, or configuration.
 ### Agent Discretion
 Choose local reducer structure without changing the branch-local contract.
 ### Acceptance Signals
@@ -54,6 +65,8 @@ Pitch boundaries: [PITCH-001](./spec.md)
 The first integrated slice is [VS-001](./slices/VS-001.md).
 ## Dependencies and Sequencing
 VS-001 has no dependencies and is first.
+## Simplification Review
+Reuse the existing reducer and session-entry seams; do not add a project database, watcher, dependency, or generalized abstraction.
 `;
 
 const slice = `---
@@ -70,7 +83,22 @@ This proves the canonical branch-local ledger.
 # Boundaries Crossed
 Pi command, reducer, custom session entry, and restored output.
 # Execution Profile
-Terra medium by default, Terra high for bounded difficulty, and Sol medium only after explicit plan revalidation.
+### Worker Model
+Terra is the bounded implementation model.
+### Worker Effort
+Medium effort is sufficient.
+### Rationale
+The seams and behavior are understood.
+### Escalation
+Use Terra high for difficult bounded implementation.
+### Conceptual Replanning
+Return conceptual failure to Sol planning.
+### Frontier Fallback
+Use Sol medium only after explicit plan revalidation.
+### Reviewer
+Use one fresh Sol high reviewer.
+# Simplification Pass
+Reuse the existing reducer and session-entry seams, delete superseded code, and add no speculative abstraction or configuration.
 # RED
 A public behavior test fails before implementation.
 # GREEN
@@ -81,13 +109,34 @@ Run the focused package test and source smoke.
 The behavior is demonstrable and evidence is recorded.
 `;
 
-function evidence(kind: string) {
+const research = `---
+schema: dev-workflow/research-v1
+id: RESEARCH-001
+---
+# Repository Evidence
+Reducer tests and session contracts govern restoration.
+# External Prior Art
+Disposition: not-applicable. Rationale: repository-local lifecycle semantics control this change.
+# Options Considered
+Retain implicit state or build the bounded ledger.
+# Recommendation
+Build the bounded ledger.
+# Pitch Implications
+Keep the pitch branch-local and avoid a project database.
+# Simplicity Check
+The behavior is necessary; reuse the existing reducer and session-entry seams; standard library primitives are sufficient; no new dependency, configurability, or speculative abstraction is justified.
+# Unknowns
+No consequential unknowns remain.
+`;
+
+function evidence(kind: string, sliceId?: string) {
   return {
     evidence: {
       claim: `${kind} exists`,
       kind,
       reference: `test:${kind}`,
       sensitivity: "public" as const,
+      ...(sliceId === undefined ? {} : { sliceId }),
     },
     kind: "record_evidence" as const,
   };
@@ -95,6 +144,11 @@ function evidence(kind: string) {
 
 function toBuild(now = 1000): WorkflowSnapshot {
   let state = createWorkflow("Feature", "/repo", 1);
+  state = applyWorkflowAction(
+    state,
+    { artifact: "research", kind: "record_artifact", path: "specs/change/research.md" },
+    now,
+  );
   state = applyWorkflowAction(state, evidence("problem"), now);
   state = applyWorkflowAction(state, evidence("research"), now);
   state = applyWorkflowAction(
@@ -106,12 +160,14 @@ function toBuild(now = 1000): WorkflowSnapshot {
     },
     now,
   );
+  state = applyWorkflowAction(state, { gate: "discover", kind: "approve", now }, now);
   state = applyWorkflowAction(
     state,
     { artifact: "spec", kind: "record_artifact", path: "specs/change/spec.md" },
     now,
   );
   state = applyWorkflowAction(state, { duration: "2d", kind: "set_backstop" }, now);
+  state = applyWorkflowAction(state, evidence("pitch-simplification"), now);
   state = applyWorkflowAction(state, evidence("pitch-review"), now);
   state = applyWorkflowAction(
     state,
@@ -131,6 +187,7 @@ function toBuild(now = 1000): WorkflowSnapshot {
   );
   state = applyWorkflowAction(state, evidence("validation-contract"), now);
   state = applyWorkflowAction(state, evidence("workspace-decision"), now);
+  state = applyWorkflowAction(state, evidence("plan-simplification"), now);
   state = applyWorkflowAction(
     state,
     { kind: "request_transition", reason: "first slice ready", to: "build" },
@@ -139,12 +196,30 @@ function toBuild(now = 1000): WorkflowSnapshot {
   return applyWorkflowAction(state, { gate: "plan", kind: "approve", now }, now);
 }
 
+function completeSlice(state: WorkflowSnapshot, now = 1001): WorkflowSnapshot {
+  let next = state;
+  const slice = next.slices.find((item) => item.id === "VS-001");
+  if (slice?.status === "planned" || slice?.status === "blocked")
+    next = applyWorkflowAction(next, { id: "VS-001", kind: "set_slice", status: "active" }, now);
+  for (const kind of [
+    "red",
+    "green",
+    "focused-verification",
+    "regression-verification",
+    "worker-handoff",
+    "build-simplification",
+  ])
+    next = applyWorkflowAction(next, evidence(kind, "VS-001"), now);
+  return applyWorkflowAction(next, { id: "VS-001", kind: "set_slice", status: "verified" }, now);
+}
+
 describe("workflow artifact contracts", () => {
   it("accepts complete pitches and integrated slices", () => {
     expect.hasAssertions();
     expect(validatePitchDocument(pitch)).toEqual({ id: "PITCH-001", valid: true });
+    expect(validateResearchDocument(research)).toEqual({ id: "RESEARCH-001", valid: true });
     expect(validatePlanDocument(plan)).toEqual({ id: "plan", valid: true });
-    expect(validateSliceDocument(slice)).toEqual({ id: "VS-001", valid: true });
+    expect(validateSliceDocument(slice)).toEqual({ dependsOn: [], id: "VS-001", valid: true });
   });
 
   it("rejects mutable, incomplete, malformed, and horizontal artifacts", () => {
@@ -158,6 +233,7 @@ describe("workflow artifact contracts", () => {
       pitch.replace("### Fixed Floors", "### Quality"),
       pitch.replace("# Problem", "# Context"),
       pitch.replace("### Why This Is Worth the Investment", "### Value"),
+      pitch.replace("### Simplicity Case", "### Complexity Budget"),
       pitch.replace("### Agent Discretion", "### Fixed Implementation"),
       pitch.replace("### Acceptance Signals", "### Signals"),
       pitch.replace("id: PITCH-001", "id: PITCH-001\nstatus: active"),
@@ -176,6 +252,13 @@ describe("workflow artifact contracts", () => {
       plan.replace("The first integrated slice is", "Backend first phase, then"),
       plan.replace("Pitch boundaries: [PITCH-001](./spec.md)", "Pitch is nearby."),
       plan.replace("## Dependencies and Sequencing", "## Notes"),
+      plan.replace("## Simplification Review", "## Complexity Review"),
+      plan.replace(
+        "Reuse the existing reducer and session-entry seams; do not add a project database, watcher, dependency, or generalized abstraction.",
+        "Implement the selected design.",
+      ),
+      plan.replace("[PITCH-001](./spec.md)", "the nearby pitch"),
+      plan.replaceAll("VS-001", "slice-one"),
       `${plan}\n## Backend\nBuild models first.`,
       `${plan}\nstatus: active`,
       `${plan}\n- [ ] exhaustive task breakdown`,
@@ -192,6 +275,7 @@ describe("workflow artifact contracts", () => {
       slice.replace("risk: medium", "risk: extreme"),
       slice.replace("schema: dev-workflow/vertical-slice-v1", "schema: wrong"),
       slice.replace("# Execution Profile", "# Worker Notes"),
+      slice.replace("# Simplification Pass", "# Complexity Pass"),
       slice.replace("# Verification", "# Checks"),
       slice.replace(
         "Pi command, reducer, custom session entry, and restored output.",
@@ -202,8 +286,81 @@ describe("workflow artifact contracts", () => {
         "All APIs are implemented.",
       ),
       slice.replace("risk: medium", "risk: medium\nstatus: planned"),
+      slice.replace("depends_on: []", "depends_on: [VS-002, VS-002]"),
+      slice.replace("depends_on: []", "depends_on: [VS-001]"),
+      slice.replace("Terra is the bounded implementation model.", "Nova executes it."),
+      slice.replace("Medium effort is sufficient.", "Choose an effort later."),
+      slice.replace("Use Terra high for difficult bounded implementation.", "Escalate later."),
+      slice.replace("Return conceptual failure to Sol planning.", "Keep implementing."),
+      slice.replace("Use Sol medium only after explicit plan revalidation.", "Use Terra high."),
+      slice.replace("Use one fresh Sol high reviewer.", "Use a general reviewer."),
+      slice.replace(
+        "Use one fresh Sol high reviewer.",
+        "Use one fresh Sol high reviewer. Terra xhigh is also available.",
+      ),
+      slice.replace(
+        "Reuse the existing reducer and session-entry seams, delete superseded code, and add no speculative abstraction or configuration.",
+        "Implement the required behavior.",
+      ),
     ])
       expect(() => validateSliceDocument(invalid)).toThrow();
+  });
+
+  it("requires evidence-backed prior-art dispositions, alternatives, and simplicity decisions", () => {
+    expect.hasAssertions();
+    for (const invalid of [
+      research.replace("schema: dev-workflow/research-v1", "schema: wrong"),
+      research.replace("id: RESEARCH-001", "id: research"),
+      research.replace("# Simplicity Check", "# Complexity Check"),
+      research.replace(
+        "Retain implicit state or build the bounded ledger.",
+        "Build the bounded ledger.",
+      ),
+      research.replace(
+        "Rationale: repository-local lifecycle semantics control this change.",
+        "No reason supplied.",
+      ),
+      research.replace(
+        "Disposition: not-applicable. Rationale: repository-local lifecycle semantics control this change.",
+        "Disposition: completed. Rationale: online research was done without citing a source or implication.",
+      ),
+      research.replace(
+        "Disposition: not-applicable. Rationale: repository-local lifecycle semantics control this change.",
+        "Disposition: unavailable. Rationale: search failed.",
+      ),
+      research.replace(
+        "Disposition: not-applicable. Rationale: repository-local lifecycle semantics control this change.",
+        "Disposition: completed. Source: https://example.invalid/source. The implication confirms the route.",
+      ),
+      research.replace(
+        "Disposition: not-applicable. Rationale: repository-local lifecycle semantics control this change.",
+        "Disposition: completed. Source: https://example.com/source.",
+      ),
+      research.replace(
+        "The behavior is necessary; reuse the existing reducer and session-entry seams; standard library primitives are sufficient; no new dependency, configurability, or speculative abstraction is justified.",
+        "The selected route is straightforward.",
+      ),
+      research.replace("Build the bounded ledger.", "Build or retain the bounded ledger."),
+      pitch.replace("### Simplicity Case", "### Complexity Case"),
+      pitch.replace(
+        "Retaining implicit chat state and building a project database were considered.",
+        "Only the selected route was considered.",
+      ),
+      pitch.replace("[RESEARCH-001](./research.md)", "the research artifact"),
+      pitch.replace(
+        "Agreed fixed decisions require bounded branch-local restoration without remote mutation; reducer structure remains agent discretion.",
+        "The reducer design is understood.",
+      ),
+      pitch.replace(
+        "Reuse the existing session-entry and reducer seams; add no dependency, watcher, project database, speculative abstraction, or configuration.",
+        "Implement the selected architecture.",
+      ),
+    ])
+      expect(() =>
+        invalid.includes("schema: dev-workflow/research-v1")
+          ? validateResearchDocument(invalid)
+          : validatePitchDocument(invalid),
+      ).toThrow();
   });
 });
 
@@ -214,10 +371,12 @@ describe("workflow reducer", () => {
     expect(state.phase).toBe("build");
     expect(state.backstop?.startedAt).toBe(1000);
     state = applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "active" }, 1001);
-    state = applyWorkflowAction(state, evidence("red"), 1002);
-    state = applyWorkflowAction(state, evidence("green"), 1003);
-    state = applyWorkflowAction(state, evidence("focused-verification"), 1003);
-    state = applyWorkflowAction(state, evidence("regression-verification"), 1003);
+    state = applyWorkflowAction(state, evidence("red", "VS-001"), 1002);
+    state = applyWorkflowAction(state, evidence("green", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("focused-verification", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("regression-verification", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("worker-handoff", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("build-simplification", "VS-001"), 1003);
     state = applyWorkflowAction(
       state,
       { id: "VS-001", kind: "set_slice", status: "verified" },
@@ -229,11 +388,11 @@ describe("workflow reducer", () => {
       1005,
     );
     expect(state.phase).toBe("review");
-    state = applyWorkflowAction(state, evidence("review-intent"), 1007);
-    state = applyWorkflowAction(state, evidence("review-correctness"), 1007);
-    state = applyWorkflowAction(state, evidence("review-maintainability"), 1007);
-    state = applyWorkflowAction(state, evidence("review-risk-operations"), 1007);
-    state = applyWorkflowAction(state, evidence("final-verification"), 1007);
+    state = applyWorkflowAction(state, evidence("review-intent", "VS-001"), 1007);
+    state = applyWorkflowAction(state, evidence("review-correctness", "VS-001"), 1007);
+    state = applyWorkflowAction(state, evidence("review-maintainability", "VS-001"), 1007);
+    state = applyWorkflowAction(state, evidence("review-risk-operations", "VS-001"), 1007);
+    state = applyWorkflowAction(state, evidence("final-verification", "VS-001"), 1007);
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "review evidence accepted", to: "ship" },
@@ -277,13 +436,18 @@ describe("workflow reducer", () => {
 
   it("enforces gate prerequisites and linear transition requests", () => {
     expect.hasAssertions();
-    const initial = createWorkflow("Feature", "/repo", 1);
+    let initial = createWorkflow("Feature", "/repo", 1);
     expect(() =>
       applyWorkflowAction(initial, { gate: "discover", kind: "approve", now: 2 }, 2),
-    ).toThrow(/agent-owned/iu);
+    ).toThrow(/request transition/iu);
     expect(() =>
       applyWorkflowAction(initial, { kind: "request_transition", reason: "skip", to: "plan" }, 2),
     ).toThrow(/exactly one/iu);
+    initial = applyWorkflowAction(
+      initial,
+      { artifact: "research", kind: "record_artifact", path: "research.md" },
+      2,
+    );
     const problemOnly = applyWorkflowAction(initial, evidence("problem"), 2);
     expect(() =>
       applyWorkflowAction(
@@ -293,12 +457,14 @@ describe("workflow reducer", () => {
       ),
     ).toThrow(/research evidence/iu);
     const researched = applyWorkflowAction(problemOnly, evidence("research"), 2);
+    const pending = applyWorkflowAction(
+      researched,
+      { kind: "request_transition", reason: "ready", to: "pitch" },
+      2,
+    );
+    expect(pending).toMatchObject({ phase: "discover", pendingCheckpoint: { phase: "discover" } });
     expect(
-      applyWorkflowAction(
-        researched,
-        { kind: "request_transition", reason: "ready", to: "pitch" },
-        2,
-      ).phase,
+      applyWorkflowAction(pending, { gate: "discover", kind: "approve", now: 2 }, 2).phase,
     ).toBe("pitch");
     expect(() =>
       applyWorkflowAction(initial, { gate: "pitch", kind: "approve", now: 2 }, 2),
@@ -308,21 +474,20 @@ describe("workflow reducer", () => {
   it("requires fresh TDD, verification, and review evidence at build and review gates", () => {
     expect.hasAssertions();
     let state = toBuild();
+    state = applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "active" }, 1001);
+    expect(() =>
+      applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "verified" }, 1002),
+    ).toThrow(/RED\/GREEN/iu);
+    state = applyWorkflowAction(state, evidence("tdd-exception", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("focused-verification", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("regression-verification", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("worker-handoff", "VS-001"), 1003);
+    state = applyWorkflowAction(state, evidence("build-simplification", "VS-001"), 1003);
     state = applyWorkflowAction(
       state,
       { id: "VS-001", kind: "set_slice", status: "verified" },
-      1001,
+      1003,
     );
-    expect(() =>
-      applyWorkflowAction(
-        state,
-        { kind: "request_transition", reason: "implemented", to: "review" },
-        1003,
-      ),
-    ).toThrow(/RED\/GREEN/iu);
-    state = applyWorkflowAction(state, evidence("tdd-exception"), 1003);
-    state = applyWorkflowAction(state, evidence("focused-verification"), 1003);
-    state = applyWorkflowAction(state, evidence("regression-verification"), 1003);
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "implemented", to: "review" },
@@ -334,23 +499,23 @@ describe("workflow reducer", () => {
         { kind: "request_transition", reason: "reviewed", to: "ship" },
         1006,
       ),
-    ).toThrow(/intent, correctness/iu);
-    state = applyWorkflowAction(state, evidence("review-reduced-assurance"), 1006);
-    state = applyWorkflowAction(state, evidence("final-verification"), 1006);
+    ).toThrow(/review-intent/iu);
+    state = applyWorkflowAction(state, evidence("review-reduced-assurance", "VS-001"), 1006);
+    state = applyWorkflowAction(state, evidence("final-verification", "VS-001"), 1006);
     expect(() =>
       applyWorkflowAction(
         state,
         { kind: "request_transition", reason: "reviewed", to: "ship" },
         1007,
       ),
-    ).toThrow(/intent, correctness/iu);
+    ).toThrow(/review-intent/iu);
     for (const kind of [
       "review-intent",
       "review-correctness",
       "review-maintainability",
       "review-risk-operations",
     ]) {
-      state = applyWorkflowAction(state, evidence(kind), 1007);
+      state = applyWorkflowAction(state, evidence(kind, "VS-001"), 1007);
     }
     expect(
       applyWorkflowAction(
@@ -389,9 +554,17 @@ describe("workflow reducer", () => {
       ),
     ).toThrow(/relative/iu);
     state = applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "active" }, 1002);
+    expect(() =>
+      applyWorkflowAction(state, { id: "VS-002", kind: "set_slice", status: "active" }, 1003),
+    ).toThrow(/second active/iu);
+    state = applyWorkflowAction(
+      state,
+      { id: "VS-001", kind: "set_slice", status: "blocked" },
+      1003,
+    );
     state = applyWorkflowAction(state, { id: "VS-002", kind: "set_slice", status: "active" }, 1003);
     expect(state.slices).toMatchObject([
-      { id: "VS-001", status: "planned" },
+      { id: "VS-001", status: "blocked" },
       { id: "VS-002", status: "active" },
     ]);
     expect(() =>
@@ -484,11 +657,7 @@ describe("workflow reducer", () => {
         expired,
       ),
     ).toThrow(/verified/iu);
-    state = applyWorkflowAction(
-      state,
-      { id: "VS-001", kind: "set_slice", status: "verified" },
-      1001,
-    );
+    state = completeSlice(state, 1001);
     const withUnfinishedScope: WorkflowSnapshot = {
       ...state,
       slices: [
@@ -498,18 +667,8 @@ describe("workflow reducer", () => {
         { id: "VS-004", path: "slices/VS-004.md", status: "blocked" as const },
       ],
     };
-    expect(() =>
-      applyWorkflowAction(
-        withUnfinishedScope,
-        { kind: "circuit", now: expired, outcome: "finish", reason: "ship useful scope" },
-        expired,
-      ),
-    ).toThrow(/RED\/GREEN/iu);
-    let verifiedScope = withUnfinishedScope;
-    for (const kind of ["red", "green", "focused-verification", "regression-verification"])
-      verifiedScope = applyWorkflowAction(verifiedScope, evidence(kind), expired);
     const finished = applyWorkflowAction(
-      verifiedScope,
+      withUnfinishedScope,
       { kind: "circuit", now: expired, outcome: "finish", reason: "ship useful scope" },
       expired,
     );
@@ -550,8 +709,9 @@ describe("workflow reducer", () => {
   it("invalidates downstream gates and evidence when recorded artifacts disappear", () => {
     expect.hasAssertions();
     let state = toBuild();
+    state = applyWorkflowAction(state, { id: "VS-001", kind: "set_slice", status: "active" }, 1001);
     for (const kind of ["red", "green", "focused-verification", "regression-verification"])
-      state = applyWorkflowAction(state, evidence(kind), 1001);
+      state = applyWorkflowAction(state, evidence(kind, "VS-001"), 1001);
     const before = state.revision;
     state = applyWorkflowAction(
       state,
@@ -583,6 +743,7 @@ describe("workflow reducer", () => {
 
     let recovered = applyWorkflowAction(unchanged, evidence("validation-contract"), 1004);
     recovered = applyWorkflowAction(recovered, evidence("workspace-decision"), 1004);
+    recovered = applyWorkflowAction(recovered, evidence("plan-simplification"), 1004);
     recovered = applyWorkflowAction(
       recovered,
       { kind: "request_transition", reason: "artifact restored", to: "build" },
@@ -591,15 +752,11 @@ describe("workflow reducer", () => {
     recovered = applyWorkflowAction(recovered, { gate: "plan", kind: "approve", now: 1004 }, 1004);
     recovered = applyWorkflowAction(
       recovered,
-      { id: "VS-001", kind: "set_slice", status: "verified" },
+      { id: "VS-001", kind: "set_slice", status: "active" },
       1005,
     );
     expect(() =>
-      applyWorkflowAction(
-        recovered,
-        { kind: "request_transition", reason: "old checks must not count", to: "review" },
-        1005,
-      ),
+      applyWorkflowAction(recovered, { id: "VS-001", kind: "set_slice", status: "verified" }, 1005),
     ).toThrow(/RED\/GREEN/iu);
   });
 
@@ -615,7 +772,9 @@ describe("workflow reducer", () => {
       },
       1002,
     );
-    state = applyWorkflowAction(state, evidence("unbound-observation"), 1003);
+    expect(() => applyWorkflowAction(state, evidence("unbound-observation"), 1003)).toThrow(
+      /not registered/iu,
+    );
     state = applyWorkflowAction(
       state,
       {
@@ -626,6 +785,7 @@ describe("workflow reducer", () => {
           kind: "focused-verification",
           reference: "test",
           sensitivity: "private",
+          sliceId: "VS-001",
           tree: "sha256:one",
         },
         kind: "record_evidence",
@@ -658,9 +818,6 @@ describe("workflow reducer", () => {
       slices: [{ id: "VS-001", status: "active" }],
       status: "active",
     });
-    expect(
-      drifted.evidence.find((item) => item.kind === "unbound-observation")?.stale,
-    ).toBeUndefined();
     expect(drifted.evidence.find((item) => item.kind === "focused-verification")?.stale).toBe(true);
     expect(drifted.attention).toMatch(/identity changed/iu);
   });
@@ -747,7 +904,7 @@ describe("workflow reducer", () => {
     );
     expect(() =>
       applyWorkflowAction(build, { id: "VS-001", kind: "set_slice", status: "active" }, 1001),
-    ).toThrow(/terminal/iu);
+    ).toThrow(/terminal|illegal slice transition/iu);
     build = applyWorkflowAction(
       build,
       {
@@ -791,18 +948,7 @@ describe("workflow reducer", () => {
       1001,
     );
     expect(state.resolvedDecisions).toEqual([]);
-    state = applyWorkflowAction(
-      state,
-      {
-        id: "VS-001",
-        kind: "set_slice",
-        status: "verified",
-      },
-      1001,
-    );
-    for (const kind of ["red", "green", "focused-verification", "regression-verification"]) {
-      state = applyWorkflowAction(state, evidence(kind), 1001);
-    }
+    state = completeSlice(state, 1001);
     state = applyWorkflowAction(
       state,
       {
@@ -827,6 +973,7 @@ describe("workflow reducer", () => {
     state = applyWorkflowAction(state, { kind: "rewind", phase: "plan", reason: "replan" }, 4000);
     state = applyWorkflowAction(state, evidence("validation-contract"), 4001);
     state = applyWorkflowAction(state, evidence("workspace-decision"), 4001);
+    state = applyWorkflowAction(state, evidence("plan-simplification"), 4001);
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "replanned", to: "build" },
@@ -874,13 +1021,7 @@ describe("workflow reducer", () => {
   it("requires matching typed receipts, supports multiple actions, and finishes explicitly", () => {
     expect.hasAssertions();
     let state = toBuild();
-    state = applyWorkflowAction(
-      state,
-      { id: "VS-001", kind: "set_slice", status: "verified" },
-      1001,
-    );
-    for (const kind of ["red", "green", "focused-verification", "regression-verification"])
-      state = applyWorkflowAction(state, evidence(kind), 1001);
+    state = completeSlice(state, 1001);
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "ready", to: "review" },
@@ -893,7 +1034,7 @@ describe("workflow reducer", () => {
       "review-risk-operations",
       "final-verification",
     ])
-      state = applyWorkflowAction(state, evidence(kind), 1003);
+      state = applyWorkflowAction(state, evidence(kind, "VS-001"), 1003);
     state = applyWorkflowAction(
       state,
       { kind: "request_transition", reason: "ready", to: "ship" },
@@ -1176,5 +1317,141 @@ describe("workflow reducer", () => {
       applyWorkflowAction(initial, { kind: "abandon", reason: "done" }, 2),
     ).not.toThrow();
     expect(initial.status).toBe("active");
+  });
+});
+
+describe("approved workflow hardening", () => {
+  it("requires a validated research artifact before a Discover checkpoint", () => {
+    expect.hasAssertions();
+    const initial = createWorkflow("Research", "/repo", 1);
+    const recorded = applyWorkflowAction(
+      initial,
+      { artifact: "research", kind: "record_artifact", path: "specs/change/research.md" },
+      2,
+    );
+    expect(recorded.artifacts).toMatchObject({ research: "specs/change/research.md" });
+    expect(workflowNextAction(recorded, 2)).toBe("record problem evidence");
+  });
+
+  it("creates one shaping checkpoint and records Refine or Advance without a second command", () => {
+    expect.hasAssertions();
+    let state = createWorkflow("Checkpoint", "/repo", 1);
+    state = applyWorkflowAction(
+      state,
+      { artifact: "research", kind: "record_artifact", path: "research.md" },
+      2,
+    );
+    state = applyWorkflowAction(state, evidence("problem"), 2);
+    state = applyWorkflowAction(state, evidence("research"), 2);
+    state = applyWorkflowAction(
+      state,
+      { kind: "request_transition", reason: "discovery is ready", to: "pitch" },
+      2,
+    );
+    expect(workflowNextAction(state, 2)).toMatch(/Refine again or Approve and continue/u);
+    expect(formatWorkflow(state, 2)).toContain("Question input:");
+    expect(() =>
+      applyWorkflowAction(
+        state,
+        { kind: "request_transition", reason: "duplicate", to: "pitch" },
+        2,
+      ),
+    ).toThrow(/unique/iu);
+    const firstQuestion = JSON.stringify(state.pendingCheckpoint?.question);
+    let refining = resolveCheckpoint(state, "refine", 3);
+    refining = applyWorkflowAction(
+      refining,
+      { kind: "request_transition", reason: "refined discovery is ready", to: "pitch" },
+      4,
+    );
+    expect(JSON.stringify(refining.pendingCheckpoint?.question)).not.toBe(firstQuestion);
+    const advanced = resolveCheckpoint(state, "advance", 3);
+    expect(advanced).toMatchObject({
+      checkpointDecisions: [{ phase: "discover", selection: "advance", timestamp: 3 }],
+      phase: "pitch",
+    });
+  });
+
+  it("rejects unregistered, wrong-phase, and pre-recorded per-slice evidence", () => {
+    expect.hasAssertions();
+    const discover = createWorkflow("Evidence", "/repo", 1);
+    expect(() => applyWorkflowAction(discover, evidence("unknown"), 2)).toThrow(/registered/iu);
+    expect(() => applyWorkflowAction(discover, evidence("red", "VS-001"), 2)).toThrow(
+      /only during build/iu,
+    );
+    const build = toBuild();
+    expect(() => applyWorkflowAction(build, evidence("red", "VS-001"), 2)).toThrow(/active/iu);
+  });
+
+  it("requires useful verified scope and returns an actionable blocked-slice next step", () => {
+    expect.hasAssertions();
+    let build = toBuild();
+    build = applyWorkflowAction(build, { id: "VS-001", kind: "set_slice", status: "active" }, 2);
+    build = applyWorkflowAction(
+      build,
+      { id: "VS-001", kind: "set_slice", reason: "waiting for a decision", status: "blocked" },
+      2,
+    );
+    expect(workflowNextAction(build, 2)).toBe("reactivate or cut blocked slice VS-001");
+    build = applyWorkflowAction(
+      build,
+      { id: "VS-001", kind: "set_slice", reason: "no valuable scope remains", status: "cut" },
+      3,
+    );
+    expect(() =>
+      applyWorkflowAction(
+        build,
+        { kind: "request_transition", reason: "nothing retained", to: "review" },
+        4,
+      ),
+    ).toThrow(/at least one verified slice/iu);
+  });
+
+  it("rejects self, duplicate, and unregistered slice dependencies", () => {
+    expect.hasAssertions();
+    const build = toBuild();
+    for (const dependsOn of [["VS-002"], ["VS-001", "VS-001"], ["VS-999"]])
+      expect(() =>
+        applyWorkflowAction(
+          build,
+          {
+            dependsOn,
+            id: "VS-002",
+            kind: "register_slice",
+            path: "specs/change/slices/VS-002.md",
+          },
+          2,
+        ),
+      ).toThrow(/itself|duplicate|unregistered/iu);
+    const [first] = build.slices;
+    expect(first).toBeDefined();
+    if (first === undefined) throw new Error("Expected the first registered slice.");
+    expect(
+      isWorkflowSnapshot({
+        ...build,
+        slices: [
+          { ...first, dependsOn: ["VS-002"] },
+          {
+            dependsOn: ["VS-001"],
+            id: "VS-002",
+            path: "specs/change/slices/VS-002.md",
+            status: "planned",
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("rewinds to Discover and clears a checkpoint when research.md disappears", () => {
+    expect.hasAssertions();
+    const build = toBuild();
+    const rewound = applyWorkflowAction(
+      build,
+      { kind: "observe_missing_artifacts", paths: ["specs/change/research.md"] },
+      2,
+    );
+    expect(rewound).toMatchObject({ gates: {}, phase: "discover" });
+    expect(rewound.pendingCheckpoint).toBeUndefined();
+    expect(rewound.evidence.find((item) => item.kind === "research")?.stale).toBe(true);
   });
 });

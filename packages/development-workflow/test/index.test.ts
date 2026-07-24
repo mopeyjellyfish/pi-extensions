@@ -8,6 +8,8 @@ import developmentWorkflowExtension, {
   DevelopmentWorkflowParameters,
   STATE_TYPE,
   SUMMARY_EVENT,
+  checkpointQuestion,
+  checkpointSelection,
   createWorkflow,
   type WorkflowSnapshot,
 } from "../src/index.ts";
@@ -60,9 +62,10 @@ function gitStdout(
   blob = "blob123",
 ): string {
   if (arguments_.includes("--abbrev-ref")) return `${branch}\n`;
+  if (arguments_.includes("--show-object-format")) return "sha1\n";
   if (arguments_[0] === "rev-parse") return `${head}\n`;
-  if (arguments_[0] === "diff") return changedPaths;
-  if (arguments_[0] === "ls-files") return "";
+  if (gitSubcommand(arguments_) === "diff") return changedPaths;
+  if (gitSubcommand(arguments_) === "ls-files") return "";
   if (arguments_[0] === "hash-object") {
     return `${arguments_
       .slice(3)
@@ -162,8 +165,40 @@ function context(harness: Harness, cwd: string, mode: "print" | "tui" = "tui"): 
   } as unknown as ExtensionContext;
 }
 
-async function emit(harness: Harness, name: string, ctx: ExtensionContext): Promise<void> {
-  await Promise.all((harness.events.get(name) ?? []).map((handler) => handler({}, ctx)));
+async function emit(
+  harness: Harness,
+  name: string,
+  ctx: ExtensionContext,
+  event: Record<string, unknown> = {},
+): Promise<void> {
+  await Promise.all((harness.events.get(name) ?? []).map((handler) => handler(event, ctx)));
+}
+
+function submittedCheckpoint(
+  phase: "discover" | "pitch" | "plan",
+  selection: "refine" | "advance",
+  input: unknown = checkpointQuestion(phase),
+): Record<string, unknown> {
+  const questions =
+    typeof input === "object" && input !== null
+      ? (input as { readonly questions?: readonly { readonly id?: unknown }[] }).questions
+      : undefined;
+  const questionId = questions?.[0]?.id;
+  if (typeof questionId !== "string") throw new Error("checkpoint question id missing");
+  return {
+    answers: [
+      {
+        questionId,
+        selections: [
+          {
+            label: selection === "advance" ? "Approve and continue" : "Refine again",
+            optionId: selection,
+          },
+        ],
+      },
+    ],
+    status: "submitted",
+  };
 }
 
 function emitBus(harness: Harness, channel: string, data: unknown): void {
@@ -185,31 +220,51 @@ async function tool(
   return harness.tool.execute("call", input as never, signal, undefined, ctx);
 }
 
+async function advanceCheckpoint(
+  harness: Harness,
+  ctx: ExtensionContext,
+  phase: "discover" | "pitch" | "plan",
+): Promise<void> {
+  const pending = (await tool(harness, ctx, { action: "status" })).details.snapshot
+    ?.pendingCheckpoint;
+  await emit(harness, "tool_result", ctx, {
+    details: submittedCheckpoint(phase, "advance", pending?.question),
+    input: pending?.question,
+    toolName: "question",
+  });
+}
+
 async function workspace(): Promise<{
   readonly cwd: string;
   readonly plan: string;
+  readonly research: string;
   readonly slice: string;
   readonly spec: string;
 }> {
   const cwd = await mkdtemp(join(tmpdir(), "dev-workflow-test-"));
   roots.push(cwd);
   await mkdir(join(cwd, "specs", "change", "slices"), { recursive: true });
+  const research = "specs/change/research.md";
   const spec = "specs/change/spec.md";
   const plan = "specs/change/plan.md";
   const slicePath = "specs/change/slices/VS-001.md";
   await writeFile(
+    join(cwd, research),
+    `---\nschema: dev-workflow/research-v1\nid: RESEARCH-001\n---\n# Repository Evidence\nReducer tests and session contracts govern behavior.\n# External Prior Art\nDisposition: not-applicable. Rationale: repository-local lifecycle semantics control this change.\n# Options Considered\nRetain implicit state or build a bounded ledger.\n# Recommendation\nBuild the bounded ledger.\n# Pitch Implications\nKeep the pitch branch-local.\n# Simplicity Check\nThe behavior is necessary; reuse the existing reducer and session-entry seams; standard library primitives are sufficient; no dependency, configurability, or speculative abstraction is justified.\n# Unknowns\nNo consequential unknowns remain.\n`,
+  );
+  await writeFile(
     join(cwd, spec),
-    `---\nschema: dev-workflow/pitch-v1\nid: PITCH-001\n---\n# Problem\nConcrete failing workflow.\n### Research Basis\nReducer tests and session contracts establish the current behavior.\n# Appetite\n### Why This Is Worth the Investment\nReliable branch-local restoration justifies the bounded change.\n### Agent Investment\nChange the bounded reducer and session restoration seam.\n### Scope Control\nDeliver local restoration first and reshape on cross-project state.\n### Fixed Floors\nPreserve type safety, branch isolation, and focused verification.\n# Solution\nA bounded branch ledger.\n### Agent Discretion\nChoose reducer internals without changing the branch-local contract.\n### Acceptance Signals\nState restores after branching.\n# Rabbit Holes\nAvoid file watchers.\n# No-Gos\nNo remote mutations.\n`,
+    `---\nschema: dev-workflow/pitch-v1\nid: PITCH-001\n---\n# Problem\nConcrete failing workflow.\n### Research Basis\n[RESEARCH-001](./research.md) records repository evidence.\n### Prior Art\nBranch-local ledgers preserve replayable state.\n### Alternatives\nRetain chat state or build a project database.\n### Shared Understanding\nAgreed fixed decisions require a bounded branch ledger without remote mutation; reducer internals remain agent discretion.\n# Appetite\n### Why This Is Worth the Investment\nReliable branch-local restoration justifies the bounded change.\n### Agent Investment\nChange the bounded reducer and session restoration seam.\n### Scope Control\nDeliver local restoration first and reshape on cross-project state.\n### Fixed Floors\nPreserve type safety, branch isolation, and focused verification.\n# Solution\nA bounded branch ledger.\n### Simplicity Case\nReuse the existing reducer and session-entry seams; add no dependency, watcher, project database, speculative abstraction, or configuration.\n### Agent Discretion\nChoose reducer internals without changing the branch-local contract.\n### Acceptance Signals\nState restores after branching.\n# Rabbit Holes\nAvoid file watchers.\n# No-Gos\nNo remote mutations.\n`,
   );
   await writeFile(
     join(cwd, plan),
-    "# Plan\n\nPitch and boundaries: [PITCH-001](./spec.md)\n\n## Vertical Slices\n\nThe first integrated slice is [VS-001](./slices/VS-001.md).\n\n## Dependencies and Sequencing\n\nVS-001 has no dependencies and is first.\n",
+    "# Plan\n\nPitch and boundaries: [PITCH-001](./spec.md)\n\n## Vertical Slices\n\nThe first integrated slice is [VS-001](./slices/VS-001.md).\n\n## Dependencies and Sequencing\n\nVS-001 has no dependencies and is first.\n\n## Simplification Review\n\nReuse the existing reducer and session-entry seams; add no project database, watcher, dependency, or generalized abstraction.\n",
   );
   await writeFile(
     join(cwd, slicePath),
-    `---\nschema: dev-workflow/vertical-slice-v1\nid: VS-001\ndepends_on: []\nrequirements: [REQ-001]\nrisk: medium\n---\n# Observable Outcome\nStart and restore a workflow.\n# Pitch Fit\nProves the ledger.\n# Boundaries Crossed\nCommand, reducer, and session entry.\n# Execution Profile\nTerra medium by default, Terra high for bounded difficulty, and Sol medium only after explicit plan revalidation.\n# RED\nPublic test fails.\n# GREEN\nMinimum path passes.\n# Verification\nFocused test and smoke.\n# Done When\nUser sees restored state.\n`,
+    `---\nschema: dev-workflow/vertical-slice-v1\nid: VS-001\ndepends_on: []\nrequirements: [REQ-001]\nrisk: medium\n---\n# Observable Outcome\nStart and restore a workflow.\n# Pitch Fit\nProves the ledger.\n# Boundaries Crossed\nCommand, reducer, and session entry.\n# Execution Profile\n### Worker Model\nTerra handles bounded implementation.\n### Worker Effort\nMedium effort is sufficient.\n### Rationale\nThe seams are understood.\n### Escalation\nUse Terra high for difficult bounded work.\n### Conceptual Replanning\nReturn conceptual failure to Sol planning.\n### Frontier Fallback\nUse Sol medium only after explicit replanning.\n### Reviewer\nUse one fresh Sol high reviewer.\n# Simplification Pass\nReuse the existing reducer and session-entry seams, delete superseded code, and add no speculative abstraction or configuration.\n# RED\nPublic test fails.\n# GREEN\nMinimum path passes.\n# Verification\nFocused test and smoke.\n# Done When\nUser sees restored state.\n`,
   );
-  return { cwd, plan, slice: slicePath, spec };
+  return { cwd, plan, research, slice: slicePath, spec };
 }
 
 async function advanceToBuild(
@@ -218,6 +273,11 @@ async function advanceToBuild(
   files: Awaited<ReturnType<typeof workspace>>,
 ): Promise<void> {
   await command(harness, ctx, "start Integrated workflow");
+  await tool(harness, ctx, {
+    action: "record_artifact",
+    artifact: "research",
+    path: files.research,
+  });
   for (const [evidenceKind, claim] of [
     ["problem", "Problem reproduced"],
     ["research", "Repository code and tests established the controlling behavior"],
@@ -231,19 +291,25 @@ async function advanceToBuild(
     });
   }
   await tool(harness, ctx, { action: "request_transition", reason: "understood", to: "pitch" });
+  await advanceCheckpoint(harness, ctx, "discover");
   await command(harness, ctx, "backstop 1d");
   await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
-  await tool(harness, ctx, {
-    action: "record_evidence",
-    claim: "Pitch is rough, solved, and bounded",
-    evidenceKind: "pitch-review",
-    reference: files.spec,
-  });
+  for (const evidenceKind of ["pitch-simplification", "pitch-review"] as const)
+    await tool(harness, ctx, {
+      action: "record_evidence",
+      claim: `${evidenceKind} complete`,
+      evidenceKind,
+      reference: files.spec,
+    });
   await tool(harness, ctx, { action: "request_transition", reason: "shaped", to: "plan" });
-  await command(harness, ctx, "approve pitch");
+  await advanceCheckpoint(harness, ctx, "pitch");
   await tool(harness, ctx, { action: "record_artifact", artifact: "plan", path: files.plan });
   await tool(harness, ctx, { action: "register_slice", id: "VS-001", path: files.slice });
-  for (const evidenceKind of ["validation-contract", "workspace-decision"] as const) {
+  for (const evidenceKind of [
+    "validation-contract",
+    "workspace-decision",
+    "plan-simplification",
+  ] as const) {
     await tool(harness, ctx, {
       action: "record_evidence",
       claim: `${evidenceKind} recorded`,
@@ -252,7 +318,124 @@ async function advanceToBuild(
     });
   }
   await tool(harness, ctx, { action: "request_transition", reason: "planned", to: "build" });
-  await command(harness, ctx, "approve plan");
+  await advanceCheckpoint(harness, ctx, "plan");
+  await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "active" });
+}
+
+async function advanceToShip(
+  harness: Harness,
+  ctx: ExtensionContext,
+  files: Awaited<ReturnType<typeof workspace>>,
+): Promise<void> {
+  await advanceToBuild(harness, ctx, files);
+  for (const evidenceKind of [
+    "red",
+    "green",
+    "focused-verification",
+    "regression-verification",
+    "worker-handoff",
+    "build-simplification",
+  ])
+    await tool(harness, ctx, {
+      action: "record_evidence",
+      claim: `${evidenceKind} passed`,
+      evidenceKind,
+      reference: `build:${evidenceKind}`,
+    });
+  await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "verified" });
+  await tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" });
+  for (const evidenceKind of [
+    "review-intent",
+    "review-correctness",
+    "review-maintainability",
+    "review-risk-operations",
+    "final-verification",
+  ])
+    await tool(harness, ctx, {
+      action: "record_evidence",
+      claim: `${evidenceKind} passed`,
+      evidenceKind,
+      reference: `review:${evidenceKind}`,
+    });
+  await tool(harness, ctx, { action: "request_transition", reason: "reviewed", to: "ship" });
+}
+
+function gitSubcommand(arguments_: readonly string[]): string | undefined {
+  return arguments_[0] === "--no-replace-objects" ? arguments_[1] : arguments_[0];
+}
+
+function commitBranch(committed: boolean, committedBranch: string): string {
+  return committed ? committedBranch : "feat/workflow";
+}
+
+function gitCommandCode(
+  arguments_: readonly string[],
+  failed: string | undefined,
+  committed: boolean,
+): number {
+  if (!committed || gitSubcommand(arguments_) !== failed) return 0;
+  if (failed !== "diff") return 1;
+  return arguments_.includes("abc123") && arguments_.includes("def456") ? 1 : 0;
+}
+
+function mockSingleCommit(
+  harness: Harness,
+  specPath: string,
+  committedMode: "100644" | "100755" | "120000" = "100644",
+  object = "a".repeat(40),
+  treeOutput?: string,
+  failedSubcommand?: "diff" | "ls-tree" | "rev-list",
+  committedBranch = "feat/workflow",
+): () => void {
+  let committed = false;
+  const committedTree = treeOutput ?? `${committedMode} blob ${object}\t${specPath}\0`;
+  harness.exec.mockImplementation((_command: string, arguments_: readonly string[]) => {
+    let stdout = "";
+    switch (gitSubcommand(arguments_)) {
+      case "symbolic-ref":
+        stdout = "feat/workflow\n";
+        break;
+      case "rev-parse":
+        stdout = arguments_.includes("--abbrev-ref")
+          ? `${commitBranch(committed, committedBranch)}\n`
+          : arguments_.includes("--show-object-format")
+            ? "sha1\n"
+            : committed
+              ? "def456\n"
+              : "abc123\n";
+        break;
+      case "diff":
+        if (arguments_.includes("--name-only"))
+          stdout =
+            arguments_.includes("abc123") && arguments_.includes("def456")
+              ? `${specPath}\0`
+              : committed
+                ? ""
+                : `${specPath}\0`;
+        break;
+      case "hash-object":
+        stdout = `${object}\n`;
+        break;
+      case "rev-list":
+        stdout = "def456 abc123\n";
+        break;
+      case "ls-tree":
+        stdout = committedTree;
+        break;
+      case undefined:
+      default:
+        break;
+    }
+    return Promise.resolve({
+      code: gitCommandCode(arguments_, failedSubcommand, committed),
+      killed: false,
+      stderr: "",
+      stdout,
+    });
+  });
+  return () => {
+    committed = true;
+  };
 }
 
 describe("development workflow extension", () => {
@@ -276,6 +459,11 @@ describe("development workflow extension", () => {
     await emit(harness, "session_start", ctx);
     await command(harness, ctx, "start Integrated workflow");
     await tool(harness, ctx, {
+      action: "record_artifact",
+      artifact: "research",
+      path: files.research,
+    });
+    await tool(harness, ctx, {
       action: "record_evidence",
       claim: "Problem reproduced",
       evidenceKind: "problem",
@@ -294,21 +482,23 @@ describe("development workflow extension", () => {
       reason: "problem understood",
       to: "pitch",
     });
+    await advanceCheckpoint(harness, ctx, "discover");
     await command(harness, ctx, "backstop 1d");
     await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
-    await tool(harness, ctx, {
-      action: "record_evidence",
-      claim: "Pitch is rough, solved, and bounded",
-      evidenceKind: "pitch-review",
-      reference: files.spec,
-      sensitivity: "public",
-    });
+    for (const evidenceKind of ["pitch-simplification", "pitch-review"] as const)
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} complete`,
+        evidenceKind,
+        reference: files.spec,
+        sensitivity: "public",
+      });
     await tool(harness, ctx, {
       action: "request_transition",
       reason: "rough solved bounded",
       to: "plan",
     });
-    await command(harness, ctx, "approve pitch");
+    await advanceCheckpoint(harness, ctx, "pitch");
     await tool(harness, ctx, { action: "record_artifact", artifact: "plan", path: files.plan });
     await tool(harness, ctx, { action: "register_slice", id: "VS-001", path: files.slice });
     await tool(harness, ctx, {
@@ -326,11 +516,18 @@ describe("development workflow extension", () => {
       sensitivity: "private",
     });
     await tool(harness, ctx, {
+      action: "record_evidence",
+      claim: "The slice map reuses existing seams and removes speculative work",
+      evidenceKind: "plan-simplification",
+      reference: files.plan,
+      sensitivity: "public",
+    });
+    await tool(harness, ctx, {
       action: "request_transition",
       reason: "walking skeleton ready",
       to: "build",
     });
-    await command(harness, ctx, "approve plan");
+    await advanceCheckpoint(harness, ctx, "plan");
     const activated = await tool(harness, ctx, {
       action: "set_slice",
       id: "VS-001",
@@ -380,6 +577,105 @@ describe("development workflow extension", () => {
     expect(harness.bus.get("mopeyjellyfish:pi-worktrunk:route:v1")?.size).toBe(0);
   });
 
+  it("consumes the exact Question result and advances in the same interaction", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    await command(harness, ctx, "start Question checkpoint");
+    await tool(harness, ctx, {
+      action: "record_artifact",
+      artifact: "research",
+      path: files.research,
+    });
+    for (const evidenceKind of ["problem", "research"])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} recorded`,
+        evidenceKind,
+        reference: files.research,
+      });
+    const requested = await tool(harness, ctx, {
+      action: "request_transition",
+      reason: "discovery is ready",
+      to: "pitch",
+    });
+    const input = requested.details.snapshot?.pendingCheckpoint?.question;
+    await emit(harness, "tool_result", ctx, {
+      details: submittedCheckpoint("discover", "advance", input),
+      input,
+      toolName: "question",
+    });
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+      checkpointDecisions: [{ phase: "discover", selection: "advance" }],
+      phase: "pitch",
+    });
+  });
+
+  it("loops on Refine, accepts the fresh checkpoint after intervening evidence, and ignores duplicates", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    await command(harness, ctx, "start Refinement loop");
+    await tool(harness, ctx, {
+      action: "record_artifact",
+      artifact: "research",
+      path: files.research,
+    });
+    for (const evidenceKind of ["problem", "research"])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} recorded`,
+        evidenceKind,
+        reference: files.research,
+      });
+    const first = await tool(harness, ctx, {
+      action: "request_transition",
+      reason: "first research draft",
+      to: "pitch",
+    });
+    const firstInput = first.details.snapshot?.pendingCheckpoint?.question;
+    await emit(harness, "tool_result", ctx, {
+      details: submittedCheckpoint("discover", "refine", firstInput),
+      input: firstInput,
+      toolName: "question",
+    });
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+      checkpointDecisions: [{ phase: "discover", selection: "refine" }],
+      phase: "discover",
+    });
+    const second = await tool(harness, ctx, {
+      action: "request_transition",
+      reason: "refined research draft",
+      to: "pitch",
+    });
+    const secondInput = second.details.snapshot?.pendingCheckpoint?.question;
+    expect(secondInput).not.toEqual(firstInput);
+    await tool(harness, ctx, {
+      action: "record_evidence",
+      claim: "The refined understanding remains grounded",
+      evidenceKind: "research",
+      reference: files.research,
+    });
+    const submitted = submittedCheckpoint("discover", "advance", secondInput);
+    await emit(harness, "tool_result", ctx, {
+      details: submitted,
+      input: secondInput,
+      toolName: "question",
+    });
+    const advanced = (await tool(harness, ctx, { action: "status" })).details.snapshot;
+    expect(advanced?.phase).toBe("pitch");
+    await emit(harness, "tool_result", ctx, {
+      details: submitted,
+      input: secondInput,
+      toolName: "question",
+    });
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.revision).toBe(
+      advanced?.revision,
+    );
+  });
+
   it("registers a later vertical slice during Build without another Plan approval", async () => {
     expect.hasAssertions();
     const harness = createHarness();
@@ -391,15 +687,48 @@ describe("development workflow extension", () => {
       .replace("id: VS-001", "id: VS-002")
       .replace("Start and restore a workflow.", "Observe the next integrated behavior.");
     await writeFile(join(files.cwd, laterSlice), source);
+    await expect(
+      tool(harness, ctx, { action: "register_slice", id: "VS-003", path: laterSlice }),
+    ).rejects.toThrow(/document id VS-002.*requested id VS-003/iu);
     await tool(harness, ctx, { action: "register_slice", id: "VS-002", path: laterSlice });
     expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
       gates: { plan: true },
       phase: "build",
       slices: [
-        { id: "VS-001", status: "planned" },
+        { id: "VS-001", status: "active" },
         { id: "VS-002", status: "planned" },
       ],
     });
+  });
+
+  it("rejects slice identity or dependency drift after registration", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    await advanceToBuild(harness, ctx, files);
+    for (const evidenceKind of [
+      "red",
+      "green",
+      "focused-verification",
+      "regression-verification",
+      "worker-handoff",
+      "build-simplification",
+    ])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} passed`,
+        evidenceKind,
+        reference: `build:${evidenceKind}`,
+      });
+    await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "verified" });
+    const changed = (await readFile(join(files.cwd, files.slice), "utf8"))
+      .replace("id: VS-001", "id: VS-999")
+      .replace("depends_on: []", "depends_on: [VS-001]");
+    await writeFile(join(files.cwd, files.slice), changed);
+    await expect(
+      tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" }),
+    ).rejects.toThrow(/identity or dependency graph changed/iu);
   });
 
   it("validates action fields, artifacts, cancellation, and direct approval errors atomically", async () => {
@@ -428,7 +757,7 @@ describe("development workflow extension", () => {
     await expect(tool(harness, ctx, { action: "status" }, controller.signal)).rejects.toThrow();
     await command(harness, ctx, "approve discover");
     expect(harness.notifications.at(-1)?.level).toBe("error");
-    expect(harness.notifications.at(-1)?.message).toMatch(/agent-owned/iu);
+    expect(harness.notifications.at(-1)?.message).toMatch(/request transition/iu);
     expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.phase).toBe(
       "discover",
     );
@@ -552,6 +881,11 @@ describe("development workflow extension", () => {
       await symlink(externalSpec, join(files.cwd, linkedSpec));
       const ctx = context(harness, files.cwd);
       await command(harness, ctx, "start Artifact containment");
+      await tool(harness, ctx, {
+        action: "record_artifact",
+        artifact: "research",
+        path: files.research,
+      });
       for (const evidenceKind of ["problem", "research"])
         await tool(harness, ctx, {
           action: "record_evidence",
@@ -564,6 +898,7 @@ describe("development workflow extension", () => {
         reason: "discovery complete",
         to: "pitch",
       });
+      await command(harness, ctx, "approve discover");
 
       await expect(
         tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: linkedSpec }),
@@ -628,13 +963,16 @@ describe("development workflow extension", () => {
       head: "def456",
       version: 1,
     });
-    await command(harness, ctx, `adopt pitch ${routed.spec} -- reviewed existing work`);
+    await command(harness, ctx, `adopt ${routed.spec} -- import existing artifacts`);
     const adopted = (await tool(harness, ctx, { action: "status" })).details.snapshot;
     expect(adopted).toMatchObject({
-      phase: "pitch",
+      artifacts: { spec: routed.spec },
+      evidence: [],
+      gates: {},
+      phase: "discover",
       workspace: { branch: "feat/workflow", head: "abc123", path: routed.cwd },
     });
-    await command(harness, ctx, `adopt pitch ${routed.spec} -- duplicate`);
+    await command(harness, ctx, `adopt ${routed.spec} -- duplicate`);
     expect(harness.notifications.at(-1)?.message).toMatch(/requires an empty/iu);
     await command(harness, ctx, "start Duplicate");
     expect(harness.notifications.at(-1)?.message).toMatch(/already active/iu);
@@ -675,6 +1013,8 @@ describe("development workflow extension", () => {
       "green",
       "focused-verification",
       "regression-verification",
+      "worker-handoff",
+      "build-simplification",
     ]) {
       await tool(harness, ctx, {
         action: "record_evidence",
@@ -709,153 +1049,304 @@ describe("development workflow extension", () => {
       }),
     ).rejects.toThrow(/direct human/iu);
 
-    const validSlice = await readFile(join(files.cwd, files.slice), "utf8");
-    const readyTree = (await tool(harness, ctx, { action: "status" })).details.snapshot?.workspace
-      .tree;
-    await writeFile(join(files.cwd, files.slice), "invalidated after review");
     await command(harness, ctx, "authorize merge -- merge the reviewed pull request");
-    expect(harness.notifications.at(-1)?.message).toMatch(/frontmatter/iu);
-    await writeFile(
-      join(files.cwd, files.slice),
-      validSlice.replace(
-        "User sees restored state.",
-        "User sees restored state after a same-path content edit.",
-      ),
-    );
-
-    harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) =>
-      Promise.resolve({
-        code: 0,
-        killed: false,
-        stderr: "",
-        stdout: gitStdout(
-          arguments_,
-          "feat/workflow",
-          "abc123",
-          `${files.slice}\0`,
-          "drifted-blob",
-        ),
-      }),
-    );
-    await command(harness, ctx, "authorize merge -- merge the reviewed pull request");
-    expect(harness.notifications.at(-1)?.message).toMatch(/evidence|verification/iu);
-    const treeDrifted = (await tool(harness, ctx, { action: "status" })).details.snapshot;
-    expect(treeDrifted).toMatchObject({
-      outcomes: [],
-      phase: "ship",
-      status: "active",
-      workspace: { head: "abc123", path: files.cwd },
+    await tool(harness, ctx, {
+      action: "record_outcome",
+      receipt: "PR #26 merged",
+      shipAction: "merge",
     });
-    expect(treeDrifted?.workspace.tree).not.toBe(readyTree);
+    await command(harness, ctx, "finish -- requested shipping sequence is complete");
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot).toMatchObject({
+      outcomes: [{ action: "merge", receipt: "PR #26 merged" }],
+      status: "completed",
+    });
+  });
 
+  it("fails closed when an authorized commit is not exactly one matching direct child", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    let committed = false;
+    harness.exec.mockImplementation((_command: string, arguments_: readonly string[]) => {
+      let stdout = "";
+      if (arguments_.includes("--abbrev-ref")) stdout = "feat/workflow\n";
+      else if (arguments_[0] === "rev-parse") stdout = committed ? "def456\n" : "abc123\n";
+      else if (gitSubcommand(arguments_) === "diff" && arguments_.includes("--name-only"))
+        stdout = committed ? "" : `${files.spec}\0`;
+      else if (arguments_[0] === "hash-object") stdout = "reviewed-blob\n";
+      else if (gitSubcommand(arguments_) === "rev-list")
+        stdout = "def456 unrelated-parent extra-parent\n";
+      return Promise.resolve({ code: 0, killed: false, stderr: "", stdout });
+    });
+    await advanceToBuild(harness, ctx, files);
     for (const evidenceKind of [
-      "problem",
-      "research",
-      "pitch-review",
-      "validation-contract",
-      "workspace-decision",
       "red",
       "green",
       "focused-verification",
       "regression-verification",
+      "worker-handoff",
+      "build-simplification",
+    ])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} passed`,
+        evidenceKind,
+        reference: `build:${evidenceKind}`,
+      });
+    await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "verified" });
+    await tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" });
+    for (const evidenceKind of [
       "review-intent",
       "review-correctness",
       "review-maintainability",
       "review-risk-operations",
       "final-verification",
-    ]) {
+    ])
       await tool(harness, ctx, {
         action: "record_evidence",
-        claim: `${evidenceKind} refreshed after drift`,
+        claim: `${evidenceKind} passed`,
         evidenceKind,
-        reference: `refresh:${evidenceKind}`,
+        reference: `review:${evidenceKind}`,
       });
-    }
-    await command(harness, ctx, "authorize commit -- create the reviewed commit");
-    await command(harness, ctx, "authorize push -- duplicate authorization");
-    expect(harness.notifications.at(-1)?.message).toMatch(/already authorized/iu);
-    await command(harness, ctx, "cancel authorization -- retry after user clarification");
-    expect(
-      (await tool(harness, ctx, { action: "status" })).details.snapshot?.pendingShipAction,
-    ).toBeUndefined();
-    await command(harness, ctx, "authorize commit -- create the reviewed commit");
-    harness.exec.mockImplementation((_commandName: string, arguments_: readonly string[]) =>
-      Promise.resolve({
-        code: 0,
-        killed: false,
-        stderr: "",
-        stdout: gitStdout(arguments_, "feat/workflow", "commit-head", ""),
+    await tool(harness, ctx, { action: "request_transition", reason: "reviewed", to: "ship" });
+    await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+    committed = true;
+    await expect(
+      tool(harness, ctx, {
+        action: "record_outcome",
+        receipt: "commit attempted",
+        shipAction: "commit",
       }),
-    );
+    ).rejects.toThrow(/direct-child commit/iu);
+    expect(
+      harness.exec.mock.calls.some(
+        ([, arguments_]) =>
+          arguments_.includes("--no-replace-objects") &&
+          arguments_.includes("rev-list") &&
+          arguments_.includes("def456"),
+      ),
+    ).toBe(true);
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.outcomes).toEqual([]);
+  });
+
+  it("accepts one direct-child commit whose exact content and mode match authorization", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    const markCommitted = mockSingleCommit(harness, files.spec);
+    await advanceToShip(harness, ctx, files);
+    await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+    markCommitted();
     await tool(harness, ctx, {
       action: "record_outcome",
-      receipt: "commit abc123 created",
+      receipt: "def456",
       shipAction: "commit",
     });
-    const committed = (await tool(harness, ctx, { action: "status" })).details.snapshot;
-    expect(committed).toMatchObject({
-      outcomes: [{ action: "commit", receipt: "commit abc123 created" }],
-      status: "active",
-      workspace: { head: "commit-head" },
-    });
-    expect(committed?.evidence.some((item) => item.stale === true)).toBe(false);
-    await command(harness, ctx, "authorize push -- publish the committed branch");
-    await tool(harness, ctx, {
-      action: "record_outcome",
-      receipt: "origin updated",
-      shipAction: "push",
-    });
-    await command(harness, ctx, "authorize worktree-removal -- remove the finished worktree");
-    const mainWorkspace = await workspace();
-    const mainCtx = context(harness, mainWorkspace.cwd);
-    emitBus(harness, "mopeyjellyfish:pi-worktrunk:route:v1", {
-      activePath: mainWorkspace.cwd,
-      version: 1,
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.outcomes).toEqual([
+      expect.objectContaining({ action: "commit", head: "def456", receipt: "def456" }),
+    ]);
+    expect(
+      harness.exec.mock.calls.some(
+        ([, arguments_]) =>
+          arguments_.includes("--no-replace-objects") &&
+          arguments_.includes("diff") &&
+          arguments_.includes("abc123") &&
+          arguments_.includes("def456"),
+      ),
+    ).toBe(true);
+    expect(
+      harness.exec.mock.calls.some(
+        ([, arguments_]) =>
+          arguments_.includes("--no-replace-objects") &&
+          arguments_.includes("ls-tree") &&
+          arguments_.includes("def456"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects workspace drift during pinned commit receipt inspection", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    const markCommitted = mockSingleCommit(harness, files.spec);
+    await advanceToShip(harness, ctx, files);
+    await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+    markCommitted();
+    const implementation = harness.exec.getMockImplementation();
+    if (implementation === undefined) throw new Error("Expected the Git mock implementation.");
+    let inspectedTree = false;
+    harness.exec.mockImplementation(async (commandName: string, arguments_: readonly string[]) => {
+      const result = await implementation(commandName, arguments_);
+      if (gitSubcommand(arguments_) === "ls-tree") inspectedTree = true;
+      return inspectedTree &&
+        gitSubcommand(arguments_) === "rev-parse" &&
+        !arguments_.includes("--abbrev-ref")
+        ? { ...result, stdout: "extra-head\n" }
+        : result;
     });
     await expect(
-      tool(harness, mainCtx, {
+      tool(harness, ctx, {
         action: "record_outcome",
-        receipt: "feature worktree removed",
-        shipAction: "worktree-removal",
+        receipt: "def456 before concurrent drift",
+        shipAction: "commit",
       }),
-    ).rejects.toThrow(/path still exists/iu);
-    await rm(files.cwd, { force: true, recursive: true });
-    let danglingSymlinkError = "path still exists (symlink test unavailable on Windows)";
-    if (process.platform !== "win32") {
-      await symlink(join(mainWorkspace.cwd, "missing-target"), files.cwd);
-      try {
-        await tool(harness, mainCtx, {
-          action: "record_outcome",
-          receipt: "feature worktree removed",
-          shipAction: "worktree-removal",
-        });
-        danglingSymlinkError = "receipt unexpectedly accepted";
-      } catch (error) {
-        danglingSymlinkError = error instanceof Error ? error.message : String(error);
-      }
-      await rm(files.cwd, { force: true });
-    }
-    expect(danglingSymlinkError).toMatch(/path still exists/iu);
-    await tool(harness, mainCtx, {
-      action: "record_outcome",
-      receipt: "feature worktree removed",
-      shipAction: "worktree-removal",
-    });
-    await command(harness, mainCtx, "finish -- requested shipping sequence is complete");
-    expect((await tool(harness, mainCtx, { action: "status" })).details.snapshot).toMatchObject({
-      outcomes: [
-        { action: "commit", receipt: "commit abc123 created" },
-        { action: "push", receipt: "origin updated" },
-        { action: "worktree-removal", receipt: "feature worktree removed" },
-      ],
-      status: "completed",
-    });
-    expect(harness.statuses.at(-1)).toBe("flow ship · completed");
-    await command(harness, mainCtx, "start Follow-up workflow");
-    expect((await tool(harness, mainCtx, { action: "status" })).details.snapshot?.title).toBe(
-      "Follow-up workflow",
-    );
+    ).rejects.toThrow(/changed during commit receipt validation/iu);
   });
+
+  it("rejects a direct-child commit when the checked-out branch changes after authorization", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    const markCommitted = mockSingleCommit(
+      harness,
+      files.spec,
+      "100644",
+      "a".repeat(40),
+      undefined,
+      undefined,
+      "feat/other",
+    );
+    await advanceToShip(harness, ctx, files);
+    await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+    markCommitted();
+    await expect(
+      tool(harness, ctx, {
+        action: "record_outcome",
+        receipt: "def456 on another branch",
+        shipAction: "commit",
+      }),
+    ).rejects.toThrow(/authorized branch\/path/iu);
+  });
+
+  it("rejects a direct-child commit when its file mode differs from authorization", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    const markCommitted = mockSingleCommit(harness, files.spec, "100755");
+    await advanceToShip(harness, ctx, files);
+    await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+    markCommitted();
+    await expect(
+      tool(harness, ctx, {
+        action: "record_outcome",
+        receipt: "def456 with changed mode",
+        shipAction: "commit",
+      }),
+    ).rejects.toThrow(/delta does not exactly match/iu);
+    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.outcomes).toEqual([]);
+  });
+
+  it("rejects missing and malformed authoritative Git tree entries", async () => {
+    expect.hasAssertions();
+    const object = "a".repeat(40);
+    for (const [treeOutput, message] of [
+      ["", /missing changed path/iu],
+      [`100644 tree ${object}\tspecs/change/spec.md\0`, /invalid changed-path/iu],
+      [`100600 blob ${object}\tspecs/change/spec.md\0`, /invalid changed-path/iu],
+      ["100644 blob\tspecs/change/spec.md\0", /invalid changed-path/iu],
+      ["100644 blob not-a-hash\tspecs/change/spec.md\0", /invalid changed-path/iu],
+      ["malformed\0", /invalid changed-path/iu],
+      [`100644 blob ${object}\twrong-path\0`, /invalid changed-path/iu],
+      [
+        `100644 blob ${object}\tspecs/change/spec.md` +
+          "\0" +
+          `100644 blob ${object}\tspecs/change/spec.md\0`,
+        /invalid changed-path/iu,
+      ],
+    ] as const) {
+      const harness = createHarness();
+      const files = await workspace();
+      const ctx = context(harness, files.cwd);
+      const markCommitted = mockSingleCommit(harness, files.spec, "100644", object, treeOutput);
+      await advanceToShip(harness, ctx, files);
+      await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+      markCommitted();
+      await expect(
+        tool(harness, ctx, {
+          action: "record_outcome",
+          receipt: "invalid tree entry",
+          shipAction: "commit",
+        }),
+      ).rejects.toThrow(message);
+    }
+  });
+
+  it("fails closed when pinned Git delta inspection commands fail", async () => {
+    expect.hasAssertions();
+    for (const [failedSubcommand, message] of [
+      ["rev-list", /direct-child commit/iu],
+      ["diff", /fingerprint the authorized commit delta/iu],
+      ["ls-tree", /inspect committed Git tree entries/iu],
+    ] as const) {
+      const harness = createHarness();
+      const files = await workspace();
+      const ctx = context(harness, files.cwd);
+      const markCommitted = mockSingleCommit(
+        harness,
+        files.spec,
+        "100644",
+        "a".repeat(40),
+        undefined,
+        failedSubcommand,
+      );
+      await advanceToShip(harness, ctx, files);
+      await command(harness, ctx, "authorize commit -- create exactly the reviewed commit");
+      markCommitted();
+      await expect(
+        tool(harness, ctx, {
+          action: "record_outcome",
+          receipt: "failed Git inspection",
+          shipAction: "commit",
+        }),
+      ).rejects.toThrow(message);
+    }
+  });
+
+  it("rejects a retained sparse path when authorization recorded a deletion", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const files = await workspace();
+    const ctx = context(harness, files.cwd);
+    const markCommitted = mockSingleCommit(harness, "removed-file");
+    await advanceToShip(harness, ctx, files);
+    await command(harness, ctx, "authorize commit -- create exactly the reviewed deletion");
+    markCommitted();
+    await expect(
+      tool(harness, ctx, {
+        action: "record_outcome",
+        receipt: "def456 retained sparse path",
+        shipAction: "commit",
+      }),
+    ).rejects.toThrow(/delta does not exactly match/iu);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "rejects a committed symlink whose authoritative Git blob differs from authorization",
+    async () => {
+      expect.hasAssertions();
+      const harness = createHarness();
+      const files = await workspace();
+      const ctx = context(harness, files.cwd);
+      const link = "commit-link";
+      await symlink("target-file", join(files.cwd, link));
+      const markCommitted = mockSingleCommit(harness, link, "120000", "b".repeat(40));
+      await advanceToShip(harness, ctx, files);
+      await command(harness, ctx, "authorize commit -- create exactly the reviewed symlink");
+      markCommitted();
+      await expect(
+        tool(harness, ctx, {
+          action: "record_outcome",
+          receipt: "def456 with changed symlink blob",
+          shipAction: "commit",
+        }),
+      ).rejects.toThrow(/delta does not exactly match/iu);
+    },
+  );
 
   it("revalidates artifacts and Git identity before agent-owned transitions", async () => {
     expect.hasAssertions();
@@ -863,7 +1354,14 @@ describe("development workflow extension", () => {
     const files = await workspace();
     const ctx = context(harness, files.cwd);
     await advanceToBuild(harness, ctx, files);
-    for (const evidenceKind of ["red", "green", "focused-verification", "regression-verification"])
+    for (const evidenceKind of [
+      "red",
+      "green",
+      "focused-verification",
+      "regression-verification",
+      "worker-handoff",
+      "build-simplification",
+    ])
       await tool(harness, ctx, {
         action: "record_evidence",
         claim: `${evidenceKind} passed`,
@@ -898,35 +1396,6 @@ describe("development workflow extension", () => {
       phase: "build",
       workspace: { branch: "feat/rerouted", head: "transition-head" },
     });
-    for (const evidenceKind of ["red", "green", "focused-verification", "regression-verification"])
-      await tool(harness, ctx, {
-        action: "record_evidence",
-        claim: `${evidenceKind} refreshed`,
-        evidenceKind,
-        reference: `refresh:${evidenceKind}`,
-      });
-    await tool(harness, ctx, { action: "request_transition", reason: "built", to: "review" });
-
-    for (const evidenceKind of [
-      "review-intent",
-      "review-correctness",
-      "review-maintainability",
-      "review-risk-operations",
-      "final-verification",
-    ])
-      await tool(harness, ctx, {
-        action: "record_evidence",
-        claim: `${evidenceKind} passed`,
-        evidenceKind,
-        reference: `review:${evidenceKind}`,
-      });
-    const validPlan = await readFile(join(files.cwd, files.plan), "utf8");
-    await writeFile(join(files.cwd, files.plan), "malformed before ship");
-    await expect(
-      tool(harness, ctx, { action: "request_transition", reason: "reviewed", to: "ship" }),
-    ).rejects.toThrow(/vertical slices|pitch spec|section/iu);
-    expect((await tool(harness, ctx, { action: "status" })).details.snapshot?.phase).toBe("review");
-    await writeFile(join(files.cwd, files.plan), validPlan);
   });
 
   it("rewinds instead of advancing when an artifact disappears before transition", async () => {
@@ -953,6 +1422,20 @@ describe("development workflow extension", () => {
     const files = await workspace();
     const ctx = context(harness, files.cwd);
     await advanceToBuild(harness, ctx, files);
+    for (const evidenceKind of [
+      "red",
+      "green",
+      "focused-verification",
+      "regression-verification",
+      "worker-handoff",
+      "build-simplification",
+    ])
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} passed`,
+        evidenceKind,
+        reference: `build:${evidenceKind}`,
+      });
     await tool(harness, ctx, { action: "set_slice", id: "VS-001", sliceStatus: "verified" });
     const validSpec = await readFile(join(files.cwd, files.spec), "utf8");
     await writeFile(join(files.cwd, files.spec), "invalid after build");
@@ -974,22 +1457,16 @@ describe("development workflow extension", () => {
       }),
     );
     await command(harness, ctx, "circuit finish -- retain useful scope");
-    expect(harness.notifications.at(-1)?.message).toMatch(/RED\/GREEN/iu);
-    for (const evidenceKind of ["red", "green", "focused-verification", "regression-verification"])
-      await tool(harness, ctx, {
-        action: "record_evidence",
-        claim: `${evidenceKind} refreshed after reroute`,
-        evidenceKind,
-        reference: `reroute:${evidenceKind}`,
-      });
-    await command(harness, ctx, "circuit finish -- retain useful scope");
-    const finished = (await tool(harness, ctx, { action: "status" })).details.snapshot;
-    expect(finished).toMatchObject({
-      phase: "review",
+    expect(harness.notifications.at(-1)?.message).toMatch(
+      /RED\/GREEN|worker-handoff|verification/iu,
+    );
+    const stale = (await tool(harness, ctx, { action: "status" })).details.snapshot;
+    expect(stale).toMatchObject({
+      phase: "build",
       slices: [{ id: "VS-001", status: "verified" }],
       workspace: { branch: "feat/rerouted", head: "circuit-head" },
     });
-    expect(finished?.evidence.some((item) => item.stale === true)).toBe(true);
+    expect(stale?.evidence.some((item) => item.stale === true)).toBe(true);
   });
 
   it("records bounded blockers and decisions that only the direct command resolves", async () => {
@@ -1029,6 +1506,11 @@ describe("development workflow extension", () => {
     const files = await workspace();
     const ctx = context(harness, files.cwd);
     await command(harness, ctx, "start Revalidate");
+    await tool(harness, ctx, {
+      action: "record_artifact",
+      artifact: "research",
+      path: files.research,
+    });
     for (const evidenceKind of ["problem", "research"]) {
       await tool(harness, ctx, {
         action: "record_evidence",
@@ -1038,14 +1520,16 @@ describe("development workflow extension", () => {
       });
     }
     await tool(harness, ctx, { action: "request_transition", reason: "ready", to: "pitch" });
+    await command(harness, ctx, "approve discover");
     await command(harness, ctx, "appetite 1d");
     await tool(harness, ctx, { action: "record_artifact", artifact: "spec", path: files.spec });
-    await tool(harness, ctx, {
-      action: "record_evidence",
-      claim: "reviewed",
-      evidenceKind: "pitch-review",
-      reference: files.spec,
-    });
+    for (const evidenceKind of ["pitch-simplification", "pitch-review"] as const)
+      await tool(harness, ctx, {
+        action: "record_evidence",
+        claim: `${evidenceKind} complete`,
+        evidenceKind,
+        reference: files.spec,
+      });
     await tool(harness, ctx, { action: "request_transition", reason: "ready", to: "plan" });
     await writeFile(join(files.cwd, files.spec), "edited into an invalid pitch");
     await command(harness, ctx, "approve pitch");
@@ -1162,5 +1646,71 @@ describe("development workflow extension", () => {
     const status = await tool(harness, ctx, { action: "status" });
     expect(status.details.snapshot?.outcomes).toEqual([]);
     expect(status.details.snapshot?.evidence[0]).toMatchObject({ sensitivity: "private" });
+  });
+});
+
+describe("approved checkpoint protocol", () => {
+  it("exposes research and slice-scoped evidence fields", () => {
+    expect.hasAssertions();
+    expect(DevelopmentWorkflowParameters).toBeDefined();
+    expect(JSON.stringify(DevelopmentWorkflowParameters)).toContain("sliceId");
+    expect(JSON.stringify(DevelopmentWorkflowParameters)).toContain("research");
+  });
+
+  it("accepts only the exact package-independent Question result", () => {
+    expect.hasAssertions();
+    const input = checkpointQuestion("discover");
+    const submitted = submittedCheckpoint("discover", "advance", input);
+    expect(
+      checkpointSelection(
+        {
+          details: submitted,
+          input,
+          toolName: "question",
+        },
+        "discover",
+      ),
+    ).toBe("advance");
+    expect(
+      checkpointSelection(
+        {
+          details: { ...submitted, continuedFrom: "question-continuation" },
+          input,
+          toolName: "question",
+        },
+        "discover",
+      ),
+    ).toBe("advance");
+    const questions = (input as { readonly questions: readonly { readonly header: string }[] })
+      .questions;
+    expect(questions[0]?.header.length).toBeLessThanOrEqual(12);
+    for (const malformed of [
+      {
+        details: submittedCheckpoint("discover", "advance", input),
+        input: {},
+        toolName: "question",
+      },
+      {
+        details: {
+          answers: [
+            {
+              questionId: "development-workflow-discover-checkpoint",
+              selections: [{ label: "Advance", note: "custom", optionId: "advance" }],
+            },
+          ],
+          status: "submitted",
+        },
+        input,
+        toolName: "question",
+      },
+      { details: { ...submitted, continuedFrom: "" }, input, toolName: "question" },
+      { details: { answers: [], status: "cancelled" }, input, toolName: "question" },
+      {
+        details: submittedCheckpoint("discover", "advance", input),
+        input,
+        toolName: "other",
+      },
+    ])
+      expect(checkpointSelection(malformed, "discover")).toBeUndefined();
   });
 });

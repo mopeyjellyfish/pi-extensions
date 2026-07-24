@@ -5,4 +5,4 @@ argument-hint: "[risk or review focus]"
 
 # Review quality
 
-Load the `pi-quality-audit` skill and the current pitch/active slice. Review its affected diff and fresh verification evidence, with this focus: $ARGUMENTS. Prefer one fresh Sol high read-only reviewer; add another only for a distinct risk domain, keep one Terra writer for fixes, and never substitute a numeric score for evidence.
+Load the `pi-quality-audit` skill and each retained slice. Review affected diffs and record intent, correctness, maintainability, risk/operations, and final-verification evidence per slice, with this focus: $ARGUMENTS. Keep Review autonomous, verify the slice-bound simplification evidence, prefer one fresh Sol high read-only reviewer, calibrate findings without exaggerating complexity into a blocker, and keep one Terra writer for fixes.

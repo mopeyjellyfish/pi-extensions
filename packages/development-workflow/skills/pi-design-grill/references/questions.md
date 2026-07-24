@@ -10,7 +10,8 @@ Complete this pass before asking the user product questions.
 - What do the current code paths, public contracts, tests, types, configuration, history, and prior decisions establish?
 - Can the current behavior be reproduced or observed at a narrower public seam?
 - Which facts remain material and unanswerable from repository truth?
-- Which primary external source or bounded experiment can answer each remaining fact?
+- Which bounded primary-source prior-art pass was performed by default? If it was not applicable, why can external precedent not affect the pitch? If unavailable, what was attempted, what limitation occurred, and what uncertainty remains?
+- Does the evidence support adopting, extending, composing, building, or retaining the current route?
 - What did each finding confirm or change in the pitch?
 - Is every durable research artifact decision-focused, linked from the pitch, and small enough to avoid carrying raw transcripts forward?
 
@@ -61,6 +62,16 @@ Keep the Shape Up name, but treat appetite as a qualitative **agent-investment**
 - Where is the solution too vague to hand to an implementing agent?
 - Where is it over-specified and stealing implementation discretion?
 
+## Simplicity and blocker calibration
+
+- Does this behavior need to exist, or is the need speculative?
+- Which existing repository helper, type, contract, or pattern already solves part of it?
+- Can the standard library, native platform, database constraint, or an installed dependency replace custom code?
+- Which abstraction has one implementation, configuration has one value, wrapper hides nothing, or file exists only “for later”?
+- What can be deleted, merged, or kept local without weakening an acceptance signal or fixed floor?
+- Which complexity is genuinely required by correctness, security, accessibility, compatibility, data-loss prevention, or explicitly accepted behavior?
+- Is a claimed blocker truly preventing safe progress, or is it a recoverable failure, implementation detail, uncertainty, or ordinary complexity? What is the smallest user-owned decision actually needed?
+
 ## Constraints and decision dependencies
 
 - Which decision must be resolved before later questions become meaningful?
@@ -90,4 +101,4 @@ Keep the Shape Up name, but treat appetite as a qualitative **agent-investment**
 
 End each batch with resolved decisions, changed assumptions, and remaining blockers. End the grill with a compact pitch-readiness summary, not a numeric score.
 
-Method influences: Basecamp's [Shape Up shaping chapters](https://basecamp.com/shapeup/1.1-chapter-02) and Matt Pocock's [grilling skill](https://github.com/mattpocock/skills/blob/d574778f94cf620fcc8ce741584093bc650a61d3/skills/productivity/grilling/SKILL.md).
+Method influences: Basecamp's [Shape Up shaping chapters](https://basecamp.com/shapeup/1.1-chapter-02), Matt Pocock's [grilling skill](https://github.com/mattpocock/skills/blob/d574778f94cf620fcc8ce741584093bc650a61d3/skills/productivity/grilling/SKILL.md), the MIT-licensed [Karpathy Guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md), and [Ponytail's minimum-solution ladder](https://github.com/DietrichGebert/ponytail).
