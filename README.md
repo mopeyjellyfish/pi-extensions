@@ -44,6 +44,12 @@ This aggregate also installs and loads these external resources:
 
 Installing one package from `packages/` does not include those external resources.
 
+When `pi-subagents` is installed, the aggregate also supplies Ponytail-aware
+`worker` and `reviewer` definitions. Workers apply the `ponytail` skill before
+coding. Reviewers apply `ponytail-review` when explicitly launched for a code,
+diff, pull request, or codebase review. Whole-repository `ponytail-audit` runs
+only when explicitly requested.
+
 Update it later with:
 
 ```sh

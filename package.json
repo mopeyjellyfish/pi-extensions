@@ -20,7 +20,12 @@
     "skills": [
       "./packages/*/skills",
       "./node_modules/@dietrichgebert/ponytail/skills"
-    ]
+    ],
+    "subagents": {
+      "agents": [
+        "./agents"
+      ]
+    }
   },
   "scripts": {
     "check": "npm run format:check && npm run lint && npm run markdownlint && npm run knip && npm run typecheck && npm run test:coverage && npm run packages:check && npm run smoke && npm run go:check",
