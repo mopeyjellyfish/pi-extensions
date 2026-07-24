@@ -14,10 +14,12 @@
   "pi": {
     "extensions": [
       "./packages/*/src/index.ts",
+      "./node_modules/@dietrichgebert/ponytail/pi-extension/index.js",
       "./node_modules/@ff-labs/pi-fff/src/index.ts"
     ],
     "skills": [
-      "./packages/*/skills"
+      "./packages/*/skills",
+      "./node_modules/@dietrichgebert/ponytail/skills"
     ]
   },
   "scripts": {
@@ -74,18 +76,19 @@
     "markdownlint-cli2": "0.23.0",
     "prettier": "3.9.5",
     "semver": "7.8.5",
-    "tar": "7.5.19",
+    "tar": "7.5.22",
     "tsx": "4.23.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",
     "vitest": "4.1.10"
   },
   "dependencies": {
+    "@dietrichgebert/ponytail": "4.8.4",
     "@ff-labs/pi-fff": "0.9.6"
   },
   "overrides": {
     "markdownlint-cli2": {
-      "js-yaml": "5.2.1"
+      "js-yaml": "5.2.2"
     }
   }
 }

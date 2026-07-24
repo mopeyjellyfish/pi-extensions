@@ -6,7 +6,7 @@ const config = {
     ".": {
       entry: ["scripts/*.ts", "test/tooling/**/*.test.ts"],
       project: ["scripts/**/*.ts", "test/tooling/**/*.ts"],
-      ignoreDependencies: ["@ff-labs/pi-fff"],
+      ignoreDependencies: ["@dietrichgebert/ponytail", "@ff-labs/pi-fff"],
     },
     "packages/*": {
       entry: ["src/index.ts", "test/**/*.test.ts"],
