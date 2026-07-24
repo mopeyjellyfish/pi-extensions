@@ -58,13 +58,19 @@ async function rootWithDependencyExtension(includeDependency: boolean): Promise<
   const extensionRoot = join(root, "node_modules", "@example", "pi-extension");
   await mkdir(join(root, "packages"), { recursive: true });
   await mkdir(join(extensionRoot, "src"), { recursive: true });
+  await mkdir(join(extensionRoot, "skills", "example"), { recursive: true });
   await writeFile(join(extensionRoot, "src", "index.ts"), "export default () => {};\n", "utf8");
+  await writeFile(
+    join(extensionRoot, "skills", "example", "SKILL.md"),
+    "---\nname: example\ndescription: Example skill.\n---\n\n# Example\n",
+    "utf8",
+  );
   await writeFile(
     join(extensionRoot, "package.json"),
     JSON.stringify({
       name: "@example/pi-extension",
       version: "1.0.0",
-      pi: { extensions: ["./src/index.ts"] },
+      pi: { extensions: ["./src/index.ts"], skills: ["./skills"] },
     }),
     "utf8",
   );
@@ -81,6 +87,7 @@ async function rootWithDependencyExtension(includeDependency: boolean): Promise<
           "./packages/*/src/index.ts",
           "./node_modules/@example/pi-extension/src/index.ts",
         ],
+        skills: ["./node_modules/@example/pi-extension/skills"],
       },
     }),
     "utf8",
@@ -187,13 +194,16 @@ describe("package contracts", () => {
     );
   });
 
-  it("allows Pi package dependencies in the root aggregate", async () => {
+  it("allows Pi package dependency resources in the root aggregate", async () => {
     expect.hasAssertions();
     const valid = await rootWithDependencyExtension(true);
     await expect(validateRootAggregate([], valid)).resolves.toEqual([]);
     const missingDependency = await rootWithDependencyExtension(false);
-    await expect(validateRootAggregate([], missingDependency)).resolves.toContainEqual(
-      "Root aggregate includes unmanaged entrypoint node_modules/@example/pi-extension/src/index.ts.",
+    await expect(validateRootAggregate([], missingDependency)).resolves.toEqual(
+      expect.arrayContaining([
+        "Root aggregate includes unmanaged entrypoint node_modules/@example/pi-extension/src/index.ts.",
+        "Root skill aggregate includes unmanaged skill node_modules/@example/pi-extension/skills/example/SKILL.md.",
+      ]),
     );
   });
 

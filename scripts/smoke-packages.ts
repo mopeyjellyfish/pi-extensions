@@ -255,11 +255,13 @@ async function installRootAggregate(tempRoot: string): Promise<string> {
   if (installed.code !== 0) {
     throw new Error(describeFailure("npm install root aggregate", installed));
   }
-  const externalManifest = JSON.parse(
-    await readFile(join(installRoot, "node_modules", "@ff-labs", "pi-fff", "package.json"), "utf8"),
-  ) as unknown;
-  if (!isRecord(externalManifest) || externalManifest["name"] !== "@ff-labs/pi-fff") {
-    throw new Error("The installed root aggregate did not contain @ff-labs/pi-fff.");
+  for (const dependency of ["@dietrichgebert/ponytail", "@ff-labs/pi-fff"]) {
+    const externalManifest = JSON.parse(
+      await readFile(join(installRoot, "node_modules", dependency, "package.json"), "utf8"),
+    ) as unknown;
+    if (!isRecord(externalManifest) || externalManifest["name"] !== dependency) {
+      throw new Error(`The installed root aggregate did not contain ${dependency}.`);
+    }
   }
   return installRoot;
 }

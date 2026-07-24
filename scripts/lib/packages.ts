@@ -435,12 +435,13 @@ async function collectPackageEntrypoints(
   return entrypoints;
 }
 
-async function collectRootDependencyEntrypoints(
+async function collectRootDependencyResources(
   root: string,
   manifest: Record<string, unknown>,
   errors: string[],
-): Promise<Set<string>> {
+): Promise<{ readonly entrypoints: Set<string>; readonly skills: Set<string> }> {
   const entrypoints = new Set<string>();
+  const skills = new Set<string>();
   const dependencies = stringRecord(manifest["dependencies"]);
   for (const dependency of Object.keys(dependencies ?? {})) {
     const dependencyRoot = join(root, "node_modules", dependency);
@@ -455,11 +456,21 @@ async function collectRootDependencyEntrypoints(
       continue;
     }
     const resources = packageResources(value);
-    for (const entrypoint of await resolveExtensionPatterns(dependencyRoot, resources.extensions)) {
-      entrypoints.add(entrypoint);
+    if (resources.extensions.length > 0) {
+      for (const entrypoint of await resolveExtensionPatterns(
+        dependencyRoot,
+        resources.extensions,
+      )) {
+        entrypoints.add(entrypoint);
+      }
+    }
+    if (resources.skills.length > 0) {
+      for (const skill of await resolveSkillPatterns(dependencyRoot, resources.skills)) {
+        skills.add(skill);
+      }
     }
   }
-  return entrypoints;
+  return { entrypoints, skills };
 }
 
 async function collectPackageSkills(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
@@ -506,12 +517,15 @@ export async function validateRootAggregate(
   }
   const aggregate = await collectAggregateEntrypoints(root, resources.extensions);
   const packageEntrypoints = await collectPackageEntrypoints(packages);
-  const dependencyEntrypoints = await collectRootDependencyEntrypoints(root, value, errors);
-  for (const entrypoint of dependencyEntrypoints) {
+  const dependencyResources = await collectRootDependencyResources(root, value, errors);
+  for (const entrypoint of dependencyResources.entrypoints) {
     packageEntrypoints.add(entrypoint);
   }
   errors.push(...compareAggregateEntrypoints(root, aggregate, packageEntrypoints));
   const packageSkills = await collectPackageSkills(packages);
+  for (const skill of dependencyResources.skills) {
+    packageSkills.add(skill);
+  }
   if (packageSkills.size > 0 && resources.skills.length === 0) {
     errors.push("Root pi.skills must contain the aggregate skill glob.");
   } else if (resources.skills.length > 0) {
