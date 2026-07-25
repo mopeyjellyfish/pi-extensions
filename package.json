@@ -54,7 +54,7 @@
     "workflows:actionlint": "go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12",
     "workflows:zizmor": "zizmor --persona pedantic --min-severity low --offline .github/workflows",
     "workflows:check": "npm run workflows:actionlint && npm run workflows:zizmor",
-    "security:audit": "npm audit --audit-level=high",
+    "security:audit": "tsx scripts/audit.ts",
     "security:secrets": "go run github.com/zricethezav/gitleaks/v8@v8.30.1 dir . --redact --no-banner && go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner",
     "security:check": "npm run security:audit && npm run security:secrets"
   },
