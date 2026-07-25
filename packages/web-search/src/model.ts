@@ -107,8 +107,14 @@ async function configuredOverride(ctx: ExtensionContext): Promise<ModelOverride 
   return await readOverride(join(homedir(), ".pi", "agent", "web-search.json"), false);
 }
 
-function supportsNativeWebSearch(model: Model<Api> | undefined): model is Model<Api> {
-  return model !== undefined && SUPPORTED_APIS.has(model.api);
+function supportsNativeWebSearch(model: unknown): model is Model<Api> {
+  return (
+    typeof model === "object" &&
+    model !== null &&
+    "api" in model &&
+    typeof model.api === "string" &&
+    SUPPORTED_APIS.has(model.api)
+  );
 }
 
 function describe(model: Model<Api>): string {
@@ -138,7 +144,7 @@ export async function resolveSearchSelection(ctx: ExtensionContext): Promise<Sea
     const description =
       ctx.model === undefined
         ? "No current model is selected"
-        : `The current model ${describe(ctx.model)}`;
+        : `The current model ${ctx.model.provider}/${ctx.model.id}`;
     throw new Error(`${description} does not support native web search.`);
   }
   return { model: ctx.model };
