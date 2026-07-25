@@ -6,7 +6,13 @@ const config = {
     ".": {
       entry: ["scripts/*.ts", "test/tooling/**/*.test.ts"],
       project: ["scripts/**/*.ts", "test/tooling/**/*.ts"],
-      ignoreDependencies: ["@dietrichgebert/ponytail", "@ff-labs/pi-fff"],
+      ignoreDependencies: [
+        "@dietrichgebert/ponytail",
+        "@earendil-works/pi-ai",
+        "@earendil-works/pi-tui",
+        "@ff-labs/pi-fff",
+        "typebox",
+      ],
     },
     "packages/*": {
       entry: ["src/index.ts", "test/**/*.test.ts"],
