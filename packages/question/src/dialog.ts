@@ -1,4 +1,9 @@
-import { getMarkdownTheme, type Theme } from "@earendil-works/pi-coding-agent";
+import {
+  getLanguageFromPath,
+  getMarkdownTheme,
+  highlightCode,
+  type Theme,
+} from "@earendil-works/pi-coding-agent";
 import {
   CURSOR_MARKER,
   Editor,
@@ -70,6 +75,14 @@ export class QuestionDialog implements Component, Focusable {
   private readonly editor: Editor;
   private editMode: EditMode;
   private submitCursor = 0;
+  private documentMode = false;
+  private documentViewportRows = 1;
+  private readonly documentOffsets = new Map<string, number>();
+  private readonly documentMaxOffsets = new Map<string, number>();
+  private readonly documentCache = new Map<
+    string,
+    { readonly width: number; readonly lines: string[] }
+  >();
   private settled = false;
   private _focused = false;
   private readonly tui: TuiLike;
@@ -109,6 +122,7 @@ export class QuestionDialog implements Component, Focusable {
 
   invalidate(): void {
     this.editor.invalidate();
+    this.documentCache.clear();
   }
 
   cancelAbort(): void {
@@ -122,7 +136,7 @@ export class QuestionDialog implements Component, Focusable {
   }
 
   private refresh(): void {
-    this.invalidate();
+    this.editor.invalidate();
     this.tui.requestRender();
   }
 
@@ -135,6 +149,7 @@ export class QuestionDialog implements Component, Focusable {
   private advanceOrSubmit(): void {
     if (this.submitSingleQuestion()) return;
     if (this.questions.length > 1) {
+      this.documentMode = false;
       this.state = applyAction(this.state, { kind: "next" }, this.questions);
     }
     this.refresh();
@@ -171,6 +186,7 @@ export class QuestionDialog implements Component, Focusable {
 
   private moveTab(delta: number): void {
     const count = this.questions.length === 1 ? 1 : this.questions.length + 1;
+    this.documentMode = false;
     this.state = applyAction(
       this.state,
       { kind: "tab", tab: (this.state.tab + delta + count) % count },
@@ -194,6 +210,8 @@ export class QuestionDialog implements Component, Focusable {
       this.handleEditorInput(data);
       return;
     }
+    const question = this.questions[this.state.tab];
+    if (this.routeDocumentInput(data, question)) return;
     if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
       this.moveTab(1);
       return;
@@ -210,8 +228,54 @@ export class QuestionDialog implements Component, Focusable {
       this.handleSubmitTab(data);
       return;
     }
-    const question = this.questions[this.state.tab];
     if (question) this.handleQuestionTab(data, question);
+  }
+
+  private routeDocumentInput(data: string, question: QuestionDefinition | undefined): boolean {
+    if (this.documentMode) {
+      if (question) this.handleDocumentInput(data, question);
+      else {
+        this.documentMode = false;
+        this.refresh();
+      }
+      return true;
+    }
+    if (!question?.document || !matchesKey(data, "d")) return false;
+    this.documentMode = true;
+    this.refresh();
+    return true;
+  }
+
+  private handleDocumentInput(data: string, question: QuestionDefinition): void {
+    if (!question.document) {
+      this.documentMode = false;
+      this.refresh();
+      return;
+    }
+    if (
+      matchesKey(data, "d") ||
+      matchesKey(data, Key.escape) ||
+      this.keybindings.matches(data, "tui.select.cancel")
+    ) {
+      this.documentMode = false;
+      this.refresh();
+      return;
+    }
+
+    const current = this.documentOffsets.get(question.id) ?? 0;
+    const page = Math.max(1, this.documentViewportRows - 1);
+    const maximum = this.documentMaxOffsets.get(question.id) ?? 0;
+    let next: number | undefined;
+    if (this.keybindings.matches(data, "tui.select.up")) next = current - 1;
+    else if (this.keybindings.matches(data, "tui.select.down")) next = current + 1;
+    else if (this.keybindings.matches(data, "tui.select.pageUp")) next = current - page;
+    else if (this.keybindings.matches(data, "tui.select.pageDown")) next = current + page;
+    else if (matchesKey(data, Key.home)) next = 0;
+    else if (matchesKey(data, Key.end)) next = maximum;
+    if (next === undefined) return;
+
+    this.documentOffsets.set(question.id, Math.max(0, Math.min(next, maximum)));
+    this.refresh();
   }
 
   private handleEditorInput(data: string): void {
@@ -368,33 +432,13 @@ export class QuestionDialog implements Component, Focusable {
     return { lines, focusStart, focusEnd };
   }
 
-  private renderQuestion(question: QuestionDefinition, width: number): RenderedBody {
+  private renderStackedQuestion(question: QuestionDefinition, width: number): RenderedBody {
+    const options = this.optionRows(question, width);
     const focused = question.options[this.currentCursor()];
     const showPreview =
       focused?.preview && this.editMode?.kind !== "other" && this.editMode?.kind !== "chat";
-    if (!showPreview) return this.optionRows(question, width);
+    if (!showPreview) return options;
 
-    if (previewSideBySide(width)) {
-      const columns = columnWidths(width);
-      const options = this.optionRows(question, columns.left);
-      const previewLines = new Markdown(
-        sanitizeText(focused.preview),
-        0,
-        0,
-        getMarkdownTheme(),
-      ).render(columns.right);
-      const alignedPreview = [
-        ...Array.from({ length: options.focusStart }, () => ""),
-        ...previewLines,
-      ];
-      return {
-        lines: joinColumns(options.lines, alignedPreview, width),
-        focusStart: options.focusStart,
-        focusEnd: Math.max(options.focusEnd, options.focusStart + previewLines.length - 1),
-      };
-    }
-
-    const options = this.optionRows(question, width);
     const previewLines = new Markdown(
       sanitizeText(focused.preview),
       0,
@@ -411,6 +455,126 @@ export class QuestionDialog implements Component, Focusable {
       ],
       focusStart: options.focusStart,
       focusEnd: insertion + previewLines.length,
+    };
+  }
+
+  private documentLines(question: QuestionDefinition, width: number): string[] {
+    const cached = this.documentCache.get(question.id);
+    if (cached?.width === width) return cached.lines;
+    const document = question.document;
+    if (!document) return [];
+
+    const content = sanitizeText(document.content).replaceAll("\t", " ".repeat(3));
+    let lines: string[];
+    if (document.format === "md") {
+      lines = new Markdown(content, 0, 0, getMarkdownTheme()).render(width);
+    } else {
+      const language = getLanguageFromPath(`document.${document.format}`);
+      const highlighted = language
+        ? highlightCode(content, language)
+        : content.split("\n").map((line) => this.theme.fg("mdCodeBlock", line));
+      lines = highlighted.flatMap((line) => {
+        const result = wrapped(line, width);
+        return result.length > 0 ? result : [""];
+      });
+    }
+    const bounded = (lines.length > 0 ? lines : [""]).map((line) =>
+      truncateToWidth(line, width, ""),
+    );
+    this.documentCache.set(question.id, { width, lines: bounded });
+    return bounded;
+  }
+
+  private renderDocumentViewport(
+    question: QuestionDefinition,
+    width: number,
+    rows: number,
+  ): string[] {
+    const document = question.document;
+    if (!document) return [];
+    const lines = this.documentLines(question, width);
+    const contentRows = Math.max(0, rows - 1);
+    const maximum = contentRows > 0 ? Math.max(0, lines.length - contentRows) : 0;
+    const offset = Math.max(0, Math.min(this.documentOffsets.get(question.id) ?? 0, maximum));
+    this.documentOffsets.set(question.id, offset);
+    this.documentMaxOffsets.set(question.id, maximum);
+    this.documentViewportRows = contentRows;
+
+    const end = contentRows > 0 ? Math.min(lines.length, offset + contentRows) : 0;
+    const marker =
+      offset > 0 && end < lines.length ? "↕" : offset > 0 ? "↑" : end < lines.length ? "↓" : "";
+    const label = sanitizeText(document.name ?? `document.${document.format}`);
+    const position = contentRows > 0 ? `${String(offset + 1)}-${String(end)}` : "0";
+    const heading = `${this.documentMode ? "▶" : " "} ${label} · ${document.format.toUpperCase()} · ${marker} ${position}/${String(lines.length)}`;
+    const styledHeading = this.documentMode
+      ? this.theme.bg("selectedBg", this.theme.fg("text", heading))
+      : this.theme.fg("muted", heading);
+    return [
+      truncateToWidth(styledHeading, width, ""),
+      ...lines.slice(offset, offset + contentRows),
+    ];
+  }
+
+  private renderDocumentQuestion(
+    question: QuestionDefinition,
+    width: number,
+    rows: number,
+  ): RenderedBody {
+    if (previewSideBySide(width)) {
+      const columns = columnWidths(width);
+      const options = this.renderStackedQuestion(question, columns.left);
+      const fittedOptions = fitDialogToRows(options.lines, {
+        rows,
+        topRows: 0,
+        bottomRows: 0,
+        focusStart: options.focusStart,
+        focusEnd: options.focusEnd,
+      });
+      const document = this.renderDocumentViewport(question, columns.right, rows);
+      const lines = joinColumns(fittedOptions, document, width);
+      return { lines, focusStart: 0, focusEnd: Math.max(0, lines.length - 1) };
+    }
+
+    const documentRows = Math.max(1, Math.floor(rows / 2));
+    const optionRows = Math.max(1, rows - documentRows);
+    const options = this.renderStackedQuestion(question, width);
+    const fittedOptions = fitDialogToRows(options.lines, {
+      rows: optionRows,
+      topRows: 0,
+      bottomRows: 0,
+      focusStart: options.focusStart,
+      focusEnd: options.focusEnd,
+    });
+    const lines = [...fittedOptions, ...this.renderDocumentViewport(question, width, documentRows)];
+    return { lines, focusStart: 0, focusEnd: Math.max(0, lines.length - 1) };
+  }
+
+  private renderQuestion(question: QuestionDefinition, width: number, rows: number): RenderedBody {
+    if (question.document) return this.renderDocumentQuestion(question, width, rows);
+
+    const focused = question.options[this.currentCursor()];
+    const showPreview =
+      focused?.preview && this.editMode?.kind !== "other" && this.editMode?.kind !== "chat";
+    if (!showPreview || !previewSideBySide(width)) {
+      return this.renderStackedQuestion(question, width);
+    }
+
+    const columns = columnWidths(width);
+    const options = this.optionRows(question, columns.left);
+    const previewLines = new Markdown(
+      sanitizeText(focused.preview),
+      0,
+      0,
+      getMarkdownTheme(),
+    ).render(columns.right);
+    const alignedPreview = [
+      ...Array.from({ length: options.focusStart }, () => ""),
+      ...previewLines,
+    ];
+    return {
+      lines: joinColumns(options.lines, alignedPreview, width),
+      focusStart: options.focusStart,
+      focusEnd: Math.max(options.focusEnd, options.focusStart + previewLines.length - 1),
     };
   }
 
@@ -449,13 +613,13 @@ export class QuestionDialog implements Component, Focusable {
 
   render(width: number): string[] {
     const safeWidth = Math.max(1, width);
+    const rows = Math.max(1, this.tui.terminal.rows);
     const border = this.theme.fg("accent", "─".repeat(safeWidth));
     const tabs = this.renderTabs(safeWidth);
     const question = this.questions[this.state.tab];
     const heading = question
       ? wrapped(this.theme.fg("text", sanitizeText(question.question)), safeWidth)
       : [this.theme.fg("accent", this.theme.bold("Review your answers"))];
-    const body = question ? this.renderQuestion(question, safeWidth) : this.renderReview(safeWidth);
     const top = [border, ...tabs, ...heading, ""];
     const editorLines = this.editMode ? this.editor.render(safeWidth) : [];
     const editLines = this.editMode
@@ -465,9 +629,15 @@ export class QuestionDialog implements Component, Focusable {
           ...editorLines,
         ]
       : [];
+    const bodyRows = Math.max(1, rows - top.length - editLines.length - 3);
+    const body = question
+      ? this.renderQuestion(question, safeWidth, bodyRows)
+      : this.renderReview(safeWidth);
     const hints = this.editMode
       ? "Enter submit · Esc back"
-      : "↑↓ navigate · Tab switch · Enter select · Space toggle · n note · Esc cancel";
+      : this.documentMode
+        ? "Document: ↑↓ line · PgUp/PgDn page · Home/End · d/Esc back"
+        : `↑↓ navigate · Tab switch · Enter select · Space toggle · n note${question?.document ? " · d document" : ""} · Esc cancel`;
     const all = [...top, ...body.lines, ...editLines, "", this.theme.fg("dim", hints), border].map(
       (line) => truncateToWidth(line, safeWidth, ""),
     );
@@ -477,7 +647,7 @@ export class QuestionDialog implements Component, Focusable {
         ? top.length + body.lines.length + 2 + Math.max(0, cursorRow)
         : undefined;
     const fitted = fitDialogToRows(all, {
-      rows: Math.max(1, this.tui.terminal.rows),
+      rows,
       topRows: top.length,
       bottomRows: 2,
       focusStart: editFocus ?? top.length + body.focusStart,

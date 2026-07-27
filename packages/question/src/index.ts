@@ -43,7 +43,13 @@ export {
   lookupContinuation,
   restoreDraft,
 } from "./results.ts";
-export { QuestionParameters, RESERVED_LABELS, validateQuestions } from "./schema.ts";
+export {
+  DOCUMENT_FORMATS,
+  MAX_DOCUMENT_CHARACTERS,
+  QuestionParameters,
+  RESERVED_LABELS,
+  validateQuestions,
+} from "./schema.ts";
 export { applyAction, createInitialState, firstUnansweredTab } from "./state.ts";
 export type * from "./types.ts";
 
@@ -128,11 +134,12 @@ export default function questionExtension(pi: ExtensionAPI): void {
     name: "question",
     label: "Question",
     description:
-      "Ask the user 1-4 structured clarifying questions with choices, previews, notes, custom answers, and conversational redirection. Use stable IDs and re-call with continuationId after a redirected result.",
+      "Ask the user 1-4 structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Use stable IDs and re-call with continuationId after a redirected result.",
     promptSnippet: "Ask structured clarifying questions instead of guessing",
     promptGuidelines: [
       "Use question when a material ambiguity, preference, or decision requires user input instead of guessing.",
       "After question returns redirected, address the clarification and re-call question with its continuationId and revised questions; retain stable IDs only for semantically unchanged questions and options.",
+      "Use question's document field when the user needs to review full Markdown, YAML, JSON, XML, or text content before choosing an option.",
       "Do not add Other, Chat about this, Next, or Submit options to question inputs because question renders those controls.",
     ],
     parameters: QuestionParameters,

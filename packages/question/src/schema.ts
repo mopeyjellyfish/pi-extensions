@@ -1,8 +1,12 @@
+import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 
 import { hasStructuralControl, sanitizeText } from "./bounds.ts";
 
-import type { QuestionDefinition } from "./types.ts";
+import type { QuestionDefinition, QuestionDocument } from "./types.ts";
+
+export const DOCUMENT_FORMATS = ["md", "yml", "json", "xml", "txt"] as const;
+export const MAX_DOCUMENT_CHARACTERS = 100_000;
 
 export const RESERVED_LABELS = [
   "Other",
@@ -32,6 +36,23 @@ const OptionSchema = Type.Object(
   { additionalProperties: false },
 );
 
+const DocumentSchema = Type.Object(
+  {
+    content: Type.String({
+      minLength: 1,
+      maxLength: MAX_DOCUMENT_CHARACTERS,
+      description: "Full document content shown in the scrollable question viewer",
+    }),
+    format: StringEnum(DOCUMENT_FORMATS, {
+      description: "Document format used for rendering and syntax highlighting",
+    }),
+    name: Type.Optional(
+      Type.String({ minLength: 1, maxLength: 120, description: "Optional document label" }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
 const QuestionSchema = Type.Object(
   {
     id: Type.String({ minLength: 1, maxLength: 64, description: "Stable question identifier" }),
@@ -47,6 +68,7 @@ const QuestionSchema = Type.Object(
     }),
     multiSelect: Type.Optional(Type.Boolean({ description: "Allow more than one option" })),
     options: Type.Array(OptionSchema, { minItems: 2, maxItems: 4 }),
+    document: Type.Optional(DocumentSchema),
   },
   { additionalProperties: false },
 );
@@ -96,6 +118,18 @@ function validateOption(
   return errors;
 }
 
+function validateDocument(document: QuestionDocument, prefix: string): string[] {
+  const errors: string[] = [];
+  if (!document.content.trim()) errors.push(`${prefix}.content must not be empty`);
+  if (document.name !== undefined) {
+    if (!document.name.trim()) errors.push(`${prefix}.name must not be empty`);
+    if (hasStructuralControl(document.name)) {
+      errors.push(`${prefix}.name must not contain control characters`);
+    }
+  }
+  return errors;
+}
+
 function validateQuestion(question: QuestionDefinition, index: number): string[] {
   const prefix = `questions[${String(index)}]`;
   const errors: string[] = [];
@@ -116,6 +150,9 @@ function validateQuestion(question: QuestionDefinition, index: number): string[]
   const labels = new Set<string>();
   for (const option of question.options) {
     errors.push(...validateOption(option, prefix, ids, labels));
+  }
+  if (question.document) {
+    errors.push(...validateDocument(question.document, `${prefix}.document`));
   }
   return errors;
 }

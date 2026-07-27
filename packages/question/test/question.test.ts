@@ -1,5 +1,8 @@
+import { stripVTControlCharacters } from "node:util";
+
 import { initTheme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
+import { Compile } from "typebox/compile";
 import { describe, expect, it } from "vitest";
 
 import questionExtension, {
@@ -49,6 +52,18 @@ const checksQuestion: QuestionDefinition = {
   options: [unitOption, e2eOption],
 };
 const questions = [scopeQuestion, checksQuestion] as const;
+const documentLines = Array.from(
+  { length: 40 },
+  (_, index) => `document-line-${String(index).padStart(2, "0")}`,
+);
+const documentQuestion: QuestionDefinition = {
+  ...scopeQuestion,
+  document: {
+    content: documentLines.join("\n"),
+    format: "txt",
+    name: "plan.txt",
+  },
+};
 
 interface Theme {
   bold(value: string): string;
@@ -135,6 +150,52 @@ describe("question contract", () => {
         expect.stringMatching(/continuationId/u),
       ]),
     );
+  });
+
+  it("accepts bounded documents and rejects invalid document input", () => {
+    expect.hasAssertions();
+    const check = Compile(QuestionParameters);
+    expect(check.Check({ questions: [documentQuestion] })).toBe(true);
+    for (const format of ["md", "yml", "json", "xml", "txt"] as const) {
+      expect(
+        check.Check({
+          questions: [{ ...scopeQuestion, document: { content: "content", format } }],
+        }),
+      ).toBe(true);
+    }
+    expect(
+      check.Check({
+        questions: [{ ...scopeQuestion, document: { content: "content", format: "toml" } }],
+      }),
+    ).toBe(false);
+    expect(
+      check.Check({
+        questions: [
+          {
+            ...scopeQuestion,
+            document: { content: "x".repeat(100_000), format: "txt" },
+          },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      check.Check({
+        questions: [
+          {
+            ...scopeQuestion,
+            document: { content: "x".repeat(100_001), format: "txt" },
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      validateQuestions([
+        {
+          ...documentQuestion,
+          document: { content: " ", format: "txt", name: "plan.txt" },
+        },
+      ]),
+    ).toContain("questions[0].document.content must not be empty");
   });
 
   it("enforces semantic limits, uniqueness, and reserved labels", () => {
@@ -490,6 +551,89 @@ describe("TUI dialog", () => {
     expect(dialog.render(32)).toHaveLength(7);
   });
 
+  it("renders and independently scrolls a full document without changing option behavior", () => {
+    expect.hasAssertions();
+    let outcome: unknown;
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 14 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      {
+        matches(data: string, id: string) {
+          return (
+            (id === "tui.select.confirm" && data === "ENTER") ||
+            (id === "tui.select.down" && data === "DOWN") ||
+            (id === "tui.select.pageDown" && data === "PAGE_DOWN") ||
+            (id === "tui.select.cancel" && data === "ESC")
+          );
+        },
+      },
+      [documentQuestion],
+      createInitialState([documentQuestion]),
+      (value) => {
+        outcome = value;
+      },
+    );
+
+    const initial = dialog.render(120).join("\n");
+    expect(initial).toContain("document-line-00");
+    expect(initial).not.toContain("document-line-39");
+    expect(initial).toContain("A -> B");
+    expect(dialog.render(80).join("\n")).toContain("document-line-00");
+
+    dialog.handleInput("d");
+    dialog.handleInput("DOWN");
+    dialog.handleInput("PAGE_DOWN");
+    expect(dialog.render(120).join("\n")).not.toContain("document-line-00");
+    dialog.handleInput("\u{1B}[F");
+    expect(dialog.render(120).join("\n")).toContain("document-line-39");
+    dialog.handleInput("d");
+    dialog.handleInput("d");
+    dialog.handleInput("ESC");
+    expect(outcome).toBeUndefined();
+    dialog.handleInput("ENTER");
+    expect(outcome).toMatchObject({
+      kind: "submitted",
+      state: { drafts: { scope: { selectedIds: ["small"] } } },
+    });
+  });
+
+  it.each([
+    ["md", "# Plan"],
+    ["yml", "enabled: true"],
+    ["json", '{"enabled":true}'],
+    ["xml", "<enabled>true</enabled>"],
+    ["txt", "plain text"],
+  ] as const)("renders %s document content", (format, content) => {
+    expect.hasAssertions();
+    const formattedQuestion: QuestionDefinition = {
+      ...scopeQuestion,
+      document: { content, format, name: `plan.${format}` },
+    };
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 12 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      { matches: () => false },
+      [formattedQuestion],
+      createInitialState([formattedQuestion]),
+      () => {
+        return;
+      },
+    );
+    const rendered = stripVTControlCharacters(dialog.render(120).join("\n"));
+    expect(rendered).toContain(format === "md" ? "Plan" : content);
+    expect(dialog.render(120).every((line) => visibleWidth(line) <= 120)).toBe(true);
+  });
+
   it("handles multi-select Next, notes, incomplete Submit, and tab persistence", () => {
     expect.hasAssertions();
     const previewChecks: QuestionDefinition = {
@@ -773,24 +917,29 @@ describe("tool execution modes", () => {
     ).toEqual([["small"], ["unit"]]);
   });
 
-  it("submits a single RPC question without prompting for review", async () => {
+  it("submits a single RPC document question without changing the fallback prompts", async () => {
     expect.hasAssertions();
     const choices = ["Small"];
+    const titles: string[] = [];
     const ctx = context("rpc", {
       ui: {
-        select: () => Promise.resolve(choices.shift()),
+        select: (title: string) => {
+          titles.push(title);
+          return Promise.resolve(choices.shift());
+        },
         input: () => Promise.resolve(undefined),
       },
     } as unknown as Partial<ExtensionContext>);
     const result = await register().execute(
       "id",
-      { questions: [scopeQuestion] },
+      { questions: [documentQuestion] },
       undefined,
       undefined,
       ctx,
     );
     expect(result.details.status).toBe("submitted");
     expect(choices).toEqual([]);
+    expect(titles.join("\n")).not.toContain("document-line-00");
   });
 
   it("supports RPC Other, review Chat, and cancellation", async () => {

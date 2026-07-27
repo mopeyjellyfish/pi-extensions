@@ -321,24 +321,40 @@ describe("review regressions", () => {
     expect(outcome).toMatchObject({ kind: "cancelled", reason: "escape" });
   });
 
-  it("drops selections when option semantics change but ignores preview-only changes", () => {
+  it("drops selections when option semantics change but ignores preview and document changes", () => {
     expect.hasAssertions();
-    const state = selectedState();
-    const prior = buildResult("redirected", [question], state, {
+    const original: QuestionDefinition = {
+      ...question,
+      document: { content: '{"original":true}', format: "json", name: "plan.json" },
+    };
+    const state = selectedState([original]);
+    const prior = buildResult("redirected", [original], state, {
       continuationId: "semantic",
       redirect: "clarify",
     });
+    expect(prior.snapshot?.questions[0]).not.toHaveProperty("document");
     expect(
-      restoreDraft([{ ...question, options: [{ ...alpha, preview: "NEW" }, beta] }], prior).drafts[
+      restoreDraft([{ ...original, options: [{ ...alpha, preview: "NEW" }, beta] }], prior).drafts[
         "scope"
       ]?.selectedIds,
     ).toEqual(["alpha"]);
     expect(
-      restoreDraft([{ ...question, options: [{ ...alpha, label: "Renamed" }, beta] }], prior)
+      restoreDraft(
+        [
+          {
+            ...original,
+            document: { content: "# Updated plan", format: "md", name: "plan.md" },
+          },
+        ],
+        prior,
+      ).drafts["scope"]?.selectedIds,
+    ).toEqual(["alpha"]);
+    expect(
+      restoreDraft([{ ...original, options: [{ ...alpha, label: "Renamed" }, beta] }], prior)
         .drafts["scope"]?.selectedIds,
     ).toEqual([]);
     expect(
-      restoreDraft([{ ...question, options: [{ ...alpha, description: "Changed" }, beta] }], prior)
+      restoreDraft([{ ...original, options: [{ ...alpha, description: "Changed" }, beta] }], prior)
         .drafts["scope"]?.selectedIds,
     ).toEqual([]);
   });
@@ -401,6 +417,7 @@ describe("review regressions", () => {
       MAX_NOTE_JSON_BYTES + 20,
     );
     expect(result.snapshot?.questions[0]?.options[0]).not.toHaveProperty("preview");
+    expect(result.snapshot?.questions[0]).not.toHaveProperty("document");
     expect(JSON.stringify(result)).toContain("[truncated]");
 
     const registered = tool();
