@@ -1,0 +1,39 @@
+{
+  "name": "@mopeyjellyfish/pi-feature-flow",
+  "version": "0.0.0",
+  "description": "Parent-led feature shaping skills with deterministic artifact checks for Pi.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "skills/",
+    "references/",
+    "scripts/feature-flow.mjs",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "feature-shaping"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/feature-flow"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/feature-flow/test"
+  }
+}
