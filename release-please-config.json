@@ -22,6 +22,9 @@
     { "type": "deps", "section": "Dependencies" }
   ],
   "packages": {
+    "packages/feature-flow": {
+      "release-type": "node"
+    },
     "packages/git-conventions": {
       "release-type": "node"
     },
