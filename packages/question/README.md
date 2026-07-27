@@ -7,6 +7,7 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 - One to four questions in a tabbed bottom dialog.
 - Single- and multi-select options with persistent selections.
 - Responsive Markdown previews, stacked below 100 columns and side-by-side at wider widths.
+- Optional full-document review with persistent, independently scrollable Markdown, YAML, JSON, XML, or text rendering.
 - Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
 - Immediate submission after a single question is answered, without a redundant review step.
 - **Chat about this…** redirects the conversation, then lets the model reopen revised questions with an opaque continuation ID while preserving compatible draft answers.
@@ -52,6 +53,31 @@ question({
 
 The UI supplies **Other…**, **Chat about this…**, **Next →**, and, for multi-question dialogs, Submit controls. Do not include these as options.
 
+Attach one optional document to any question when the choice requires reviewing more than a compact option preview:
+
+```ts
+question({
+  questions: [
+    {
+      id: "plan-review",
+      header: "Plan",
+      question: "Should we proceed with this plan?",
+      document: {
+        name: "implementation-plan.md",
+        format: "md",
+        content: "# Implementation plan\n\n1. Add the public API.\n2. Verify it.",
+      },
+      options: [
+        { id: "agree", label: "Agree", description: "Proceed with the plan" },
+        { id: "revise", label: "Revise", description: "Request changes first" },
+      ],
+    },
+  ],
+});
+```
+
+`document.format` is `md`, `yml`, `json`, `xml`, or `txt`. Markdown renders as formatted Markdown; structured text uses Pi's syntax highlighter. The document remains visible beside the options at 100 columns or wider and stacks below them on narrower terminals. Per-option previews still work and appear with the focused option.
+
 A redirected result contains `continuationId`, the bounded clarification, structured answers, and a compact continuation snapshot in tool details. The snapshot stores stable IDs plus SHA-256 semantic hashes for question text/selection mode and option labels/descriptions; it does not duplicate those strings, raw UI state, or previews. After addressing the clarification, call `question` again with that ID and the revised questions. Drafts are restored only from `question` results on the current session branch. Each continuation ID is one-use: the consuming result records `continuedFrom`, and later reuse fails as stale. Rewritten questions, changed selection modes, or changed option labels/descriptions clear affected selections and notes; preview-only changes do not. Removed options and their notes are dropped.
 
 ## Controls
@@ -61,17 +87,21 @@ A redirected result contains `continuationId`, the bounded clarification, struct
 - `Enter`: select, toggle, advance, or submit.
 - `Space`: toggle a multi-select option.
 - `n`: edit the note for a focused option with a preview.
+- `d`: focus or leave an attached document.
+- In document focus: up/down scroll one rendered row, PageUp/PageDown scroll a page, Home/End jump, and `Esc` returns to the options.
 - `Esc` or the configured `tui.select.cancel` binding: leave an editor or cancel the dialog.
 
 Submitting an empty note or **Other…** editor clears its existing value. Empty **Chat about this…** text is not submitted. A one-question single-select dialog submits when an option or non-empty **Other…** answer is confirmed; a one-question multi-select dialog submits through **Next →**. Multiple questions retain the final review step, where Submit remains disabled until every current question has an answer.
 
 ## Modes
 
-The complete dialog requires TUI mode. RPC mode walks the same questions through Pi's `select` and `input` UI protocol and uses the documented **Next →** sentinel. In both modes, a single question submits from its answer while multiple questions retain final review. JSON and print modes return a structured `unavailable` result rather than inventing an answer; continuation IDs are deliberately not resolved in those modes.
+The complete dialog and document viewer require TUI mode. RPC mode walks the same questions through Pi's `select` and `input` UI protocol, omits document content from dialog titles, and uses the documented **Next →** sentinel. In both modes, a single question submits from its answer while multiple questions retain final review. JSON and print modes return a structured `unavailable` result rather than inventing an answer; continuation IDs are deliberately not resolved in those modes.
 
 ## Bounds
 
-Detail-field bounds are measured by JSON-encoded UTF-8 cost after sanitization, so escaped characters and multibyte Unicode count at their serialized size. User-authored notes are capped at 512 encoded bytes. **Other…** answers and **Chat about this…** redirects are capped at 2,000 encoded bytes. Model-facing tool content is capped at 8,000 decoded UTF-8 bytes, and compact transcript rendering is capped at 320 decoded UTF-8 bytes. Truncated values end with `… [truncated]`. Carriage returns normalize to newlines; tabs/newlines are preserved; other C0 controls and DEL become `�`. Structural IDs, headers, and option labels containing controls are rejected. The maximum valid result details, including a continuation snapshot, remain below Pi's 50 KB tool-result guidance.
+Attached documents are limited to 100,000 characters and are never copied into result details or continuation snapshots. Accepted content is scrollable without UI truncation. Document-only changes preserve compatible continuation drafts, like preview-only changes.
+
+Detail-field bounds are measured by JSON-encoded UTF-8 cost after sanitization, so escaped characters and multibyte Unicode count at their serialized size. User-authored notes are capped at 512 encoded bytes. **Other…** answers and **Chat about this…** redirects are capped at 2,000 encoded bytes. Model-facing tool content is capped at 8,000 decoded UTF-8 bytes, and compact transcript rendering is capped at 320 decoded UTF-8 bytes. Truncated values end with `… [truncated]`. Carriage returns normalize to newlines; tabs/newlines are preserved; other C0 controls and DEL become `�`. Structural IDs, headers, document names, and option labels containing controls are rejected. The maximum valid result details, including a continuation snapshot, remain below Pi's 50 KB tool-result guidance.
 
 ## Development
 

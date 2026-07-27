@@ -1,3 +1,11 @@
+export type QuestionDocumentFormat = "md" | "yml" | "json" | "xml" | "txt";
+
+export interface QuestionDocument {
+  readonly content: string;
+  readonly format: QuestionDocumentFormat;
+  readonly name?: string;
+}
+
 export interface QuestionOption {
   readonly id: string;
   readonly label: string;
@@ -11,6 +19,7 @@ export interface QuestionDefinition {
   readonly question: string;
   readonly multiSelect?: boolean;
   readonly options: readonly QuestionOption[];
+  readonly document?: QuestionDocument;
 }
 
 export interface QuestionInput {
