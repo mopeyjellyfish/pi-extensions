@@ -5,8 +5,11 @@ description: Generate, validate, and automatically review the complete vertical 
 
 # Feature plan
 
-Create every `docs/features/<feature>/plans/<slice>.md` before implementation.
-Parent reasoning owns plan quality; the helper owns mechanical facts. Read this
+Start delivery decomposition only after the evergreen product pitch is
+accepted, then create every `docs/features/<feature>/plans/<slice>.md` before
+implementation. The pitch defines the product and acceptance criteria; this
+skill owns slices, tasks, phases, and dependencies. Parent reasoning owns plan
+quality; the helper owns mechanical facts. Read this
 package's `../../references/artifact-contract.md`,
 `../../references/orchestration-contract.md`, and
 `references/plan-template.md` before starting.
@@ -21,18 +24,23 @@ Before any write or delegation:
    assumptions in parent reasoning.
 3. Run `node ../../scripts/feature-flow.mjs validate-pitch <pitch-path>` and
    require an accepted pitch.
-4. Require compatible `subagent` and `subagent_wait` tools, discover
-   builtin `worker` and builtin `reviewer`, and preflight `question` only for a possible
-   new pitch-level decision. Fail closed with named setup guidance before writer
-   side effects if any capability is missing.
+4. Require compatible `subagent` and `subagent_wait` tools and compatible named
+   `worker` and `reviewer` roles; the worker must be the sole writer and the
+   reviewer must operate read-only. Accept Pi builtins or existing project/user
+   overrides, and do not reject a compatible override merely because of its
+   discovery scope. This package ships no agent definitions or custom agents.
+   Preflight `question` only for a possible new pitch-level decision. Fail closed
+   with named setup guidance before writer side effects if any capability is
+   missing.
 
 Do not reparse frontmatter, paths, filenames, revisions, pins, dependencies, AC
 coverage, Git summaries, or transitions. Return exact helper errors for fixes.
 
 ## Generate the complete set
 
-Launch one fresh plan writer as an async top-level `tasks` group with exactly
-one item, an explicit routed `cwd`, item-level `"progress": false`, top-level
+Launch the compatible named `worker` as one fresh plan writer in an async
+top-level `tasks` group with exactly one item, an explicit routed `cwd`,
+item-level `"progress": false`, top-level
 `"concurrency": 1`, and `"async": true`. Record the run ID. Give it the entire
 accepted pitch and template. Keep one writer active and require the smallest
 complete set of end-to-end vertical outcomes. The writer reasons about scope,
@@ -49,8 +57,9 @@ verified terminal barrier. Remember: helper success is not review.
 
 ## Review and automatic correction
 
-Launch one fresh read-only whole-set reviewer with the accepted pitch, exact
-complete plan set, and successful bounded helper result. Use the same fresh
+Launch one fresh read-only whole-set reviewer using the compatible named
+`reviewer`, accepted pitch, exact complete plan set, and successful bounded
+helper result. Use the same fresh
 async one-item, explicit-cwd, progress-suppressed, concurrency-one protocol and
 terminal barrier. It judges end-to-end verticality, scope, feasibility, TDD
 quality, risks, implementation assumptions, and pitch-level classification; it

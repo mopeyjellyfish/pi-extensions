@@ -1,7 +1,11 @@
 # Artifact and helper contract
 
 The canonical pitch is `docs/features/<feature>/pitch.md`; plans live in its
-`plans/` directory. Use the templates shipped with `feature-pitch` and
+`plans/` directory. A pitch uses `feature-flow-pitch/v2` and exactly five
+second-level sections: `Problem`, `Solution`, `Rabbit holes`, `No-gos`, and
+`Acceptance criteria`. It is an evergreen product definition: estimates and
+delivery decomposition belong to later planning, while acceptance criteria
+provide plan traceability. Use the templates shipped with `feature-pitch` and
 `feature-plan`. The package helper provides:
 
 ```text

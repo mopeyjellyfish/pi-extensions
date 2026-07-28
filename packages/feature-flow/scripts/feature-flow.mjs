@@ -16,22 +16,8 @@ const PLAN_FRONTMATTER_FIELDS = new Set([
   "revision",
 ]);
 const PLAN_STATUSES = new Set(["draft", "reviewed"]);
-const REQUIRED_SECTIONS = [
-  "Problem and desired outcome",
-  "Current behavior and repository evidence",
-  "In scope",
-  "Out of scope",
-  "Constraints",
-  "Non-negotiables",
-  "User-visible behavior and flows",
-  "Solution shape and key seams",
-  "Rabbit holes and resolved containment decisions",
-  "No-gos",
-  "Acceptance criteria",
-  "Residual risks",
-  "Blocking decisions",
-  "Proposed vertical-slice map",
-];
+const REQUIRED_SECTIONS = ["Problem", "Solution", "Rabbit holes", "No-gos", "Acceptance criteria"];
+const REQUIRED_SECTION_SET = new Set(REQUIRED_SECTIONS);
 const REQUIRED_PLAN_SECTIONS = [
   "End-to-end observable outcome",
   "Pitch trace to AC IDs",
@@ -113,8 +99,8 @@ async function parsePitch(inputPath, textOverride) {
   for (const field of FRONTMATTER_FIELDS) {
     if (!values.has(field)) fail(path, `missing frontmatter field: ${field}`);
   }
-  if (values.get("schema") !== "feature-flow-pitch/v1")
-    fail(path, "schema must be feature-flow-pitch/v1");
+  if (values.get("schema") !== "feature-flow-pitch/v2")
+    fail(path, "schema must be feature-flow-pitch/v2");
 
   const feature = values.get("feature");
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(feature))
@@ -141,6 +127,13 @@ async function parsePitch(inputPath, textOverride) {
     if (sectionText(match[2], section) === undefined)
       fail(path, `missing required section: ${section}`);
   }
+  const sections = [...match[2].matchAll(/^##(?: (.*))?$/gm)].map((section) => section[1] ?? "");
+  const unexpected = sections.find((section) => !REQUIRED_SECTION_SET.has(section));
+  if (unexpected !== undefined) fail(path, `unexpected section: ${unexpected || "<empty>"}`);
+  const duplicate = sections.find((section, index) => sections.indexOf(section) !== index);
+  if (duplicate) fail(path, `duplicate section: ${duplicate}`);
+  if (sections.some((section, index) => section !== REQUIRED_SECTIONS[index]))
+    fail(path, "pitch sections must follow canonical order");
 
   const acceptanceCriteria = sectionText(match[2], "Acceptance criteria");
   const acIds = [...new Set(acceptanceCriteria.match(/\bAC-\d{3}\b/g))];

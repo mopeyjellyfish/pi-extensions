@@ -2,10 +2,10 @@
 schema: feature-flow-plan/v1
 feature: ai-feature-flow
 slice: 001-feature-pitch
-pitch_revision: 11
+pitch_revision: 13
 dependencies: []
 status: reviewed
-revision: 12
+revision: 14
 ---
 
 # Slice 001: Feature pitch and deterministic pitch core
@@ -31,15 +31,20 @@ human answer is required; they never reimplement helper logic.
 - **AC-002:** establish the helper's command dispatch, bounded JSON/error
   contract, and deterministic-only responsibility through `validate-pitch`,
   `status`, and `pitch`; slice 002 completes the fixed five-command CLI.
-- **AC-003:** cover strict pitch parsing, paths, required sections, Git
-  summaries, exact failures, and mutation safety with executable helper tests.
+- **AC-003:** cover strict v2 pitch parsing, paths, the exact ordered five
+  headings, exclusion of delivery decomposition and estimates, Git summaries,
+  exact failures, and mutation safety with executable tests.
 - **AC-004:** cover pitch lifecycle transitions, explicit revision increments,
   and accepted-pitch checks with executable helper tests; slice 002 adds pins,
   plan transitions, and pitch-revision invalidation.
-- **AC-005:** ship `feature-pitch` with the reasoning-versus-helper boundary.
-- **AC-006:** close fresh whole-document review and complete-pitch-only human
-  acceptance.
-- **AC-010:** establish capability preflight, fresh serial delegation, and
+- **AC-005:** ship `feature-pitch` with a fresh repository scout, conditional
+  researcher, parent-owned grilling, smallest-useful shaping, and the
+  reasoning-versus-helper boundary.
+- **AC-006:** require user-confirmed synthesis before the pitch writer and final
+  reviewer, then close fresh whole-document review and the sole complete-pitch
+  human acceptance gate.
+- **AC-010:** establish compatible named-role preflight with builtin and existing
+  project/user override acceptance, fresh-context serial delegation, and
   terminal barriers shared by later skills.
 - **AC-011:** establish the changed-versus-unchanged pitch-level decision rule.
 - **AC-012:** establish package/helper evidence and authorization-aware
@@ -50,19 +55,24 @@ human answer is required; they never reimplement helper logic.
 ### Preconditions
 
 - No implementation-slice dependency.
-- Pitch revision 11 is accepted. This draft plan pins that accepted revision
-  and remains `draft` pending fresh whole-set plan review.
+- Pitch revision 13 is the evergreen product definition. This draft plan pins
+  that revision and remains `draft` pending fresh whole-set plan review.
 - Before implementation, inspect current Git status/diff and preserve unrelated
   user changes.
-- Before delegation, require compatible `subagent` and `subagent_wait`, discover
-  builtin `worker` and `reviewer`, and preflight `question`. Missing capability
-  fails closed with named setup guidance before side effects.
+- Before delegation, require compatible `subagent` and `subagent_wait`,
+  `question`, builtin `scout`, and compatible named `worker` and `reviewer`
+  roles. The worker is the sole writer and the reviewer operates read-only.
+  Accept Pi builtins or existing project/user overrides without rejecting a
+  compatible role merely for its discovery scope. Require builtin `researcher`
+  only when external evidence is materially needed. The package ships no agent
+  definitions or custom agents. Missing capability fails closed with named
+  setup guidance before side effects.
 
 ### Postconditions for slice 002
 
 - `@mopeyjellyfish/pi-feature-flow` loads independently as a skill package with
-  no production extension, custom agent, service, database, or npm runtime
-  dependency.
+  no production extension, agent definitions or custom agents, service,
+  database, or npm runtime dependency.
 - `scripts/feature-flow.mjs` is shipped in package `files`, uses only Node
   standard library APIs, implements pitch/status mechanics plus shared command
   seams, and is covered through spawned executable tests in temporary
@@ -86,9 +96,11 @@ human answer is required; they never reimplement helper logic.
   Git status/diff summary; narrow explicit pitch transitions; bounded JSON
   errors.
 - `feature-pitch`, its template, and shared artifact/orchestration contracts.
-- Executable helper behavior tests plus small skill-contract tests for helper
-  invocation, reasoning ownership, complete-pitch acceptance, capability
-  preflight, one-writer delegation, and terminal ordering.
+- Executable helper behavior tests plus small template/skill-contract tests for
+  the exact v2 headings and order, absent delivery decomposition and estimates,
+  helper invocation, compatible worker/reviewer semantics and override
+  acceptance, parent-owned grilling, synthesis confirmation, complete-pitch
+  acceptance, one-writer delegation, fresh context, and terminal ordering.
 
 ### Non-goals
 
@@ -96,8 +108,9 @@ human answer is required; they never reimplement helper logic.
   `plans` implementation, complete-plan validation, dependency/AC coverage, or
   plan transitions/tests in this slice.
 - Do not add `src/index.ts`, `tsconfig.json`, a Pi runtime peer, runtime npm
-  dependency, CLI framework, schema/YAML library, custom agent, service,
-  database, generic workflow engine, or project-management state.
+  dependency, CLI framework, schema/YAML library, agent definition, custom
+  agent, service, database, generic workflow engine, or project-management
+  state.
 - Do not ask the helper to judge pitch semantics, review quality, acceptance,
   slice verticality, TDD quality, scope, or pitch-level classification.
 - Do not implement, stage, commit, or publish user feature work as part of the
@@ -112,9 +125,9 @@ human answer is required; they never reimplement helper logic.
    bounded JSON results and exit statuses.
 3. Add table-driven invalid fixtures proving exact rejection of unknown,
    missing, or duplicate pitch frontmatter fields; invalid pitch schemas,
-   statuses, revisions, required headings, and feature directories; illegal
-   pitch transitions; `--revise` on status-only transitions; and invalid
-   arguments.
+   statuses, revisions, missing, unexpected, duplicate, or reordered headings;
+   invalid feature directories and transitions; `--revise` on status-only
+   transitions; and invalid arguments.
 4. Assert exact failing paths/reasons, nonzero exits, bounded stdout/stderr, and
    byte-for-byte pitch stability after every validation or failed transition.
 5. Assert legal pitch status-only transitions preserve revisions, explicit
@@ -123,14 +136,19 @@ human answer is required; they never reimplement helper logic.
 6. Assert `status` reports bounded current Git status/diff and pitch facts
    without embedding file bodies or making a semantic classification.
 7. Create `packages/feature-flow/test/skills.test.ts` with only contract-level
-   checks. Assert `feature-pitch` calls the relative helper before relevant
-   transitions, leaves research/quality/blocker resolution to reasoning, shows
-   the complete ready pitch to the human, and never treats helper success as
-   review or acceptance.
-8. Assert pitch writer/reviewer/fix handoffs use fresh async one-item task groups,
-   explicit cwd, item-level `progress: false`, effective concurrency one, same-
-   run wait/status terminal proof, parent-owned questions, and no implementation
-   or unauthorized source-control action.
+   checks. Assert the template uses v2 and exactly `Problem`, `Solution`,
+   `Rabbit holes`, `No-gos`, and `Acceptance criteria`, with no delivery
+   decomposition or estimates. Assert `feature-pitch` calls the relative helper,
+   retains parent-owned grilling and smallest-useful shaping, shows the complete
+   ready pitch, and never treats helper success as review or acceptance.
+8. Assert the fresh builtin scout and conditional builtin researcher remain,
+   while compatible named worker/reviewer roles may be Pi builtins or existing
+   project/user overrides and are not rejected merely for discovery scope.
+   Assert their sole-writer/read-only semantics, fresh async one-item task groups
+   with top-level `context: fresh`, explicit cwd, item-level `progress: false`,
+   concurrency one, same-run wait/status terminal proof, and no package-shipped
+   agent definitions, custom agents, or headcount roles. Assert user-confirmed
+   synthesis precedes both pitch writing and final review.
 
 **Exact Red commands from the repository root:**
 
@@ -164,11 +182,13 @@ test file is not Red evidence.
    increment revision only for an explicit revise argument.
 6. Write `feature-pitch` as a concise parent orchestration skill. It invokes the
    helper by its package-relative path, uses exact helper failures rather than
-   reparsing, and retains all interviewing, research, decision, quality, and
-   review judgments in parent/subagent reasoning.
-7. Add the canonical pitch template and concise shared artifact/orchestration
-   references. Document helper facts and command usage without duplicating its
-   implementation as prose assertions.
+   reparsing, launches a fresh read-only scout and only a materially needed
+   researcher, and grills with recommended tradeoffs, examples, counterexamples,
+   failure cases, and teach-back toward the smallest useful solution.
+7. Add the exact five-heading v2 pitch template and concise shared contracts.
+   Exclude appetite, estimates, task lists, phases, and vertical decomposition;
+   require user-confirmed synthesis before the fresh pitch writer and final
+   reviewer without adding an approval gate.
 8. Keep the pitch draft through semantic fixes, invoke `ready` only after fresh
    blocker-free review, show the whole document through `question`, and invoke
    `accepted` only after `Approve pitch`. Semantic change uses the explicit
@@ -251,10 +271,13 @@ Run after final slice edits and package/lockfile synchronization:
   path/reason failures, mutation safety, legal pitch transitions, explicit
   revision increments, and Git-summary bounds.
 - Package dry-run lists the script and skill resources and shows no production
-  extension, custom agent, runtime dependency, or committed fixture.
+  extension, agent definitions or custom agents, runtime dependency, or
+  committed fixture.
 - `feature-pitch` uses helper output for mechanical facts while its transcript
-  shows parent-owned research, questions, quality judgment, fresh review, and
-  the complete-document `Approve pitch` gate.
+  shows a fresh scout, only materially needed research, adversarial grilling,
+  user-confirmed synthesis before writer/reviewer delegation, smallest-useful
+  scope cuts, fresh-context review, and the sole complete-document
+  `Approve pitch` gate.
 - A semantic pitch change increments revision only through the explicit helper
   command, returns to draft, and repeats review/acceptance; helper success alone
   never accepts content.

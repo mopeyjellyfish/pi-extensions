@@ -17,9 +17,13 @@ reasoning owns implementation and review judgments.
 Before Worktrunk, todo, implementation reasoning, or delegation:
 
 1. Preflight every required capability: compatible `subagent` and
-   `subagent_wait`; builtin `worker` and builtin `reviewer`; `question`,
+   `subagent_wait`; compatible named `worker` and `reviewer` roles; `question`,
    Worktrunk `worktree`, and `todo`; and any LSP or web companion required by a
-   reviewed plan. Fail closed with named installation or setup guidance.
+   reviewed plan. The worker must be the sole writer and the reviewer must
+   operate read-only. Accept Pi builtins or existing project/user overrides; do
+   not reject a compatible override merely because of its discovery scope. This
+   package ships no agent definitions or custom agents. Fail closed with named
+   installation or setup guidance.
 2. Run
    `node ../../scripts/feature-flow.mjs status <pitch-path> <plans-dir>`.
 3. Run
@@ -50,7 +54,8 @@ For each next dependency-ready slice in the helper-returned serial order:
 
 1. Mark only that todo item active. Record its direct readiness from the routed
    helper result and predecessor's blocker-free completion evidence.
-2. Launch one fresh implementation worker using the build contract's one-item
+2. Launch the compatible named `worker` as one fresh implementation worker
+   using the build contract's one-item
    protocol. Give it repository instructions, the accepted pitch, only the
    reviewed slice, predecessor evidence, explicit routed cwd, and no authority
    to decide pitch questions. Require exact Red → smallest Green → bounded
@@ -60,7 +65,8 @@ For each next dependency-ready slice in the helper-returned serial order:
 3. Cross the same-run terminal barrier. Retain bounded Red, Green, Refactor,
    diagnostics, focused-test, and diff evidence plus changed files. If an
    optional semantic tool is inapplicable, parent records why.
-4. Launch one fresh adversarial reviewer after the worker terminates. Give the
+4. Launch the compatible named `reviewer` as one fresh adversarial reviewer
+   after the worker terminates. Give the
    reviewer the current accepted pitch, reviewed slice, routed diff, and bounded
    evidence. It is read-only and judges scope, correctness, tests, repository
    compliance, invalid code assumptions, implementation choices, review

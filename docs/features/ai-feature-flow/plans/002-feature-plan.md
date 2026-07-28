@@ -2,11 +2,11 @@
 schema: feature-flow-plan/v1
 feature: ai-feature-flow
 slice: 002-feature-plan
-pitch_revision: 11
+pitch_revision: 13
 dependencies:
   - 001-feature-pitch
 status: reviewed
-revision: 12
+revision: 14
 ---
 
 # Slice 002: Feature plan
@@ -55,9 +55,13 @@ transition. Plans are never offered for human acceptance.
   deterministic behavior with prose inspection.
 - Before planning, the parent runs helper `status`, inspects the bounded Git
   facts, preserves unrelated work, and runs `validate-pitch`.
-- Before delegation, require compatible `subagent` and `subagent_wait`, discover
-  builtin `worker` and `reviewer`, and preflight `question` for a possible new
-  pitch-level decision. Fail closed before writer side effects when missing.
+- Before delegation, require compatible `subagent` and `subagent_wait` plus
+  compatible named `worker` and `reviewer` roles. The worker is the sole writer
+  and the reviewer operates read-only. Accept Pi builtins or existing
+  project/user overrides without rejecting a compatible role merely for its
+  discovery scope. The package ships no agent definitions or custom agents.
+  Preflight `question` for a possible new pitch-level decision and fail closed
+  before writer side effects when a capability is missing.
 
 ### Postconditions for slice 003
 
@@ -134,10 +138,14 @@ transition. Plans are never offered for human acceptance.
    whole-set `reviewed` transition and subsequent validation. Reject helper
    success as proof of review, plan `question`, `Approve plan`, partial review,
    implementation, or a new receipt.
-8. Assert every writer/reviewer/fix launch is a fresh async one-item task group
-   with explicit cwd, item-level `progress: false`, effective concurrency one,
-   recorded run ID, same-run wait, and one status check proving complete
-   lifecycle plus observed process termination before dependent work.
+8. Assert compatible named worker/reviewer roles may be Pi builtins or existing
+   project/user overrides and are not rejected merely for discovery scope. Their
+   sole-writer/read-only semantics and every writer/reviewer/fix launch use a
+   fresh async one-item task group with explicit cwd, item-level
+   `progress: false`, effective concurrency one, recorded run ID, same-run wait,
+   and one status check proving complete lifecycle plus observed process
+   termination before dependent work. Assert the package ships no agent
+   definitions or custom agents.
 9. Assert a parent-classified pitch-level finding stops for the user's answer.
    Changed pitch content uses explicit pitch draft/revise and repeats complete
    pitch review/acceptance and plan regeneration; unchanged confirmation records
@@ -165,8 +173,11 @@ its helper-orchestration boundary do not yet exist.
    prospective set before writes, enforce unique slice IDs, accepted-pitch pins,
    the direct serial chain, and literal complete pitch-AC coverage, and increment
    revisions only for explicitly named revise arguments.
-3. Add one concise `feature-plan` skill that loads shared contracts and invokes
-   the shipped helper at the documented package-relative path.
+3. Add one concise `feature-plan` skill that loads shared contracts, accepts
+   compatible named worker/reviewer Pi builtins or existing project/user
+   overrides with sole-writer/read-only semantics regardless of discovery scope,
+   and invokes the shipped helper at the documented package-relative path. Do
+   not ship agent definitions or custom agents.
 4. Run `status` and `validate-pitch` before delegation. Require an accepted
    pitch, but let the parent reason about bounded Git facts, unrelated changes,
    current-code assumptions, and pitch-level issues.

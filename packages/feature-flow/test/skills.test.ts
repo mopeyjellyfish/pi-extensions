@@ -5,6 +5,13 @@ import { describe, expect, it } from "vitest";
 
 const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const PITCH_SKILL_PATH = join(PACKAGE_ROOT, "skills", "feature-pitch", "SKILL.md");
+const PITCH_TEMPLATE_PATH = join(
+  PACKAGE_ROOT,
+  "skills",
+  "feature-pitch",
+  "references",
+  "pitch-template.md",
+);
 const PLAN_SKILL_PATH = join(PACKAGE_ROOT, "skills", "feature-plan", "SKILL.md");
 const BUILD_SKILL_PATH = join(PACKAGE_ROOT, "skills", "feature-build", "SKILL.md");
 const BUILD_CONTRACT_PATH = join(
@@ -34,12 +41,24 @@ describe("feature-pitch skill contract", () => {
     expect(skill).not.toContain("feature-build");
   });
 
-  it("retains research, decisions, quality, and complete-pitch acceptance in reasoning", async () => {
+  it("grills toward the smallest useful solution before writing and retains one acceptance gate", async () => {
     expect.hasAssertions();
-    const skill = await readFile(PITCH_SKILL_PATH, "utf8");
+    const skill = normalizeWhitespace(await readFile(PITCH_SKILL_PATH, "utf8"));
 
     expect(skill).toContain("repository evidence");
-    expect(skill).toContain("external research");
+    expect(skill).toContain("external evidence is materially needed");
+    expect(skill).toContain("small decision clusters");
+    expect(skill).toContain("recommended answers and tradeoffs");
+    expect(skill).toContain("concrete examples and counterexamples");
+    expect(skill).toContain("edge and failure cases");
+    expect(skill).toContain("teach-back");
+    expect(skill).toContain("smallest useful product solution");
+    expect(skill).toContain(
+      "breadth, speculative flexibility, abstractions, and optional behavior",
+    );
+    expect(skill).toContain("Move every cut to `No-gos`");
+    expect(skill).toContain("materially complete and accurate");
+    expect(skill).toContain("not an extra approval gate");
     expect(skill).toContain("pitch-level decision");
     expect(skill).toContain("blocker-free");
     expect(skill).toContain("helper success is not review or acceptance");
@@ -50,18 +69,30 @@ describe("feature-pitch skill contract", () => {
     expect(skill).toContain("repeat complete review and human acceptance");
   });
 
-  it("requires capability preflight and fresh serial terminal delegation", async () => {
+  it("accepts compatible worker/reviewer overrides and uses fresh serial terminal delegation", async () => {
     expect.hasAssertions();
-    const skill = await readFile(PITCH_SKILL_PATH, "utf8");
+    const skill = normalizeWhitespace(await readFile(PITCH_SKILL_PATH, "utf8"));
 
     expect(skill).toContain("subagent");
     expect(skill).toContain("subagent_wait");
     expect(skill).toContain("question");
-    expect(skill).toContain("builtin `worker`");
-    expect(skill).toContain("builtin `reviewer`");
+    expect(skill).toContain("builtin `scout`");
+    expect(skill).toContain("compatible named `worker` and `reviewer`");
+    expect(skill).toContain("worker must be the sole writer");
+    expect(skill).toContain("reviewer must operate read-only");
+    expect(skill).toContain("existing project/user overrides");
+    expect(skill).toContain("discovery scope");
+    expect(skill).toContain("no agent definitions or custom agents");
+    expect(skill).not.toContain("builtin `worker`");
+    expect(skill).not.toContain("builtin `reviewer`");
+    expect(skill).toContain("builtin `researcher`");
+    expect(skill).toContain("fresh read-only scout");
+    expect(skill).toContain("adversarial product, scope, feasibility, and simplicity review");
+    expect(skill).toContain("Do not add roles for headcount");
     expect(skill).toContain('"async": true');
     expect(skill).toContain('"progress": false');
     expect(skill).toContain('"concurrency": 1');
+    expect(skill).toContain('"context": "fresh"');
     expect(skill).toContain("exactly one item");
     expect(skill).toContain("explicit routed `cwd`");
     expect(skill).toContain("same run ID");
@@ -70,9 +101,27 @@ describe("feature-pitch skill contract", () => {
     expect(skill).toContain("Parent asks every question");
   });
 
+  it("ships only the v2 evergreen five-heading pitch contract", async () => {
+    expect.hasAssertions();
+    const template = await readFile(PITCH_TEMPLATE_PATH, "utf8");
+    const headings = [...template.matchAll(/^## (.+)$/gm)].map((match) => match[1]);
+
+    expect(template).toContain("schema: feature-flow-pitch/v2");
+    expect(headings).toEqual([
+      "Problem",
+      "Solution",
+      "Rabbit holes",
+      "No-gos",
+      "Acceptance criteria",
+    ]);
+    expect(template).not.toMatch(/\bvertical[- ]slic/i);
+    expect(template).not.toMatch(/\bappetite\b|\btime estimate/i);
+    expect(template).not.toMatch(/\btask plan|\bdelivery phase/i);
+  });
+
   it("forbids implementation and unauthorized source-control actions", async () => {
     expect.hasAssertions();
-    const skill = await readFile(PITCH_SKILL_PATH, "utf8");
+    const skill = normalizeWhitespace(await readFile(PITCH_SKILL_PATH, "utf8"));
 
     expect(skill).toContain("Do not implement");
     expect(skill).toContain("Do not stage, commit, push, merge, or open a pull request");
@@ -119,15 +168,22 @@ describe("feature-plan skill contract", () => {
     expect(skill).toContain("Do not reparse");
   });
 
-  it("uses fresh serial complete-lifecycle delegation for writers and reviewers", async () => {
+  it("accepts compatible worker/reviewer overrides with fresh serial delegation", async () => {
     expect.hasAssertions();
-    const skill = await readFile(PLAN_SKILL_PATH, "utf8");
+    const skill = normalizeWhitespace(await readFile(PLAN_SKILL_PATH, "utf8"));
 
     expect(skill).toContain("subagent");
     expect(skill).toContain("subagent_wait");
     expect(skill).toContain("question");
-    expect(skill).toContain("builtin `worker`");
-    expect(skill).toContain("builtin `reviewer`");
+    expect(skill).toContain("compatible named");
+    expect(skill).toContain("`worker` and `reviewer` roles");
+    expect(skill).toContain("worker must be the sole writer");
+    expect(skill).toContain("reviewer must operate read-only");
+    expect(skill).toContain("existing project/user overrides");
+    expect(skill).toContain("discovery scope");
+    expect(skill).toContain("no agent definitions or custom agents");
+    expect(skill).not.toContain("builtin `worker`");
+    expect(skill).not.toContain("builtin `reviewer`");
     expect(skill).toContain('"async": true');
     expect(skill).toContain('"progress": false');
     expect(skill).toContain('"concurrency": 1');
@@ -227,10 +283,18 @@ describe("feature-build skill contract", () => {
     expect(text).toContain("Red, Green, Refactor, diagnostics, focused-test, and diff evidence");
   });
 
-  it("uses fresh one-item serial runs and deterministic terminal barriers", async () => {
+  it("accepts compatible worker/reviewer overrides with fresh serial terminal barriers", async () => {
     expect.hasAssertions();
     const contract = normalizeWhitespace(await readFile(BUILD_CONTRACT_PATH, "utf8"));
 
+    expect(contract).toContain("compatible named `worker` and `reviewer` roles");
+    expect(contract).toContain("worker is the sole writer");
+    expect(contract).toContain("reviewer operates read-only");
+    expect(contract).toContain("existing project/user overrides");
+    expect(contract).toContain("discovery scope");
+    expect(contract).toContain("no agent definitions or custom agents");
+    expect(contract).not.toContain("builtin `worker`");
+    expect(contract).not.toContain("builtin `reviewer`");
     expect(contract).toContain("fresh async top-level `tasks` group with exactly one item");
     expect(contract).toContain('"async": true');
     expect(contract).toContain('"progress": false');
