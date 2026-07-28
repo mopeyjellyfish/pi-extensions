@@ -47,19 +47,29 @@ evidence is materially needed to resolve material uncertainty, launch one fresh
 read-only builtin `researcher` after the scout's terminal barrier. Do not launch
 roles merely to increase headcount.
 
-Parent asks every question through `question`. Grill in small decision clusters,
-including recommended answers and tradeoffs, concrete examples and
-counterexamples, edge and failure cases, and teach-back so the user can correct
-the parent's understanding. Bias hard toward the smallest useful product
-solution: challenge breadth, speculative flexibility, abstractions, and
-optional behavior. Move every cut to `No-gos`. Keep the pitch evergreen and
-leave all delivery decomposition to later planning.
+The user's initial prompt starts shaping. Before asking anything, absorb the
+prompt and conversation, then use the scout and any material research to learn
+what context and code can answer. Track only unresolved decisions that could
+materially change product behavior, scope, architecture, risk,
+non-negotiables, or acceptance criteria and are not reliably answered by the
+prompt, conversation, repository, or research. Do not ask the user to repeat
+known facts or decide implementation choices the agents can safely make later.
+
+Parent asks every question through `question`, one pointed decision cluster at
+a time. Couple questions only when the decisions depend on each other; include
+recommended answers and tradeoffs, concrete examples and counterexamples, edge
+and failure cases, and teach-back so the user can correct the parent's
+understanding. Bias hard toward the smallest useful product solution: challenge
+breadth, speculative flexibility, abstractions, and optional behavior. Move
+every cut to `No-gos`. Keep the pitch evergreen and leave all delivery
+decomposition to later planning. Stop questioning when no unresolved decision
+can materially change the pitch.
 
 After each cluster, update a concise parent-owned synthesis. Do not launch the
 pitch writer or final reviewer until the user confirms that synthesis is
 materially complete and accurate. This confirmation is not an extra approval
-gate; it closes the grilling loop before drafting. Parent reasoning owns the
-problem, solution, rabbit holes, no-gos, acceptance criteria, pitch-level
+gate; it closes the clarification loop before drafting. Parent reasoning owns
+the problem, solution, rabbit holes, no-gos, acceptance criteria, pitch-level
 decisions, and quality.
 
 ## Write and validate

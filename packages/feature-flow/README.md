@@ -8,10 +8,11 @@ agents, or add a service or runtime dependency.
 
 ## Skill
 
-- `feature-pitch` grills toward the smallest useful product solution, writes the
-  five-heading `feature-flow-pitch/v2` artifact, runs fresh adversarial review,
-  and retains one complete-pitch human acceptance gate. Pitches contain no
-  delivery decomposition or estimates.
+- `feature-pitch` starts from the user's prompt, learns what context and code can
+  answer, then asks only pointed unresolved product decisions before writing the
+  smallest useful five-heading `feature-flow-pitch/v2` artifact. It runs fresh
+  adversarial review and retains one complete-pitch human acceptance gate.
+  Pitches contain no delivery decomposition or estimates.
 - `feature-plan` starts decomposition only after that evergreen pitch is
   accepted, creates the complete serial vertical TDD plan set, validates it, and
   runs fresh whole-set review without a human plan gate.
