@@ -36,9 +36,12 @@ top-level `tasks` group with exactly one item:
 }
 ```
 
-Use the builtin `worker` for implementation and fixes and builtin `reviewer` for
-read-only review. Require the explicit routed `cwd` shown above. Record the run
-as the recorded run ID. Use `subagent_wait` for the
+Use compatible named `worker` and `reviewer` roles: the worker is the sole
+writer for implementation and fixes, and the reviewer operates read-only.
+Accept Pi builtins or existing project/user overrides, and do not reject a
+compatible override merely because of its discovery scope. This package ships
+no agent definitions or custom agents. Require the explicit routed `cwd` shown
+above. Record the run as the recorded run ID. Use `subagent_wait` for the
 same-run wait, then perform exactly one status check for that same run proving a
 complete lifecycle and observed process termination before dependent work.
 

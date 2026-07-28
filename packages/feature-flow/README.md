@@ -1,16 +1,20 @@
 # pi-feature-flow
 
 `@mopeyjellyfish/pi-feature-flow` is an independent, skill-only Pi package for
-shaping a canonical feature pitch, automatically reviewing a vertical TDD plan
-set, and delivering it serially with deterministic artifact and Git checks. It
-does not register an extension, agent, service, or runtime dependency.
+shaping a canonical evergreen product pitch, automatically reviewing a vertical
+TDD plan set, and delivering it serially with deterministic artifact and Git
+checks. It does not register an extension, ship agent definitions or custom
+agents, or add a service or runtime dependency.
 
 ## Skill
 
-- `feature-pitch` guides repository research, user interviews, shaping, fresh
-  review, and complete-pitch human acceptance.
-- `feature-plan` creates the complete serial vertical TDD plan set, validates it,
-  and runs fresh whole-set review without a human plan gate.
+- `feature-pitch` grills toward the smallest useful product solution, writes the
+  five-heading `feature-flow-pitch/v2` artifact, runs fresh adversarial review,
+  and retains one complete-pitch human acceptance gate. Pitches contain no
+  delivery decomposition or estimates.
+- `feature-plan` starts decomposition only after that evergreen pitch is
+  accepted, creates the complete serial vertical TDD plan set, validates it, and
+  runs fresh whole-set review without a human plan gate.
 - `feature-build` gates side effects on helper readiness, routes one slice at a
   time through fresh-context Red/Green/Refactor and adversarial review, and
   returns bounded AC evidence before any pre-authorized source-control action.
@@ -26,11 +30,16 @@ resolution, and pitch-level classification.
 
 ## Requirements
 
-All flows require compatible `subagent` and `subagent_wait` tools, the builtin
-`worker` and `reviewer` roles, and the `question` companion. Build also requires
-Worktrunk and todo, plus any LSP or web companion required by the reviewed
-plans. Each flow fails closed before its side effects when a required capability
-is unavailable.
+All flows require compatible `subagent` and `subagent_wait` tools, compatible
+named `worker` and `reviewer` roles, and the `question` companion. The worker is
+the sole writer; the reviewer operates read-only. Either role may be Pi's
+builtin or an existing project/user override, and a compatible override must not
+be rejected merely because of its discovery scope. This package ships no agent
+definitions or custom agents. Pitch additionally uses a fresh read-only builtin
+`scout` for repository evidence and builtin `researcher` only when external
+evidence is materially needed. Build also requires Worktrunk and todo, plus any
+LSP or web companion required by the reviewed plans. Each flow fails closed
+before its side effects when a required capability is unavailable.
 
 ## Install
 

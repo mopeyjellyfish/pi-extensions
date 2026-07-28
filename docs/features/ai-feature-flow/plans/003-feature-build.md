@@ -2,11 +2,11 @@
 schema: feature-flow-plan/v1
 feature: ai-feature-flow
 slice: 003-feature-build
-pitch_revision: 11
+pitch_revision: 13
 dependencies:
   - 002-feature-plan
 status: reviewed
-revision: 12
+revision: 14
 ---
 
 # Slice 003: Feature build
@@ -61,9 +61,12 @@ pre-authorized source-control actions or stops at a reviewed ready diff.
 - This plan is regenerated with the accepted `pitch_revision` and becomes
   `reviewed` only with the complete plan set after a fresh blocker-free review.
 - Before any build side effect, require compatible `subagent` and
-  `subagent_wait`, discover builtin `worker` and `reviewer`, and preflight
-  question, Worktrunk, and todo. Preflight plan-required LSP/web capabilities;
-  fail closed with named setup guidance.
+  `subagent_wait` plus compatible named `worker` and `reviewer` roles. The
+  worker is the sole writer and the reviewer operates read-only. Accept Pi
+  builtins or existing project/user overrides without rejecting a compatible
+  role merely for its discovery scope. The package ships no agent definitions
+  or custom agents. Preflight question, Worktrunk, todo, and plan-required
+  LSP/web capabilities; fail closed with named setup guidance.
 - The parent uses helper Git facts to preserve unrelated changes and reason
   about assumption validity. The helper does not decide whether code changes
   are related, safe, or pitch-level.
@@ -131,11 +134,14 @@ pre-authorized source-control actions or stops at a reviewed ready diff.
    active; fresh worker; verified same-run terminal barrier; retained Red,
    Green, Refactor, diagnostics, focused test, and diff evidence; fresh reviewer;
    routine fresh fix/revalidation/re-review; todo closure; next slice.
-6. Require every worker/reviewer/fix launch to use a fresh async top-level
-   `tasks` group with exactly one item, explicit routed cwd, item-level
-   `progress: false`, effective concurrency one, recorded run ID, same-run wait,
-   and one status check proving complete lifecycle plus observed process
-   termination.
+6. Assert compatible named worker/reviewer roles may be Pi builtins or existing
+   project/user overrides and are not rejected merely for discovery scope. Their
+   sole-writer/read-only semantics and every worker/reviewer/fix launch use a
+   fresh async top-level `tasks` group with exactly one item, explicit routed
+   cwd, item-level `progress: false`, effective concurrency one, recorded run ID,
+   same-run wait, and one status check proving complete lifecycle plus observed
+   process termination. Assert the package ships no agent definitions or custom
+   agents.
 7. Assert timeout, abort, missing, active, unknown, unobserved, and unresolved
    attention states do not permit polling, inferred completion, overlap, or
    automatic resume. A real pending parent-owned request is answered and the
@@ -170,8 +176,11 @@ its deterministic-readiness-before-reasoning/writer ordering do not yet exist.
 1. Add one concise `feature-build` skill that loads the shared artifact,
    orchestration, and build contracts and invokes the existing helper at its
    package-relative path.
-2. Preflight capabilities, then run `status` and `validate-plans` before any
-   build mutation. Treat successful helper output as deterministic readiness
+2. Preflight capabilities, including compatible named worker/reviewer Pi
+   builtins or existing project/user overrides with sole-writer/read-only
+   semantics regardless of discovery scope. The package ships no agent
+   definitions or custom agents. Then run `status` and `validate-plans` before
+   any build mutation. Treat successful helper output as deterministic readiness
    only; parent reasoning separately inspects Git relevance, current-code
    assumptions, and possible pitch-level issues.
 3. Create or activate the authorized Worktrunk path, verify `pwd` and Git
@@ -179,8 +188,8 @@ its deterministic-readiness-before-reasoning/writer ordering do not yet exist.
    set to that routed worktree before any implementation reasoning/writer work.
 4. Project the fixed reviewed slice order into session `todo`, with at most one
    active item. Todo is a view, not artifact authority.
-5. For each dependency-ready slice, launch one fresh builtin worker with the
-   accepted pitch, one reviewed plan, dependency evidence, repository
+5. For each dependency-ready slice, launch the compatible named `worker` fresh
+   with the accepted pitch, one reviewed plan, dependency evidence, repository
    instructions, explicit routed cwd, and no pitch-decision authority.
 6. Require observable Red before production edits, smallest Green, Refactor only
    while green, semantic discovery/LSP validation when applicable, and focused

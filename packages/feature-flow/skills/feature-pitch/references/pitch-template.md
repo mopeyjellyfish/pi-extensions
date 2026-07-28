@@ -1,10 +1,12 @@
 # Canonical pitch template
 
-Replace angle-bracket values. Keep every heading; add subsections as needed.
+Replace angle-bracket values. Keep exactly these five headings; add subsections
+as needed. Define the evergreen product and its boundaries. Acceptance criteria
+enable later plan traceability.
 
 ```markdown
 ---
-schema: feature-flow-pitch/v1
+schema: feature-flow-pitch/v2
 feature: <canonical-feature-name>
 status: draft
 revision: 1
@@ -12,33 +14,15 @@ revision: 1
 
 # <Feature title>
 
-## Problem and desired outcome
+## Problem
 
-## Current behavior and repository evidence
+## Solution
 
-## In scope
-
-## Out of scope
-
-## Constraints
-
-## Non-negotiables
-
-## User-visible behavior and flows
-
-## Solution shape and key seams
-
-## Rabbit holes and resolved containment decisions
+## Rabbit holes
 
 ## No-gos
 
 ## Acceptance criteria
 
 - **AC-001:** <observable criterion>
-
-## Residual risks
-
-## Blocking decisions
-
-## Proposed vertical-slice map
 ```

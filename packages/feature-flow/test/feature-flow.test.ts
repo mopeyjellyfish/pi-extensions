@@ -7,22 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const HELPER = join(PACKAGE_ROOT, "scripts", "feature-flow.mjs");
-const REQUIRED_HEADINGS = [
-  "Problem and desired outcome",
-  "Current behavior and repository evidence",
-  "In scope",
-  "Out of scope",
-  "Constraints",
-  "Non-negotiables",
-  "User-visible behavior and flows",
-  "Solution shape and key seams",
-  "Rabbit holes and resolved containment decisions",
-  "No-gos",
-  "Acceptance criteria",
-  "Residual risks",
-  "Blocking decisions",
-  "Proposed vertical-slice map",
-];
+const REQUIRED_HEADINGS = ["Problem", "Solution", "Rabbit holes", "No-gos", "Acceptance criteria"];
 const REQUIRED_PLAN_HEADINGS = [
   "End-to-end observable outcome",
   "Pitch trace to AC IDs",
@@ -49,7 +34,7 @@ function pitchText(
   overrides: Partial<Record<"schema" | "feature" | "status" | "revision", string>> = {},
 ) {
   const values = {
-    schema: "feature-flow-pitch/v1",
+    schema: "feature-flow-pitch/v2",
     feature: "sample-feature",
     status: "draft",
     revision: "1",
@@ -198,8 +183,8 @@ describe("feature-flow helper", () => {
     ],
     [
       "schema",
-      (text: string) => text.replace("feature-flow-pitch/v1", "feature-flow-pitch/v2"),
-      "schema must be feature-flow-pitch/v1",
+      (text: string) => text.replace("feature-flow-pitch/v2", "feature-flow-pitch/v1"),
+      "schema must be feature-flow-pitch/v2",
     ],
     [
       "status",
@@ -213,8 +198,8 @@ describe("feature-flow helper", () => {
     ],
     [
       "heading",
-      (text: string) => text.replace("## Blocking decisions", "## Other decisions"),
-      "missing required section: Blocking decisions",
+      (text: string) => text.replace("## Solution", "## Other"),
+      "missing required section: Solution",
     ],
   ])("rejects an invalid %s without mutation", async (_name, mutate, reason) => {
     expect.hasAssertions();
@@ -228,6 +213,60 @@ describe("feature-flow helper", () => {
     expect(json(result.stderr)).toEqual({ ok: false, errors: [{ path: pitchPath, reason }] });
     expect(Buffer.byteLength(result.stderr)).toBeLessThan(50_000);
     expect(await readFile(pitchPath, "utf8")).toBe(before);
+  });
+
+  it("rejects pitch sections outside the exact five-heading contract", async () => {
+    expect.hasAssertions();
+    const text = pitchText().replace(
+      "## Acceptance criteria",
+      "## Delivery plan\n\nTask breakdown.\n\n## Acceptance criteria",
+    );
+    const { root, pitchPath } = await createRepository(text);
+
+    const result = run(root, "validate-pitch", pitchPath);
+
+    expect(result.status).toBe(1);
+    expect(json(result.stderr)).toEqual({
+      ok: false,
+      errors: [{ path: pitchPath, reason: "unexpected section: Delivery plan" }],
+    });
+  });
+
+  it.each([
+    ["empty", "##\n\nEmpty section.", "unexpected section: <empty>"],
+    ["duplicate", "## Problem\n\nDuplicate problem.", "duplicate section: Problem"],
+  ])("rejects a %s pitch section", async (_name, heading, reason) => {
+    expect.hasAssertions();
+    const text = pitchText().replace(
+      "## Acceptance criteria",
+      `${heading}\n\n## Acceptance criteria`,
+    );
+    const { root, pitchPath } = await createRepository(text);
+
+    const result = run(root, "validate-pitch", pitchPath);
+
+    expect(result.status).toBe(1);
+    expect(json(result.stderr)).toEqual({
+      ok: false,
+      errors: [{ path: pitchPath, reason }],
+    });
+  });
+
+  it("rejects reordered pitch sections", async () => {
+    expect.hasAssertions();
+    const text = pitchText().replace(
+      "## Problem\n\nContent for Problem.\n\n## Solution\n\nContent for Solution.",
+      "## Solution\n\nContent for Solution.\n\n## Problem\n\nContent for Problem.",
+    );
+    const { root, pitchPath } = await createRepository(text);
+
+    const result = run(root, "validate-pitch", pitchPath);
+
+    expect(result.status).toBe(1);
+    expect(json(result.stderr)).toEqual({
+      ok: false,
+      errors: [{ path: pitchPath, reason: "pitch sections must follow canonical order" }],
+    });
   });
 
   it("reports Git facts and missing artifact readiness before first-time pitch creation", async () => {
@@ -255,7 +294,7 @@ describe("feature-flow helper", () => {
   it("reports Git facts and safe invalid artifact readiness", async () => {
     expect.hasAssertions();
     const { root, pitchPath, plansDir } = await createRepository(
-      pitchText({ schema: "feature-flow-pitch/v2" }),
+      pitchText({ schema: "feature-flow-pitch/v1" }),
     );
     await writeFile(join(root, "changed.txt"), "untrusted body content\n");
 
@@ -273,7 +312,7 @@ describe("feature-flow helper", () => {
       pitch: {
         path: pitchPath,
         state: "invalid",
-        reason: "schema must be feature-flow-pitch/v1",
+        reason: "schema must be feature-flow-pitch/v2",
       },
       plans: { path: plansDir, state: "unavailable", ready: false },
     });
@@ -318,7 +357,7 @@ describe("feature-flow helper", () => {
     );
     const pitchPath = join(root, "docs", "features", "sample-feature", "pitch.md");
     await mkdir(join(root, "docs", "features", "sample-feature"), { recursive: true });
-    await writeFile(pitchPath, `${pitchText({ schema: "feature-flow-pitch/v2" })}\n${secret}\n`);
+    await writeFile(pitchPath, `${pitchText({ schema: "feature-flow-pitch/v1" })}\n${secret}\n`);
 
     const result = run(base, "validate-pitch", pitchPath);
     const output = json(result.stderr) as { errors: { path: string; reason: string }[] };
@@ -326,7 +365,7 @@ describe("feature-flow helper", () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toBe("");
     expect(output.errors[0]?.path.length).toBeLessThanOrEqual(1024);
-    expect(output.errors[0]?.reason).toBe("schema must be feature-flow-pitch/v1");
+    expect(output.errors[0]?.reason).toBe("schema must be feature-flow-pitch/v2");
     expect(Buffer.byteLength(result.stderr)).toBeLessThan(50_000);
     expect(result.stderr).not.toContain(secret);
 
@@ -689,7 +728,7 @@ describe("feature-flow helper", () => {
     expect.hasAssertions();
     const relocatedPitch = pitchText({ status: "accepted" })
       .replace("- **AC-002:** Second outcome.\n", "")
-      .replace("Content for Residual risks.", "Content for Residual risks mentions AC-002.");
+      .replace("Content for Rabbit holes.", "Content for Rabbit holes mentions AC-002.");
     const { root, pitchPath, plansDir } = await createRepository(relocatedPitch);
     const { secondPath } = await writeValidPlans(plansDir);
 
