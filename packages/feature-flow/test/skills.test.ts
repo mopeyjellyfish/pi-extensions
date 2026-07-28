@@ -47,8 +47,19 @@ describe("feature-pitch skill contract", () => {
 
     expect(skill).toContain("repository evidence");
     expect(skill).toContain("external evidence is materially needed");
-    expect(skill).toContain("small decision clusters");
+    expect(skill).toContain("user's initial prompt starts shaping");
+    expect(skill).toContain("Before asking anything");
+    expect(skill).toContain("materially change product behavior, scope, architecture, risk");
+    expect(skill).toContain(
+      "not reliably answered by the prompt, conversation, repository, or research",
+    );
+    expect(skill).toContain("Do not ask the user to repeat known facts");
+    expect(skill).toContain("implementation choices the agents can safely make later");
+    expect(skill).toContain("one pointed decision cluster at a time");
     expect(skill).toContain("recommended answers and tradeoffs");
+    expect(skill).toContain(
+      "Stop questioning when no unresolved decision can materially change the pitch",
+    );
     expect(skill).toContain("concrete examples and counterexamples");
     expect(skill).toContain("edge and failure cases");
     expect(skill).toContain("teach-back");
