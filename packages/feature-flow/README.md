@@ -9,10 +9,15 @@ transitions. It registers no extension, agent, service, or runtime dependency.
 ## Use
 
 A natural end-to-end feature brief can load `shape`. `/shape <brief>` is the
-explicit fallback; `/shape` asks the skill to resume the active feature ledger.
-This first slice supports verified initialization and the minimum slice banking
-seam. Linked-worktree discovery, pitch acceptance, planning, repitching, and the
-full Build loop arrive in later slices.
+explicit fallback; `/shape` resumes the routed feature or discovers linked
+candidates. Worktrunk supplies candidate paths and alone activates the selected
+worktree; the helper inspects those paths read-only.
+
+One valid candidate activates and resumes. Several produce one structured human
+choice. Stale or malformed candidates are reported without adoption or a request
+for another brief. Only a completely empty result requests a new brief. Pitch
+acceptance, repitching, plan registration, and the full Build loop remain later
+slices.
 
 Worktrunk remains the only worktree lifecycle authority. Before writing, the
 skill routes to the expected worktree and calls:
@@ -20,6 +25,7 @@ skill routes to the expected worktree and calls:
 ```text
 node scripts/feature-flow.mjs init <feature> --branch <branch> --base <full-sha>
 node scripts/feature-flow.mjs inspect <feature>
+node scripts/feature-flow.mjs inspect-candidates <absolute-worktree-path>...
 ```
 
 `init` fails closed on a dirty checkout, ambiguous base, branch collision, or

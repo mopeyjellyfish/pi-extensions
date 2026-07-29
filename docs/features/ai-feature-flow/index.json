@@ -33,14 +33,14 @@
       "depends_on": [
         "001"
       ],
-      "status": "pending",
+      "status": "done",
       "blocker": null,
       "evidence": {
-        "red_green": null,
-        "review": null,
-        "dogfood": null,
-        "checks": null,
-        "banking": null
+        "red_green": "Observed candidate-inspection, Worktrunk-order, path-safety, dedupe, dependency, stale-fact, init-bound, and banking Red→Green tracers; 39 focused tests pass after refactoring.",
+        "review": "Independent reviews found mixed-result, resume, history, validation, and path-classification blockers; all fixes were re-reviewed blocker-free.",
+        "dogfood": "Worktrunk status and its complete list supplied 25 paths; the helper returned only active ai-feature-flow slice 002 as valid. Deterministic Pi idle reload passed; two frontier models followed no-brief zero, one, and many-candidate semantics.",
+        "checks": "Feature-flow 39/39; npm run check 331/331; package dry-run, pitch hash, diff, real Worktrunk inspection, and reload checks passed.",
+        "banking": "commit"
       }
     },
     {

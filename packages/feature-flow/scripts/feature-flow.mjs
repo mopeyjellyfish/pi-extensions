@@ -2,13 +2,28 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, relative, resolve } from "node:path";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 const SHA256 = /^[0-9a-f]{40}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_FIELD_LENGTH = 1024;
+const MAX_FEATURE_LENGTH = 100;
+const MAX_BRANCH_LENGTH = 256;
+const MAX_SLICES = 100;
+const MAX_ARTIFACT_BYTES = 1024 * 1024;
 
 class FlowError extends Error {
   constructor(path, reason) {
@@ -34,10 +49,10 @@ function outputJson(value) {
   );
 }
 
-function gitSucceeds(args) {
+function gitSucceeds(args, cwd = process.cwd()) {
   try {
     execFileSync("git", args, {
-      cwd: process.cwd(),
+      cwd,
       stdio: "ignore",
     });
     return true;
@@ -46,16 +61,16 @@ function gitSucceeds(args) {
   }
 }
 
-function git(args) {
+function git(args, cwd = process.cwd()) {
   try {
     return execFileSync("git", args, {
-      cwd: process.cwd(),
+      cwd,
       encoding: "utf8",
       maxBuffer: 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
   } catch {
-    fail(process.cwd(), `git ${args.join(" ")} failed`);
+    fail(cwd, `git ${args.join(" ")} failed`);
   }
 }
 
@@ -64,7 +79,10 @@ function parseInitArguments(args) {
   if (
     (!withoutBase && (args.length !== 5 || args[1] !== "--branch" || args[3] !== "--base")) ||
     !SLUG.test(args[0] ?? "") ||
-    !args[2] ||
+    args[0].length > MAX_FEATURE_LENGTH ||
+    !boundedText(args[2]) ||
+    args[2].length > MAX_BRANCH_LENGTH ||
+    isAbsolute(args[2]) ||
     (!withoutBase && !SHA256.test(args[4] ?? ""))
   ) {
     fail(
@@ -75,11 +93,11 @@ function parseInitArguments(args) {
   return { feature: args[0], branch: args[2], base: withoutBase ? null : args[4] };
 }
 
-function routeFacts() {
+function routeFacts(cwd = process.cwd()) {
   return {
-    root: git(["rev-parse", "--show-toplevel"]),
-    branch: git(["branch", "--show-current"]),
-    head: git(["rev-parse", "HEAD"]),
+    root: git(["rev-parse", "--show-toplevel"], cwd),
+    branch: git(["branch", "--show-current"], cwd),
+    head: git(["rev-parse", "HEAD"], cwd),
   };
 }
 
@@ -91,6 +109,14 @@ function routeDecision(reason, expected, actual, nextAction) {
     actual: { branch: actual.branch, head_sha: actual.head },
     next_action: nextAction,
   });
+}
+
+async function readArtifact(path) {
+  const facts = await lstat(path);
+  if (!facts.isFile() || facts.size > MAX_ARTIFACT_BYTES) {
+    fail(path, "artifact must be a regular file no larger than 1 MiB");
+  }
+  return readFile(path, "utf8");
 }
 
 async function pathExists(path) {
@@ -164,6 +190,7 @@ async function init(args) {
       .replaceAll("{{branch}}", expected.branch)
       .replaceAll("{{base_sha}}", expected.base),
   );
+  validateLedger(ledger, "<generated-ledger>", expected.feature);
   const featuresRoot = dirname(featureRoot);
   await mkdir(featuresRoot, { recursive: true });
   const stagingRoot = await mkdtemp(resolve(featuresRoot, `.${basename(featureRoot)}.tmp-`));
@@ -201,18 +228,44 @@ function hasExactKeys(value, keys) {
   );
 }
 
+function containsLocalAbsolutePath(value) {
+  const text = value.replaceAll(/\b(?:git|https?|ssh):\/\/\S+/giu, "");
+  return (
+    /\bfile:\/{1,3}/iu.test(text) ||
+    /(?:^|[^A-Z0-9/])(?:~[\\/]|[A-Z]:[\\/]|\\\\[^\\\s]+\\)/iu.test(text) ||
+    /(?:^|[^A-Z0-9/])\/{2}\S*/iu.test(text) ||
+    /(?:^|[^A-Z0-9/])\/(?:Applications|Library|Users|Volumes|bin|boot|dev|etc|home|lib|lib64|media|mnt|opt|private|proc|root|run|sbin|srv|sys|tmp|usr|var)(?=\/|$|[\s)\]},.;:'"`])/iu.test(
+      text,
+    ) ||
+    /(?:^|[^A-Z0-9/])\/[^/\s]+\/\S*/iu.test(text)
+  );
+}
+
+function boundedText(value) {
+  return (
+    typeof value === "string" &&
+    value.trim() !== "" &&
+    value.length <= MAX_FIELD_LENGTH &&
+    !containsLocalAbsolutePath(value)
+  );
+}
+
 function validateLedger(ledger, path, feature) {
   if (!hasExactKeys(ledger, ["schema", "feature", "worktree", "pitch", "slices"])) {
     fail(path, "ledger must contain only schema, feature, worktree, pitch, and slices");
   }
   if (ledger.schema !== "feature-flow/v3") fail(path, "schema must be feature-flow/v3");
-  if (ledger.feature !== feature) fail(path, `feature must be ${feature}`);
+  if (ledger.feature !== feature || feature.length > MAX_FEATURE_LENGTH) {
+    fail(path, `feature must be the canonical bounded slug ${feature}`);
+  }
   if (
     !hasExactKeys(ledger.worktree, ["branch", "base_sha"]) ||
-    typeof ledger.worktree.branch !== "string" ||
+    !boundedText(ledger.worktree.branch) ||
+    ledger.worktree.branch.length > MAX_BRANCH_LENGTH ||
+    isAbsolute(ledger.worktree.branch) ||
     !SHA256.test(ledger.worktree.base_sha ?? "")
   ) {
-    fail(path, "worktree must contain a branch and full base_sha");
+    fail(path, "worktree must contain a bounded branch and full base_sha");
   }
   if (
     !hasExactKeys(ledger.pitch, ["path", "number", "sha256"]) ||
@@ -223,34 +276,52 @@ function validateLedger(ledger, path, feature) {
   ) {
     fail(path, "pitch must contain path, positive number, and nullable sha256");
   }
-  if (!Array.isArray(ledger.slices)) fail(path, "slices must be an array");
+  if (!Array.isArray(ledger.slices) || ledger.slices.length > MAX_SLICES) {
+    fail(path, `slices must be an array with at most ${String(MAX_SLICES)} entries`);
+  }
   const ids = new Set();
+  const statuses = new Map();
   let current = 0;
   for (const slice of ledger.slices) {
     if (
       !hasExactKeys(slice, ["id", "plan", "goal", "depends_on", "status", "blocker", "evidence"]) ||
       !/^\d{3}$/.test(slice.id ?? "") ||
       typeof slice.plan !== "string" ||
-      typeof slice.goal !== "string" ||
+      !boundedText(slice.goal) ||
       !Array.isArray(slice.depends_on) ||
+      slice.depends_on.length > MAX_SLICES ||
       !["pending", "active", "blocked", "done", "cut"].includes(slice.status) ||
       !hasExactKeys(slice.evidence, ["red_green", "review", "dogfood", "checks", "banking"])
     ) {
       fail(path, "slice has invalid fields");
     }
     if (ids.has(slice.id)) fail(path, `duplicate slice id: ${slice.id}`);
-    if (slice.depends_on.some((id) => typeof id !== "string" || !ids.has(id))) {
-      fail(path, `slice ${slice.id} has an unknown or forward dependency`);
+    if (!new RegExp(`^plans/${slice.id}-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$`, "u").test(slice.plan)) {
+      fail(path, `slice ${slice.id} plan must be a canonical feature-relative plan path`);
+    }
+    if (
+      new Set(slice.depends_on).size !== slice.depends_on.length ||
+      slice.depends_on.some((id) => typeof id !== "string" || !ids.has(id))
+    ) {
+      fail(path, `slice ${slice.id} has a duplicate, unknown, or forward dependency`);
+    }
+    if (
+      ["active", "blocked", "done"].includes(slice.status) &&
+      slice.depends_on.some((id) => statuses.get(id) !== "done")
+    ) {
+      fail(path, `slice ${slice.id} has an incomplete dependency`);
+    }
+    const cutDependency = slice.depends_on.find((id) => statuses.get(id) === "cut");
+    if (slice.status === "pending" && cutDependency !== undefined) {
+      fail(path, `pending slice ${slice.id} depends on cut slice ${cutDependency}`);
     }
     ids.add(slice.id);
+    statuses.set(slice.id, slice.status);
     if (slice.status === "active" || slice.status === "blocked") current += 1;
     if (
       slice.status === "blocked" &&
       (!hasExactKeys(slice.blocker, ["reason", "next_action"]) ||
-        Object.values(slice.blocker).some(
-          (value) =>
-            typeof value !== "string" || value.trim() === "" || value.length > MAX_FIELD_LENGTH,
-        ))
+        Object.values(slice.blocker).some((value) => !boundedText(value)))
     ) {
       fail(path, `blocked slice ${slice.id} requires bounded blocker details`);
     }
@@ -258,15 +329,15 @@ function validateLedger(ledger, path, feature) {
       fail(path, `slice ${slice.id} cannot have blocker details`);
     }
     for (const [key, value] of Object.entries(slice.evidence)) {
-      if (!(
-        value === null ||
-        (typeof value === "string" && value.trim() !== "" && value.length <= MAX_FIELD_LENGTH)
-      )) {
+      if (!(value === null || boundedText(value))) {
         fail(path, `slice ${slice.id} evidence ${key} must be null or a bounded string`);
       }
     }
     if (slice.status === "done" && Object.values(slice.evidence).includes(null)) {
       fail(path, `done slice ${slice.id} requires complete evidence`);
+    }
+    if (slice.status !== "done" && Object.values(slice.evidence).some((value) => value !== null)) {
+      fail(path, `slice ${slice.id} cannot have completion evidence before it is done`);
     }
     if (
       slice.evidence.banking !== null &&
@@ -280,16 +351,33 @@ function validateLedger(ledger, path, feature) {
   return ledger;
 }
 
-async function loadFeature(feature) {
-  const path = resolve("docs", "features", feature, "index.json");
+function parsePitchFacts(pitch, path) {
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(pitch)?.[1];
+  if (frontmatter === undefined) fail(path, "pitch must have canonical frontmatter");
+  const facts = {};
+  for (const line of frontmatter.split(/\r?\n/u)) {
+    const match = /^(schema|feature|pitch|status): (.+)$/u.exec(line);
+    if (match?.[1] === undefined || match[2] === undefined || match[1] in facts) {
+      fail(path, "pitch frontmatter must contain only schema, feature, pitch, and status");
+    }
+    facts[match[1]] = match[2];
+  }
+  if (!hasExactKeys(facts, ["schema", "feature", "pitch", "status"])) {
+    fail(path, "pitch frontmatter must contain only schema, feature, pitch, and status");
+  }
+  return facts;
+}
+
+async function loadFeature(feature, root = process.cwd()) {
+  const path = resolve(root, "docs", "features", feature, "index.json");
   let ledger;
   try {
-    ledger = validateLedger(JSON.parse(await readFile(path, "utf8")), path, feature);
+    ledger = validateLedger(JSON.parse(await readArtifact(path)), path, feature);
   } catch (error) {
     if (error instanceof FlowError) throw error;
-    fail(path, error instanceof Error ? error.message : "cannot read ledger");
+    fail(path, "cannot read or parse ledger");
   }
-  const actual = routeFacts();
+  const actual = routeFacts(root);
   const expected = {
     branch: ledger.worktree.branch,
     base: ledger.worktree.base_sha,
@@ -302,7 +390,7 @@ async function loadFeature(feature) {
       "Use Worktrunk to activate the recorded feature route, then retry.",
     );
   }
-  if (!gitSucceeds(["merge-base", "--is-ancestor", expected.base, actual.head])) {
+  if (!gitSucceeds(["merge-base", "--is-ancestor", expected.base, actual.head], root)) {
     routeDecision(
       "base-mismatch",
       expected,
@@ -310,7 +398,7 @@ async function loadFeature(feature) {
       "Use Worktrunk to restore the recorded base lineage, then retry.",
     );
   }
-  if (resolve(process.cwd()) !== resolve(actual.root)) {
+  if (resolve(root) !== resolve(actual.root)) {
     routeDecision(
       "route-mismatch",
       expected,
@@ -321,12 +409,23 @@ async function loadFeature(feature) {
   const pitchPath = resolve(path, "..", ledger.pitch.path);
   let pitch;
   try {
-    pitch = await readFile(pitchPath, "utf8");
-  } catch (error) {
-    fail(pitchPath, error instanceof Error ? error.message : "cannot read pitch");
+    pitch = await readArtifact(pitchPath);
+  } catch {
+    fail(pitchPath, "cannot read pitch");
   }
-  const status = /^status: (draft|accepted)$/mu.exec(pitch)?.[1];
-  if (status === undefined) fail(pitchPath, "pitch must declare draft or accepted status");
+  const facts = parsePitchFacts(pitch, pitchPath);
+  const pitchFeature = /^"?([a-z0-9]+(?:-[a-z0-9]+)*)"?$/u.exec(facts.feature)?.[1];
+  const pitchNumber = /^\d+$/u.test(facts.pitch) ? Number(facts.pitch) : NaN;
+  const status = /^(?:draft|accepted)$/u.test(facts.status) ? facts.status : undefined;
+  if (
+    facts.schema !== "feature-flow-pitch/v3" ||
+    pitchFeature !== feature ||
+    !Number.isSafeInteger(pitchNumber) ||
+    pitchNumber !== ledger.pitch.number ||
+    status === undefined
+  ) {
+    fail(pitchPath, "pitch frontmatter does not match the canonical ledger facts");
+  }
   if (status === "accepted") {
     const hash = createHash("sha256").update(pitch).digest("hex");
     if (ledger.pitch.sha256 !== hash)
@@ -337,25 +436,30 @@ async function loadFeature(feature) {
   return { path, ledger, status };
 }
 
-function isBanked(slice, ledgerPath) {
+function isBanked(slice, ledgerPath, root = process.cwd()) {
   if (typeof slice.evidence.banking !== "string") return false;
   if (slice.evidence.banking.startsWith("checkpoint: ")) return true;
   if (slice.evidence.banking !== "commit") return false;
-  const repositoryRoot = git(["rev-parse", "--show-toplevel"]);
+  const repositoryRoot = git(["rev-parse", "--show-toplevel"], root);
   const repositoryPath = relative(repositoryRoot, ledgerPath).replaceAll("\\", "/");
-  const commits = git([
-    "log",
-    "--format=%H",
-    "--extended-regexp",
-    `--grep=^Feature-Slice: ${slice.id}$`,
-  ])
+  const commits = git(
+    [
+      "log",
+      "--format=%H",
+      "--extended-regexp",
+      `--grep=^Feature-Slice: ${slice.id}$`,
+      "--",
+      repositoryPath,
+    ],
+    root,
+  )
     .split("\n")
     .filter(Boolean);
   for (const commit of commits) {
     try {
       const committed = JSON.parse(
         execFileSync("git", ["show", `${commit}:${repositoryPath}`], {
-          cwd: process.cwd(),
+          cwd: root,
           encoding: "utf8",
           stdio: ["ignore", "pipe", "pipe"],
         }),
@@ -369,7 +473,7 @@ function isBanked(slice, ledgerPath) {
   return false;
 }
 
-function derive(status, slices, ledgerPath) {
+function derive(status, slices, ledgerPath, root = process.cwd()) {
   if (status === "draft") {
     return {
       phase: "shaping",
@@ -384,7 +488,9 @@ function derive(status, slices, ledgerPath) {
       next_action: "Generate and review the vertical slice plans.",
     };
   }
-  const unbanked = slices.find((slice) => slice.status === "done" && !isBanked(slice, ledgerPath));
+  const unbanked = slices.find(
+    (slice) => slice.status === "done" && !isBanked(slice, ledgerPath, root),
+  );
   if (unbanked) {
     return {
       phase: "banking",
@@ -398,12 +504,14 @@ function derive(status, slices, ledgerPath) {
       phase: current.status === "blocked" ? "blocked" : "building",
       current_slice: current.id,
       next_action:
-        current.status === "blocked"
-          ? `Resolve the blocker for slice ${current.id}.`
-          : `Deliver slice ${current.id}.`,
+        current.status === "blocked" ? current.blocker.next_action : `Deliver slice ${current.id}.`,
     };
   }
-  const pending = slices.find((slice) => slice.status === "pending");
+  const byId = new Map(slices.map((slice) => [slice.id, slice]));
+  const pending = slices.find(
+    (slice) =>
+      slice.status === "pending" && slice.depends_on.every((id) => byId.get(id)?.status === "done"),
+  );
   if (pending) {
     return {
       phase: "building",
@@ -428,6 +536,132 @@ async function writeLedger(path, ledger) {
     await rm(temporary, { force: true });
     throw error;
   }
+}
+
+async function inspectCandidates(args) {
+  if (args.length === 0 || args.length > 100 || args.some((path) => !isAbsolute(path))) {
+    fail(
+      "<arguments>",
+      "usage: inspect-candidates <absolute-worktree-path>... (maximum 100 paths)",
+    );
+  }
+  const result = { valid: [], stale: [], invalid: [] };
+  const inspectedRoots = new Set();
+  for (const [index, suppliedPath] of args.entries()) {
+    let root;
+    try {
+      root = await realpath(suppliedPath);
+    } catch {
+      result.invalid.push({
+        candidate: index + 1,
+        reason: "cannot inspect candidate Git facts",
+        next_action: "Exclude this invalid candidate.",
+      });
+      continue;
+    }
+    if (inspectedRoots.has(root)) {
+      result.invalid.push({
+        candidate: index + 1,
+        reason: "candidate resolves to a duplicate canonical worktree",
+        next_action: "Exclude this duplicate candidate alias.",
+      });
+      continue;
+    }
+    inspectedRoots.add(root);
+
+    let actual;
+    try {
+      actual = routeFacts(root);
+      if ((await realpath(actual.root)) !== root) {
+        fail(root, "candidate path must be its Git top-level");
+      }
+    } catch {
+      result.invalid.push({
+        candidate: index + 1,
+        reason: "cannot inspect candidate Git facts",
+        next_action: "Exclude this invalid candidate.",
+      });
+      continue;
+    }
+
+    let features;
+    const canonicalFeature = /^shape\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u.exec(actual.branch)?.[1];
+    try {
+      if (canonicalFeature === undefined) {
+        const entries = await readdir(resolve(root, "docs", "features"), {
+          withFileTypes: true,
+        });
+        const featureEntries = entries.filter(
+          (entry) => entry.isDirectory() && SLUG.test(entry.name),
+        );
+        if (featureEntries.length > 100) {
+          result.invalid.push({
+            candidate: index + 1,
+            reason: "candidate contains more than 100 feature directories",
+            next_action: "Narrow or repair this candidate before retrying.",
+          });
+          continue;
+        }
+        features = [];
+        for (const entry of featureEntries) {
+          try {
+            const ledger = JSON.parse(
+              await readArtifact(resolve(root, "docs", "features", entry.name, "index.json")),
+            );
+            if (isRecord(ledger.worktree) && ledger.worktree.branch === actual.branch) {
+              features.push(entry.name);
+            }
+          } catch {
+            // A legacy candidate must have a parseable recorded branch matching this branch.
+          }
+        }
+      } else {
+        const ledgerPath = resolve(root, "docs", "features", canonicalFeature, "index.json");
+        features = (await pathExists(ledgerPath)) ? [canonicalFeature] : [];
+      }
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") continue;
+      result.invalid.push({
+        candidate: index + 1,
+        reason: "cannot read candidate feature directory",
+        next_action: "Exclude this invalid candidate.",
+      });
+      continue;
+    }
+
+    for (const feature of features.sort((left, right) => left.localeCompare(right))) {
+      try {
+        const { ledger, status, path } = await loadFeature(feature, root);
+        result.valid.push({
+          feature,
+          branch: actual.branch,
+          ...derive(status, ledger.slices, path, root),
+        });
+      } catch (error) {
+        if (error instanceof RoutingDecision) {
+          result.stale.push({
+            feature,
+            ledger: `docs/features/${feature}/index.json`,
+            expected: error.decision.expected,
+            actual: error.decision.actual,
+            reason:
+              error.decision.reason === "branch-mismatch"
+                ? "recorded branch does not match the candidate worktree branch"
+                : "recorded base is not an ancestor of the candidate worktree HEAD",
+            next_action: "Do not activate this stale candidate; inspect its recorded route.",
+          });
+        } else {
+          result.invalid.push({
+            candidate: index + 1,
+            feature,
+            reason: error instanceof FlowError ? error.message : "cannot validate candidate ledger",
+            next_action: "Repair or exclude this invalid candidate.",
+          });
+        }
+      }
+    }
+  }
+  return { ok: true, command: "inspect-candidates", ...result };
 }
 
 async function inspect(args) {
@@ -537,6 +771,9 @@ async function main() {
     case "inspect":
       result = await inspect(args);
       break;
+    case "inspect-candidates":
+      result = await inspectCandidates(args);
+      break;
     default:
       fail("<arguments>", `unknown command: ${command ?? "<missing>"}`);
   }
@@ -550,7 +787,7 @@ try {
     process.stderr.write(`${outputJson({ ok: false, decision: error.decision })}\n`);
   } else {
     const path = error instanceof FlowError ? error.path : "<internal>";
-    const reason = error instanceof Error ? error.message : "unexpected failure";
+    const reason = error instanceof FlowError ? error.message : "unexpected failure";
     process.stderr.write(`${outputJson({ ok: false, errors: [{ path, reason }] })}\n`);
   }
   process.exitCode = 1;

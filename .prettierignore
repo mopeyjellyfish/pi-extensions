@@ -7,3 +7,6 @@ package-lock.json
 
 # Release Please owns package changelog formatting.
 packages/*/CHANGELOG.md
+
+# The feature-flow helper owns canonical ledger formatting.
+docs/features/*/index.json

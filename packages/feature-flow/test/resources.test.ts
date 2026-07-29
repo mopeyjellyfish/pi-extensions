@@ -9,6 +9,24 @@ const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 
 describe("feature-flow resources", () => {
+  it("discovers and activates resume candidates through Worktrunk with one bounded choice", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "shape", "SKILL.md"), "utf8");
+    const workspace = await readFile(
+      join(PACKAGE_ROOT, "skills", "shape", "references", "workspace.md"),
+      "utf8",
+    );
+
+    expect(skill).toContain('Call `worktree` with `action: "status"` first');
+    expect(skill).toContain('then `action: "list"`');
+    expect(skill.indexOf('action: "list"')).toBeLessThan(skill.indexOf("inspect-candidates"));
+    expect(skill).toContain("Always report every stale and invalid diagnostic");
+    expect(skill).toContain("one structured choice");
+    expect(skill).toContain("activates its recorded branch");
+    expect(skill).toContain("ask for a new feature brief only when all three arrays are empty");
+    expect(workspace).toContain("Candidate inspection is read-only");
+  });
+
   it("packs and aggregate-registers one shape skill and one /shape prompt", async () => {
     expect.hasAssertions();
     const packageManifest = JSON.parse(
