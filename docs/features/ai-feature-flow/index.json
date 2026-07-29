@@ -50,14 +50,14 @@
       "depends_on": [
         "002"
       ],
-      "status": "pending",
+      "status": "done",
       "blocker": null,
       "evidence": {
-        "red_green": null,
-        "review": null,
-        "dogfood": null,
-        "checks": null,
-        "banking": null
+        "red_green": "Observed approval-hash, question-boundary, canonical-path, unbanked-repitch, archive, and rollback Red→Green tracers; 57 focused tests pass.",
+        "review": "Independent reviews found approval-race, symlink, banking, and pinned-TypeBox boundary blockers; all were fixed and final review was blocker-free after a 1,338,904-case parity check.",
+        "dogfood": "Disposable accept, verify, tamper, archive, repitch, and reaccept lifecycle passed with banked code preserved. Two frontier models followed shaping gates; a standard-library visual prototype and deterministic Pi idle reload passed.",
+        "checks": "Feature-flow 57/57; npm run check 349/349; package dry-run, source and packed smoke, pitch hash, diff, path-security, and reload checks passed.",
+        "banking": "commit"
       }
     },
     {

@@ -9,6 +9,40 @@ const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 
 describe("feature-flow resources", () => {
+  it("guides rich research-led shaping through one reviewed document approval and repitch", async () => {
+    expect.hasAssertions();
+    const [skill, shaping, artifacts, template, evaluation] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "shaping.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "artifacts.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "templates", "pitch.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "evaluation.md"), "utf8"),
+    ]);
+
+    expect(skill).toContain("[shaping and acceptance](references/shaping.md)");
+    expect(shaping).toMatch(/repository truth[\s\S]*primary sources[\s\S]*material/iu);
+    expect(shaping).toMatch(/separate read-only reviewer[\s\S]*blocker-free/iu);
+    expect(shaping.indexOf("validate-pitch <feature>")).toBeLessThan(
+      shaping.indexOf("whole-pitch approval question"),
+    );
+    expect(shaping).toMatch(/stable whole-pitch[\s\S]*exact current `pitch\.md` document bytes/iu);
+    expect(shaping).toMatch(/explicit `accept` and `revise` options/iu);
+    expect(shaping).toMatch(/redirects[\s\S]*continuation[\s\S]*stable question and option IDs/iu);
+    expect(shaping).toMatch(/never[\s\S]*substitute a summary or link/iu);
+    expect(shaping).toContain("accept <feature> <prospective-sha256>");
+    expect(shaping).not.toContain("question({");
+    expect(template).toMatch(/^---\nschema: feature-flow-pitch\/v3/mu);
+    expect(template).toMatch(/add, remove, or rename\s+headings/iu);
+    expect(artifacts).toContain("validate-pitch <feature>");
+    expect(artifacts).toContain("accept <feature> <prospective-sha256>");
+    expect(artifacts).toContain("verify <feature>");
+    expect(artifacts).toContain("repitch <feature>");
+    expect(artifacts).toMatch(
+      /pitch\.md\.tmp-<pid>[\s\S]*index\.json\.tmp-<pid>[\s\S]*\.feature-flow-repitch-/u,
+    );
+    expect(evaluation).toContain("Acceptance and repitch rubric");
+  });
+
   it("discovers and activates resume candidates through Worktrunk with one bounded choice", async () => {
     expect.hasAssertions();
     const skill = await readFile(join(PACKAGE_ROOT, "skills", "shape", "SKILL.md"), "utf8");
@@ -92,6 +126,7 @@ describe("feature-flow resources", () => {
         "skills/shape/SKILL.md",
         "skills/shape/references/artifacts.md",
         "skills/shape/references/evaluation.md",
+        "skills/shape/references/shaping.md",
         "skills/shape/references/workspace.md",
         "skills/shape/templates/index.json",
         "skills/shape/templates/pitch.md",

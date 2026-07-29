@@ -11,19 +11,20 @@ import {
   realpath,
   rename,
   rm,
-  stat,
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
-const SHA256 = /^[0-9a-f]{40}$/;
+const GIT_SHA = /^[0-9a-f]{40}$/;
+const SHA256 = /^[0-9a-f]{64}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_FIELD_LENGTH = 1024;
 const MAX_FEATURE_LENGTH = 100;
 const MAX_BRANCH_LENGTH = 256;
 const MAX_SLICES = 100;
 const MAX_ARTIFACT_BYTES = 1024 * 1024;
+const MAX_QUESTION_DOCUMENT_CHARS = 100_000;
 
 class FlowError extends Error {
   constructor(path, reason) {
@@ -83,7 +84,7 @@ function parseInitArguments(args) {
     !boundedText(args[2]) ||
     args[2].length > MAX_BRANCH_LENGTH ||
     isAbsolute(args[2]) ||
-    (!withoutBase && !SHA256.test(args[4] ?? ""))
+    (!withoutBase && !GIT_SHA.test(args[4] ?? ""))
   ) {
     fail(
       "<arguments>",
@@ -121,12 +122,80 @@ async function readArtifact(path) {
 
 async function pathExists(path) {
   try {
-    await stat(path);
+    await lstat(path);
     return true;
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return false;
     throw error;
   }
+}
+
+async function requireCanonicalDirectory(path, reason) {
+  let canonical;
+  try {
+    canonical = await realpath(path);
+  } catch {
+    fail(path, reason);
+  }
+  if (canonical !== path || !(await lstat(path)).isDirectory()) fail(path, reason);
+}
+
+async function canonicalRepositoryRoot(root = process.cwd(), routedRoot) {
+  try {
+    const repositoryRoot = await realpath(
+      routedRoot ?? git(["rev-parse", "--show-toplevel"], root),
+    );
+    if ((await realpath(root)) !== repositoryRoot) {
+      fail(root, "working directory must be the canonical repository root");
+    }
+    return repositoryRoot;
+  } catch (error) {
+    if (error instanceof FlowError) throw error;
+    fail(root, "cannot resolve the canonical repository root");
+  }
+}
+
+async function canonicalFeaturesRoot(root = process.cwd(), routedRoot) {
+  const repositoryRoot = await canonicalRepositoryRoot(root, routedRoot);
+  const featuresRoot = resolve(repositoryRoot, "docs", "features");
+  await requireCanonicalDirectory(
+    featuresRoot,
+    "features path must resolve inside the canonical repository",
+  );
+  return { repositoryRoot, featuresRoot };
+}
+
+async function ensureCanonicalFeaturesRoot(root = process.cwd(), routedRoot) {
+  const repositoryRoot = await canonicalRepositoryRoot(root, routedRoot);
+  const docsRoot = resolve(repositoryRoot, "docs");
+  if (await pathExists(docsRoot)) {
+    await requireCanonicalDirectory(
+      docsRoot,
+      "docs path must resolve inside the canonical repository",
+    );
+  } else {
+    await mkdir(docsRoot);
+  }
+  const featuresRoot = resolve(docsRoot, "features");
+  if (await pathExists(featuresRoot)) {
+    await requireCanonicalDirectory(
+      featuresRoot,
+      "features path must resolve inside the canonical repository",
+    );
+  } else {
+    await mkdir(featuresRoot);
+  }
+  return { repositoryRoot, featuresRoot };
+}
+
+async function canonicalFeaturePaths(feature, root = process.cwd(), routedRoot) {
+  const { repositoryRoot, featuresRoot } = await canonicalFeaturesRoot(root, routedRoot);
+  const featureRoot = resolve(featuresRoot, feature);
+  await requireCanonicalDirectory(
+    featureRoot,
+    "feature path must resolve inside the canonical repository",
+  );
+  return { repositoryRoot, featuresRoot, featureRoot };
 }
 
 async function init(args) {
@@ -176,7 +245,8 @@ async function init(args) {
     );
   }
 
-  const featureRoot = resolve(actual.root, "docs", "features", expected.feature);
+  const { featuresRoot } = await ensureCanonicalFeaturesRoot(process.cwd(), actual.root);
+  const featureRoot = resolve(featuresRoot, expected.feature);
   if (await pathExists(featureRoot)) fail(featureRoot, "feature directory already exists");
   const templates = resolve(import.meta.dirname, "..", "skills", "shape", "templates");
   const [pitchTemplate, ledgerTemplate] = await Promise.all([
@@ -191,8 +261,10 @@ async function init(args) {
       .replaceAll("{{base_sha}}", expected.base),
   );
   validateLedger(ledger, "<generated-ledger>", expected.feature);
-  const featuresRoot = dirname(featureRoot);
-  await mkdir(featuresRoot, { recursive: true });
+  await requireCanonicalDirectory(
+    featuresRoot,
+    "features path must resolve inside the canonical repository",
+  );
   const stagingRoot = await mkdtemp(resolve(featuresRoot, `.${basename(featureRoot)}.tmp-`));
   try {
     await Promise.all([
@@ -250,6 +322,84 @@ function boundedText(value) {
   );
 }
 
+// Match the pinned question schema's TypeBox maxLength rules; Intl.Segmenter differs.
+function codePointLength(value) {
+  return value > 0xff_ff ? 2 : 1;
+}
+
+function isQuestionStringModifier(value) {
+  return (
+    (value >= 0x03_00 && value <= 0x03_6f) ||
+    (value >= 0x1a_b0 && value <= 0x1a_ff) ||
+    (value >= 0x1d_c0 && value <= 0x1d_ff) ||
+    (value >= 0xfe_20 && value <= 0xfe_2f) ||
+    (value >= 0xfe_00 && value <= 0xfe_0f)
+  );
+}
+
+function consumeQuestionStringModifiers(value, index) {
+  while (index < value.length) {
+    const point = value.codePointAt(index);
+    if (!isQuestionStringModifier(point)) break;
+    index += codePointLength(point);
+  }
+  return index;
+}
+
+function isRegionalIndicator(value) {
+  return value >= 0x1_f1_e6 && value <= 0x1_f1_ff;
+}
+
+function nextQuestionStringCharacter(value, start) {
+  const first = value.codePointAt(start);
+  let end = consumeQuestionStringModifiers(value, start + codePointLength(first));
+  while (end < value.length - 1 && value[end] === "\u{200D}") {
+    const next = value.codePointAt(end + 1);
+    end = consumeQuestionStringModifiers(value, end + 1 + codePointLength(next));
+  }
+  if (
+    isRegionalIndicator(first) &&
+    end < value.length &&
+    isRegionalIndicator(value.codePointAt(end))
+  ) {
+    end += codePointLength(value.codePointAt(end));
+  }
+  return end;
+}
+
+function exceedsQuestionStringLimitSlow(value, limit) {
+  let count = 0;
+  let index = 0;
+  while (index < value.length) {
+    index = nextQuestionStringCharacter(value, index);
+    count += 1;
+    if (count > limit) return true;
+  }
+  return false;
+}
+
+function usesQuestionStringSlowPath(value) {
+  return (
+    (value >= 0xd8_00 && value <= 0xdb_ff) ||
+    (value >= 0x03_00 && value <= 0x03_6f) ||
+    value === 0x20_0d
+  );
+}
+
+function exceedsQuestionStringLimit(value, limit) {
+  let index = 0;
+  while (index < value.length) {
+    // TypeBox's fast path deliberately checks UTF-16 code units, not full code points.
+    // eslint-disable-next-line unicorn/prefer-code-point
+    if (usesQuestionStringSlowPath(value.charCodeAt(index))) {
+      return exceedsQuestionStringLimitSlow(value, limit);
+    }
+    index += 1;
+    if (index > limit) return true;
+  }
+  return false;
+}
+
 function validateLedger(ledger, path, feature) {
   if (!hasExactKeys(ledger, ["schema", "feature", "worktree", "pitch", "slices"])) {
     fail(path, "ledger must contain only schema, feature, worktree, pitch, and slices");
@@ -263,7 +413,7 @@ function validateLedger(ledger, path, feature) {
     !boundedText(ledger.worktree.branch) ||
     ledger.worktree.branch.length > MAX_BRANCH_LENGTH ||
     isAbsolute(ledger.worktree.branch) ||
-    !SHA256.test(ledger.worktree.base_sha ?? "")
+    !GIT_SHA.test(ledger.worktree.base_sha ?? "")
   ) {
     fail(path, "worktree must contain a bounded branch and full base_sha");
   }
@@ -369,7 +519,9 @@ function parsePitchFacts(pitch, path) {
 }
 
 async function loadFeature(feature, root = process.cwd()) {
-  const path = resolve(root, "docs", "features", feature, "index.json");
+  const actual = routeFacts(root);
+  const { featureRoot } = await canonicalFeaturePaths(feature, root, actual.root);
+  const path = resolve(featureRoot, "index.json");
   let ledger;
   try {
     ledger = validateLedger(JSON.parse(await readArtifact(path)), path, feature);
@@ -377,7 +529,6 @@ async function loadFeature(feature, root = process.cwd()) {
     if (error instanceof FlowError) throw error;
     fail(path, "cannot read or parse ledger");
   }
-  const actual = routeFacts(root);
   const expected = {
     branch: ledger.worktree.branch,
     base: ledger.worktree.base_sha,
@@ -433,7 +584,7 @@ async function loadFeature(feature, root = process.cwd()) {
   } else if (ledger.pitch.sha256 !== null) {
     fail(path, "draft pitch sha256 must be null");
   }
-  return { path, ledger, status };
+  return { path, ledger, pitch, status };
 }
 
 function isBanked(slice, ledgerPath, root = process.cwd()) {
@@ -526,16 +677,20 @@ function derive(status, slices, ledgerPath, root = process.cwd()) {
   };
 }
 
-async function writeLedger(path, ledger) {
-  validateLedger(ledger, path, ledger.feature);
+async function writeArtifact(path, content) {
   const temporary = `${path}.tmp-${String(process.pid)}`;
-  await writeFile(temporary, `${JSON.stringify(ledger, null, 2)}\n`, { flag: "wx" });
+  await writeFile(temporary, content, { flag: "wx" });
   try {
     await rename(temporary, path);
   } catch (error) {
     await rm(temporary, { force: true });
     throw error;
   }
+}
+
+async function writeLedger(path, ledger) {
+  validateLedger(ledger, path, ledger.feature);
+  await writeArtifact(path, `${JSON.stringify(ledger, null, 2)}\n`);
 }
 
 async function inspectCandidates(args) {
@@ -587,10 +742,10 @@ async function inspectCandidates(args) {
     let features;
     const canonicalFeature = /^shape\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u.exec(actual.branch)?.[1];
     try {
+      if (!(await pathExists(resolve(root, "docs", "features")))) continue;
+      const { featuresRoot } = await canonicalFeaturesRoot(root, actual.root);
       if (canonicalFeature === undefined) {
-        const entries = await readdir(resolve(root, "docs", "features"), {
-          withFileTypes: true,
-        });
+        const entries = await readdir(featuresRoot, { withFileTypes: true });
         const featureEntries = entries.filter(
           (entry) => entry.isDirectory() && SLUG.test(entry.name),
         );
@@ -605,9 +760,8 @@ async function inspectCandidates(args) {
         features = [];
         for (const entry of featureEntries) {
           try {
-            const ledger = JSON.parse(
-              await readArtifact(resolve(root, "docs", "features", entry.name, "index.json")),
-            );
+            const { featureRoot } = await canonicalFeaturePaths(entry.name, root, actual.root);
+            const ledger = JSON.parse(await readArtifact(resolve(featureRoot, "index.json")));
             if (isRecord(ledger.worktree) && ledger.worktree.branch === actual.branch) {
               features.push(entry.name);
             }
@@ -675,6 +829,191 @@ async function inspect(args) {
     command: "inspect",
     feature,
     ...derive(status, ledger.slices, resolve("docs", "features", feature, "index.json")),
+  };
+}
+
+async function prepareAcceptance(feature) {
+  const { path, ledger, pitch: draft, status } = await loadFeature(feature);
+  if (status !== "draft") fail(path, "pitch must be draft before acceptance");
+  if (ledger.slices.length !== 0)
+    fail(path, "draft pitch cannot be accepted with registered slices");
+  const featureRoot = dirname(path);
+  if (await pathExists(resolve(featureRoot, "plans"))) {
+    fail(resolve(featureRoot, "plans"), "plans must not exist before pitch acceptance");
+  }
+  const pitchPath = resolve(featureRoot, ledger.pitch.path);
+  if (exceedsQuestionStringLimit(draft, MAX_QUESTION_DOCUMENT_CHARS)) {
+    fail(pitchPath, "pitch must fit the question tool's 100000-character document limit");
+  }
+  const accepted = draft.replace(/^status: draft$/mu, "status: accepted");
+  if (accepted === draft) fail(pitchPath, "pitch status must be draft before acceptance");
+  const sha256 = createHash("sha256").update(accepted).digest("hex");
+  const acceptedLedger = structuredClone(ledger);
+  acceptedLedger.pitch.sha256 = sha256;
+  validateLedger(acceptedLedger, path, feature);
+  return { path, pitchPath, draft, accepted, acceptedLedger, sha256 };
+}
+
+async function validatePitch(args) {
+  if (args.length !== 1 || !SLUG.test(args[0] ?? "")) {
+    fail("<arguments>", "usage: validate-pitch <feature>");
+  }
+  const feature = args[0];
+  const { sha256 } = await prepareAcceptance(feature);
+  return {
+    ok: true,
+    command: "validate-pitch",
+    feature,
+    prospective_sha256: sha256,
+    ready_for_approval: true,
+  };
+}
+
+async function accept(args) {
+  if (args.length !== 2 || !SLUG.test(args[0] ?? "") || !SHA256.test(args[1] ?? "")) {
+    fail("<arguments>", "usage: accept <feature> <prospective-sha256>");
+  }
+  const [feature, approvedHash] = args;
+  const { path, pitchPath, draft, accepted, acceptedLedger, sha256 } =
+    await prepareAcceptance(feature);
+  if (sha256 !== approvedHash) {
+    fail(pitchPath, "current prospective pitch sha256 does not match the approved hash");
+  }
+  await canonicalFeaturePaths(feature);
+  await writeArtifact(pitchPath, accepted);
+  try {
+    await writeLedger(path, acceptedLedger);
+  } catch (error) {
+    await writeArtifact(pitchPath, draft);
+    throw error;
+  }
+  return {
+    ok: true,
+    command: "accept",
+    feature,
+    sha256,
+    ...derive("accepted", acceptedLedger.slices, path),
+  };
+}
+
+async function repitch(args) {
+  if (args.length !== 1 || !SLUG.test(args[0] ?? "")) {
+    fail("<arguments>", "usage: repitch <feature>");
+  }
+  const feature = args[0];
+  const { path, ledger, pitch: accepted, status } = await loadFeature(feature);
+  if (status !== "accepted") fail(path, "pitch must be accepted before repitching");
+  if (ledger.slices.some((slice) => slice.status === "done" && !isBanked(slice, path))) {
+    fail(path, "all done slices must be banked before repitching");
+  }
+  const featureRoot = dirname(path);
+  const pitchPath = resolve(featureRoot, ledger.pitch.path);
+  const version = String(ledger.pitch.number).padStart(3, "0");
+  const archivedPitchPath = resolve(featureRoot, `pitch-v${version}.md`);
+  const plansPath = resolve(featureRoot, "plans");
+  const archivedPlansPath = resolve(featureRoot, `plans-v${version}`);
+  const hasPlans = await pathExists(plansPath);
+  if (await pathExists(archivedPitchPath)) fail(archivedPitchPath, "pitch archive already exists");
+  if (await pathExists(archivedPlansPath)) fail(archivedPlansPath, "plan archive already exists");
+  if (ledger.slices.length > 0 && !hasPlans) fail(plansPath, "registered slices require plans");
+  if (ledger.slices.length === 0 && hasPlans)
+    fail(plansPath, "unregistered plans cannot be archived");
+  if (hasPlans) {
+    const facts = await lstat(plansPath);
+    if (!facts.isDirectory()) fail(plansPath, "plans must be a directory");
+    await Promise.all(ledger.slices.map((slice) => readArtifact(resolve(featureRoot, slice.plan))));
+  }
+
+  const nextNumber = ledger.pitch.number + 1;
+  const draft = accepted
+    .replace(
+      new RegExp(`^pitch: ${String(ledger.pitch.number)}$`, "mu"),
+      `pitch: ${String(nextNumber)}`,
+    )
+    .replace(/^status: accepted$/mu, "status: draft");
+  if (draft === accepted || parsePitchFacts(draft, pitchPath).status !== "draft") {
+    fail(pitchPath, "accepted pitch cannot be converted to the next canonical draft");
+  }
+  const nextLedger = structuredClone(ledger);
+  nextLedger.pitch.number = nextNumber;
+  nextLedger.pitch.sha256 = null;
+  nextLedger.slices = [];
+  validateLedger(nextLedger, path, feature);
+
+  const stagedPitch = resolve(featureRoot, `.feature-flow-repitch-pitch-${String(process.pid)}`);
+  const stagedLedger = resolve(featureRoot, `.feature-flow-repitch-ledger-${String(process.pid)}`);
+  const ledgerBackup = resolve(
+    featureRoot,
+    `.feature-flow-repitch-ledger-backup-${String(process.pid)}`,
+  );
+  await canonicalFeaturePaths(feature);
+  await writeFile(stagedPitch, draft, { flag: "wx" });
+  try {
+    await writeFile(stagedLedger, `${JSON.stringify(nextLedger, null, 2)}\n`, { flag: "wx" });
+  } catch (error) {
+    await Promise.all([rm(stagedPitch, { force: true }), rm(stagedLedger, { force: true })]);
+    throw error;
+  }
+
+  let pitchArchived = false;
+  let plansArchived = false;
+  let ledgerBackedUp = false;
+  let pitchPublished = false;
+  let ledgerPublished = false;
+  try {
+    await rename(pitchPath, archivedPitchPath);
+    pitchArchived = true;
+    if (hasPlans) {
+      await rename(plansPath, archivedPlansPath);
+      plansArchived = true;
+    }
+    await rename(path, ledgerBackup);
+    ledgerBackedUp = true;
+    await rename(stagedPitch, pitchPath);
+    pitchPublished = true;
+    await rename(stagedLedger, path);
+    ledgerPublished = true;
+    await rm(ledgerBackup, { force: true });
+  } catch (error) {
+    try {
+      if (ledgerPublished) await rm(path, { force: true });
+      if (ledgerBackedUp) await rename(ledgerBackup, path);
+      if (pitchPublished) await rm(pitchPath, { force: true });
+      if (plansArchived) await rename(archivedPlansPath, plansPath);
+      if (pitchArchived) await rename(archivedPitchPath, pitchPath);
+      await Promise.all([rm(stagedPitch, { force: true }), rm(stagedLedger, { force: true })]);
+    } catch {
+      fail(
+        featureRoot,
+        "repitch failed and rollback was incomplete; recover preserved .feature-flow-repitch-* artifacts",
+      );
+    }
+    throw error;
+  }
+  return {
+    ok: true,
+    command: "repitch",
+    feature,
+    archived_pitch: basename(archivedPitchPath),
+    archived_plans: hasPlans ? basename(archivedPlansPath) : null,
+    pitch_number: nextNumber,
+    ...derive("draft", nextLedger.slices, path),
+  };
+}
+
+async function verify(args) {
+  if (args.length !== 1 || !SLUG.test(args[0] ?? "")) {
+    fail("<arguments>", "usage: verify <feature>");
+  }
+  const feature = args[0];
+  const { ledger, status } = await loadFeature(feature);
+  if (status !== "accepted") fail(ledger.pitch.path, "pitch must be accepted before verification");
+  return {
+    ok: true,
+    command: "verify",
+    feature,
+    sha256: ledger.pitch.sha256,
+    immutable: true,
   };
 }
 
@@ -759,6 +1098,9 @@ async function main() {
   const [command, ...args] = process.argv.slice(2);
   let result;
   switch (command) {
+    case "accept":
+      result = await accept(args);
+      break;
     case "activate":
       result = await activate(args);
       break;
@@ -773,6 +1115,15 @@ async function main() {
       break;
     case "inspect-candidates":
       result = await inspectCandidates(args);
+      break;
+    case "repitch":
+      result = await repitch(args);
+      break;
+    case "validate-pitch":
+      result = await validatePitch(args);
+      break;
+    case "verify":
+      result = await verify(args);
       break;
     default:
       fail("<arguments>", `unknown command: ${command ?? "<missing>"}`);
