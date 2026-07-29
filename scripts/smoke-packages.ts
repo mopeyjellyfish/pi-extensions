@@ -1,6 +1,6 @@
 import { cp, copyFile, mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { glob } from "glob";
@@ -10,6 +10,7 @@ import {
   discoverProductionPackages,
   findForbiddenPackedPaths,
   loadFixturePackage,
+  resolvePackagePrompts,
   resolvePackageSkills,
   type PackageDescriptor,
 } from "./lib/packages.ts";
@@ -152,17 +153,19 @@ async function assertRpcLifecycle(
   const data = response["data"];
   const commands = isRecord(data) ? data["commands"] : undefined;
   for (const expected of expectedCommands) {
-    const found =
-      Array.isArray(commands) &&
-      commands.some((command) => isRecord(command) && command["name"] === expected);
-    if (!found) {
-      throw new Error(`The ${expected} command was absent from the Pi RPC response.`);
+    const count = Array.isArray(commands)
+      ? commands.filter((command) => isRecord(command) && command["name"] === expected).length
+      : 0;
+    if (count !== 1) {
+      throw new Error(
+        `The ${expected} command appeared ${String(count)} times in the Pi RPC response; expected exactly once.`,
+      );
     }
   }
 }
 
-async function expectedSkillCommands(descriptor: PackageDescriptor): Promise<string[]> {
-  const commands: string[] = [];
+async function expectedResourceCommands(descriptor: PackageDescriptor): Promise<string[]> {
+  const commands = (await resolvePackagePrompts(descriptor)).map((path) => basename(path, ".md"));
   for (const path of await resolvePackageSkills(descriptor)) {
     const skill = await readFile(path, "utf8");
     const match = /^name:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s*$/mu.exec(skill);
@@ -205,7 +208,7 @@ async function smokePath(
   await assertListModels(extensionPath, cwd, isolatedEnvironment(listModelsHome, listModelsMarker));
   const expectedCommands = [
     ...(descriptor.kind === "fixture" ? ["fixture-health"] : []),
-    ...(await expectedSkillCommands(descriptor)),
+    ...(await expectedResourceCommands(descriptor)),
   ];
   await assertRpcLifecycle(
     extensionPath,

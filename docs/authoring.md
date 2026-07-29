@@ -64,6 +64,12 @@ Pi runtime peer, or `tsconfig.json` merely to imitate an extension package.
 }
 ```
 
+A package may also ship prompt templates. Include `prompts/` in `files`, declare
+`pi.prompts: ["./prompts"]`, and keep `.md` templates directly in that directory
+unless the manifest names deeper paths explicitly. A package with only prompts
+needs no fake extension, Pi runtime peer, or TypeScript configuration. Tests and
+package validation must cover prompt discovery and packed contents.
+
 Create `CHANGELOG.md`, then register the package in both release files at the package's current version:
 
 In the `release-please-config.json` `packages` object:

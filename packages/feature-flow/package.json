@@ -1,7 +1,7 @@
 {
   "name": "@mopeyjellyfish/pi-feature-flow",
   "version": "0.0.0",
-  "description": "Parent-led feature shaping skills with deterministic artifact checks for Pi.",
+  "description": "One end-to-end feature shaping skill with deterministic artifact checks for Pi.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -9,7 +9,7 @@
   },
   "files": [
     "skills/",
-    "references/",
+    "prompts/",
     "scripts/feature-flow.mjs",
     "README.md",
     "CHANGELOG.md",
@@ -26,6 +26,9 @@
   "pi": {
     "skills": [
       "./skills"
+    ],
+    "prompts": [
+      "./prompts"
     ]
   },
   "repository": {
