@@ -21,6 +21,9 @@
       "./packages/*/skills",
       "./node_modules/@dietrichgebert/ponytail/skills"
     ],
+    "prompts": [
+      "./packages/*/prompts"
+    ],
     "subagents": {
       "agents": [
         "./agents"

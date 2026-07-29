@@ -132,6 +132,57 @@ async function rootWithSkillAggregate(includeSkills: boolean): Promise<{
   };
 }
 
+async function promptOnlyPackage(includeRootPrompts: boolean): Promise<{
+  readonly descriptor: PackageDescriptor;
+  readonly root: string;
+}> {
+  const root = await mkdtemp(join(repositoryRoot, ".tmp", "pi-prompt-root-"));
+  temporaryRoots.push(root);
+  const packageRoot = join(root, "packages", "prompts");
+  await mkdir(join(packageRoot, "prompts"), { recursive: true });
+  await mkdir(join(packageRoot, "test"));
+  const manifest = {
+    name: "@mopeyjellyfish/pi-prompt-probe",
+    version: "0.0.0",
+    description: "A production prompt-only package fixture.",
+    license: "MIT",
+    type: "module",
+    engines: { node: ">=22.20.0" },
+    files: ["prompts/", "README.md", "CHANGELOG.md", "LICENSE"],
+    keywords: ["pi-package"],
+    pi: { prompts: ["./prompts"] },
+    repository: {
+      type: "git",
+      url: "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+      directory: toPosixPath(relative(repositoryRoot, packageRoot)),
+    },
+    scripts: { test: "vitest run" },
+  };
+  await Promise.all([
+    writeFile(join(packageRoot, "package.json"), JSON.stringify(manifest), "utf8"),
+    writeFile(join(packageRoot, "README.md"), "# Prompt package\n", "utf8"),
+    writeFile(join(packageRoot, "CHANGELOG.md"), "# Changelog\n", "utf8"),
+    writeFile(join(packageRoot, "LICENSE"), "MIT\n", "utf8"),
+    writeFile(join(packageRoot, "prompts", "shape.md"), "Resume the feature.\n", "utf8"),
+    writeFile(join(packageRoot, "test", "prompts.test.ts"), "export {};\n", "utf8"),
+    writeFile(
+      join(root, "package.json"),
+      JSON.stringify({
+        private: true,
+        workspaces: ["packages/*"],
+        engines: { node: ">=22.20.0" },
+        devDependencies: { "@types/node": "22.20.0" },
+        pi: {
+          extensions: ["./packages/*/src/index.ts"],
+          ...(includeRootPrompts ? { prompts: ["./packages/*/prompts"] } : {}),
+        },
+      }),
+      "utf8",
+    ),
+  ]);
+  return { descriptor: { kind: "production", manifest, root: packageRoot }, root };
+}
+
 async function skillOnlyPackage(): Promise<PackageDescriptor> {
   const temporaryParent = join(repositoryRoot, ".tmp");
   await mkdir(temporaryParent, { recursive: true });
@@ -180,6 +231,18 @@ describe("package contracts", () => {
   it("accepts a production skill-only package without extension scaffolding", async () => {
     expect.hasAssertions();
     await expect(validatePackage(await skillOnlyPackage())).resolves.toEqual([]);
+  });
+
+  it("validates package prompts and requires the root prompt aggregate", async () => {
+    expect.hasAssertions();
+    const valid = await promptOnlyPackage(true);
+    await expect(validatePackage(valid.descriptor)).resolves.toEqual([]);
+    await expect(validateRootAggregate([valid.descriptor], valid.root)).resolves.toEqual([]);
+
+    const missing = await promptOnlyPackage(false);
+    await expect(validateRootAggregate([missing.descriptor], missing.root)).resolves.toContainEqual(
+      "Root pi.prompts must contain the aggregate prompt glob.",
+    );
   });
 
   it("requires the root Pi package to aggregate production skills", async () => {

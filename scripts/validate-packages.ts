@@ -5,6 +5,7 @@ import {
   findForbiddenPackedPaths,
   loadFixturePackage,
   resolvePackageEntrypoints,
+  resolvePackagePrompts,
   resolvePackageSkills,
   validatePackage,
   validateRootAggregate,
@@ -66,6 +67,9 @@ async function validatePackedContents(descriptor: PackageDescriptor): Promise<st
       } else {
         required.push(entrypoint.replace(/^\.\//, ""));
       }
+    }
+    for (const prompt of await resolvePackagePrompts(descriptor)) {
+      required.push(toPosixPath(relative(descriptor.root, prompt)));
     }
     for (const skill of await resolvePackageSkills(descriptor)) {
       required.push(toPosixPath(relative(descriptor.root, skill)));

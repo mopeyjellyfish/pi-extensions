@@ -1,0 +1,14 @@
+{
+  "schema": "feature-flow/v3",
+  "feature": "{{feature}}",
+  "worktree": {
+    "branch": "{{branch}}",
+    "base_sha": "{{base_sha}}"
+  },
+  "pitch": {
+    "path": "pitch.md",
+    "number": 1,
+    "sha256": null
+  },
+  "slices": []
+}

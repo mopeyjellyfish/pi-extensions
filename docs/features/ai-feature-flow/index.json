@@ -1,0 +1,98 @@
+{
+  "schema": "feature-flow/v3",
+  "feature": "ai-feature-flow",
+  "worktree": {
+    "branch": "plan/shape-up-development-flow",
+    "base_sha": "56be8274f0edb6be6595b66f147efcc85b7a4097"
+  },
+  "pitch": {
+    "path": "pitch.md",
+    "number": 2,
+    "sha256": "4b76f3837e934962d15c679deb78f9e66243343c1cc946a616d770980c8a4ae9"
+  },
+  "slices": [
+    {
+      "id": "001",
+      "plan": "plans/001-start-in-an-isolated-worktree.md",
+      "goal": "Start a feature brief in its verified isolated worktree and create only canonical draft artifacts",
+      "depends_on": [],
+      "status": "done",
+      "blocker": null,
+      "evidence": {
+        "red_green": "Observed resource, route, atomic-init, evidence, and banking Red→Green tracers; 17 focused tests pass after bounded refactoring.",
+        "review": "Independent reviews found atomicity and stale-bank blockers; fixes were re-reviewed and final slice acceptance is blocker-free.",
+        "dogfood": "Worktrunk confirmed the routed feature; helper inspect resumed slice 001; deterministic Pi loaded and idle-reloaded one shape skill and /shape prompt without conflicts; two frontier-model trigger samples matched all six cases.",
+        "checks": "Feature-flow 17/17, package tooling 30/30, npm run check 309/309, security check, package dry-run, pitch hash, and diff checks passed.",
+        "banking": "commit"
+      }
+    },
+    {
+      "id": "002",
+      "plan": "plans/002-resume-the-next-action.md",
+      "goal": "Resume exactly one safe next action from a routed or discovered feature ledger",
+      "depends_on": [
+        "001"
+      ],
+      "status": "pending",
+      "blocker": null,
+      "evidence": {
+        "red_green": null,
+        "review": null,
+        "dogfood": null,
+        "checks": null,
+        "banking": null
+      }
+    },
+    {
+      "id": "003",
+      "plan": "plans/003-accept-and-repitch.md",
+      "goal": "Accept and freeze a complete shaped pitch, then safely archive and repitch material changes",
+      "depends_on": [
+        "002"
+      ],
+      "status": "pending",
+      "blocker": null,
+      "evidence": {
+        "red_green": null,
+        "review": null,
+        "dogfood": null,
+        "checks": null,
+        "banking": null
+      }
+    },
+    {
+      "id": "004",
+      "plan": "plans/004-plan-mutable-vertical-slices.md",
+      "goal": "Create and review the smallest vertical plan set while pending plans remain safely refinable",
+      "depends_on": [
+        "003"
+      ],
+      "status": "pending",
+      "blocker": null,
+      "evidence": {
+        "red_green": null,
+        "review": null,
+        "dogfood": null,
+        "checks": null,
+        "banking": null
+      }
+    },
+    {
+      "id": "005",
+      "plan": "plans/005-deliver-bank-and-resume-slices.md",
+      "goal": "Deliver, verify, bank, recover, and resume serial slices through local completion",
+      "depends_on": [
+        "004"
+      ],
+      "status": "pending",
+      "blocker": null,
+      "evidence": {
+        "red_green": null,
+        "review": null,
+        "dogfood": null,
+        "checks": null,
+        "banking": null
+      }
+    }
+  ]
+}
