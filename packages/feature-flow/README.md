@@ -15,9 +15,10 @@ worktree; the helper inspects those paths read-only.
 
 One valid candidate activates and resumes. Several produce one structured human
 choice. Stale or malformed candidates are reported without adoption or a request
-for another brief. Only a completely empty result requests a new brief. Pitch
-acceptance, repitching, plan registration, and the full Build loop remain later
-slices.
+for another brief. Only a completely empty result requests a new brief. Draft shaping now uses
+repository-led research, adaptive recommended questions, separate read-only
+review, and one complete document-backed approval. Plan registration,
+refinement, and the full Build loop remain later slices.
 
 Worktrunk remains the only worktree lifecycle authority. Before writing, the
 skill routes to the expected worktree and calls:
@@ -36,6 +37,17 @@ docs/features/<feature>/
 ├── index.json
 └── pitch.md
 ```
+
+The helper provides `validate-pitch`, `accept`, `verify`, and `repitch` for the
+mechanical pitch lifecycle. `accept <feature> <prospective-sha256>` requires the
+full hash returned by validation so approval is bound to the exact displayed
+bytes. Acceptance pins the SHA-256 of the final accepted bytes; verification
+rejects later edits. Repitch preserves `pitch-vNNN.md` and
+used `plans-vNNN/`, starts the next complete draft, clears current slice state,
+and leaves banked code untouched. Ordinary multi-file failures roll back; process crashes can leave bounded
+`pitch.md.tmp-<pid>`, `index.json.tmp-<pid>`, or `.feature-flow-repitch-*`
+staging/backup artifacts that require manual recovery rather than a service or
+database.
 
 The helper also provides narrow `activate` and `complete` commands. Completion
 requires red/green, independent review, dogfood, checks, and banking evidence.

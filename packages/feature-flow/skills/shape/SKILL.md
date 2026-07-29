@@ -13,8 +13,9 @@ description: >-
 
 Coordinate one feature from its brief or canonical ledger. Read
 [workspace routing](references/workspace.md) before any side effect,
-[artifact rules](references/artifacts.md) before using the helper, and the
-[slice evaluation](references/evaluation.md) before dogfood.
+[artifact rules](references/artifacts.md) before using the helper,
+[shaping and acceptance](references/shaping.md) while the derived phase is
+`shaping`, and the [slice evaluation](references/evaluation.md) before dogfood.
 
 ## Start or resume
 
@@ -48,6 +49,10 @@ Use the package-relative helper with the routed working directory:
 node ../../scripts/feature-flow.mjs init <feature> --branch <expected-branch> --base <expected-base-sha>
 node ../../scripts/feature-flow.mjs inspect <feature>
 node ../../scripts/feature-flow.mjs inspect-candidates <absolute-worktree-path>...
+node ../../scripts/feature-flow.mjs validate-pitch <feature>
+node ../../scripts/feature-flow.mjs accept <feature> <prospective-sha256>
+node ../../scripts/feature-flow.mjs verify <feature>
+node ../../scripts/feature-flow.mjs repitch <feature>
 node ../../scripts/feature-flow.mjs activate <feature> <slice-id>
 node ../../scripts/feature-flow.mjs complete <feature> <slice-id> --red-green <evidence> --review <evidence> --dogfood <evidence> --checks <evidence> --banking <commit|checkpoint: reason>
 ```
@@ -64,5 +69,5 @@ worktree commands.
 Keep one writer and require separate read-only review. Stop for decisions that
 would change an accepted pitch. Do not stage, commit, push, merge, publish,
 deploy, remove worktrees, or perform destructive cleanup without the authority
-defined by the accepted pitch and repository instructions. Pitch acceptance,
-repitching, plan registration, and full Build behavior are not available yet.
+defined by the accepted pitch and repository instructions. Plan registration,
+refinement, and full Build behavior are not available yet.

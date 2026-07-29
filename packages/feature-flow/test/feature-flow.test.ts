@@ -181,6 +181,57 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function prospectiveHash(cwd: string, feature = "sample-feature"): string {
+  const result = run(cwd, "validate-pitch", feature);
+  if (result.status !== 0) throw new Error(result.stderr);
+  return (JSON.parse(result.stdout) as { prospective_sha256: string }).prospective_sha256;
+}
+
+function acceptPitch(cwd: string, feature = "sample-feature"): RunResult {
+  return run(cwd, "accept", feature, prospectiveHash(cwd, feature));
+}
+
+async function patchedHelper(
+  root: string,
+  name: string,
+  marker: string,
+  replacement: string,
+): Promise<string> {
+  const path = join(root, name);
+  const source = await readFile(HELPER, "utf8");
+  if (!source.includes(marker)) throw new Error(`missing helper fault marker: ${marker}`);
+  if (source.indexOf(marker) !== source.lastIndexOf(marker)) {
+    throw new Error(`ambiguous helper fault marker: ${marker}`);
+  }
+  const patched = source.replace(marker, replacement);
+  if (patched === source) throw new Error("helper fault marker was not replaced");
+  await writeFile(path, patched);
+  return path;
+}
+
+async function registerSinglePlan(
+  featureRoot: string,
+  slice: Record<string, unknown> = {},
+): Promise<void> {
+  await mkdir(join(featureRoot, "plans"));
+  await writeFile(join(featureRoot, "plans", "001-first.md"), "# First used plan\n");
+  const ledgerPath = join(featureRoot, "index.json");
+  const ledger = await readJson(ledgerPath);
+  ledger["slices"] = [
+    {
+      id: "001",
+      plan: "plans/001-first.md",
+      goal: "First outcome",
+      depends_on: [],
+      status: "pending",
+      blocker: null,
+      evidence: emptyEvidence(),
+      ...slice,
+    },
+  ];
+  await writeJson(ledgerPath, ledger);
+}
+
 afterEach(async () => {
   await Promise.all(
     roots.splice(0).map(async (root) => rm(root, { recursive: true, force: true })),
@@ -188,6 +239,558 @@ afterEach(async () => {
 });
 
 describe("feature-flow helper", () => {
+  it("accepts a draft by changing only its status and pins the final file hash", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const draft = await readFile(pitchPath, "utf8");
+
+    const approvedHash = prospectiveHash(root);
+    const result = run(root, "accept", "sample-feature", approvedHash);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const accepted = await readFile(pitchPath, "utf8");
+    expect(accepted).toBe(draft.replace("status: draft", "status: accepted"));
+    const hash = createHash("sha256").update(accepted).digest("hex");
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      command: "accept",
+      feature: "sample-feature",
+      sha256: hash,
+      phase: "planning",
+    });
+    expect(await readJson(ledgerPath)).toMatchObject({ pitch: { sha256: hash } });
+  });
+
+  it("rejects acceptance when the approved prospective bytes changed after validation", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const approvedHash = prospectiveHash(root);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    await writeFile(pitchPath, `${await readFile(pitchPath, "utf8")}edited after approval\n`);
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+    ]);
+
+    const result = run(root, "accept", "sample-feature", approvedHash);
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "current prospective pitch sha256 does not match the approved hash" }],
+    });
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("requires a full lowercase 64-hex approved hash without writing", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+    ]);
+
+    const result = run(root, "accept", "sample-feature", "a".repeat(63));
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({ errors: [{ path: "<arguments>" }] });
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("rejects prospective acceptance when premature plans exist and writes nothing", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    await mkdir(join(featureRoot, "plans"));
+    await writeFile(join(featureRoot, "plans", "001-premature.md"), "# Premature plan\n");
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+    ]);
+
+    const result = run(root, "validate-pitch", "sample-feature");
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "plans must not exist before pitch acceptance" }],
+    });
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("validates the prospective accepted pitch without writing either artifact", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+    ]);
+    const expectedHash = createHash("sha256")
+      .update(pitchBefore.replace("status: draft", "status: accepted"))
+      .digest("hex");
+
+    const result = run(root, "validate-pitch", "sample-feature");
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      command: "validate-pitch",
+      feature: "sample-feature",
+      prospective_sha256: expectedHash,
+      ready_for_approval: true,
+    });
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("accepts a 100000-character question document and rejects one character more", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const pitch = await readFile(pitchPath, "utf8");
+    const boundaryPitch = `${pitch}${"🪼".repeat(100_000 - pitch.length)}`;
+    await writeFile(pitchPath, boundaryPitch);
+
+    const atBoundary = run(root, "validate-pitch", "sample-feature");
+    expect(atBoundary.status).toBe(0);
+
+    const nearBoundary = `${pitch}${"x".repeat(99_999 - pitch.length)}`;
+    for (const suffix of ["👍🏽", "\r\n", "x\u{FE0F}"]) {
+      await writeFile(pitchPath, `${nearBoundary}${suffix}`);
+      const incompatibleBoundary = run(root, "validate-pitch", "sample-feature");
+      expect({ suffix, status: incompatibleBoundary.status }).toEqual({ suffix, status: 1 });
+    }
+
+    await writeFile(pitchPath, `${boundaryPitch}🪼`);
+    const ledgerBefore = await readFile(ledgerPath, "utf8");
+    const overBoundary = run(root, "validate-pitch", "sample-feature");
+
+    expect(overBoundary.status).toBe(1);
+    expect(JSON.parse(overBoundary.stderr)).toMatchObject({
+      errors: [{ reason: "pitch must fit the question tool's 100000-character document limit" }],
+    });
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(`${boundaryPitch}🪼`);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("rejects a symlinked feature root without changing external bytes", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const externalRoot = await mkdtemp(join(tmpdir(), "feature-flow-external-"));
+    roots.push(externalRoot);
+    await Promise.all([
+      copyFile(join(featureRoot, "pitch.md"), join(externalRoot, "pitch.md")),
+      copyFile(join(featureRoot, "index.json"), join(externalRoot, "index.json")),
+    ]);
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(join(externalRoot, "pitch.md"), "utf8"),
+      readFile(join(externalRoot, "index.json"), "utf8"),
+    ]);
+    await rm(featureRoot, { recursive: true });
+    await symlink(externalRoot, featureRoot, "dir");
+
+    const result = run(root, "accept", "sample-feature", "0".repeat(64));
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "feature path must resolve inside the canonical repository" }],
+    });
+    await expect(readFile(join(externalRoot, "pitch.md"), "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(join(externalRoot, "index.json"), "utf8")).resolves.toBe(ledgerBefore);
+    await expect(readdir(externalRoot)).resolves.toEqual(["index.json", "pitch.md"]);
+  });
+
+  it("rejects a symlinked features ancestor without changing external bytes", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const externalRoot = await mkdtemp(join(tmpdir(), "feature-flow-external-features-"));
+    roots.push(externalRoot);
+    const externalFeatureRoot = join(externalRoot, "sample-feature");
+    await mkdir(externalFeatureRoot);
+    await Promise.all([
+      copyFile(join(featureRoot, "pitch.md"), join(externalFeatureRoot, "pitch.md")),
+      copyFile(join(featureRoot, "index.json"), join(externalFeatureRoot, "index.json")),
+    ]);
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(join(externalFeatureRoot, "pitch.md"), "utf8"),
+      readFile(join(externalFeatureRoot, "index.json"), "utf8"),
+    ]);
+    const featuresRoot = join(root, "docs", "features");
+    await rm(featuresRoot, { recursive: true });
+    await symlink(externalRoot, featuresRoot, "dir");
+
+    const result = run(root, "accept", "sample-feature", "0".repeat(64));
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "features path must resolve inside the canonical repository" }],
+    });
+    await expect(readFile(join(externalFeatureRoot, "pitch.md"), "utf8")).resolves.toBe(
+      pitchBefore,
+    );
+    await expect(readFile(join(externalFeatureRoot, "index.json"), "utf8")).resolves.toBe(
+      ledgerBefore,
+    );
+    await expect(readdir(externalFeatureRoot)).resolves.toEqual(["index.json", "pitch.md"]);
+  });
+
+  it("rolls back both acceptance artifacts after an ordinary second-write failure", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+    ]);
+    const copiedHelper = await patchedHelper(
+      root,
+      "feature-flow-failing-accept.mjs",
+      "    await writeLedger(path, acceptedLedger);",
+      '    throw new Error("simulated second acceptance write failure");',
+    );
+
+    const result = runWithHelper(
+      root,
+      copiedHelper,
+      "accept",
+      "sample-feature",
+      prospectiveHash(root),
+    );
+
+    expect(result.status).toBe(1);
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("archives accepted pitch bytes and used plans before starting the next complete draft", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    expect(acceptPitch(root).status).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const accepted = await readFile(pitchPath, "utf8");
+    const plansPath = join(featureRoot, "plans");
+    await mkdir(plansPath);
+    await writeFile(join(plansPath, "001-first.md"), "# First used plan\n");
+    const ledgerPath = join(featureRoot, "index.json");
+    const ledger = await readJson(ledgerPath);
+    ledger["slices"] = [
+      {
+        id: "001",
+        plan: "plans/001-first.md",
+        goal: "First outcome",
+        depends_on: [],
+        status: "pending",
+        blocker: null,
+        evidence: emptyEvidence(),
+      },
+    ];
+    await writeJson(ledgerPath, ledger);
+    await writeFile(join(root, "banked-code.txt"), "preserve me\n");
+
+    const result = run(root, "repitch", "sample-feature");
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      command: "repitch",
+      feature: "sample-feature",
+      archived_pitch: "pitch-v001.md",
+      archived_plans: "plans-v001",
+      pitch_number: 2,
+      phase: "shaping",
+    });
+    await expect(readFile(join(featureRoot, "pitch-v001.md"), "utf8")).resolves.toBe(accepted);
+    await expect(readFile(join(featureRoot, "plans-v001", "001-first.md"), "utf8")).resolves.toBe(
+      "# First used plan\n",
+    );
+    expect(await exists(plansPath)).toBe(false);
+    expect(await readFile(pitchPath, "utf8")).toBe(
+      accepted.replace("pitch: 1", "pitch: 2").replace("status: accepted", "status: draft"),
+    );
+    expect(await readJson(ledgerPath)).toMatchObject({
+      pitch: { path: "pitch.md", number: 2, sha256: null },
+      slices: [],
+    });
+    await expect(readFile(join(root, "banked-code.txt"), "utf8")).resolves.toBe("preserve me\n");
+    expect(await exists(join(featureRoot, "assets"))).toBe(false);
+    expect(await exists(join(featureRoot, "prototypes"))).toBe(false);
+  });
+
+  it("rejects repitch while a done slice is unbanked and changes no bytes", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    expect(acceptPitch(root).status).toBe(0);
+    await registerSinglePlan(featureRoot, {
+      status: "done",
+      evidence: {
+        red_green: "red then green",
+        review: "blocker-free",
+        dogfood: "integrated path passed",
+        checks: "checks passed",
+        banking: "commit",
+      },
+    });
+    const pitchPath = join(featureRoot, "pitch.md");
+    const ledgerPath = join(featureRoot, "index.json");
+    const planPath = join(featureRoot, "plans", "001-first.md");
+    const [pitchBefore, ledgerBefore, planBefore, entriesBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+      readFile(planPath, "utf8"),
+      readdir(featureRoot),
+    ]);
+
+    const result = run(root, "repitch", "sample-feature");
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "all done slices must be banked before repitching" }],
+    });
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+    await expect(readFile(planPath, "utf8")).resolves.toBe(planBefore);
+    await expect(readdir(featureRoot)).resolves.toEqual(entriesBefore);
+  });
+
+  it("permits repitch when a done slice has a checkpoint or verified commit bank", async () => {
+    expect.hasAssertions();
+    for (const banking of ["checkpoint: repository policy forbids commits", "commit"]) {
+      const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+      expect(
+        run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+          .status,
+      ).toBe(0);
+      expect(acceptPitch(root).status).toBe(0);
+      await registerSinglePlan(featureRoot, {
+        status: "done",
+        evidence: {
+          red_green: "red then green",
+          review: "blocker-free",
+          dogfood: "integrated path passed",
+          checks: "checks passed",
+          banking,
+        },
+      });
+      if (banking === "commit") {
+        execFileSync("git", ["add", "docs/features/sample-feature"], { cwd: root });
+        execFileSync(
+          "git",
+          ["commit", "--quiet", "-m", "feat(sample): bank slice", "-m", "Feature-Slice: 001"],
+          { cwd: root },
+        );
+      }
+
+      const result = run(root, "repitch", "sample-feature");
+
+      expect({ banking, status: result.status }).toEqual({ banking, status: 0 });
+      await expect(readFile(join(featureRoot, "pitch-v001.md"), "utf8")).resolves.toContain(
+        "status: accepted",
+      );
+      await expect(readFile(join(featureRoot, "plans-v001", "001-first.md"), "utf8")).resolves.toBe(
+        "# First used plan\n",
+      );
+    }
+  });
+
+  it("preflights archive collisions and missing registered plan sources without writes", async () => {
+    expect.hasAssertions();
+    const cases = ["pitch archive", "plan archive", "missing plan source"] as const;
+    for (const scenario of cases) {
+      const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+      expect(
+        run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+          .status,
+      ).toBe(0);
+      expect(acceptPitch(root).status).toBe(0);
+      await registerSinglePlan(featureRoot);
+      if (scenario === "pitch archive") {
+        await writeFile(join(featureRoot, "pitch-v001.md"), "collision\n");
+      } else if (scenario === "plan archive") {
+        await mkdir(join(featureRoot, "plans-v001"));
+      } else {
+        await rm(join(featureRoot, "plans", "001-first.md"));
+      }
+      const pitchPath = join(featureRoot, "pitch.md");
+      const ledgerPath = join(featureRoot, "index.json");
+      const [pitchBefore, ledgerBefore, entriesBefore] = await Promise.all([
+        readFile(pitchPath, "utf8"),
+        readFile(ledgerPath, "utf8"),
+        readdir(featureRoot),
+      ]);
+
+      const result = run(root, "repitch", "sample-feature");
+
+      expect({ scenario, status: result.status }).toEqual({ scenario, status: 1 });
+      await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+      await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+      await expect(readdir(featureRoot)).resolves.toEqual(entriesBefore);
+    }
+  });
+
+  it("removes every staged repitch artifact when prospective publication fails", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    expect(acceptPitch(root).status).toBe(0);
+    const writeStagedLedger =
+      '    await writeFile(stagedLedger, `${JSON.stringify(nextLedger, null, 2)}\\n`, { flag: "wx" });';
+    const copiedHelper = await patchedHelper(
+      root,
+      "feature-flow-failing-stage.mjs",
+      writeStagedLedger,
+      `${writeStagedLedger}\n    throw new Error("simulated staged write failure");`,
+    );
+    const pitchBefore = await readFile(join(featureRoot, "pitch.md"), "utf8");
+    const ledgerBefore = await readFile(join(featureRoot, "index.json"), "utf8");
+
+    const result = runWithHelper(root, copiedHelper, "repitch", "sample-feature");
+
+    expect(result.status).toBe(1);
+    await expect(readFile(join(featureRoot, "pitch.md"), "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(join(featureRoot, "index.json"), "utf8")).resolves.toBe(ledgerBefore);
+    expect((await readdir(featureRoot)).some((entry) => entry.startsWith(".feature-flow-"))).toBe(
+      false,
+    );
+  });
+
+  it("rolls back pitch and plan archives after an ordinary repitch failure", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    expect(acceptPitch(root).status).toBe(0);
+    const pitchPath = join(featureRoot, "pitch.md");
+    const plansPath = join(featureRoot, "plans");
+    await mkdir(plansPath);
+    await writeFile(join(plansPath, "001-first.md"), "# First used plan\n");
+    const ledgerPath = join(featureRoot, "index.json");
+    const ledger = await readJson(ledgerPath);
+    ledger["slices"] = [
+      {
+        id: "001",
+        plan: "plans/001-first.md",
+        goal: "First outcome",
+        depends_on: [],
+        status: "pending",
+        blocker: null,
+        evidence: emptyEvidence(),
+      },
+    ];
+    await writeJson(ledgerPath, ledger);
+    const [pitchBefore, ledgerBefore] = await Promise.all([
+      readFile(pitchPath, "utf8"),
+      readFile(ledgerPath, "utf8"),
+    ]);
+    const copiedHelper = await patchedHelper(
+      root,
+      "feature-flow-failing-repitch.mjs",
+      "    await rename(path, ledgerBackup);",
+      '    throw new Error("simulated repitch publish failure");',
+    );
+
+    const result = runWithHelper(root, copiedHelper, "repitch", "sample-feature");
+
+    expect(result.status).toBe(1);
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+    await expect(readFile(join(plansPath, "001-first.md"), "utf8")).resolves.toBe(
+      "# First used plan\n",
+    );
+    expect(await exists(join(featureRoot, "pitch-v001.md"))).toBe(false);
+    expect(await exists(join(featureRoot, "plans-v001"))).toBe(false);
+    expect((await readdir(featureRoot)).some((entry) => entry.startsWith(".feature-flow-"))).toBe(
+      false,
+    );
+  });
+
+  it("verifies accepted bytes and rejects one later byte change", async () => {
+    expect.hasAssertions();
+    const { base, featureRoot, root } = await createRepository("shape/sample-feature");
+    expect(
+      run(root, "init", "sample-feature", "--branch", "shape/sample-feature", "--base", base)
+        .status,
+    ).toBe(0);
+    expect(acceptPitch(root).status).toBe(0);
+    const verified = run(root, "verify", "sample-feature");
+    expect(verified.status).toBe(0);
+    expect(JSON.parse(verified.stdout)).toMatchObject({
+      ok: true,
+      command: "verify",
+      feature: "sample-feature",
+      immutable: true,
+    });
+    const pitchPath = join(featureRoot, "pitch.md");
+    await writeFile(pitchPath, `${await readFile(pitchPath, "utf8")}changed\n`);
+
+    const changed = run(root, "verify", "sample-feature");
+
+    expect(changed.status).toBe(1);
+    expect(JSON.parse(changed.stderr)).toMatchObject({
+      errors: [{ reason: "accepted pitch sha256 does not match ledger" }],
+    });
+  });
+
   it("inspects supplied linked-worktree candidates read-only and separates stale ledgers", async () => {
     expect.hasAssertions();
     const { base, root, staleLedgerPath, staleRoot, validRoot } =
@@ -1222,6 +1825,50 @@ describe("feature-flow helper", () => {
     expect(branchResult.status).toBe(1);
     expect(JSON.parse(branchResult.stderr)).toMatchObject({ errors: [{ path: "<arguments>" }] });
     expect(await exists(join(root, "docs", "features", "sample-feature"))).toBe(false);
+  });
+
+  it("rejects symlinked init ancestors without writing outside the repository", async () => {
+    expect.hasAssertions();
+    for (const ancestor of ["docs", "docs/features"] as const) {
+      const { root } = await createRepository("shape/sample-feature");
+      const externalRoot = await mkdtemp(join(tmpdir(), "feature-flow-init-external-"));
+      roots.push(externalRoot);
+      if (ancestor === "docs/features") {
+        await mkdir(join(root, "docs"));
+      }
+      await symlink(externalRoot, join(root, ancestor), "dir");
+      execFileSync("git", ["add", ancestor], { cwd: root });
+      execFileSync("git", ["commit", "--quiet", "-m", `test: symlink ${ancestor}`], {
+        cwd: root,
+      });
+      const head = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+      }).trim();
+
+      const result = run(
+        root,
+        "init",
+        "sample-feature",
+        "--branch",
+        "shape/sample-feature",
+        "--base",
+        head,
+      );
+
+      expect({ ancestor, status: result.status }).toEqual({ ancestor, status: 1 });
+      expect({
+        ancestor,
+        reason: (JSON.parse(result.stderr) as { errors: { reason: string }[] }).errors[0]?.reason,
+      }).toEqual({
+        ancestor,
+        reason:
+          ancestor === "docs"
+            ? "docs path must resolve inside the canonical repository"
+            : "features path must resolve inside the canonical repository",
+      });
+      await expect(readdir(externalRoot)).resolves.toEqual([]);
+    }
   });
 
   it("creates only the canonical draft pitch and top-level ledger on the verified route", async () => {
