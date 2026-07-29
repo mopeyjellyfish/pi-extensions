@@ -18,32 +18,51 @@ Coordinate one feature from its brief or canonical ledger. Read
 
 ## Start or resume
 
-With a brief, derive a canonical feature slug and expected `shape/<slug>` branch.
-Without a brief, inspect the current routed ledger; linked-worktree discovery is
-a later slice, so request a brief when no current ledger exists.
+With a brief, derive a canonical feature slug and expected `shape/<slug>` branch,
+then use Worktrunk to create or activate it.
 
-Use Worktrunk to create or activate the isolated worktree. Worktrunk is the only
-worktree lifecycle authority. Then run the package-relative helper with the
-routed working directory:
+Without a brief, Worktrunk must supply every candidate path before the helper
+reads one. Call `worktree` with `action: "status"` first, then `action: "list"`.
+If a route is active, inspect that linked path first and resume its valid ledger.
+Otherwise, or if it has no valid ledger, inspect the linked paths from the list.
+If the list is truncated, obtain Worktrunk's complete schema-2 list as directed
+by the `pi-worktrunk` skill. Never enumerate worktrees with Git or filesystem
+search.
+
+Handle the bounded `valid`, `stale`, and `invalid` arrays independently.
+Always report every stale and invalid diagnostic and its recovery action, even
+when a valid candidate can proceed:
+
+- One valid candidate: if already routed, resume it; otherwise Worktrunk
+  activates its recorded branch, verify the route, then run `inspect <feature>`.
+- Several valid candidates: ask one structured choice showing feature, branch,
+  phase, and next action. Worktrunk activates only the chosen branch, then
+  verify and inspect it.
+- No valid candidate but any stale or invalid result: do not activate one or ask
+  for a replacement brief.
+- No result at all: ask for a new feature brief only when all three arrays are empty.
+
+Use the package-relative helper with the routed working directory:
 
 ```text
 node ../../scripts/feature-flow.mjs init <feature> --branch <expected-branch> --base <expected-base-sha>
 node ../../scripts/feature-flow.mjs inspect <feature>
+node ../../scripts/feature-flow.mjs inspect-candidates <absolute-worktree-path>...
 node ../../scripts/feature-flow.mjs activate <feature> <slice-id>
 node ../../scripts/feature-flow.mjs complete <feature> <slice-id> --red-green <evidence> --review <evidence> --dogfood <evidence> --checks <evidence> --banking <commit|checkpoint: reason>
 ```
 
-Treat helper output as bounded mechanical facts. Never create feature artifacts,
-research notes, prototypes, or plans until `init` verifies the current Git
-root, branch, base, and clean route. Ask one structured routing question when it
-reports a dirty checkout, ambiguous base, branch collision, or route mismatch.
-Do not replace Worktrunk with raw Git worktree commands.
+Treat helper output as bounded mechanical facts. Candidate inspection is
+read-only. Never create feature artifacts, research notes, prototypes, or plans
+until `init` verifies the current Git root, branch, base, and clean route. Ask
+one structured routing question when it reports a dirty checkout, ambiguous
+base, branch collision, or route mismatch. Do not replace Worktrunk with raw Git
+worktree commands.
 
 ## Boundaries
 
 Keep one writer and require separate read-only review. Stop for decisions that
 would change an accepted pitch. Do not stage, commit, push, merge, publish,
 deploy, remove worktrees, or perform destructive cleanup without the authority
-defined by the accepted pitch and repository instructions. This slice only
-bootstraps draft artifacts and ledger banking; pitch acceptance, planning,
-linked-worktree discovery, and full Build behavior are not available yet.
+defined by the accepted pitch and repository instructions. Pitch acceptance,
+repitching, plan registration, and full Build behavior are not available yet.

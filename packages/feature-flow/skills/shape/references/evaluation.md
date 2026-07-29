@@ -1,4 +1,4 @@
-# Slice 001 evaluation
+# Feature-flow evaluation
 
 ## Trigger table
 
@@ -30,6 +30,23 @@ accepted pitch, multiple active slices, incomplete done evidence, and a fake
 slice declaring `commit` remains the sole next action until Git contains a
 matching commit whose tree includes that slice's done ledger transition.
 
-Dogfood all route failures in a disposable repository, then route successfully
-with Worktrunk. Natural trigger sampling and deterministic Pi reload remain
-manual acceptance work; do not commit provider responses.
+## Shared-checkout resume rubric
+
+A passing `/shape` without a brief:
+
+1. Calls Worktrunk status/list before helper candidate inspection and uses only
+   linked paths Worktrunk returned.
+2. Leaves every inspected ledger and pitch byte-identical.
+3. Activates the sole `valid` result through Worktrunk, then verifies and resumes
+   its derived phase/current slice/next action.
+4. Shows one structured choice for several `valid` results and activates only
+   the selected branch.
+5. Reports `stale` branch/base and `invalid` malformed, unknown-field,
+   non-canonical-path, out-of-bounds, dependency/status, or hash cases without
+   activation or a new-brief request.
+6. Requests a brief only for empty `valid`, `stale`, and `invalid` arrays.
+
+Dogfood no candidate, one valid candidate, several valid candidates, and stale
+and malformed candidates in disposable linked worktrees. Repeat after an idle
+Pi reload. Natural trigger sampling and deterministic Pi reload remain manual
+acceptance work; do not commit provider responses.
