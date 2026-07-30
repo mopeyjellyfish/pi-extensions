@@ -1,7 +1,7 @@
 {
   "name": "@mopeyjellyfish/pi-feature-flow",
   "version": "0.0.0",
-  "description": "One end-to-end feature shaping skill with deterministic artifact checks for Pi.",
+  "description": "One Git-native Shape Up skill for feature delivery with Pi.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -10,7 +10,6 @@
   "files": [
     "skills/",
     "prompts/",
-    "scripts/feature-flow.mjs",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

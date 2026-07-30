@@ -1,47 +1,30 @@
----
-schema: feature-flow-plan/v2
-feature: "{{feature}}"
-id: "{{id}}"
-pitch_sha256: "{{pitch_sha256}}"
-depends_on: []
----
+# Plan: {{feature}}
 
-# Slice {{id}}: Vertical outcome
+Resume by inspecting Git, then work the first unchecked slice. Reorder, rewrite,
+split, merge, or delete pending slices when implementation teaches something
+new.
 
-## Goal
+## [ ] 001 — Observable vertical outcome
 
-State one observable user or operator outcome.
+### Outcome
 
-## Pitch trace
+State one user- or operator-visible result.
 
-- [Exact pitch section](../pitch.md#exact-heading-anchor)
-- **AC-NNN**
+### Pitch trace
 
-## Dependencies and predecessor postconditions
+Link the relevant pitch headings and acceptance criteria.
 
-Name only real predecessors and the observable postconditions this slice needs.
-Keep `depends_on: []` when the outcome is genuinely independent.
+### Implementation
 
-## Public seam and first TDD tracer
+Name the public seam, relevant files or contracts, and the smallest useful test
+and production change. Avoid speculative task inventories.
 
-Name the public seam, the independently derived expected result, the first
-failing test, and the minimum production behavior that should make it pass.
+### Validation
 
-## Validation
+List only applicable focused tests, required checks, independent review, and a
+real user or operator path when one exists.
 
-List only focused and repository-required checks that apply to this slice.
+### Done when
 
-## Dogfood and QA
-
-Describe one integrated user or operator path that exercises the outcome.
-
-## Done when
-
-State objective completion conditions.
-
-<!--
-Add scope cuts, boundaries crossed, implementation route, later-cycle guidance,
-risks, or escalation conditions only when material. Do not add plan status,
-delivery estimates, speculative task inventories, or a dependency solely to
-serialize otherwise independent work.
--->
+State objective completion conditions. Mark this slice `[x]` only after they
+hold. Add a short `> Blocked: … Next: …` note only while the slice is blocked.
