@@ -15,17 +15,17 @@ worktree lifecycle authority. The durable feature artifacts are
 
 ## Route before writing
 
-With a brief, derive a short canonical slug and expected `shape/<slug>` branch.
+With a brief, derive a short canonical slug and expected `feat/<slug>` branch.
 Read repository instructions and bounded Git facts, resolve an ambiguous base or
 dirty checkout with the human, then use Worktrunk to create or activate the
 route. Verify the routed branch with `git branch --show-current`; write no
 feature artifact before that route is active.
 
 Without a brief, call Worktrunk with `action: "status"`, then use its active path
-for the same bounded Git branch query. An active `shape/<slug>` branch maps
+for the same bounded Git branch query. An active `feat/<slug>` branch maps
 directly to `docs/features/<slug>/`. If no feature route is active, call
 Worktrunk with `action: "list"` and ask the human to choose among existing
-`shape/*` worktrees. Activate and verify only that choice. If none exists, ask
+`feat/*` worktrees. Activate and verify only that choice. If none exists, ask
 for a feature brief. Do not expect Worktrunk status to return a branch, inspect
 candidate artifacts, or replace Worktrunk with raw `git worktree` lifecycle
 commands.
