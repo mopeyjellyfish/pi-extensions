@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 const PACKAGE_ROOT = join(import.meta.dirname, "..");
+const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 const HELPER = join(PACKAGE_ROOT, "scripts", "feature-flow.mjs");
 const roots: string[] = [];
 
@@ -100,10 +101,11 @@ async function createPlannedFeature() {
   await writeFile(pitchPath, pitch);
   const ledgerPath = join(repository.featureRoot, "index.json");
   const ledger = JSON.parse(await readFile(ledgerPath, "utf8")) as Record<string, unknown>;
+  const pitchHash = createHash("sha256").update(pitch).digest("hex");
   ledger["pitch"] = {
     path: "pitch.md",
     number: 1,
-    sha256: createHash("sha256").update(pitch).digest("hex"),
+    sha256: pitchHash,
   };
   const evidence = emptyEvidence();
   ledger["slices"] = [
@@ -127,6 +129,29 @@ async function createPlannedFeature() {
     },
   ];
   await writeFile(ledgerPath, `${JSON.stringify(ledger, null, 2)}\n`);
+  const plansRoot = join(repository.featureRoot, "plans");
+  await mkdir(plansRoot);
+  await Promise.all([
+    writeFile(
+      join(plansRoot, "001-first.md"),
+      planDocument({
+        id: "001",
+        pitchHash,
+        goal: "First outcome",
+        acceptanceCriteria: [],
+      }),
+    ),
+    writeFile(
+      join(plansRoot, "002-second.md"),
+      planDocument({
+        id: "002",
+        pitchHash,
+        dependencies: ["001"],
+        goal: "Second outcome",
+        acceptanceCriteria: [],
+      }),
+    ),
+  ]);
   return { ...repository, ledgerPath };
 }
 
@@ -173,6 +198,12 @@ const emptyEvidence = () => ({
   banking: null,
 });
 
+function requiredItem<T>(items: readonly T[], index: number): T {
+  const item = items[index];
+  if (item === undefined) throw new Error(`fixture is missing item ${String(index)}`);
+  return item;
+}
+
 async function readJson(path: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
 }
@@ -189,6 +220,128 @@ function prospectiveHash(cwd: string, feature = "sample-feature"): string {
 
 function acceptPitch(cwd: string, feature = "sample-feature"): RunResult {
   return run(cwd, "accept", feature, prospectiveHash(cwd, feature));
+}
+
+function planDocument({
+  id,
+  feature = "sample-feature",
+  pitchHash,
+  dependencies = [],
+  goal,
+  acceptanceCriteria,
+}: {
+  readonly id: string;
+  readonly feature?: string;
+  readonly pitchHash: string;
+  readonly dependencies?: readonly string[];
+  readonly goal: string;
+  readonly acceptanceCriteria: readonly string[];
+}): string {
+  const dependencyLines =
+    dependencies.length === 0
+      ? "depends_on: []"
+      : `depends_on:\n${dependencies.map((dependency) => `  - "${dependency}"`).join("\n")}`;
+  return `---
+schema: feature-flow-plan/v2
+feature: "${feature}"
+id: "${id}"
+pitch_sha256: ${pitchHash}
+${dependencyLines}
+---
+
+# Slice ${id}: ${goal}
+
+## Goal
+
+${goal}
+
+## Pitch trace
+
+- [Solution](../pitch.md#solution-and-user-experience)
+${acceptanceCriteria.map((criterion) => `- **${criterion}**`).join("\n")}
+
+## Dependencies and predecessor postconditions
+
+${dependencies.length === 0 ? "No predecessor postconditions." : "The declared predecessors provide their observable outcomes."}
+
+## Public seam and first TDD tracer
+
+Exercise the public command and observe one independently derived failing expectation before the minimum production change.
+
+## Validation
+
+Run the focused test and applicable repository checks.
+
+## Dogfood and QA
+
+Exercise the integrated user path from the public command.
+
+## Done when
+
+The observable goal passes its focused checks and integrated dogfood.
+`;
+}
+
+async function createAcceptedPlanningFeature(acceptanceCriteria = ["AC-001", "AC-002"]) {
+  const repository = await createRepository("shape/sample-feature");
+  expect(
+    run(
+      repository.root,
+      "init",
+      "sample-feature",
+      "--branch",
+      "shape/sample-feature",
+      "--base",
+      repository.base,
+    ).status,
+  ).toBe(0);
+  const pitchPath = join(repository.featureRoot, "pitch.md");
+  await writeFile(
+    pitchPath,
+    `${await readFile(pitchPath, "utf8")}\n${acceptanceCriteria
+      .map((criterion) => `- **${criterion} — Observable outcome.**`)
+      .join("\n")}\n`,
+  );
+  expect(acceptPitch(repository.root).status).toBe(0);
+  const ledger = (await readJson(join(repository.featureRoot, "index.json"))) as {
+    pitch: { sha256: string };
+  };
+  return { ...repository, pitchHash: ledger.pitch.sha256 };
+}
+
+async function createRegisteredPlanningFeature(acceptanceCriteria = ["AC-001", "AC-002"]) {
+  const repository = await createAcceptedPlanningFeature(acceptanceCriteria);
+  const proposalRoot = join(repository.root, "reviewed-plans");
+  await mkdir(proposalRoot);
+  const plans = acceptanceCriteria.map((criterion, index) => {
+    const id = String(index + 1).padStart(3, "0");
+    return {
+      id,
+      path: join(proposalRoot, `${id}-outcome-${String(index + 1)}.md`),
+      criterion,
+    };
+  });
+  await Promise.all(
+    plans.map(({ criterion, id, path }) =>
+      writeFile(
+        path,
+        planDocument({
+          id,
+          pitchHash: repository.pitchHash,
+          goal: `Independent outcome ${id}`,
+          acceptanceCriteria: [criterion],
+        }),
+      ),
+    ),
+  );
+  const registered = run(
+    repository.root,
+    "register-plans",
+    "sample-feature",
+    ...plans.map(({ path }) => path),
+  );
+  if (registered.status !== 0) throw new Error(registered.stderr);
+  return { ...repository, plans, proposalRoot };
 }
 
 async function patchedHelper(
@@ -213,11 +366,19 @@ async function registerSinglePlan(
   featureRoot: string,
   slice: Record<string, unknown> = {},
 ): Promise<void> {
-  await mkdir(join(featureRoot, "plans"));
-  await writeFile(join(featureRoot, "plans", "001-first.md"), "# First used plan\n");
   const ledgerPath = join(featureRoot, "index.json");
-  const ledger = await readJson(ledgerPath);
-  ledger["slices"] = [
+  const ledger = (await readJson(ledgerPath)) as { pitch: { sha256: string }; slices?: unknown[] };
+  await mkdir(join(featureRoot, "plans"));
+  await writeFile(
+    join(featureRoot, "plans", "001-first.md"),
+    planDocument({
+      id: "001",
+      pitchHash: ledger.pitch.sha256,
+      goal: "First outcome",
+      acceptanceCriteria: [],
+    }),
+  );
+  ledger.slices = [
     {
       id: "001",
       plan: "plans/001-first.md",
@@ -239,6 +400,692 @@ afterEach(async () => {
 });
 
 describe("feature-flow helper", () => {
+  it("substitutes the plan template into a candidate accepted by public validation", async () => {
+    expect.hasAssertions();
+    const { pitchHash, root } = await createAcceptedPlanningFeature(["AC-001"]);
+    const template = await readFile(
+      join(PACKAGE_ROOT, "skills", "shape", "templates", "plan.md"),
+      "utf8",
+    );
+    const candidate = template
+      .replaceAll("{{feature}}", "sample-feature")
+      .replaceAll("{{id}}", "001")
+      .replaceAll("{{pitch_sha256}}", pitchHash)
+      .replace("State one observable user or operator outcome.", "Template outcome")
+      .replace("../pitch.md#exact-heading-anchor", "../pitch.md#solution-and-user-experience")
+      .replace("AC-NNN", "AC-001");
+    const candidatePath = join(root, "001-template-outcome.md");
+    await writeFile(candidatePath, candidate);
+
+    const result = run(root, "validate-plans", "sample-feature", candidatePath);
+
+    expect(candidate).not.toMatch(/\{\{[^}]+\}\}/u);
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      command: "validate-plans",
+      plans: 1,
+      valid: true,
+    });
+  });
+
+  it("validates and registers one reviewed plan set without inventing dependencies", async () => {
+    expect.hasAssertions();
+    const { featureRoot, pitchHash, root } = await createAcceptedPlanningFeature();
+    const proposalRoot = join(root, "reviewed-plans");
+    await mkdir(proposalRoot);
+    const first = join(proposalRoot, "001-first-outcome.md");
+    const second = join(proposalRoot, "002-second-outcome.md");
+    await Promise.all([
+      writeFile(
+        first,
+        planDocument({
+          id: "001",
+          pitchHash,
+          goal: "First independent outcome",
+          acceptanceCriteria: ["AC-001"],
+        }),
+      ),
+      writeFile(
+        second,
+        planDocument({
+          id: "002",
+          pitchHash,
+          goal: "Second independent outcome",
+          acceptanceCriteria: ["AC-002"],
+        }),
+      ),
+    ]);
+    const ledgerPath = join(featureRoot, "index.json");
+    const before = await readFile(ledgerPath, "utf8");
+
+    const validated = run(root, "validate-plans", "sample-feature", first, second);
+    expect(validated.status).toBe(0);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+    expect(await exists(join(featureRoot, "plans"))).toBe(false);
+
+    const registered = run(root, "register-plans", "sample-feature", first, second);
+
+    expect(registered.status).toBe(0);
+    expect(JSON.parse(registered.stdout)).toMatchObject({
+      ok: true,
+      command: "register-plans",
+      feature: "sample-feature",
+      phase: "building",
+      next_action: "Activate dependency-ready slice 001.",
+    });
+    const ledger = (await readJson(ledgerPath)) as {
+      slices: { depends_on: string[]; status: string }[];
+    };
+    expect(ledger.slices).toHaveLength(2);
+    expect(ledger.slices.map(({ depends_on }) => depends_on)).toEqual([[], []]);
+    expect(ledger.slices.map(({ status }) => status)).toEqual(["pending", "pending"]);
+    await expect(
+      readFile(join(featureRoot, "plans", "001-first-outcome.md"), "utf8"),
+    ).resolves.toBe(await readFile(first, "utf8"));
+  });
+
+  it("updates only a changed pending Goal while preserving untouched records", async () => {
+    expect.hasAssertions();
+    const { featureRoot, pitchHash, plans, proposalRoot, root } =
+      await createRegisteredPlanningFeature();
+    const plansRoot = join(featureRoot, "plans");
+    const firstPath = join(plansRoot, "001-outcome-1.md");
+    const firstBytes = await readFile(firstPath, "utf8");
+    const pitchPath = join(featureRoot, "pitch.md");
+    const pitchBytes = await readFile(pitchPath, "utf8");
+    const ledgerPath = join(featureRoot, "index.json");
+    const before = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    requiredItem(before.slices, 0)["goal"] = "Concise first resume summary";
+    requiredItem(before.slices, 1)["goal"] = "Concise second resume summary";
+    await writeJson(ledgerPath, before);
+    const firstRecord = structuredClone(requiredItem(before.slices, 0));
+    const refinedSecond = join(proposalRoot, "002-refined-outcome.md");
+    await writeFile(
+      refinedSecond,
+      planDocument({
+        id: "002",
+        pitchHash,
+        goal: "Refined second independent outcome with richer human detail",
+        acceptanceCriteria: ["AC-002"],
+      }),
+    );
+
+    const result = run(
+      root,
+      "refine-plans",
+      "sample-feature",
+      requiredItem(plans, 0).path,
+      refinedSecond,
+    );
+
+    expect(result.status).toBe(0);
+    const after = (await readJson(ledgerPath)) as {
+      pitch: { sha256: string };
+      slices: Record<string, unknown>[];
+    };
+    expect(after.pitch.sha256).toBe(pitchHash);
+    await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBytes);
+    expect(after.slices[0]).toEqual(firstRecord);
+    expect(after.slices[1]).toMatchObject({
+      id: "002",
+      plan: "plans/002-refined-outcome.md",
+      goal: "Refined second independent outcome with richer human detail",
+      depends_on: [],
+      status: "pending",
+    });
+    await expect(readFile(firstPath, "utf8")).resolves.toBe(firstBytes);
+    expect(await exists(join(plansRoot, "002-outcome-2.md"))).toBe(false);
+  });
+
+  it("preserves a pending ledger summary across non-Goal edits, path changes, dependencies, and reorder", async () => {
+    expect.hasAssertions();
+    const fixture = await createRegisteredPlanningFeature();
+    const ledgerPath = join(fixture.featureRoot, "index.json");
+    const before = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    requiredItem(before.slices, 0)["goal"] = "Concise first resume summary";
+    requiredItem(before.slices, 1)["goal"] = "Concise second resume summary";
+    await writeJson(ledgerPath, before);
+    const firstRecord = structuredClone(requiredItem(before.slices, 0));
+    const revisedSecond = join(fixture.proposalRoot, "002-reworked-outcome.md");
+    await writeFile(
+      revisedSecond,
+      planDocument({
+        id: "002",
+        pitchHash: fixture.pitchHash,
+        dependencies: ["001"],
+        goal: "Independent outcome 002",
+        acceptanceCriteria: ["AC-002"],
+      }).replace(
+        "Run the focused test and applicable repository checks.",
+        "Run the focused test, applicable repository checks, and a public CLI smoke check.",
+      ),
+    );
+
+    const result = run(
+      fixture.root,
+      "refine-plans",
+      "sample-feature",
+      revisedSecond,
+      requiredItem(fixture.plans, 0).path,
+    );
+
+    expect(result.status).toBe(0);
+    const after = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    expect(after.slices.map((slice) => slice["id"])).toEqual(["002", "001"]);
+    expect(after.slices[0]).toMatchObject({
+      id: "002",
+      plan: "plans/002-reworked-outcome.md",
+      goal: "Concise second resume summary",
+      depends_on: ["001"],
+    });
+    expect(after.slices[1]).toEqual(firstRecord);
+  });
+
+  it("rejects cyclic plan dependencies without writing", async () => {
+    expect.hasAssertions();
+    const { featureRoot, pitchHash, root } = await createAcceptedPlanningFeature();
+    const proposalRoot = join(root, "reviewed-plans");
+    await mkdir(proposalRoot);
+    const first = join(proposalRoot, "001-first.md");
+    const second = join(proposalRoot, "002-second.md");
+    await Promise.all([
+      writeFile(
+        first,
+        planDocument({
+          id: "001",
+          pitchHash,
+          dependencies: ["002"],
+          goal: "First outcome",
+          acceptanceCriteria: ["AC-001"],
+        }),
+      ),
+      writeFile(
+        second,
+        planDocument({
+          id: "002",
+          pitchHash,
+          dependencies: ["001"],
+          goal: "Second outcome",
+          acceptanceCriteria: ["AC-002"],
+        }),
+      ),
+    ]);
+    const ledgerPath = join(featureRoot, "index.json");
+    const before = await readFile(ledgerPath, "utf8");
+
+    const result = run(root, "register-plans", "sample-feature", first, second);
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "slice dependency graph contains a cycle at 001" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+    expect(await exists(join(featureRoot, "plans"))).toBe(false);
+  });
+
+  it("rejects unknown literal pitch acceptance criteria without writing", async () => {
+    expect.hasAssertions();
+    const { featureRoot, pitchHash, root } = await createAcceptedPlanningFeature(["AC-001"]);
+    const proposalRoot = join(root, "reviewed-plans");
+    await mkdir(proposalRoot);
+    const plan = join(proposalRoot, "001-first.md");
+    await writeFile(
+      plan,
+      planDocument({
+        id: "001",
+        pitchHash,
+        goal: "First outcome",
+        acceptanceCriteria: ["AC-999"],
+      }),
+    );
+    const ledgerPath = join(featureRoot, "index.json");
+    const before = await readFile(ledgerPath, "utf8");
+
+    const result = run(root, "register-plans", "sample-feature", plan);
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "plan 001 references unknown AC-999" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+    expect(await exists(join(featureRoot, "plans"))).toBe(false);
+  });
+
+  it("rejects non-canonical, unpinned, uncovered, unsafe, and unknown-dependency plans", async () => {
+    expect.hasAssertions();
+    const cases = [
+      {
+        label: "filename",
+        name: "002-wrong-id.md",
+        mutate: (plan: string) => plan,
+        reason: "plan 001 filename must be 001-<vertical-outcome>.md",
+      },
+      {
+        label: "feature quotes",
+        name: "001-outcome.md",
+        mutate: (plan: string) =>
+          plan.replace('feature: "sample-feature"', 'feature: "sample-feature'),
+        reason: "plan must have canonical v2 feature, id, pitch pin, and dependencies",
+      },
+      {
+        label: "pitch pin",
+        name: "001-outcome.md",
+        mutate: (plan: string) =>
+          plan.replace(/pitch_sha256: [0-9a-f]{64}/u, `pitch_sha256: ${"0".repeat(64)}`),
+        reason: "plan 001 pitch_sha256 must match accepted pitch",
+      },
+      {
+        label: "literal coverage",
+        name: "001-outcome.md",
+        mutate: (plan: string) => plan.replace("- **AC-001**\n", ""),
+        reason: "plan 001 pitch trace must contain exact literal acceptance criteria",
+      },
+      {
+        label: "absolute path",
+        name: "001-outcome.md",
+        mutate: (plan: string) => `${plan}\nRead /Users/example/private before continuing.\n`,
+        reason: "plan must not contain local absolute paths",
+      },
+      {
+        label: "status field",
+        name: "001-outcome.md",
+        mutate: (plan: string) => plan.replace("depends_on: []", "depends_on: []\nstatus: pending"),
+        reason: "plan must have canonical v2 feature, id, pitch pin, and dependencies",
+      },
+      {
+        label: "unknown dependency",
+        name: "001-outcome.md",
+        mutate: (plan: string) => plan.replace("depends_on: []", 'depends_on:\n  - "999"'),
+        reason: "slice 001 has a duplicate or unknown dependency",
+      },
+    ];
+    for (const scenario of cases) {
+      const { featureRoot, pitchHash, root } = await createAcceptedPlanningFeature(["AC-001"]);
+      const proposalRoot = join(root, "reviewed-plans");
+      await mkdir(proposalRoot);
+      const path = join(proposalRoot, scenario.name);
+      await writeFile(
+        path,
+        scenario.mutate(
+          planDocument({
+            id: "001",
+            pitchHash,
+            goal: "First outcome",
+            acceptanceCriteria: ["AC-001"],
+          }),
+        ),
+      );
+      const ledgerPath = join(featureRoot, "index.json");
+      const before = await readFile(ledgerPath, "utf8");
+
+      const result = run(root, "register-plans", "sample-feature", path);
+
+      expect({ label: scenario.label, status: result.status }).toEqual({
+        label: scenario.label,
+        status: 1,
+      });
+      expect({
+        label: scenario.label,
+        reason: (JSON.parse(result.stderr) as { errors: { reason: string }[] }).errors[0]?.reason,
+      }).toEqual({ label: scenario.label, reason: scenario.reason });
+      await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+      expect(await exists(join(featureRoot, "plans"))).toBe(false);
+    }
+  });
+
+  it("rejects more than one current slice during read-only inspection", async () => {
+    expect.hasAssertions();
+    const { featureRoot, root } = await createRegisteredPlanningFeature();
+    const ledgerPath = join(featureRoot, "index.json");
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    requiredItem(ledger.slices, 0)["status"] = "active";
+    requiredItem(ledger.slices, 1)["status"] = "blocked";
+    requiredItem(ledger.slices, 1)["blocker"] = {
+      reason: "Blocked",
+      next_action: "Resolve the blocker.",
+    };
+    await writeJson(ledgerPath, ledger);
+    const before = await readFile(ledgerPath, "utf8");
+
+    const result = run(root, "inspect", "sample-feature");
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "at most one slice may be active or blocked" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+  });
+
+  it("rejects active plan byte mutation without changing any canonical bytes", async () => {
+    expect.hasAssertions();
+    const { featureRoot, plans, root } = await createRegisteredPlanningFeature();
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    const changedFirst = requiredItem(plans, 0).path;
+    await writeFile(
+      changedFirst,
+      (await readFile(changedFirst, "utf8")).replace(
+        "Run the focused test and applicable repository checks.",
+        "Run the focused test, applicable repository checks, and one extra byte-level check.",
+      ),
+    );
+    const plansRoot = join(featureRoot, "plans");
+    const ledgerPath = join(featureRoot, "index.json");
+    const [ledgerBefore, firstBefore, secondBefore] = await Promise.all([
+      readFile(ledgerPath, "utf8"),
+      readFile(join(plansRoot, "001-outcome-1.md"), "utf8"),
+      readFile(join(plansRoot, "002-outcome-2.md"), "utf8"),
+    ]);
+
+    const validation = run(
+      root,
+      "validate-plans",
+      "sample-feature",
+      changedFirst,
+      requiredItem(plans, 1).path,
+    );
+    expect(validation.status).toBe(1);
+    expect(JSON.parse(validation.stderr)).toMatchObject({
+      errors: [{ reason: "fixed slice 001 plan bytes must remain unchanged" }],
+    });
+
+    const result = run(
+      root,
+      "refine-plans",
+      "sample-feature",
+      changedFirst,
+      requiredItem(plans, 1).path,
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "fixed slice 001 plan bytes must remain unchanged" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+    await expect(readFile(join(plansRoot, "001-outcome-1.md"), "utf8")).resolves.toBe(firstBefore);
+    await expect(readFile(join(plansRoot, "002-outcome-2.md"), "utf8")).resolves.toBe(secondBefore);
+  });
+
+  it("refines pending plans while a fixed plan Goal differs from its ledger summary", async () => {
+    expect.hasAssertions();
+    const fixture = await createRegisteredPlanningFeature();
+    const ledgerPath = join(fixture.featureRoot, "index.json");
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    requiredItem(ledger.slices, 0)["goal"] = "Concise fixed resume summary";
+    await writeJson(ledgerPath, ledger);
+    expect(run(fixture.root, "activate", "sample-feature", "001").status).toBe(0);
+    const fixedRecord = structuredClone(
+      requiredItem(
+        ((await readJson(ledgerPath)) as { slices: Record<string, unknown>[] }).slices,
+        0,
+      ),
+    );
+    const refinedSecond = join(fixture.proposalRoot, "002-refined-outcome.md");
+    await writeFile(
+      refinedSecond,
+      planDocument({
+        id: "002",
+        pitchHash: fixture.pitchHash,
+        goal: "Changed second outcome",
+        acceptanceCriteria: ["AC-002"],
+      }),
+    );
+
+    const result = run(
+      fixture.root,
+      "refine-plans",
+      "sample-feature",
+      requiredItem(fixture.plans, 0).path,
+      refinedSecond,
+    );
+
+    expect(result.status).toBe(0);
+    const after = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    expect(after.slices[0]).toEqual(fixedRecord);
+    expect(after.slices[1]).toMatchObject({ goal: "Changed second outcome" });
+  });
+
+  it("rolls back every plan and the ledger when refinement publication fails", async () => {
+    expect.hasAssertions();
+    const { featureRoot, pitchHash, plans, proposalRoot, root } =
+      await createRegisteredPlanningFeature();
+    const refined = join(proposalRoot, "002-refined.md");
+    await writeFile(
+      refined,
+      planDocument({
+        id: "002",
+        pitchHash,
+        goal: "Refined second outcome",
+        acceptanceCriteria: ["AC-002"],
+      }),
+    );
+    const helper = await patchedHelper(
+      root,
+      "feature-flow-failing-plans.mjs",
+      "    await publishLedger();",
+      '    throw new Error("simulated plan ledger failure");',
+    );
+    const plansRoot = join(featureRoot, "plans");
+    const ledgerPath = join(featureRoot, "index.json");
+    const [ledgerBefore, firstBefore, secondBefore] = await Promise.all([
+      readFile(ledgerPath, "utf8"),
+      readFile(join(plansRoot, "001-outcome-1.md"), "utf8"),
+      readFile(join(plansRoot, "002-outcome-2.md"), "utf8"),
+    ]);
+
+    const result = runWithHelper(
+      root,
+      helper,
+      "refine-plans",
+      "sample-feature",
+      requiredItem(plans, 0).path,
+      refined,
+    );
+
+    expect(result.status).toBe(1);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+    await expect(readFile(join(plansRoot, "001-outcome-1.md"), "utf8")).resolves.toBe(firstBefore);
+    await expect(readFile(join(plansRoot, "002-outcome-2.md"), "utf8")).resolves.toBe(secondBefore);
+    expect(
+      (await readdir(featureRoot)).some((entry) => entry.startsWith(".feature-flow-plans")),
+    ).toBe(false);
+  });
+
+  it("rejects plan-file and ledger dependency drift during inspection", async () => {
+    expect.hasAssertions();
+    const { featureRoot, root } = await createRegisteredPlanningFeature();
+    const planPath = join(featureRoot, "plans", "002-outcome-2.md");
+    await writeFile(
+      planPath,
+      (await readFile(planPath, "utf8")).replace("depends_on: []", 'depends_on:\n  - "001"'),
+    );
+    const ledgerBefore = await readFile(join(featureRoot, "index.json"), "utf8");
+
+    const result = run(root, "inspect", "sample-feature");
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "plan 002 dependencies do not match ledger" }],
+    });
+    await expect(readFile(join(featureRoot, "index.json"), "utf8")).resolves.toBe(ledgerBefore);
+  });
+
+  it("inspects rich plan Goals with independent concise ledger summaries", async () => {
+    expect.hasAssertions();
+    const { featureRoot, root } = await createRegisteredPlanningFeature();
+    const ledgerPath = join(featureRoot, "index.json");
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    requiredItem(ledger.slices, 0)["goal"] = "Concise first resume summary";
+    await writeJson(ledgerPath, ledger);
+    const planPath = join(featureRoot, "plans", "001-outcome-1.md");
+    await writeFile(
+      planPath,
+      (await readFile(planPath, "utf8")).replace(
+        "Independent outcome 001\n\n## Pitch trace",
+        "A richer observable outcome with human context and delivery detail.\n\n## Pitch trace",
+      ),
+    );
+
+    const result = run(root, "inspect", "sample-feature");
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      phase: "building",
+      next_action: "Activate dependency-ready slice 001.",
+    });
+  });
+
+  it("inspects the current accepted historical feature", () => {
+    expect.hasAssertions();
+
+    const result = run(REPOSITORY_ROOT, "inspect", "ai-feature-flow");
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      command: "inspect",
+      feature: "ai-feature-flow",
+    });
+  });
+
+  it("rejects refinement while a done slice is not banked without changing canonical bytes", async () => {
+    expect.hasAssertions();
+    const fixture = await createRegisteredPlanningFeature();
+    const ledgerPath = join(fixture.featureRoot, "index.json");
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    requiredItem(ledger.slices, 0)["status"] = "done";
+    requiredItem(ledger.slices, 0)["evidence"] = {
+      red_green: "red then green",
+      review: "blocker-free",
+      dogfood: "integrated path passed",
+      checks: "checks passed",
+      banking: "commit",
+    };
+    await writeJson(ledgerPath, ledger);
+    const refinedSecond = join(fixture.proposalRoot, "002-refined-outcome.md");
+    await writeFile(
+      refinedSecond,
+      planDocument({
+        id: "002",
+        pitchHash: fixture.pitchHash,
+        goal: "Refined second outcome",
+        acceptanceCriteria: ["AC-002"],
+      }),
+    );
+    const plansRoot = join(fixture.featureRoot, "plans");
+    const canonicalPlans = await readdir(plansRoot);
+    const ledgerBefore = await readFile(ledgerPath, "utf8");
+    const plansBefore = await Promise.all(
+      canonicalPlans.map((name) => readFile(join(plansRoot, name), "utf8")),
+    );
+
+    const result = run(
+      fixture.root,
+      "refine-plans",
+      "sample-feature",
+      requiredItem(fixture.plans, 0).path,
+      refinedSecond,
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "all done slices must be banked before refinement" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+    await expect(
+      Promise.all(canonicalPlans.map((name) => readFile(join(plansRoot, name), "utf8"))),
+    ).resolves.toEqual(plansBefore);
+  });
+
+  it("rejects reversed fixed slice order without changing canonical bytes", async () => {
+    expect.hasAssertions();
+    const fixture = await createRegisteredPlanningFeature();
+    const ledgerPath = join(fixture.featureRoot, "index.json");
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    for (const slice of ledger.slices) {
+      slice["status"] = "done";
+      slice["evidence"] = {
+        red_green: "red then green",
+        review: "blocker-free",
+        dogfood: "integrated path passed",
+        checks: "checks passed",
+        banking: "checkpoint: repository policy forbids commits",
+      };
+    }
+    await writeJson(ledgerPath, ledger);
+    const plansRoot = join(fixture.featureRoot, "plans");
+    const canonicalPlans = await readdir(plansRoot);
+    const ledgerBefore = await readFile(ledgerPath, "utf8");
+    const plansBefore = await Promise.all(
+      canonicalPlans.map((name) => readFile(join(plansRoot, name), "utf8")),
+    );
+
+    const result = run(
+      fixture.root,
+      "refine-plans",
+      "sample-feature",
+      requiredItem(fixture.plans, 1).path,
+      requiredItem(fixture.plans, 0).path,
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "fixed slice relative order must remain unchanged" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
+    await expect(
+      Promise.all(canonicalPlans.map((name) => readFile(join(plansRoot, name), "utf8"))),
+    ).resolves.toEqual(plansBefore);
+  });
+
+  it("refines, splits, merges, and reorders only pending plans as one complete set", async () => {
+    expect.hasAssertions();
+    const fixture = await createRegisteredPlanningFeature(["AC-001", "AC-002", "AC-003"]);
+    const plansRoot = join(fixture.featureRoot, "plans");
+    const untouchedThird = await readFile(join(plansRoot, "003-outcome-3.md"), "utf8");
+    const ledgerPath = join(fixture.featureRoot, "index.json");
+    const before = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    const thirdRecord = structuredClone(requiredItem(before.slices, 2));
+    const mergedFirst = join(fixture.proposalRoot, "001-merged-outcome.md");
+    const splitFourth = join(fixture.proposalRoot, "004-split-outcome.md");
+    await Promise.all([
+      writeFile(
+        mergedFirst,
+        planDocument({
+          id: "001",
+          pitchHash: fixture.pitchHash,
+          goal: "Refined first outcome merged with the second",
+          acceptanceCriteria: ["AC-001", "AC-002"],
+        }),
+      ),
+      writeFile(
+        splitFourth,
+        planDocument({
+          id: "004",
+          pitchHash: fixture.pitchHash,
+          goal: "Split fourth outcome",
+          acceptanceCriteria: ["AC-003"],
+        }),
+      ),
+    ]);
+
+    const result = run(
+      fixture.root,
+      "refine-plans",
+      "sample-feature",
+      requiredItem(fixture.plans, 2).path,
+      mergedFirst,
+      splitFourth,
+    );
+
+    expect(result.status).toBe(0);
+    const after = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    expect(after.slices.map((slice) => slice["id"])).toEqual(["003", "001", "004"]);
+    expect(after.slices[0]).toEqual(thirdRecord);
+    await expect(readFile(join(plansRoot, "003-outcome-3.md"), "utf8")).resolves.toBe(
+      untouchedThird,
+    );
+    expect(await exists(join(plansRoot, "002-outcome-2.md"))).toBe(false);
+  });
+
   it("accepts a draft by changing only its status and pins the final file hash", async () => {
     expect.hasAssertions();
     const { base, featureRoot, root } = await createRepository("shape/sample-feature");
@@ -522,7 +1369,13 @@ describe("feature-flow helper", () => {
     const accepted = await readFile(pitchPath, "utf8");
     const plansPath = join(featureRoot, "plans");
     await mkdir(plansPath);
-    await writeFile(join(plansPath, "001-first.md"), "# First used plan\n");
+    const planBytes = planDocument({
+      id: "001",
+      pitchHash: createHash("sha256").update(accepted).digest("hex"),
+      goal: "First outcome",
+      acceptanceCriteria: [],
+    });
+    await writeFile(join(plansPath, "001-first.md"), planBytes);
     const ledgerPath = join(featureRoot, "index.json");
     const ledger = await readJson(ledgerPath);
     ledger["slices"] = [
@@ -553,7 +1406,7 @@ describe("feature-flow helper", () => {
     });
     await expect(readFile(join(featureRoot, "pitch-v001.md"), "utf8")).resolves.toBe(accepted);
     await expect(readFile(join(featureRoot, "plans-v001", "001-first.md"), "utf8")).resolves.toBe(
-      "# First used plan\n",
+      planBytes,
     );
     expect(await exists(plansPath)).toBe(false);
     expect(await readFile(pitchPath, "utf8")).toBe(
@@ -627,6 +1480,7 @@ describe("feature-flow helper", () => {
           banking,
         },
       });
+      const planBefore = await readFile(join(featureRoot, "plans", "001-first.md"), "utf8");
       if (banking === "commit") {
         execFileSync("git", ["add", "docs/features/sample-feature"], { cwd: root });
         execFileSync(
@@ -643,7 +1497,7 @@ describe("feature-flow helper", () => {
         "status: accepted",
       );
       await expect(readFile(join(featureRoot, "plans-v001", "001-first.md"), "utf8")).resolves.toBe(
-        "# First used plan\n",
+        planBefore,
       );
     }
   });
@@ -721,9 +1575,16 @@ describe("feature-flow helper", () => {
     ).toBe(0);
     expect(acceptPitch(root).status).toBe(0);
     const pitchPath = join(featureRoot, "pitch.md");
+    const accepted = await readFile(pitchPath, "utf8");
     const plansPath = join(featureRoot, "plans");
     await mkdir(plansPath);
-    await writeFile(join(plansPath, "001-first.md"), "# First used plan\n");
+    const planBytes = planDocument({
+      id: "001",
+      pitchHash: createHash("sha256").update(accepted).digest("hex"),
+      goal: "First outcome",
+      acceptanceCriteria: [],
+    });
+    await writeFile(join(plansPath, "001-first.md"), planBytes);
     const ledgerPath = join(featureRoot, "index.json");
     const ledger = await readJson(ledgerPath);
     ledger["slices"] = [
@@ -754,9 +1615,7 @@ describe("feature-flow helper", () => {
     expect(result.status).toBe(1);
     await expect(readFile(pitchPath, "utf8")).resolves.toBe(pitchBefore);
     await expect(readFile(ledgerPath, "utf8")).resolves.toBe(ledgerBefore);
-    await expect(readFile(join(plansPath, "001-first.md"), "utf8")).resolves.toBe(
-      "# First used plan\n",
-    );
+    await expect(readFile(join(plansPath, "001-first.md"), "utf8")).resolves.toBe(planBytes);
     expect(await exists(join(featureRoot, "pitch-v001.md"))).toBe(false);
     expect(await exists(join(featureRoot, "plans-v001"))).toBe(false);
     expect((await readdir(featureRoot)).some((entry) => entry.startsWith(".feature-flow-"))).toBe(

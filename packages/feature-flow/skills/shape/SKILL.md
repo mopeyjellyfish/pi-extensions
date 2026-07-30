@@ -15,7 +15,8 @@ Coordinate one feature from its brief or canonical ledger. Read
 [workspace routing](references/workspace.md) before any side effect,
 [artifact rules](references/artifacts.md) before using the helper,
 [shaping and acceptance](references/shaping.md) while the derived phase is
-`shaping`, and the [slice evaluation](references/evaluation.md) before dogfood.
+`shaping`, [vertical-slice planning](references/planning.md) while it is
+`planning`, and the [slice evaluation](references/evaluation.md) before dogfood.
 
 ## Start or resume
 
@@ -43,7 +44,10 @@ when a valid candidate can proceed:
   for a replacement brief.
 - No result at all: ask for a new feature brief only when all three arrays are empty.
 
-Use the package-relative helper with the routed working directory:
+Resolve `../../scripts/feature-flow.mjs` from this skill directory to an
+absolute path, then run it with the routed Git top-level as the process working
+directory. The commands below show that skill-relative path; never resolve it
+from the repository working directory.
 
 ```text
 node ../../scripts/feature-flow.mjs init <feature> --branch <expected-branch> --base <expected-base-sha>
@@ -53,6 +57,9 @@ node ../../scripts/feature-flow.mjs validate-pitch <feature>
 node ../../scripts/feature-flow.mjs accept <feature> <prospective-sha256>
 node ../../scripts/feature-flow.mjs verify <feature>
 node ../../scripts/feature-flow.mjs repitch <feature>
+node ../../scripts/feature-flow.mjs validate-plans <feature> <complete-plan-file>...
+node ../../scripts/feature-flow.mjs register-plans <feature> <complete-plan-file>...
+node ../../scripts/feature-flow.mjs refine-plans <feature> <complete-plan-file>...
 node ../../scripts/feature-flow.mjs activate <feature> <slice-id>
 node ../../scripts/feature-flow.mjs complete <feature> <slice-id> --red-green <evidence> --review <evidence> --dogfood <evidence> --checks <evidence> --banking <commit|checkpoint: reason>
 ```
@@ -69,5 +76,7 @@ worktree commands.
 Keep one writer and require separate read-only review. Stop for decisions that
 would change an accepted pitch. Do not stage, commit, push, merge, publish,
 deploy, remove worktrees, or perform destructive cleanup without the authority
-defined by the accepted pitch and repository instructions. Plan registration,
-refinement, and full Build behavior are not available yet.
+defined by the accepted pitch and repository instructions. Planning registers
+only a blocker-free independently reviewed whole set, with no human plan gate.
+Do not extend the existing bootstrap activation/completion commands into full
+Build, cutting, delivery, or shipping behavior yet.

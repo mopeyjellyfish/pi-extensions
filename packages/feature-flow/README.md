@@ -17,8 +17,10 @@ One valid candidate activates and resumes. Several produce one structured human
 choice. Stale or malformed candidates are reported without adoption or a request
 for another brief. Only a completely empty result requests a new brief. Draft shaping now uses
 repository-led research, adaptive recommended questions, separate read-only
-review, and one complete document-backed approval. Plan registration,
-refinement, and the full Build loop remain later slices.
+review, and one complete document-backed approval. Accepted pitches then move
+through automatic whole-set vertical planning, independent read-only
+review/fix/re-review, and registration without a human plan-approval gate. The
+full Build loop remains a later slice.
 
 Worktrunk remains the only worktree lifecycle authority. Before writing, the
 skill routes to the expected worktree and calls:
@@ -49,7 +51,21 @@ and leaves banked code untouched. Ordinary multi-file failures roll back; proces
 staging/backup artifacts that require manual recovery rather than a service or
 database.
 
-The helper also provides narrow `activate` and `complete` commands. Completion
+For planning, `validate-plans <feature> <complete-plan-file>...` checks one
+ordered reviewed candidate set without writing. `register-plans` atomically
+publishes the initial canonical files and pending records. `refine-plans`
+atomically replaces the complete set while rejecting changes to active, blocked,
+done, or cut plans and records. The same operation supports pending refinement,
+split, merge, and reorder; independent empty dependency arrays stay empty.
+Mechanical validation covers canonical v2 metadata and paths, accepted pitch
+pins, exact literal AC coverage, dependency existence and cycles, bounds,
+one-current state, and mechanical file/ledger agreement. Plan Goals carry rich
+human detail; bounded ledger goals are concise resume summaries, not required
+text mirrors. Pending refinement preserves an existing summary across non-Goal
+changes and reseeds it only when that plan Goal changes. Semantic verticality,
+dependency meaning, feasibility, and review quality remain agent judgments.
+
+The helper also provides narrow bootstrap `activate` and `complete` commands. Completion
 requires red/green, independent review, dogfood, checks, and banking evidence.
 A slice declaring `commit` blocks later activation until Git contains a matching
 `Feature-Slice: <id>` commit with the done ledger transition; a bounded

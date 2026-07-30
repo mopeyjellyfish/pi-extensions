@@ -67,4 +67,6 @@ workarounds.
 
 ## Acceptance criteria
 
-Add observable criteria as `AC-NNN` entries.
+Use one observable criterion per line in this exact form:
+
+- **AC-NNN — Name:** Observable outcome.
