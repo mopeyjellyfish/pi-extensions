@@ -63,10 +63,11 @@ compatibility obligation.
 
 ## Solution
 
-Worktrunk routes every feature to `feat/<slug>` before feature artifacts are
-written. The skill queries the routed Git branch because Worktrunk status owns
-the active path, not branch identity. With no brief, it resumes the active shape
-route or asks the human to choose from Worktrunk's existing shape worktrees.
+The `worktree` tool routes every feature to `feat/<slug>` before feature
+artifacts are written. The skill matches its status active path to its list entry
+to obtain branch identity without a direct Git query. With no brief, it resumes
+the active feature route or asks the human to choose from the tool's existing
+feature worktrees.
 
 Each feature contains only:
 

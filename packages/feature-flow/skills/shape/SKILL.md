@@ -16,19 +16,18 @@ worktree lifecycle authority. The durable feature artifacts are
 ## Route before writing
 
 With a brief, derive a short canonical slug and expected `feat/<slug>` branch.
-Read repository instructions and bounded Git facts, resolve an ambiguous base or
-dirty checkout with the human, then use Worktrunk to create or activate the
-route. Verify the routed branch with `git branch --show-current`; write no
-feature artifact before that route is active.
+Read repository instructions, resolve a material base choice with the human,
+then call the `worktree` tool to create or activate the route. Verify its
+returned worktree branch; write no feature artifact before that route is active.
 
-Without a brief, call Worktrunk with `action: "status"`, then use its active path
-for the same bounded Git branch query. An active `feat/<slug>` branch maps
-directly to `docs/features/<slug>/`. If no feature route is active, call
-Worktrunk with `action: "list"` and ask the human to choose among existing
-`feat/*` worktrees. Activate and verify only that choice. If none exists, ask
-for a feature brief. Do not expect Worktrunk status to return a branch, inspect
-candidate artifacts, or replace Worktrunk with raw `git worktree` lifecycle
-commands.
+Without a brief, call `worktree({ action: "status" })`, then
+`worktree({ action: "list" })`. Match the status active path to the worktree list entry and use that
+entry's branch. If the matching entry is omitted by truncation, follow the
+`pi-worktrunk` skill's complete-list guidance. An active `feat/<slug>` branch
+maps directly to `docs/features/<slug>/`. If no feature route is active, ask the
+human to choose among listed `feat/*` worktrees, then activate and verify only
+that choice. If none exists, ask for a feature brief. Do not inspect candidate
+artifacts or replace the `worktree` tool with direct Git worktree commands.
 
 ## Shape and approve the pitch
 

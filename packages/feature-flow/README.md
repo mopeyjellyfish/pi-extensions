@@ -17,8 +17,8 @@ Start naturally with an end-to-end feature brief or run:
 ```
 
 Run `/shape` without a brief to resume the active `feat/<slug>` Worktrunk route.
-If none is active, the skill uses Worktrunk's list and asks which existing shape
-worktree to activate.
+If none is active, the skill uses the `worktree` tool's list and asks which
+existing feature worktree to activate.
 
 Each feature keeps two durable files:
 
