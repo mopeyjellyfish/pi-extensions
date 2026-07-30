@@ -1,72 +1,52 @@
 ---
-schema: feature-flow-pitch/v3
-feature: "{{feature}}"
-pitch: 1
 status: draft
 ---
 
 # Shape: {{feature}}
 
-<!--
-This is a flexible prompt, not a required heading list. Add, remove, or rename
-headings as the feature demands; keep every material decision in this document.
--->
+## Executive summary
 
-## Executive summary and motivating outcome
+Summarize the motivating outcome and smallest useful solution.
 
-Describe the user outcome, current pain, and smallest useful solution.
+## Problem
 
-## Problem and repository truth
+Describe the current pain, why it matters, and the repository truth that shapes
+the decision. Do not ask humans for facts already available in code, tests,
+history, or documentation.
 
-Record the motivating story, relevant code/tests/history/documentation evidence,
-and why the problem matters. Do not ask for facts the repository answers.
+## Appetite
 
-## Qualitative appetite
+State qualitative scope, quality floors, acceptable cuts, and conditions that
+would stop or reshape the work. Do not invent an estimate.
 
-State scope control, quality floors, acceptable cuts, and stop or reshape
-conditions without inventing a delivery estimate.
+## Research and prior art
 
-## Research, prior art, and alternatives
+Keep only decision-relevant research and credible alternatives. Prefer primary
+sources for material external claims and state why the chosen direction wins.
 
-Keep only decision-relevant evidence, prefer primary sources when external
-research is material, and state each implication. Compare credible alternatives
-and why the recommended direction wins.
+## Solution
 
-## Solution and user experience
+Describe user behavior, important flows, failure cases, data and system
+boundaries, and material accessibility, security, privacy, compatibility,
+migration, and operational concerns. Use Mermaid or exact normative snippets
+when they make the contract clearer.
 
-Describe behavior, failure paths, system and data flow, and boundaries. Use
-Mermaid when a diagram clarifies the contract:
-
-```mermaid
-flowchart LR
-    User --> Outcome
-```
-
-If visual or interaction uncertainty warrants the smallest useful prototype,
-link only retained decision evidence and mark it illustrative. Linked assets,
-prototypes, and source are non-normative. Embed exact normative API, schema,
-protocol, and behavior fragments here so the accepted pitch is self-contained.
-
-## Cross-functional boundaries
-
-Cover accessibility, security, privacy, compatibility, migration, operations,
-dependencies, and data handling when material. State what happens at failure,
-cancellation, trust, and authorization boundaries.
-
-## Fixed decisions and agent discretion
+## Fixed decisions
 
 Separate non-negotiables from implementation choices left to agent discretion.
-Include the local banking policy: whether repository guidance authorizes one
-local commit per verified slice. Keep push, PR, merge, deploy, publish,
-destructive cleanup, and worktree removal separately authorized.
+Record source-control, remote-action, deployment, publication, and cleanup
+authority explicitly.
 
-## Rabbit holes and no-gos
+## Rabbit holes
 
-Name material risks and their containment, explicit scope cuts, and prohibited
-workarounds.
+Name plausible distractions or complexity traps and how the work avoids them.
+
+## No-gos
+
+List explicit exclusions and prohibited workarounds.
 
 ## Acceptance criteria
 
-Use one observable criterion per line in this exact form:
+Use observable outcomes, one per line:
 
 - **AC-NNN — Name:** Observable outcome.
