@@ -31,13 +31,20 @@ artifacts or replace the `worktree` tool with direct Git worktree commands.
 
 ## Shape and approve the pitch
 
-Create `pitch.md` from `templates/pitch.md`. Learn what the brief, repository,
-tests, history, documentation, small experiments, and material primary sources
-can answer before asking the human. Ask only unresolved decisions that can
-change the pitch, with a recommendation and meaningful tradeoffs.
+Create `pitch.md` from `templates/pitch.md`. Whether the brief is specific or
+broad, research before settling the pitch. Start with repository truth, then
+delegate bounded current or external topics to specialist researcher subagents;
+parallelize only independent topics. For a named framework, inspect current
+primary documentation, compatibility, established patterns, and material risks.
+For a broad feature, investigate relevant prior art, product and technical
+options, failure boundaries, and unknowns. Scale the work to uncertainty rather
+than researching for ceremony.
 
-Keep the complete pitch useful to humans and agents. Retain decision-relevant
-research, embed exact normative contracts, use Mermaid when it clarifies a flow,
+Synthesize source-backed implications instead of retaining raw research output.
+Use them to inform the human, improve recommendations and tradeoffs in questions,
+and shape the pitch. Ask only unresolved decisions that can still change the
+pitch. Keep the complete pitch useful to humans and agents: cite material primary
+sources, embed exact normative contracts, use Mermaid when it clarifies a flow,
 and include cross-functional boundaries only when material.
 
 Before implementation, send the complete pitch to a separate read-only reviewer
