@@ -2189,7 +2189,7 @@ describe("feature-flow helper", () => {
     expect(await readFile(ledgerPath, "utf8")).toBe(before);
   });
 
-  it("rejects commit banking while post-bank files are dirty", async () => {
+  it("requires clean commit-banked activation but allows a dirty cut", async () => {
     expect.hasAssertions();
     const { root } = await createPlannedFeature();
     expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
@@ -2220,10 +2220,67 @@ describe("feature-flow helper", () => {
     await writeFile(join(root, "dirty.txt"), "not banked\n");
 
     const activation = run(root, "activate", "sample-feature", "002");
+    const cut = run(root, "cut", "sample-feature", "002");
 
     expect(activation.status).toBe(1);
     expect(JSON.parse(activation.stderr)).toMatchObject({
       errors: [{ reason: "checkout must be clean before commit banking permits activation" }],
+    });
+    expect(cut.status).toBe(0);
+    expect(JSON.parse(cut.stdout)).toMatchObject({ phase: "locally-complete" });
+  });
+
+  it("does not reuse a bank from an older accepted pitch with the same slice snapshot", async () => {
+    expect.hasAssertions();
+    const { featureRoot, ledgerPath, root } = await createPlannedFeature();
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "feat(sample): bank old pitch", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+
+    const pitchPath = join(featureRoot, "pitch.md");
+    const nextPitch = (await readFile(pitchPath, "utf8")).replace("pitch: 1", "pitch: 2");
+    const nextHash = createHash("sha256").update(nextPitch).digest("hex");
+    await writeFile(pitchPath, nextPitch);
+    const ledger = (await readJson(ledgerPath)) as {
+      pitch: { path: string; number: number; sha256: string };
+    };
+    const oldHash = ledger.pitch.sha256;
+    ledger.pitch = { path: "pitch.md", number: 2, sha256: nextHash };
+    await writeJson(ledgerPath, ledger);
+    for (const name of ["001-first.md", "002-second.md"] as const) {
+      const planPath = join(featureRoot, "plans", name);
+      await writeFile(planPath, (await readFile(planPath, "utf8")).replace(oldHash, nextHash));
+    }
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "--quiet", "-m", "docs(sample): accept replacement pitch"], {
+      cwd: root,
+    });
+
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "banking",
+      current_slice: "001",
     });
   });
 
@@ -2276,7 +2333,7 @@ describe("feature-flow helper", () => {
     });
   });
 
-  it("keeps repository-policy checkpoints valid without a commit", async () => {
+  it("keeps bounded checkpoint reasons valid without requiring policy keywords", async () => {
     expect.hasAssertions();
     const { root } = await createPlannedFeature();
     expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
@@ -2295,7 +2352,7 @@ describe("feature-flow helper", () => {
       "--checks",
       "checks passed",
       "--banking",
-      "checkpoint: repository policy forbids commits",
+      "checkpoint: commits disabled for this checkout",
     );
     const activation = run(root, "activate", "sample-feature", "002");
 
@@ -2307,7 +2364,7 @@ describe("feature-flow helper", () => {
     expect(activation.status).toBe(0);
   });
 
-  it("recognizes a Feature-Slice commit and permits the next activation", async () => {
+  it("permits block and completion after activation dirties a commit-banked checkout", async () => {
     expect.hasAssertions();
     const { root } = await createPlannedFeature();
     expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
@@ -2346,6 +2403,36 @@ describe("feature-flow helper", () => {
     });
     expect(activation.status).toBe(0);
     expect(JSON.parse(activation.stdout)).toMatchObject({ current_slice: "002" });
+    expect(
+      run(
+        root,
+        "block",
+        "sample-feature",
+        "002",
+        "--reason",
+        "Need final evidence",
+        "--next-action",
+        "Capture it.",
+      ).status,
+    ).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "002",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "checkpoint: commits disabled for this checkout",
+      ).status,
+    ).toBe(0);
   });
 
   it("finds a legitimate bank beyond many same-trailer commits on unrelated paths", async () => {
@@ -2410,6 +2497,146 @@ describe("feature-flow helper", () => {
     });
   });
 
+  it("fails banking closed when the exact-trailer candidate ceiling is exhausted", async () => {
+    expect.hasAssertions();
+    const { ledgerPath, root } = await createPlannedFeature();
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    const completedLedger = await readFile(ledgerPath, "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "custom: valid old bank", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+    for (let index = 0; index < 2; index += 1) {
+      const ledger = (await readJson(ledgerPath)) as {
+        slices: { evidence: { review: string } }[];
+      };
+      requiredItem(ledger.slices, 0).evidence.review = `stale review ${String(index)}`;
+      await writeJson(ledgerPath, ledger);
+      execFileSync("git", ["add", "."], { cwd: root });
+      execFileSync(
+        "git",
+        [
+          "commit",
+          "--quiet",
+          "-m",
+          `custom: stale candidate ${String(index)}`,
+          "-m",
+          "Feature-Slice: 001",
+        ],
+        { cwd: root },
+      );
+    }
+    await writeFile(ledgerPath, completedLedger);
+    const boundedHelper = await patchedHelper(
+      root,
+      "feature-flow-two-bank-candidates.mjs",
+      "const MAX_BANK_CANDIDATES = 1000;",
+      "const MAX_BANK_CANDIDATES = 2;",
+    );
+
+    const result = runWithHelper(root, boundedHelper, "inspect", "sample-feature");
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ phase: "banking", current_slice: "001" });
+
+    execFileSync("git", ["add", ledgerPath], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "custom: rebank current slice", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+    expect(
+      JSON.parse(runWithHelper(root, boundedHelper, "inspect", "sample-feature").stdout),
+    ).toMatchObject({ phase: "building" });
+  });
+
+  it("reuses one banking history scan for multiple done slices", async () => {
+    expect.hasAssertions();
+    const { root } = await createPlannedFeature();
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "custom: Bank first slice!", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+    expect(run(root, "activate", "sample-feature", "002").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "002",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "custom: Bank second slice!", "-m", "Feature-Slice: 002"],
+      { cwd: root },
+    );
+    const tracedHelper = await patchedHelper(
+      root,
+      "feature-flow-traced-bank-scan.mjs",
+      "  const candidates = bankCandidates(commitSlices, ledgerPath, root);",
+      '  process.stderr.write("bank-scan\\n");\n  const candidates = bankCandidates(commitSlices, ledgerPath, root);',
+    );
+
+    const result = runWithHelper(root, tracedHelper, "inspect", "sample-feature");
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ phase: "locally-complete" });
+    expect(result.stderr).toBe("bank-scan\n");
+  });
+
   it("requires complete evidence and blocks advancement until commit banking", async () => {
     expect.hasAssertions();
     const { root, ledgerPath } = await createPlannedFeature();
@@ -2450,7 +2677,7 @@ describe("feature-flow helper", () => {
     expect(advanceOutput.errors).toHaveLength(1);
     expect(advanceOutput.errors[0]?.path).toMatch(/docs\/features\/sample-feature\/index\.json$/u);
     expect(advanceOutput.errors[0]?.reason).toBe(
-      "an earlier done slice must be banked before activation",
+      "slice 001 must be banked before any other transition",
     );
     const ledger = JSON.parse(await readFile(ledgerPath, "utf8")) as {
       slices: { status: string; evidence: Record<string, string | null> }[];
@@ -2498,6 +2725,35 @@ describe("feature-flow helper", () => {
       errors: [{ path: "<arguments>" }],
     });
     expect(await readFile(ledgerPath, "utf8")).toBe(before);
+  });
+
+  it("rejects activation after the first dependency-ready pending slice atomically", async () => {
+    expect.hasAssertions();
+    const { ledgerPath, root } = await createPlannedFeature();
+    const ledger = (await readJson(ledgerPath)) as { slices: { depends_on: string[] }[] };
+    requiredItem(ledger.slices, 1).depends_on = [];
+    await writeJson(ledgerPath, ledger);
+    const secondPlanPath = join(
+      root,
+      "docs",
+      "features",
+      "sample-feature",
+      "plans",
+      "002-second.md",
+    );
+    await writeFile(
+      secondPlanPath,
+      (await readFile(secondPlanPath, "utf8")).replace('depends_on:\n  - "001"', "depends_on: []"),
+    );
+    const before = await readFile(ledgerPath, "utf8");
+
+    const result = run(root, "activate", "sample-feature", "002");
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "slice 001 is the first dependency-ready pending slice" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
   });
 
   it("activates one dependency-ready pending slice", async () => {
@@ -2878,6 +3134,679 @@ describe("feature-flow helper", () => {
       },
     });
     expect(await exists(featureRoot)).toBe(false);
+  });
+
+  it("blocks, resumes, unblocks, and completes one active slice through public commands", async () => {
+    expect.hasAssertions();
+    const { ledgerPath, root } = await createPlannedFeature();
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+
+    const blocked = run(
+      root,
+      "block",
+      "sample-feature",
+      "001",
+      "--reason",
+      "Need operator evidence",
+      "--next-action",
+      "Capture the failed operator journey.",
+    );
+    expect(blocked.status).toBe(0);
+    expect(JSON.parse(blocked.stdout)).toMatchObject({
+      command: "block",
+      phase: "blocked",
+      current_slice: "001",
+      next_action: "Capture the failed operator journey.",
+    });
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "blocked",
+      current_slice: "001",
+    });
+
+    const unblocked = run(root, "unblock", "sample-feature", "001");
+    expect(unblocked.status).toBe(0);
+    expect(JSON.parse(unblocked.stdout)).toMatchObject({
+      command: "unblock",
+      phase: "building",
+      current_slice: "001",
+    });
+    expect(
+      run(
+        root,
+        "block",
+        "sample-feature",
+        "001",
+        "--reason",
+        "Need evidence",
+        "--next-action",
+        "Capture it.",
+      ).status,
+    ).toBe(0);
+
+    const completed = run(
+      root,
+      "complete",
+      "sample-feature",
+      "001",
+      "--red-green",
+      "public seam failed, passed minimally, and stayed green after bounded refactor",
+      "--review",
+      "fresh read-only review was blocker-free after fixes and re-review",
+      "--dogfood",
+      "integrated operator journey passed",
+      "--checks",
+      "focused and required checks passed",
+      "--banking",
+      "checkpoint: repository policy forbids commits",
+    );
+    expect(completed.status).toBe(0);
+    expect(JSON.parse(completed.stdout)).toMatchObject({
+      phase: "building",
+      next_action: "Activate dependency-ready slice 002.",
+    });
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    expect(ledger.slices[0]).toMatchObject({ status: "done", blocker: null });
+  });
+
+  it("cuts only pending slices after their pending dependents are cut", async () => {
+    expect.hasAssertions();
+    const { ledgerPath, root } = await createPlannedFeature();
+    const before = await readFile(ledgerPath, "utf8");
+    const headBefore = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+
+    const dependentFailure = run(root, "cut", "sample-feature", "001");
+    expect(dependentFailure.status).toBe(1);
+    expect(JSON.parse(dependentFailure.stderr)).toMatchObject({
+      errors: [{ reason: "slice 001 still has pending dependent 002" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+
+    expect(run(root, "cut", "sample-feature", "002").status).toBe(0);
+    const completion = run(root, "cut", "sample-feature", "001");
+    expect(completion.status).toBe(0);
+    expect(JSON.parse(completion.stdout)).toMatchObject({
+      command: "cut",
+      phase: "locally-complete",
+      current_slice: null,
+      next_action: "Report local completion.",
+    });
+    const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+    expect(ledger.slices.map((slice) => slice["status"])).toEqual(["cut", "cut"]);
+    expect(ledger.slices.some((slice) => "sha" in slice || "commit_sha" in slice)).toBe(false);
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(1);
+    expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })).toBe(
+      headBefore,
+    );
+    expect(execFileSync("git", ["remote"], { cwd: root, encoding: "utf8" })).toBe("");
+  });
+
+  it("allows a later checkpoint to supersede commit cleanliness for the next activation", async () => {
+    expect.hasAssertions();
+    const { featureRoot, ledgerPath, root } = await createPlannedFeature();
+    const ledger = (await readJson(ledgerPath)) as {
+      pitch: { sha256: string };
+      slices: Record<string, unknown>[];
+    };
+    ledger.slices.push({
+      id: "003",
+      plan: "plans/003-third.md",
+      goal: "Third outcome",
+      depends_on: ["002"],
+      status: "pending",
+      blocker: null,
+      evidence: emptyEvidence(),
+    });
+    await writeFile(
+      join(featureRoot, "plans", "003-third.md"),
+      planDocument({
+        id: "003",
+        pitchHash: ledger.pitch.sha256,
+        dependencies: ["002"],
+        goal: "Third outcome",
+        acceptanceCriteria: [],
+      }),
+    );
+    await writeJson(ledgerPath, ledger);
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "feat(sample): bank first slice", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+    expect(run(root, "activate", "sample-feature", "002").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "002",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "checkpoint: commits disabled for this checkout",
+      ).status,
+    ).toBe(0);
+
+    const activation = run(root, "activate", "sample-feature", "003");
+
+    expect(activation.status).toBe(0);
+    expect(JSON.parse(activation.stdout)).toMatchObject({ current_slice: "003" });
+  });
+
+  it("allows consecutive dirty cuts after a commit bank and derives local completion", async () => {
+    expect.hasAssertions();
+    const { featureRoot, ledgerPath, root } = await createPlannedFeature();
+    const ledger = (await readJson(ledgerPath)) as {
+      pitch: { sha256: string };
+      slices: Record<string, unknown>[];
+    };
+    ledger.slices.push({
+      id: "003",
+      plan: "plans/003-third.md",
+      goal: "Third outcome",
+      depends_on: ["002"],
+      status: "pending",
+      blocker: null,
+      evidence: emptyEvidence(),
+    });
+    await writeFile(
+      join(featureRoot, "plans", "003-third.md"),
+      planDocument({
+        id: "003",
+        pitchHash: ledger.pitch.sha256,
+        dependencies: ["002"],
+        goal: "Third outcome",
+        acceptanceCriteria: [],
+      }),
+    );
+    await writeJson(ledgerPath, ledger);
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        "red then green",
+        "--review",
+        "blocker-free",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "feat(sample): bank first slice", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+
+    expect(run(root, "cut", "sample-feature", "003").status).toBe(0);
+    const completion = run(root, "cut", "sample-feature", "002");
+
+    expect(completion.status).toBe(0);
+    expect(JSON.parse(completion.stdout)).toMatchObject({ phase: "locally-complete" });
+    expect(
+      execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
+        cwd: root,
+        encoding: "utf8",
+      }),
+    ).not.toBe("");
+  });
+
+  it("banks only a reachable Conventional Commit with one exact Feature-Slice trailer", async () => {
+    expect.hasAssertions();
+    const cases = [
+      {
+        label: "invalid subject",
+        messages: ["bank slice", "Feature-Slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "empty scope",
+        messages: ["feat(): bank slice", "Feature-Slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "extra space before description",
+        messages: ["feat:  bank slice", "Feature-Slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "wrong trailer",
+        messages: ["feat(sample): bank slice", "Feature-Slice: 01"],
+        phase: "banking",
+      },
+      {
+        label: "lowercase trailer",
+        messages: ["feat(sample): bank slice", "feature-slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "case variant trailer",
+        messages: ["feat(sample): bank slice", "Feature-slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "delimiter space trailer",
+        messages: ["feat(sample): bank slice", "Feature-Slice : 001"],
+        phase: "banking",
+      },
+      {
+        label: "tab trailer",
+        messages: ["feat(sample): bank slice", "Feature-Slice:\t001"],
+        phase: "banking",
+      },
+      {
+        label: "extra delimiter whitespace trailer",
+        messages: ["feat(sample): bank slice", "Feature-Slice:  001"],
+        phase: "banking",
+      },
+      {
+        label: "duplicate trailer",
+        messages: ["feat(sample): bank slice", "Feature-Slice: 001\nFeature-Slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "case variant duplicate trailer",
+        messages: ["feat(sample): bank slice", "Feature-Slice: 001\nfeature-slice: 001"],
+        phase: "banking",
+      },
+      {
+        label: "exact body line and normalized footer",
+        messages: ["feat(sample): bank slice", "Feature-Slice: 001", "Feature-Slice : 001"],
+        phase: "banking",
+      },
+      {
+        label: "custom type, scope punctuation, uppercase description, and punctuation",
+        messages: ["improvement(parser@edge): Handle EOF!", "Feature-Slice: 001"],
+        phase: "building",
+      },
+      {
+        label: "breaking type",
+        messages: ["improvement!: Handle EOF", "Feature-Slice: 001"],
+        phase: "building",
+      },
+      {
+        label: "breaking scoped type",
+        messages: ["improvement(parser)!: Handle EOF", "Feature-Slice: 001"],
+        phase: "building",
+      },
+      {
+        label: "long description",
+        messages: [`custom: ${"A".repeat(120)}.`, "Feature-Slice: 001"],
+        phase: "building",
+      },
+      {
+        label: "valid commit",
+        messages: ["feat(sample): bank slice", "Feature-Slice: 001"],
+        phase: "building",
+      },
+    ] as const;
+    for (const scenario of cases) {
+      const { ledgerPath, root } = await createPlannedFeature();
+      expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+      expect(
+        run(
+          root,
+          "complete",
+          "sample-feature",
+          "001",
+          "--red-green",
+          "red, minimum green, bounded refactor green",
+          "--review",
+          "blocker-free independent re-review",
+          "--dogfood",
+          "integrated path passed",
+          "--checks",
+          "required checks passed",
+          "--banking",
+          "commit",
+        ).status,
+      ).toBe(0);
+      execFileSync("git", ["add", "."], { cwd: root });
+      execFileSync(
+        "git",
+        ["commit", "--quiet", ...scenario.messages.flatMap((message) => ["-m", message])],
+        { cwd: root },
+      );
+
+      const inspection = run(root, "inspect", "sample-feature");
+      expect({ label: scenario.label, status: inspection.status }).toEqual({
+        label: scenario.label,
+        status: 0,
+      });
+      expect({
+        label: scenario.label,
+        phase: (JSON.parse(inspection.stdout) as { phase: string }).phase,
+      }).toEqual({ label: scenario.label, phase: scenario.phase });
+      const ledger = (await readJson(ledgerPath)) as { slices: Record<string, unknown>[] };
+      expect({
+        label: scenario.label,
+        hasSha: ledger.slices.some((slice) => "sha" in slice || "commit_sha" in slice),
+      }).toEqual({ label: scenario.label, hasSha: false });
+    }
+  });
+
+  it("recovers unbanked done slices in plan order before every other transition", async () => {
+    expect.hasAssertions();
+    const { featureRoot, ledgerPath, root } = await createPlannedFeature();
+    const ledger = (await readJson(ledgerPath)) as {
+      pitch: { sha256: string };
+      slices: Record<string, unknown>[];
+    };
+    const doneEvidence = {
+      red_green: "red, minimum green, bounded refactor green",
+      review: "blocker-free independent re-review",
+      dogfood: "integrated path passed",
+      checks: "required checks passed",
+      banking: "commit",
+    };
+    ledger.slices[0] = {
+      ...requiredItem(ledger.slices, 0),
+      status: "done",
+      evidence: doneEvidence,
+    };
+    ledger.slices[1] = {
+      ...requiredItem(ledger.slices, 1),
+      status: "done",
+      evidence: doneEvidence,
+    };
+    ledger.slices.push(
+      {
+        id: "003",
+        plan: "plans/003-third.md",
+        goal: "Blocked outcome",
+        depends_on: ["002"],
+        status: "blocked",
+        blocker: { reason: "Need evidence", next_action: "Capture operator evidence." },
+        evidence: emptyEvidence(),
+      },
+      {
+        id: "004",
+        plan: "plans/004-fourth.md",
+        goal: "Ready outcome",
+        depends_on: ["002"],
+        status: "pending",
+        blocker: null,
+        evidence: emptyEvidence(),
+      },
+    );
+    await Promise.all([
+      writeFile(
+        join(featureRoot, "plans", "003-third.md"),
+        planDocument({
+          id: "003",
+          pitchHash: ledger.pitch.sha256,
+          dependencies: ["002"],
+          goal: "Blocked outcome",
+          acceptanceCriteria: [],
+        }),
+      ),
+      writeFile(
+        join(featureRoot, "plans", "004-fourth.md"),
+        planDocument({
+          id: "004",
+          pitchHash: ledger.pitch.sha256,
+          dependencies: ["002"],
+          goal: "Ready outcome",
+          acceptanceCriteria: [],
+        }),
+      ),
+    ]);
+    await writeJson(ledgerPath, ledger);
+
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "banking",
+      current_slice: "001",
+    });
+    const before = await readFile(ledgerPath, "utf8");
+    for (const command of [
+      ["activate", "sample-feature", "004"],
+      [
+        "block",
+        "sample-feature",
+        "003",
+        "--reason",
+        "Need evidence",
+        "--next-action",
+        "Capture it.",
+      ],
+      ["unblock", "sample-feature", "003"],
+      [
+        "complete",
+        "sample-feature",
+        "003",
+        "--red-green",
+        "red and green",
+        "--review",
+        "review passed",
+        "--dogfood",
+        "dogfood passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        "checkpoint: repository policy forbids commits",
+      ],
+      ["cut", "sample-feature", "004"],
+    ]) {
+      const result = run(root, ...command);
+      expect({ command: command[0], status: result.status }).toEqual({
+        command: command[0],
+        status: 1,
+      });
+      expect(JSON.parse(result.stderr)).toMatchObject({
+        errors: [{ reason: "slice 001 must be banked before any other transition" }],
+      });
+      await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+    }
+
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "feat(sample): bank first slice", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "banking",
+      current_slice: "002",
+    });
+    const secondBankLedger = (await readJson(ledgerPath)) as {
+      slices: Record<string, unknown>[];
+    };
+    requiredItem(secondBankLedger.slices, 3)["goal"] = "Ready outcome after banking";
+    await writeJson(ledgerPath, secondBankLedger);
+    execFileSync("git", ["add", ledgerPath], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "feat(sample): bank second slice", "-m", "Feature-Slice: 002"],
+      { cwd: root },
+    );
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "blocked",
+      current_slice: "003",
+      next_action: "Capture operator evidence.",
+    });
+  });
+
+  it("rejects every transition when a hand-edited draft retains registered slices", async () => {
+    expect.hasAssertions();
+    const { featureRoot, ledgerPath, root } = await createPlannedFeature();
+    const pitchPath = join(featureRoot, "pitch.md");
+    await writeFile(
+      pitchPath,
+      (await readFile(pitchPath, "utf8")).replace("status: accepted", "status: draft"),
+    );
+    const ledger = await readJson(ledgerPath);
+    const pitch = ledger["pitch"] as Record<string, unknown>;
+    pitch["sha256"] = null;
+    await writeJson(ledgerPath, ledger);
+    const before = await readFile(ledgerPath, "utf8");
+
+    const result = run(root, "cut", "sample-feature", "002");
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      errors: [{ reason: "pitch must be accepted before slice transitions" }],
+    });
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(before);
+  });
+
+  it("rejects invalid transition state, bounds, evidence, and malformed checkpoints atomically", async () => {
+    expect.hasAssertions();
+    const { ledgerPath, root } = await createPlannedFeature();
+    const pendingBytes = await readFile(ledgerPath, "utf8");
+    expect(
+      run(
+        root,
+        "block",
+        "sample-feature",
+        "001",
+        "--reason",
+        "Need evidence",
+        "--next-action",
+        "Capture it.",
+      ).status,
+    ).toBe(1);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(pendingBytes);
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    const activeBytes = await readFile(ledgerPath, "utf8");
+
+    const boundedFailure = run(
+      root,
+      "block",
+      "sample-feature",
+      "001",
+      "--reason",
+      "x".repeat(1025),
+      "--next-action",
+      "Capture it.",
+    );
+    expect(boundedFailure.status).toBe(1);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(activeBytes);
+
+    for (const [label, redGreen, banking] of [
+      ["unsafe evidence", "Read /Users/example/private/output", "commit"],
+      ["malformed checkpoint", "red then green", "checkpoint:"],
+    ] as const) {
+      const result = run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        redGreen,
+        "--review",
+        "blocker-free review",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "checks passed",
+        "--banking",
+        banking,
+      );
+      expect({ label, status: result.status }).toEqual({ label, status: 1 });
+      await expect(readFile(ledgerPath, "utf8")).resolves.toBe(activeBytes);
+    }
+
+    const failingHelper = await patchedHelper(
+      root,
+      "feature-flow-failing-transition.mjs",
+      "  target.blocker = { reason: args[3], next_action: args[5] };\n  await writeLedger(path, ledger);",
+      '  target.blocker = { reason: args[3], next_action: args[5] };\n  throw new Error("simulated transition write failure");',
+    );
+    expect(
+      runWithHelper(
+        root,
+        failingHelper,
+        "block",
+        "sample-feature",
+        "001",
+        "--reason",
+        "Need evidence",
+        "--next-action",
+        "Capture it.",
+      ).status,
+    ).toBe(1);
+    await expect(readFile(ledgerPath, "utf8")).resolves.toBe(activeBytes);
+  });
+
+  it("reopens banking recovery when the matching commit becomes unreachable", async () => {
+    expect.hasAssertions();
+    const { root } = await createPlannedFeature();
+    expect(run(root, "activate", "sample-feature", "001").status).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "--quiet", "-m", "test(feature-flow): record active fixture"], {
+      cwd: root,
+    });
+    expect(
+      run(
+        root,
+        "complete",
+        "sample-feature",
+        "001",
+        "--red-green",
+        "red, minimum green, refactor green",
+        "--review",
+        "blocker-free re-review",
+        "--dogfood",
+        "integrated path passed",
+        "--checks",
+        "required checks passed",
+        "--banking",
+        "commit",
+      ).status,
+    ).toBe(0);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "-m", "feat(sample): bank first slice", "-m", "Feature-Slice: 001"],
+      { cwd: root },
+    );
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "building",
+      next_action: "Activate dependency-ready slice 002.",
+    });
+
+    execFileSync("git", ["reset", "--soft", "HEAD^"], { cwd: root });
+    expect(JSON.parse(run(root, "inspect", "sample-feature").stdout)).toMatchObject({
+      phase: "banking",
+      current_slice: "001",
+      next_action: "Bank slice 001 before any other transition.",
+    });
   });
 
   it("requests one routing decision and writes nothing on a branch mismatch", async () => {

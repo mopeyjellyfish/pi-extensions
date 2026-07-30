@@ -9,6 +9,48 @@ const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 
 describe("feature-flow resources", () => {
+  it("progressively guides serial Build, banking recovery, and local completion", async () => {
+    expect.hasAssertions();
+    const [skill, building, artifacts, evaluation, readme] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "building.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "artifacts.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "evaluation.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+    ]);
+
+    expect(skill).toContain("[serial Build and banking](references/building.md)");
+    for (const command of ["block", "unblock", "cut", "complete"] as const) {
+      expect(skill).toContain(`node ../../scripts/feature-flow.mjs ${command}`);
+    }
+    expect(building).toMatch(
+      /sole writer[\s\S]*one public-seam test[\s\S]*observe[^.]*Red[\s\S]*minimum Green/iu,
+    );
+    expect(building).toMatch(/bounded refactor[\s\S]*remain green[\s\S]*red_green/iu);
+    expect(building).toMatch(/fresh read-only review[\s\S]*fix[\s\S]*re-review/iu);
+    expect(building).toMatch(
+      /integrated user or operator[\s\S]*required checks[\s\S]*concise evidence/iu,
+    );
+    expect(building).toMatch(/accepted intent[\s\S]*stop[\s\S]*repitch/iu);
+    expect(building).toMatch(
+      /first unbanked[\s\S]*blocked[\s\S]*active[\s\S]*ready pending[\s\S]*locally complete/iu,
+    );
+    expect(building).toMatch(/Conventional Commit[\s\S]*Feature-Slice: <id>[\s\S]*no SHA/iu);
+    expect(building).toMatch(/target repository[\s\S]*commit-message check/iu);
+    expect(building).toMatch(/1,000[\s\S]*false negative[\s\S]*rebank/iu);
+    expect(building).toMatch(/workflow state[\s\S]*not[^.]*clean Git/iu);
+    expect(building).toMatch(/no[^.]*push[\s\S]*PR[\s\S]*merge[\s\S]*deploy[\s\S]*cleanup/iu);
+    expect(artifacts).toContain("block <feature> <slice-id>");
+    expect(artifacts).toContain("checkpoint: <reason>");
+    expect(evaluation).toContain("Build, bank, and resume rubric");
+    expect(evaluation).toMatch(
+      /feature[^.]*pitch number[^.]*pitch SHA-256[^.]*done slice snapshot/iu,
+    );
+    expect(evaluation).toContain("Bounded model matrix fixture");
+    expect(readme).toContain("active ↔ blocked");
+    expect(readme).toContain("locally complete");
+    expect(readme).toMatch(/exact raw footer line/iu);
+  });
   it("plans, independently reviews, and registers mutable vertical slices without a human gate", async () => {
     expect.hasAssertions();
     const [skill, planning, artifacts, template, evaluation, readme] = await Promise.all([
@@ -173,6 +215,7 @@ describe("feature-flow resources", () => {
         "scripts/feature-flow.mjs",
         "skills/shape/SKILL.md",
         "skills/shape/references/artifacts.md",
+        "skills/shape/references/building.md",
         "skills/shape/references/evaluation.md",
         "skills/shape/references/planning.md",
         "skills/shape/references/shaping.md",

@@ -19,8 +19,10 @@ for another brief. Only a completely empty result requests a new brief. Draft sh
 repository-led research, adaptive recommended questions, separate read-only
 review, and one complete document-backed approval. Accepted pitches then move
 through automatic whole-set vertical planning, independent read-only
-review/fix/re-review, and registration without a human plan-approval gate. The
-full Build loop remains a later slice.
+review/fix/re-review, and registration without a human plan-approval gate. Build then delivers one
+frozen slice at a time through repeated public-seam Red/Green tracers, bounded
+green refactoring, fresh read-only review/fix/re-review, integrated dogfood,
+required checks, evidence, and verified banking.
 
 Worktrunk remains the only worktree lifecycle authority. Before writing, the
 skill routes to the expected worktree and calls:
@@ -65,11 +67,27 @@ text mirrors. Pending refinement preserves an existing summary across non-Goal
 changes and reseeds it only when that plan Goal changes. Semantic verticality,
 dependency meaning, feasibility, and review quality remain agent judgments.
 
-The helper also provides narrow bootstrap `activate` and `complete` commands. Completion
-requires red/green, independent review, dogfood, checks, and banking evidence.
-A slice declaring `commit` blocks later activation until Git contains a matching
-`Feature-Slice: <id>` commit with the done ledger transition; a bounded
-`checkpoint: <reason>` is available when repository policy forbids commits.
+The helper provides legal `pending → active|cut`, `active ↔ blocked`, and
+`active|blocked → done` transitions. Completion requires red/green plus bounded
+refactor evidence, independent blocker-free review, integrated dogfood, checks,
+and banking. The first unbanked done slice blocks every other transition, and
+only the first dependency-ready pending slice may activate. A slice declaring
+`commit` stays in banking recovery until one reused, path-filtered lookup of at
+most 1,000 exact-trailer candidates finds portable Conventional Commit structure,
+one exact raw footer line `Feature-Slice: <id>` with parsed trailer semantics,
+and the current feature, pitch number, pitch SHA-256, and done slice snapshot.
+The ledger stores no commit SHA. Target-repository commit-message checks and the
+truth of a bounded `checkpoint: <reason>` remain agent/reviewer judgments. A
+ceiling false negative safely remains unbanked and recovers with a new current
+bank receipt.
+
+Resume precedence is first unbanked done, blocked, active, dependency-ready
+pending, then locally complete when all slices are done or cut and every done
+slice is banked. Clean Git is required for activation only when the last done
+slice in plan order has a commit receipt; a later checkpoint is the accepted
+alternative, and cuts are not cleanliness-gated. Locally complete is workflow
+state, not a clean-Git assertion. It performs no push, PR, merge, deploy,
+publication, destructive cleanup, worktree removal, or final human approval.
 
 ## Install
 

@@ -25,6 +25,7 @@ const MAX_BRANCH_LENGTH = 256;
 const MAX_SLICES = 100;
 const MAX_ARTIFACT_BYTES = 1024 * 1024;
 const MAX_QUESTION_DOCUMENT_CHARS = 100_000;
+const MAX_BANK_CANDIDATES = 1000;
 
 class FlowError extends Error {
   constructor(path, reason) {
@@ -400,6 +401,12 @@ function exceedsQuestionStringLimit(value, limit) {
   return false;
 }
 
+function validBankingEvidence(value) {
+  return (
+    value === "commit" || (typeof value === "string" && /^checkpoint: \S[\s\S]*$/u.test(value))
+  );
+}
+
 function validateLedger(ledger, path, feature) {
   if (!hasExactKeys(ledger, ["schema", "feature", "worktree", "pitch", "slices"])) {
     fail(path, "ledger must contain only schema, feature, worktree, pitch, and slices");
@@ -489,11 +496,7 @@ function validateLedger(ledger, path, feature) {
     if (slice.status !== "done" && Object.values(slice.evidence).some((value) => value !== null)) {
       fail(path, `slice ${slice.id} cannot have completion evidence before it is done`);
     }
-    if (
-      slice.evidence.banking !== null &&
-      slice.evidence.banking !== "commit" &&
-      !/^checkpoint: \S[\s\S]*$/u.test(slice.evidence.banking)
-    ) {
+    if (slice.evidence.banking !== null && !validBankingEvidence(slice.evidence.banking)) {
       fail(path, `slice ${slice.id} banking must be commit or checkpoint: <reason>`);
     }
   }
@@ -647,18 +650,42 @@ async function validateRegisteredPlans(featureRoot, ledger, pitch) {
     fail(plansRoot, `registered plan set does not cover ${missing.join(", ")}`);
 }
 
-function isBanked(slice, ledgerPath, root = process.cwd()) {
-  if (typeof slice.evidence.banking !== "string") return false;
-  if (slice.evidence.banking.startsWith("checkpoint: ")) return true;
-  if (slice.evidence.banking !== "commit") return false;
+function isConventionalSubject(subject) {
+  return /^[^\s!:()]+(?:\([^()\r\n]+\))?!?: \S[^\r\n]*$/u.test(subject);
+}
+
+function hasExactSliceTrailer(message, id, root) {
+  const lines = message.split("\n");
+  while (lines.at(-1) === "") lines.pop();
+  const footer = lines.slice(lines.lastIndexOf("") + 1);
+  const trailers = execFileSync("git", ["interpret-trailers", "--parse"], {
+    cwd: root,
+    encoding: "utf8",
+    input: message,
+    stdio: ["pipe", "pipe", "ignore"],
+  })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  const sliceTrailers = trailers.filter((trailer) => /^Feature-Slice:/iu.test(trailer));
+  return (
+    footer.filter((line) => line === `Feature-Slice: ${id}`).length === 1 &&
+    sliceTrailers.length === 1 &&
+    sliceTrailers[0] === `Feature-Slice: ${id}`
+  );
+}
+
+function bankCandidates(commitSlices, ledgerPath, root) {
   const repositoryRoot = git(["rev-parse", "--show-toplevel"], root);
   const repositoryPath = relative(repositoryRoot, ledgerPath).replaceAll("\\", "/");
+  const ids = commitSlices.map((slice) => slice.id).join("|");
   const commits = git(
     [
       "log",
       "--format=%H",
+      `--max-count=${String(MAX_BANK_CANDIDATES)}`,
       "--extended-regexp",
-      `--grep=^Feature-Slice: ${slice.id}$`,
+      `--grep=^Feature-Slice: (${ids})$`,
       "--",
       repositoryPath,
     ],
@@ -666,25 +693,78 @@ function isBanked(slice, ledgerPath, root = process.cwd()) {
   )
     .split("\n")
     .filter(Boolean);
-  for (const commit of commits) {
+  return { commits, repositoryPath };
+}
+
+const bankLookupCache = new WeakMap();
+
+function commitBankedSliceIds(ledger, ledgerPath, root = process.cwd()) {
+  const cached = bankLookupCache.get(ledger);
+  if (cached !== undefined) return cached;
+  const banked = new Set();
+  bankLookupCache.set(ledger, banked);
+  const commitSlices = ledger.slices.filter(
+    (slice) => slice.status === "done" && slice.evidence.banking === "commit",
+  );
+  if (commitSlices.length === 0) return banked;
+  const candidates = bankCandidates(commitSlices, ledgerPath, root);
+  for (const commit of candidates.commits) {
     try {
+      const detail = execFileSync("git", ["show", "-s", "--format=%s%x00%B", commit], {
+        cwd: root,
+        encoding: "utf8",
+        maxBuffer: MAX_ARTIFACT_BYTES,
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      const separator = detail.indexOf("\0");
+      const subject = detail.slice(0, separator);
+      const message = detail.slice(separator + 1);
+      const slice = commitSlices.find((candidate) =>
+        hasExactSliceTrailer(message, candidate.id, root),
+      );
+      if (slice === undefined || !isConventionalSubject(subject)) continue;
       const committed = JSON.parse(
-        execFileSync("git", ["show", `${commit}:${repositoryPath}`], {
+        execFileSync("git", ["show", `${commit}:${candidates.repositoryPath}`], {
           cwd: root,
           encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
+          maxBuffer: MAX_ARTIFACT_BYTES,
+          stdio: ["ignore", "pipe", "ignore"],
         }),
       );
       const committedSlice = committed.slices?.find((candidate) => candidate.id === slice.id);
-      if (isDeepStrictEqual(committedSlice, slice)) return true;
+      if (
+        committed.feature === ledger.feature &&
+        committed.pitch?.number === ledger.pitch.number &&
+        committed.pitch?.sha256 === ledger.pitch.sha256 &&
+        isDeepStrictEqual(committedSlice, slice)
+      ) {
+        banked.add(slice.id);
+      }
     } catch {
-      // A matching message that does not contain the canonical done transition is not a bank.
+      // A candidate lacking the exact identity, receipt, and snapshot is not a bank.
     }
   }
-  return false;
+  return banked;
 }
 
-function derive(status, slices, ledgerPath, root = process.cwd()) {
+function isBanked(slice, ledger, ledgerPath, root = process.cwd()) {
+  if (typeof slice.evidence.banking !== "string") return false;
+  if (slice.evidence.banking.startsWith("checkpoint: ")) return true;
+  return (
+    slice.evidence.banking === "commit" &&
+    commitBankedSliceIds(ledger, ledgerPath, root).has(slice.id)
+  );
+}
+
+function firstReadySlice(slices) {
+  const byId = new Map(slices.map((slice) => [slice.id, slice]));
+  return slices.find(
+    (slice) =>
+      slice.status === "pending" && slice.depends_on.every((id) => byId.get(id)?.status === "done"),
+  );
+}
+
+function derive(status, ledger, ledgerPath, root = process.cwd()) {
   if (status === "draft") {
     return {
       phase: "shaping",
@@ -692,6 +772,7 @@ function derive(status, slices, ledgerPath, root = process.cwd()) {
       next_action: "Continue shaping the draft pitch.",
     };
   }
+  const slices = ledger.slices;
   if (slices.length === 0) {
     return {
       phase: "planning",
@@ -700,7 +781,7 @@ function derive(status, slices, ledgerPath, root = process.cwd()) {
     };
   }
   const unbanked = slices.find(
-    (slice) => slice.status === "done" && !isBanked(slice, ledgerPath, root),
+    (slice) => slice.status === "done" && !isBanked(slice, ledger, ledgerPath, root),
   );
   if (unbanked) {
     return {
@@ -718,11 +799,7 @@ function derive(status, slices, ledgerPath, root = process.cwd()) {
         current.status === "blocked" ? current.blocker.next_action : `Deliver slice ${current.id}.`,
     };
   }
-  const byId = new Map(slices.map((slice) => [slice.id, slice]));
-  const pending = slices.find(
-    (slice) =>
-      slice.status === "pending" && slice.depends_on.every((id) => byId.get(id)?.status === "done"),
-  );
+  const pending = firstReadySlice(slices);
   if (pending) {
     return {
       phase: "building",
@@ -921,7 +998,7 @@ async function prepareRefinement(prepared) {
   }
   if (
     prepared.ledger.slices.some(
-      (slice) => slice.status === "done" && !isBanked(slice, prepared.path),
+      (slice) => slice.status === "done" && !isBanked(slice, prepared.ledger, prepared.path),
     )
   ) {
     fail(prepared.path, "all done slices must be banked before refinement");
@@ -1043,7 +1120,7 @@ async function registerPlans(args) {
     command: "register-plans",
     feature: prepared.feature,
     plans: prepared.plans.length,
-    ...derive(prepared.status, prepared.planLedger.slices, prepared.path),
+    ...derive(prepared.status, prepared.planLedger, prepared.path),
   };
 }
 
@@ -1059,7 +1136,7 @@ async function refinePlans(args) {
     command: "refine-plans",
     feature: prepared.feature,
     plans: prepared.plans.length,
-    ...derive(prepared.status, prepared.planLedger.slices, prepared.path),
+    ...derive(prepared.status, prepared.planLedger, prepared.path),
   };
 }
 
@@ -1159,7 +1236,7 @@ async function inspectCandidates(args) {
         result.valid.push({
           feature,
           branch: actual.branch,
-          ...derive(status, ledger.slices, path, root),
+          ...derive(status, ledger, path, root),
         });
       } catch (error) {
         if (error instanceof RoutingDecision) {
@@ -1198,7 +1275,7 @@ async function inspect(args) {
     ok: true,
     command: "inspect",
     feature,
-    ...derive(status, ledger.slices, resolve("docs", "features", feature, "index.json")),
+    ...derive(status, ledger, resolve("docs", "features", feature, "index.json")),
   };
 }
 
@@ -1262,7 +1339,7 @@ async function accept(args) {
     command: "accept",
     feature,
     sha256,
-    ...derive("accepted", acceptedLedger.slices, path),
+    ...derive("accepted", acceptedLedger, path),
   };
 }
 
@@ -1273,7 +1350,7 @@ async function repitch(args) {
   const feature = args[0];
   const { path, ledger, pitch: accepted, status } = await loadFeature(feature);
   if (status !== "accepted") fail(path, "pitch must be accepted before repitching");
-  if (ledger.slices.some((slice) => slice.status === "done" && !isBanked(slice, path))) {
+  if (ledger.slices.some((slice) => slice.status === "done" && !isBanked(slice, ledger, path))) {
     fail(path, "all done slices must be banked before repitching");
   }
   const featureRoot = dirname(path);
@@ -1367,7 +1444,7 @@ async function repitch(args) {
     archived_pitch: basename(archivedPitchPath),
     archived_plans: hasPlans ? basename(archivedPlansPath) : null,
     pitch_number: nextNumber,
-    ...derive("draft", nextLedger.slices, path),
+    ...derive("draft", nextLedger, path),
   };
 }
 
@@ -1387,6 +1464,89 @@ async function verify(args) {
   };
 }
 
+function requireAcceptedBuild(status, path) {
+  if (status !== "accepted") fail(path, "pitch must be accepted before slice transitions");
+}
+
+function requireBankedDoneSlices(ledger, path) {
+  const unbanked = ledger.slices.find(
+    (slice) => slice.status === "done" && !isBanked(slice, ledger, path),
+  );
+  if (unbanked) fail(path, `slice ${unbanked.id} must be banked before any other transition`);
+}
+
+function requireCleanCommitActivation(ledger, path) {
+  const lastDone = ledger.slices.findLast((slice) => slice.status === "done");
+  if (
+    lastDone?.evidence.banking === "commit" &&
+    git(["status", "--porcelain=v1", "--untracked-files=all"]) !== ""
+  ) {
+    fail(path, "checkout must be clean before commit banking permits activation");
+  }
+}
+
+async function block(args) {
+  if (
+    args.length !== 6 ||
+    !SLUG.test(args[0] ?? "") ||
+    !/^\d{3}$/.test(args[1] ?? "") ||
+    args[2] !== "--reason" ||
+    !boundedText(args[3]) ||
+    args[4] !== "--next-action" ||
+    !boundedText(args[5])
+  ) {
+    fail(
+      "<arguments>",
+      "usage: block <feature> <slice-id> --reason <reason> --next-action <next-action>",
+    );
+  }
+  const [feature, id] = args;
+  const { path, ledger, status } = await loadFeature(feature);
+  requireAcceptedBuild(status, path);
+  requireBankedDoneSlices(ledger, path);
+  const target = ledger.slices.find((slice) => slice.id === id);
+  if (!target || target.status !== "active") fail(path, `slice ${id} must be active`);
+  target.status = "blocked";
+  target.blocker = { reason: args[3], next_action: args[5] };
+  await writeLedger(path, ledger);
+  return { ok: true, command: "block", feature, ...derive(status, ledger, path) };
+}
+
+async function unblock(args) {
+  if (args.length !== 2 || !SLUG.test(args[0] ?? "") || !/^\d{3}$/.test(args[1] ?? "")) {
+    fail("<arguments>", "usage: unblock <feature> <slice-id>");
+  }
+  const [feature, id] = args;
+  const { path, ledger, status } = await loadFeature(feature);
+  requireAcceptedBuild(status, path);
+  requireBankedDoneSlices(ledger, path);
+  const target = ledger.slices.find((slice) => slice.id === id);
+  if (!target || target.status !== "blocked") fail(path, `slice ${id} must be blocked`);
+  target.status = "active";
+  target.blocker = null;
+  await writeLedger(path, ledger);
+  return { ok: true, command: "unblock", feature, ...derive(status, ledger, path) };
+}
+
+async function cut(args) {
+  if (args.length !== 2 || !SLUG.test(args[0] ?? "") || !/^\d{3}$/.test(args[1] ?? "")) {
+    fail("<arguments>", "usage: cut <feature> <slice-id>");
+  }
+  const [feature, id] = args;
+  const { path, ledger, status } = await loadFeature(feature);
+  requireAcceptedBuild(status, path);
+  requireBankedDoneSlices(ledger, path);
+  const target = ledger.slices.find((slice) => slice.id === id);
+  if (!target || target.status !== "pending") fail(path, `slice ${id} must be pending`);
+  const dependent = ledger.slices.find(
+    (slice) => slice.depends_on.includes(id) && slice.status !== "cut",
+  );
+  if (dependent) fail(path, `slice ${id} still has ${dependent.status} dependent ${dependent.id}`);
+  target.status = "cut";
+  await writeLedger(path, ledger);
+  return { ok: true, command: "cut", feature, ...derive(status, ledger, path) };
+}
+
 async function complete(args) {
   const flags = ["--red-green", "--review", "--dogfood", "--checks", "--banking"];
   if (
@@ -1394,10 +1554,7 @@ async function complete(args) {
     !SLUG.test(args[0] ?? "") ||
     !/^\d{3}$/.test(args[1] ?? "") ||
     flags.some((flag, index) => args[2 + index * 2] !== flag) ||
-    flags.some((_, index) => {
-      const value = args[3 + index * 2];
-      return typeof value !== "string" || value.trim() === "" || value.length > 1024;
-    })
+    flags.some((_, index) => !boundedText(args[3 + index * 2]))
   ) {
     fail(
       "<arguments>",
@@ -1406,13 +1563,18 @@ async function complete(args) {
   }
   const [feature, id] = args;
   const banking = args[11];
-  if (banking !== "commit" && !/^checkpoint: \S[\s\S]*$/u.test(banking)) {
+  if (!validBankingEvidence(banking)) {
     fail("<arguments>", "banking must be commit or checkpoint: <reason>");
   }
   const { path, ledger, status } = await loadFeature(feature);
+  requireAcceptedBuild(status, path);
+  requireBankedDoneSlices(ledger, path);
   const target = ledger.slices.find((slice) => slice.id === id);
-  if (!target || target.status !== "active") fail(path, `slice ${id} must be active`);
+  if (!target || !["active", "blocked"].includes(target.status)) {
+    fail(path, `slice ${id} must be active or blocked`);
+  }
   target.status = "done";
+  target.blocker = null;
   target.evidence = {
     red_green: args[3],
     review: args[5],
@@ -1425,7 +1587,7 @@ async function complete(args) {
     ok: true,
     command: "complete",
     feature,
-    ...derive(status, ledger.slices, path),
+    ...derive(status, ledger, path),
   };
 }
 
@@ -1435,32 +1597,29 @@ async function activate(args) {
   }
   const [feature, id] = args;
   const { path, ledger, status } = await loadFeature(feature);
-  if (status !== "accepted") fail(path, "pitch must be accepted before slice activation");
+  requireAcceptedBuild(status, path);
+  requireBankedDoneSlices(ledger, path);
   if (ledger.slices.some((slice) => slice.status === "active" || slice.status === "blocked")) {
     fail(path, "another slice is already active or blocked");
   }
-  if (ledger.slices.some((slice) => slice.status === "done" && !isBanked(slice, path))) {
-    fail(path, "an earlier done slice must be banked before activation");
-  }
-  if (
-    ledger.slices.some((slice) => slice.status === "done" && slice.evidence.banking === "commit") &&
-    git(["status", "--porcelain=v1", "--untracked-files=all"]) !== ""
-  ) {
-    fail(path, "checkout must be clean before commit banking permits activation");
-  }
   const target = ledger.slices.find((slice) => slice.id === id);
   if (!target || target.status !== "pending") fail(path, `slice ${id} must be pending`);
-  const byId = new Map(ledger.slices.map((slice) => [slice.id, slice]));
-  if (target.depends_on.some((dependency) => byId.get(dependency)?.status !== "done")) {
-    fail(path, `slice ${id} dependencies are not done`);
+  const ready = firstReadySlice(ledger.slices);
+  if (ready?.id !== id) {
+    const byId = new Map(ledger.slices.map((slice) => [slice.id, slice]));
+    if (target.depends_on.some((dependency) => byId.get(dependency)?.status !== "done")) {
+      fail(path, `slice ${id} dependencies are not done`);
+    }
+    fail(path, `slice ${ready?.id ?? "<none>"} is the first dependency-ready pending slice`);
   }
+  requireCleanCommitActivation(ledger, path);
   target.status = "active";
   await writeLedger(path, ledger);
   return {
     ok: true,
     command: "activate",
     feature,
-    ...derive(status, ledger.slices, path),
+    ...derive(status, ledger, path),
   };
 }
 
@@ -1471,11 +1630,17 @@ async function main() {
     case "accept":
       result = await accept(args);
       break;
+    case "block":
+      result = await block(args);
+      break;
     case "activate":
       result = await activate(args);
       break;
     case "complete":
       result = await complete(args);
+      break;
+    case "cut":
+      result = await cut(args);
       break;
     case "init":
       result = await init(args);
@@ -1500,6 +1665,9 @@ async function main() {
       break;
     case "validate-plans":
       result = await validatePlans(args);
+      break;
+    case "unblock":
+      result = await unblock(args);
       break;
     case "verify":
       result = await verify(args);

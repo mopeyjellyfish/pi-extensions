@@ -16,7 +16,9 @@ Coordinate one feature from its brief or canonical ledger. Read
 [artifact rules](references/artifacts.md) before using the helper,
 [shaping and acceptance](references/shaping.md) while the derived phase is
 `shaping`, [vertical-slice planning](references/planning.md) while it is
-`planning`, and the [slice evaluation](references/evaluation.md) before dogfood.
+`planning`, [serial Build and banking](references/building.md) while it is
+`building`, `blocked`, or `banking`, and the
+[slice evaluation](references/evaluation.md) before dogfood.
 
 ## Start or resume
 
@@ -61,6 +63,9 @@ node ../../scripts/feature-flow.mjs validate-plans <feature> <complete-plan-file
 node ../../scripts/feature-flow.mjs register-plans <feature> <complete-plan-file>...
 node ../../scripts/feature-flow.mjs refine-plans <feature> <complete-plan-file>...
 node ../../scripts/feature-flow.mjs activate <feature> <slice-id>
+node ../../scripts/feature-flow.mjs block <feature> <slice-id> --reason <reason> --next-action <next-action>
+node ../../scripts/feature-flow.mjs unblock <feature> <slice-id>
+node ../../scripts/feature-flow.mjs cut <feature> <slice-id>
 node ../../scripts/feature-flow.mjs complete <feature> <slice-id> --red-green <evidence> --review <evidence> --dogfood <evidence> --checks <evidence> --banking <commit|checkpoint: reason>
 ```
 
@@ -78,5 +83,6 @@ would change an accepted pitch. Do not stage, commit, push, merge, publish,
 deploy, remove worktrees, or perform destructive cleanup without the authority
 defined by the accepted pitch and repository instructions. Planning registers
 only a blocker-free independently reviewed whole set, with no human plan gate.
-Do not extend the existing bootstrap activation/completion commands into full
-Build, cutting, delivery, or shipping behavior yet.
+Build is serial, uses one sole writer and fresh read-only review, and stops for
+repitch when a finding would change accepted intent. Local completion never
+authorizes remote, destructive, publication, deployment, or cleanup actions.

@@ -20,6 +20,11 @@ node ../../scripts/feature-flow.mjs repitch <feature>
 node ../../scripts/feature-flow.mjs validate-plans <feature> <complete-plan-file>...
 node ../../scripts/feature-flow.mjs register-plans <feature> <complete-plan-file>...
 node ../../scripts/feature-flow.mjs refine-plans <feature> <complete-plan-file>...
+node ../../scripts/feature-flow.mjs activate <feature> <slice-id>
+node ../../scripts/feature-flow.mjs block <feature> <slice-id> --reason <reason> --next-action <next-action>
+node ../../scripts/feature-flow.mjs unblock <feature> <slice-id>
+node ../../scripts/feature-flow.mjs cut <feature> <slice-id>
+node ../../scripts/feature-flow.mjs complete <feature> <slice-id> --red-green <evidence> --review <evidence> --dogfood <evidence> --checks <evidence> --banking <commit|checkpoint: reason>
 ```
 
 `validate-pitch` validates the complete prospective accepted result without
@@ -48,6 +53,16 @@ unless that plan Goal changes. They preserve real empty dependency arrays rather
 than deriving a serial chain. Candidate argument order is ledger order. The
 helper does not judge verticality, dependency meaning, feasibility, review
 findings, or plan quality.
+
+Build transitions are `pending → active|cut`, `active → blocked`,
+`blocked → active`, and `active|blocked → done`. Every command freshly verifies
+the accepted pitch, dependencies, one-current invariant, bounded fields, and the
+first unbanked done slice before an atomic ledger replacement. Only the first
+ready pending slice may activate. A pending slice with a non-cut dependent cannot
+be cut. Done requires all five evidence fields; banking is `commit` or bounded
+`checkpoint: <reason>` syntax. Whether policy actually forbids a commit remains
+coordinator/reviewer judgment. Commit receipts are derived from one bounded,
+reused reachable-history lookup and never add a SHA field to the ledger.
 
 Registration and refinement publish the complete plan directory plus matching
 ledger records with ordinary-error rollback. Fixed plan bytes and records and
