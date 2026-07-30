@@ -67,14 +67,14 @@
       "depends_on": [
         "003"
       ],
-      "status": "pending",
+      "status": "done",
       "blocker": null,
       "evidence": {
-        "red_green": null,
-        "review": null,
-        "dogfood": null,
-        "checks": null,
-        "banking": null
+        "red_green": "Observed validate, register, refine, drift, rollback, immutable-fixed-plan, unbanked-recovery, template, and compatibility Red→Green tracers; 75 focused tests pass.",
+        "review": "Independent whole-slice reviews found template, goal-summary, banking, fixed-order, canonical-frontmatter, historical-compatibility, and AC-syntax blockers; all were fixed and re-reviewed blocker-free.",
+        "dogfood": "A disposable accepted feature validated and registered two independent plans, then split and reordered three pending plans with empty dependencies. Frontier-model planning evaluation passed; deterministic Pi loaded and idle-reloaded one shape skill and /shape prompt without conflicts.",
+        "checks": "Feature-flow 75/75; npm run check 367/367; package dry-run, source and packed smoke, current-feature inspect, pitch hash, diff, and pinned Node/Go checks passed.",
+        "banking": "commit"
       }
     },
     {

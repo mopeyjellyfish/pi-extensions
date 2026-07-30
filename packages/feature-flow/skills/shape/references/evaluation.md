@@ -59,6 +59,40 @@ Multi-file writes guarantee complete prospective validation and ordinary-error
 rollback, not process-crash atomicity. Dogfood recovery from bounded staging or
 backup artifacts without adding a daemon, database, or service.
 
+## Planning and pending-refinement rubric
+
+A passing planning run:
+
+1. Derives `planning` only from an accepted hash-pinned pitch with no registered
+   slices, verifies the accepted bytes, and creates the smallest coherent
+   complete candidate set outside canonical `plans/`.
+2. Keeps every genuinely independent `depends_on: []`; it never invents a chain
+   merely because Build is serial. Every plan contains the minimal v2 contract
+   and no estimate or mutable status.
+3. Runs read-only complete-set validation, separate read-only whole-set review,
+   sole-writer routine fixes, validation, and fresh re-review until blocker-free.
+   It never asks for plan approval or treats helper success as semantic review.
+4. Registers the blocker-free set atomically, with ordered matching pending
+   records, exact accepted-pitch pins and literal AC coverage, canonical IDs,
+   filenames and paths, a valid meaning-neutral DAG, bounds, and one-current
+   invariants. Plan Goals remain rich human detail; bounded ledger goals are
+   concise resume summaries, not required text mirrors.
+5. Refines, splits, merges, or reorders through a reviewed complete replacement
+   set. Active, blocked, done, and cut plan bytes and records plus untouched
+   pending plan bytes and records remain identical. Non-Goal pending changes
+   preserve the existing ledger summary; a changed pending Goal updates only its
+   record, and new slices seed summaries from their plan Goals. Injected failures
+   restore every canonical file and ledger byte.
+6. Leaves semantic verticality, dependency meaning, feasibility, public seam and
+   tracer quality, dogfood quality, and pitch-level classification to the
+   planner and reviewer. It does not activate or deliver a slice.
+
+Dogfood two independent pending outcomes, reorder them without adding a
+dependency, then split and merge pending outcomes around one fixed slice in a
+disposable feature. Tamper one accepted pitch byte, one AC literal, one plan
+path, one dependency cycle, and one fixed plan byte and confirm every case fails
+closed. Repeat blocker-free whole-set review and the path after an idle reload.
+
 ## Shared-checkout resume rubric
 
 A passing `/shape` without a brief:

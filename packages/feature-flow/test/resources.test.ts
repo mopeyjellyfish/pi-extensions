@@ -9,6 +9,53 @@ const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 
 describe("feature-flow resources", () => {
+  it("plans, independently reviews, and registers mutable vertical slices without a human gate", async () => {
+    expect.hasAssertions();
+    const [skill, planning, artifacts, template, evaluation, readme] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "planning.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "artifacts.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "templates", "plan.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "shape", "references", "evaluation.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+    ]);
+
+    expect(skill).toContain("[vertical-slice planning](references/planning.md)");
+    expect(skill).toMatch(
+      /resolve `\.\.\/\.\.\/scripts\/feature-flow\.mjs` from this skill directory/iu,
+    );
+    expect(skill).toMatch(/routed Git top-level as the process working\s+directory/iu);
+    expect(skill).toContain("validate-plans <feature> <complete-plan-file>...");
+    expect(skill).toContain("register-plans <feature> <complete-plan-file>...");
+    expect(skill).toContain("refine-plans <feature> <complete-plan-file>...");
+    expect(planning).toMatch(/smallest coherent set[\s\S]*vertical/iu);
+    expect(planning).toMatch(/read-only whole-set review[\s\S]*fix[\s\S]*re-review/iu);
+    expect(planning).toMatch(/blocker-free[\s\S]*register-plans/iu);
+    expect(planning).toMatch(/never ask[\s\S]*plan approval/iu);
+    expect(planning).toMatch(/semantic verticality[\s\S]*reviewer/iu);
+    expect(planning).toMatch(/independent[\s\S]*`depends_on: \[\]`/iu);
+    expect(planning).toMatch(
+      /inspect[\s\S]*sources[\s\S]*tests[\s\S]*contracts[\s\S]*public seams/iu,
+    );
+    for (const resource of [planning, artifacts, evaluation, readme]) {
+      expect(resource).toMatch(/concise\s+resume\s+summar/iu);
+      expect(resource).toMatch(/not[^.]*text mirrors?/iu);
+    }
+    expect(template).toMatch(/^---\nschema: feature-flow-plan\/v2/mu);
+    expect(template).toContain("## Goal");
+    expect(template).toContain("## Pitch trace");
+    expect(template).toContain("## Dependencies and predecessor postconditions");
+    expect(template).toContain("## Public seam and first TDD tracer");
+    expect(template).toContain("## Validation");
+    expect(template).toContain("## Dogfood and QA");
+    expect(template).toContain("## Done when");
+    expect(template).not.toMatch(/^(?:status|estimate):/mu);
+    expect(template).not.toMatch(/^## (?:Status|Estimates?)\b/mu);
+    expect(evaluation).toContain("Planning and pending-refinement rubric");
+    expect(readme).toContain("validate-plans");
+    expect(readme).toContain("refine-plans");
+  });
+
   it("guides rich research-led shaping through one reviewed document approval and repitch", async () => {
     expect.hasAssertions();
     const [skill, shaping, artifacts, template, evaluation] = await Promise.all([
@@ -33,6 +80,7 @@ describe("feature-flow resources", () => {
     expect(shaping).not.toContain("question({");
     expect(template).toMatch(/^---\nschema: feature-flow-pitch\/v3/mu);
     expect(template).toMatch(/add, remove, or rename\s+headings/iu);
+    expect(template).toContain("- **AC-NNN — Name:** Observable outcome.");
     expect(artifacts).toContain("validate-pitch <feature>");
     expect(artifacts).toContain("accept <feature> <prospective-sha256>");
     expect(artifacts).toContain("verify <feature>");
@@ -126,10 +174,12 @@ describe("feature-flow resources", () => {
         "skills/shape/SKILL.md",
         "skills/shape/references/artifacts.md",
         "skills/shape/references/evaluation.md",
+        "skills/shape/references/planning.md",
         "skills/shape/references/shaping.md",
         "skills/shape/references/workspace.md",
         "skills/shape/templates/index.json",
         "skills/shape/templates/pitch.md",
+        "skills/shape/templates/plan.md",
       ]),
     );
     expect(packedPaths?.some((path) => path.startsWith("test/"))).toBe(false);

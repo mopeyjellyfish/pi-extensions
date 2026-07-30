@@ -309,7 +309,7 @@ function containsLocalAbsolutePath(value) {
     /(?:^|[^A-Z0-9/])\/(?:Applications|Library|Users|Volumes|bin|boot|dev|etc|home|lib|lib64|media|mnt|opt|private|proc|root|run|sbin|srv|sys|tmp|usr|var)(?=\/|$|[\s)\]},.;:'"`])/iu.test(
       text,
     ) ||
-    /(?:^|[^A-Z0-9/])\/[^/\s]+\/\S*/iu.test(text)
+    /(?:^|[^A-Z0-9/.])\/[^/\s]+\/\S*/iu.test(text)
   );
 }
 
@@ -430,7 +430,8 @@ function validateLedger(ledger, path, feature) {
     fail(path, `slices must be an array with at most ${String(MAX_SLICES)} entries`);
   }
   const ids = new Set();
-  const statuses = new Map();
+  const allIds = new Set(ledger.slices.map((slice) => slice?.id));
+  const statuses = new Map(ledger.slices.map((slice) => [slice?.id, slice?.status]));
   let current = 0;
   for (const slice of ledger.slices) {
     if (
@@ -451,9 +452,9 @@ function validateLedger(ledger, path, feature) {
     }
     if (
       new Set(slice.depends_on).size !== slice.depends_on.length ||
-      slice.depends_on.some((id) => typeof id !== "string" || !ids.has(id))
+      slice.depends_on.some((id) => typeof id !== "string" || !allIds.has(id))
     ) {
-      fail(path, `slice ${slice.id} has a duplicate, unknown, or forward dependency`);
+      fail(path, `slice ${slice.id} has a duplicate or unknown dependency`);
     }
     if (
       ["active", "blocked", "done"].includes(slice.status) &&
@@ -466,7 +467,6 @@ function validateLedger(ledger, path, feature) {
       fail(path, `pending slice ${slice.id} depends on cut slice ${cutDependency}`);
     }
     ids.add(slice.id);
-    statuses.set(slice.id, slice.status);
     if (slice.status === "active" || slice.status === "blocked") current += 1;
     if (
       slice.status === "blocked" &&
@@ -498,7 +498,23 @@ function validateLedger(ledger, path, feature) {
     }
   }
   if (current > 1) fail(path, "at most one slice may be active or blocked");
+  validateDependencyGraph(ledger.slices, path);
   return ledger;
+}
+
+function validateDependencyGraph(slices, path) {
+  const dependencies = new Map(slices.map((slice) => [slice.id, slice.depends_on]));
+  const visiting = new Set();
+  const visited = new Set();
+  function visit(id) {
+    if (visiting.has(id)) fail(path, `slice dependency graph contains a cycle at ${id}`);
+    if (visited.has(id)) return;
+    visiting.add(id);
+    for (const dependency of dependencies.get(id) ?? []) visit(dependency);
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const id of dependencies.keys()) visit(id);
 }
 
 function parsePitchFacts(pitch, path) {
@@ -584,7 +600,51 @@ async function loadFeature(feature, root = process.cwd()) {
   } else if (ledger.pitch.sha256 !== null) {
     fail(path, "draft pitch sha256 must be null");
   }
+  if (status === "accepted" && ledger.slices.length > 0) {
+    await validateRegisteredPlans(dirname(path), ledger, pitch);
+  }
   return { path, ledger, pitch, status };
+}
+
+async function validateRegisteredPlans(featureRoot, ledger, pitch) {
+  const plansRoot = resolve(featureRoot, "plans");
+  await requireCanonicalDirectory(
+    plansRoot,
+    "registered plans require a canonical plans directory",
+  );
+  const entries = await readdir(plansRoot, { withFileTypes: true });
+  const expected = new Set(ledger.slices.map((slice) => basename(slice.plan)));
+  if (
+    entries.length !== expected.size ||
+    entries.some((entry) => !entry.isFile() || !expected.has(entry.name))
+  ) {
+    fail(plansRoot, "plans directory must contain exactly the registered plan files");
+  }
+  const criteria = pitchAcceptanceCriteria(pitch, resolve(featureRoot, ledger.pitch.path));
+  const anchors = pitchAnchors(pitch);
+  const covered = new Set();
+  for (const slice of ledger.slices) {
+    const planPath = resolve(featureRoot, slice.plan);
+    const content = await readArtifact(planPath);
+    const plan = parsePlan(
+      content,
+      planPath,
+      ledger.feature,
+      ledger.pitch.sha256,
+      criteria,
+      anchors,
+    );
+    if (plan.id !== slice.id || plan.plan !== slice.plan) {
+      fail(planPath, `plan ${slice.id} identity does not match ledger`);
+    }
+    if (!isDeepStrictEqual(plan.depends_on, slice.depends_on)) {
+      fail(planPath, `plan ${slice.id} dependencies do not match ledger`);
+    }
+    for (const criterion of plan.acceptance_criteria) covered.add(criterion);
+  }
+  const missing = [...criteria].filter((criterion) => !covered.has(criterion));
+  if (missing.length > 0)
+    fail(plansRoot, `registered plan set does not cover ${missing.join(", ")}`);
 }
 
 function isBanked(slice, ledgerPath, root = process.cwd()) {
@@ -691,6 +751,316 @@ async function writeArtifact(path, content) {
 async function writeLedger(path, ledger) {
   validateLedger(ledger, path, ledger.feature);
   await writeArtifact(path, `${JSON.stringify(ledger, null, 2)}\n`);
+}
+
+function pitchAcceptanceCriteria(pitch, path) {
+  const criteria = [...pitch.matchAll(/^- \*\*(AC-\d{3})\s+—/gmu)].map((match) => match[1]);
+  if (new Set(criteria).size !== criteria.length)
+    fail(path, "pitch acceptance criteria must be unique");
+  return new Set(criteria);
+}
+
+function pitchAnchors(pitch) {
+  return new Set(
+    [...pitch.matchAll(/^#{2,6} (.+)$/gmu)].map((match) =>
+      match[1]
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9\s-]/gu, "")
+        .trim()
+        .replaceAll(/\s+/gu, "-"),
+    ),
+  );
+}
+
+function planSection(content, heading, path) {
+  const match = new RegExp(
+    `^## ${heading}\\r?\\n\\r?\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`,
+    "mu",
+  ).exec(content);
+  if (match?.[1] === undefined || match[1].trim() === "") {
+    fail(path, `plan requires a non-empty ${heading} section`);
+  }
+  return match[1].trim();
+}
+
+function planGoal(content, path, id) {
+  const goal = planSection(content, "Goal", path)
+    .split(/\r?\n\r?\n/u, 1)[0]
+    .replaceAll(/\s+/gu, " ")
+    .trim();
+  if (!boundedText(goal)) fail(path, `plan ${id} goal must be bounded text`);
+  return goal;
+}
+
+function parsePlan(content, sourcePath, feature, pitchHash, pitchCriteria, anchors) {
+  if (containsLocalAbsolutePath(content))
+    fail(sourcePath, "plan must not contain local absolute paths");
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content)?.[1];
+  if (frontmatter === undefined) fail(sourcePath, "plan must have canonical v2 frontmatter");
+  const match = new RegExp(
+    `^schema: feature-flow-plan/v2\\r?\\nfeature: (?:"${feature}"|${feature})\\r?\\nid: "(\\d{3})"\\r?\\npitch_sha256: ("?)(${SHA256.source.slice(1, -1)})\\2\\r?\\ndepends_on:(?: \\[\\]|((?:\\r?\\n  - "\\d{3}")+))$`,
+    "u",
+  ).exec(frontmatter);
+  if (match?.[1] === undefined || match[3] === undefined) {
+    fail(sourcePath, "plan must have canonical v2 feature, id, pitch pin, and dependencies");
+  }
+  const id = match[1];
+  const dependencies = [...(match[4] ?? "").matchAll(/ {2}- "(\d{3})"/gu)].map(
+    (dependency) => dependency[1],
+  );
+  if (match[3] !== pitchHash) fail(sourcePath, `plan ${id} pitch_sha256 must match accepted pitch`);
+  const name = basename(sourcePath);
+  if (!new RegExp(`^${id}-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$`, "u").test(name)) {
+    fail(sourcePath, `plan ${id} filename must be ${id}-<vertical-outcome>.md`);
+  }
+  if (!new RegExp(`^# Slice ${id}: \\S`, "mu").test(content)) {
+    fail(sourcePath, `plan ${id} requires its canonical slice title`);
+  }
+  if (/^## (?:Estimates?|Status)\b/mu.test(content)) {
+    fail(sourcePath, `plan ${id} must not contain estimate or status sections`);
+  }
+  const goal = planGoal(content, sourcePath, id);
+  const trace = planSection(content, "Pitch trace", sourcePath);
+  planSection(content, "Dependencies and predecessor postconditions", sourcePath);
+  planSection(content, "Public seam and first TDD tracer", sourcePath);
+  planSection(content, "Validation", sourcePath);
+  planSection(content, "Dogfood and QA", sourcePath);
+  planSection(content, "Done when", sourcePath);
+  const links = [...trace.matchAll(/\.\.\/pitch\.md#([a-z0-9-]+)/gu)].map((link) => link[1]);
+  if (links.length === 0 || links.some((anchor) => !anchors.has(anchor))) {
+    fail(sourcePath, `plan ${id} pitch trace must link exact accepted pitch sections`);
+  }
+  const criteria = [...trace.matchAll(/\*\*(AC-\d{3})\*\*/gu)].map((criterion) => criterion[1]);
+  const mentioned = [...content.matchAll(/\bAC-\d{3}\b/gu)].map((criterion) => criterion[0]);
+  const unknown = mentioned.find((criterion) => !pitchCriteria.has(criterion));
+  if (unknown !== undefined) fail(sourcePath, `plan ${id} references unknown ${unknown}`);
+  if (pitchCriteria.size > 0 && criteria.length === 0) {
+    fail(sourcePath, `plan ${id} pitch trace must contain exact literal acceptance criteria`);
+  }
+  return {
+    id,
+    plan: `plans/${name}`,
+    goal,
+    depends_on: dependencies,
+    status: "pending",
+    blocker: null,
+    evidence: {
+      red_green: null,
+      review: null,
+      dogfood: null,
+      checks: null,
+      banking: null,
+    },
+    acceptance_criteria: criteria,
+    content,
+  };
+}
+
+async function preparePlanSet(args) {
+  if (
+    args.length < 2 ||
+    args.length > MAX_SLICES + 1 ||
+    !SLUG.test(args[0] ?? "") ||
+    args.slice(1).some((path) => typeof path !== "string" || path.trim() === "")
+  ) {
+    fail("<arguments>", "usage: <plan-command> <feature> <complete-plan-file>...");
+  }
+  const [feature, ...sourcePaths] = args;
+  const { path, ledger, pitch, status } = await loadFeature(feature);
+  if (status !== "accepted" || ledger.pitch.sha256 === null) {
+    fail(path, "pitch must be accepted before planning");
+  }
+  const contents = await Promise.all(
+    sourcePaths.map((sourcePath) => readArtifact(resolve(sourcePath))),
+  );
+  const criteria = pitchAcceptanceCriteria(pitch, resolve(dirname(path), ledger.pitch.path));
+  const anchors = pitchAnchors(pitch);
+  const plans = contents.map((content, index) =>
+    parsePlan(
+      content,
+      resolve(sourcePaths[index]),
+      feature,
+      ledger.pitch.sha256,
+      criteria,
+      anchors,
+    ),
+  );
+  const planPaths = new Set(plans.map((plan) => plan.plan));
+  if (planPaths.size !== plans.length) fail("<arguments>", "plan filenames must be unique");
+  const planLedger = structuredClone(ledger);
+  planLedger.slices = plans.map((plan) => {
+    const slice = structuredClone(plan);
+    delete slice.acceptance_criteria;
+    delete slice.content;
+    return slice;
+  });
+  validateLedger(planLedger, path, feature);
+  const covered = new Set(plans.flatMap((plan) => plan.acceptance_criteria));
+  const missing = [...criteria].filter((criterion) => !covered.has(criterion));
+  if (missing.length > 0) fail("<plans>", `plan set does not cover ${missing.join(", ")}`);
+  return { feature, path, ledger, planLedger, plans, status };
+}
+
+async function validatePlans(args) {
+  const prepared = await preparePlanSet(args);
+  if (prepared.ledger.slices.length > 0) await prepareRefinement(prepared);
+  return {
+    ok: true,
+    command: "validate-plans",
+    feature: prepared.feature,
+    plans: prepared.plans.length,
+    valid: true,
+  };
+}
+
+async function prepareRefinement(prepared) {
+  const featureRoot = dirname(prepared.path);
+  const plansPath = resolve(featureRoot, "plans");
+  if (prepared.ledger.slices.length === 0 || !(await pathExists(plansPath))) {
+    fail(prepared.path, "a registered plan set is required before refinement");
+  }
+  if (
+    prepared.ledger.slices.some(
+      (slice) => slice.status === "done" && !isBanked(slice, prepared.path),
+    )
+  ) {
+    fail(prepared.path, "all done slices must be banked before refinement");
+  }
+  const candidates = new Map(prepared.plans.map((plan) => [plan.id, plan]));
+  const fixed = prepared.ledger.slices.filter((slice) => slice.status !== "pending");
+  for (const slice of fixed) {
+    const candidate = candidates.get(slice.id);
+    if (
+      candidate === undefined ||
+      candidate.plan !== slice.plan ||
+      !isDeepStrictEqual(candidate.depends_on, slice.depends_on)
+    ) {
+      fail(prepared.path, `fixed slice ${slice.id} record must remain unchanged`);
+    }
+    const currentContent = await readArtifact(resolve(featureRoot, slice.plan));
+    if (candidate.content !== currentContent) {
+      fail(
+        resolve(featureRoot, slice.plan),
+        `fixed slice ${slice.id} plan bytes must remain unchanged`,
+      );
+    }
+  }
+  const fixedIds = new Set(fixed.map((slice) => slice.id));
+  const candidateFixedOrder = prepared.plans
+    .filter((plan) => fixedIds.has(plan.id))
+    .map((plan) => plan.id);
+  if (
+    !isDeepStrictEqual(
+      candidateFixedOrder,
+      fixed.map((slice) => slice.id),
+    )
+  ) {
+    fail(prepared.path, "fixed slice relative order must remain unchanged");
+  }
+  const pendingGoals = new Map();
+  for (const slice of prepared.ledger.slices.filter(({ status }) => status === "pending")) {
+    const planPath = resolve(featureRoot, slice.plan);
+    pendingGoals.set(slice.id, planGoal(await readArtifact(planPath), planPath, slice.id));
+  }
+  prepared.planLedger.slices = prepared.plans.map((plan) => {
+    const previous = prepared.ledger.slices.find((candidate) => candidate.id === plan.id);
+    if (previous?.status !== "pending" && previous !== undefined) return structuredClone(previous);
+    const slice = structuredClone(plan);
+    delete slice.acceptance_criteria;
+    delete slice.content;
+    if (previous !== undefined && pendingGoals.get(plan.id) === plan.goal) {
+      slice.goal = previous.goal;
+    }
+    return slice;
+  });
+  validateLedger(prepared.planLedger, prepared.path, prepared.feature);
+  return prepared;
+}
+
+async function publishPlans(featureRoot, plans, ledgerPath, publishLedger) {
+  const plansPath = resolve(featureRoot, "plans");
+  const ledgerBefore = await readArtifact(ledgerPath);
+  const staged = resolve(featureRoot, `.feature-flow-plans-${String(process.pid)}`);
+  const backup = resolve(featureRoot, `.feature-flow-plans-backup-${String(process.pid)}`);
+  await mkdir(staged);
+  try {
+    await Promise.all(
+      plans.map((plan) =>
+        writeFile(resolve(staged, basename(plan.plan)), plan.content, { flag: "wx" }),
+      ),
+    );
+  } catch (error) {
+    await rm(staged, { force: true, recursive: true });
+    throw error;
+  }
+  const hadPlans = await pathExists(plansPath);
+  let backedUp = false;
+  let published = false;
+  try {
+    if (hadPlans) {
+      await rename(plansPath, backup);
+      backedUp = true;
+    }
+    await rename(staged, plansPath);
+    published = true;
+    await publishLedger();
+  } catch (error) {
+    try {
+      if (published) await rm(plansPath, { force: true, recursive: true });
+      if (backedUp) await rename(backup, plansPath);
+      await writeArtifact(ledgerPath, ledgerBefore);
+      await rm(staged, { force: true, recursive: true });
+    } catch {
+      fail(
+        featureRoot,
+        "plan publication failed and rollback was incomplete; recover preserved .feature-flow-plans-* artifacts",
+      );
+    }
+    throw error;
+  }
+  if (backedUp) {
+    try {
+      await rm(backup, { recursive: true });
+    } catch {
+      // Canonical plans and ledger are committed; preserve the bounded backup for recovery.
+    }
+  }
+}
+
+async function registerPlans(args) {
+  const prepared = await preparePlanSet(args);
+  const featureRoot = dirname(prepared.path);
+  if (prepared.ledger.slices.length !== 0) fail(prepared.path, "plan set is already registered");
+  if (await pathExists(resolve(featureRoot, "plans"))) {
+    fail(resolve(featureRoot, "plans"), "plans must not exist before registration");
+  }
+  await canonicalFeaturePaths(prepared.feature);
+  await publishPlans(featureRoot, prepared.plans, prepared.path, () =>
+    writeLedger(prepared.path, prepared.planLedger),
+  );
+  return {
+    ok: true,
+    command: "register-plans",
+    feature: prepared.feature,
+    plans: prepared.plans.length,
+    ...derive(prepared.status, prepared.planLedger.slices, prepared.path),
+  };
+}
+
+async function refinePlans(args) {
+  const prepared = await prepareRefinement(await preparePlanSet(args));
+  const featureRoot = dirname(prepared.path);
+  await canonicalFeaturePaths(prepared.feature);
+  await publishPlans(featureRoot, prepared.plans, prepared.path, () =>
+    writeLedger(prepared.path, prepared.planLedger),
+  );
+  return {
+    ok: true,
+    command: "refine-plans",
+    feature: prepared.feature,
+    plans: prepared.plans.length,
+    ...derive(prepared.status, prepared.planLedger.slices, prepared.path),
+  };
 }
 
 async function inspectCandidates(args) {
@@ -1116,11 +1486,20 @@ async function main() {
     case "inspect-candidates":
       result = await inspectCandidates(args);
       break;
+    case "refine-plans":
+      result = await refinePlans(args);
+      break;
+    case "register-plans":
+      result = await registerPlans(args);
+      break;
     case "repitch":
       result = await repitch(args);
       break;
     case "validate-pitch":
       result = await validatePitch(args);
+      break;
+    case "validate-plans":
+      result = await validatePlans(args);
       break;
     case "verify":
       result = await verify(args);

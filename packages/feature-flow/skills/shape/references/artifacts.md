@@ -17,6 +17,9 @@ node ../../scripts/feature-flow.mjs validate-pitch <feature>
 node ../../scripts/feature-flow.mjs accept <feature> <prospective-sha256>
 node ../../scripts/feature-flow.mjs verify <feature>
 node ../../scripts/feature-flow.mjs repitch <feature>
+node ../../scripts/feature-flow.mjs validate-plans <feature> <complete-plan-file>...
+node ../../scripts/feature-flow.mjs register-plans <feature> <complete-plan-file>...
+node ../../scripts/feature-flow.mjs refine-plans <feature> <complete-plan-file>...
 ```
 
 `validate-pitch` validates the complete prospective accepted result without
@@ -31,6 +34,26 @@ accepted bytes, preserves them as `pitch-vNNN.md`, moves registered `plans/` to
 `plans-vNNN/` when present, advances the number, resets the prior complete pitch
 to `draft`, clears the current slice set, and leaves code, commits, assets, and
 prototypes untouched.
+
+Plan validation reads one complete ordered v2 candidate set without writing.
+Registration requires an accepted hash-pinned pitch and no existing plan set;
+refinement requires an existing registered set and permits changes only to
+pending entries. Both validate canonical IDs, filenames and feature-relative
+paths, exact pitch pins and literal AC coverage, bounds, dependencies and cycles,
+required plan sections, one-current state, and mechanical ledger agreement.
+Plan Goals hold rich human detail; ledger goals are independently bounded concise
+resume summaries, not text mirrors. Registration and new slices seed the summary
+from the normalized plan Goal. Refinement preserves an existing pending summary
+unless that plan Goal changes. They preserve real empty dependency arrays rather
+than deriving a serial chain. Candidate argument order is ledger order. The
+helper does not judge verticality, dependency meaning, feasibility, review
+findings, or plan quality.
+
+Registration and refinement publish the complete plan directory plus matching
+ledger records with ordinary-error rollback. Fixed plan bytes and records and
+untouched pending bytes and records must remain identical. Process crashes can
+leave bounded `.feature-flow-plans-*` staging or backup paths requiring manual
+recovery.
 
 Acceptance and repitch validate their complete prospective files, sources, and
 destinations before canonical writes. Ordinary failures roll back every changed
