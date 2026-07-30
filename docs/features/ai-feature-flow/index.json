@@ -84,14 +84,14 @@
       "depends_on": [
         "004"
       ],
-      "status": "pending",
+      "status": "done",
       "blocker": null,
       "evidence": {
-        "red_green": null,
-        "review": null,
-        "dogfood": null,
-        "checks": null,
-        "banking": null
+        "red_green": "Observed transition, evidence, blocking, cutting, precedence, commit identity/trailer/history, checkpoint, rollback, bounds, and compatibility Red→Green tracers; 89 focused tests pass after bounded refactoring remained green.",
+        "review": "Independent adversarial reviews found first-ready, portable-commit, raw-trailer, pitch-identity, bounded-history, checkpoint, and clean-sequencing blockers; all were fixed and final re-review was blocker-free.",
+        "dogfood": "A disposable three-slice feature resumed active and blocked work, recovered a rewritten commit bank, used a policy checkpoint, cut the last slice, and reached dirty local completion with no remote. Two frontier models passed the trigger and Build rubrics; deterministic Pi idle reload passed.",
+        "checks": "Feature-flow 89/89; npm run check 381/381; security, package dry-run, source and packed smoke, accepted-pitch verify/hash, current-feature inspect, diff, and pinned Node/Go checks passed.",
+        "banking": "commit"
       }
     }
   ]

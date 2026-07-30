@@ -113,3 +113,51 @@ Dogfood no candidate, one valid candidate, several valid candidates, and stale
 and malformed candidates in disposable linked worktrees. Repeat after an idle
 Pi reload. Natural trigger sampling and deterministic Pi reload remain manual
 acceptance work; do not commit provider responses.
+
+## Build, bank, and resume rubric
+
+A passing serial Build run:
+
+1. Verifies accepted pitch and frozen plan bytes, activates exactly the first
+   dependency-ready pending slice in ledger order, and uses one sole writer.
+2. Repeats one independent public-seam test → observed Red → minimum Green,
+   then performs bounded refactoring while focused tests remain green.
+3. Uses fresh read-only review, sole-writer fixes, and fresh re-review until
+   blocker-free; an accepted-intent finding stops for repitch.
+4. Exercises the integrated user or operator path, runs applicable required
+   checks, and records bounded `red_green`, `review`, `dogfood`, `checks`, and
+   `banking` evidence without provider output.
+5. Resumes the first unbanked done slice before blocked, active, or ready work.
+   Active interruption, block/unblock, blocked completion, dependency-safe cut,
+   multiple unbanked slices, and ordinary write failure preserve exactly one
+   action and atomic ledger bytes.
+6. Accepts `commit` only from reachable history with portable Conventional
+   Commit structure, exactly one byte-exact raw footer line
+   `Feature-Slice: <id>` with parsed trailer semantics, and matching feature,
+   pitch number, pitch SHA-256, and done slice snapshot. One path-filtered scan
+   checks at most 1,000 exact-trailer candidates for all done slices. A ceiling
+   false negative, rewrite, or stale identity/snapshot reopens banking; no SHA is
+   stored. Checkpoint syntax is bounded while policy truth remains review judgment.
+7. Requires clean Git for activation only when the last done slice has a commit
+   receipt; a later checkpoint permits activation, while block, complete, and cut
+   tolerate their intentional ledger dirtiness.
+8. Reports locally complete only when all slices are done or cut and every done
+   slice is banked. It is workflow state rather than a clean-Git assertion and
+   performs no push, PR, merge, deploy, publication,
+   destructive cleanup, worktree removal, or final human approval.
+
+Dogfood a disposable two-slice feature: interrupt and resume active, block and
+unblock, complete from blocked, reject incomplete evidence and an invalid bank,
+recover a rewritten bank, cut the remaining pending slice, and observe locally
+complete without a remote or destructive action. Repeat after idle reload.
+
+## Bounded model matrix fixture
+
+Run the committed trigger table plus the new-feature, shared-resume, planning,
+and Build rubrics on this bounded matrix. Record pass/fail/unavailable only in
+local evaluation evidence; never commit provider responses.
+
+| Sample                                      | Required capability                        | Committed result        |
+| ------------------------------------------- | ------------------------------------------ | ----------------------- |
+| Current configured frontier model           | Coordinator execution and natural triggers | Not sampled in fixtures |
+| One complementary configured frontier model | Independent trigger and rubric coverage    | Not sampled in fixtures |
