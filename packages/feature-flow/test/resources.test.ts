@@ -32,6 +32,7 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/Worktrunk[\s\S]*only\s+worktree lifecycle authority/iu);
     expect(skill).toContain('action: "status"');
     expect(skill).toContain('action: "list"');
+    expect(skill).toContain("`feat/<slug>`");
     expect(skill).toContain("git branch --show-current");
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
     expect(skill).toMatch(/first unchecked slice[\s\S]*dirty[\s\S]*Git/iu);
@@ -41,6 +42,7 @@ describe("feature-flow resources", () => {
     expect(skill).not.toMatch(/feature-flow\.mjs|index\.json|sha-?256|banking|Feature-Slice/iu);
     expect(readme).toMatch(/aggregate package[\s\S]*not a standalone/iu);
     expect(readme).toContain("pi install git:github.com/mopeyjellyfish/pi-extensions");
+    expect(`${skill}\n${readme}`).not.toMatch(/shape\/(?:<slug>|\*)/u);
 
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
     expect(pitch.match(/^## .+$/gmu)?.map((heading) => heading.slice(3))).toEqual(PITCH_HEADINGS);
