@@ -33,7 +33,8 @@ describe("feature-flow resources", () => {
     expect(skill).toContain('action: "status"');
     expect(skill).toContain('action: "list"');
     expect(skill).toContain("`feat/<slug>`");
-    expect(skill).toContain("git branch --show-current");
+    expect(skill).toMatch(/active path[\s\S]*worktree list[\s\S]*branch/iu);
+    expect(skill).not.toContain("git branch --show-current");
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
     expect(skill).toMatch(/first unchecked slice[\s\S]*dirty[\s\S]*Git/iu);
     expect(skill).toMatch(/tests[\s\S]*required checks[\s\S]*read-only review/iu);
