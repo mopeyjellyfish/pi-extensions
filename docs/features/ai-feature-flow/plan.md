@@ -93,3 +93,36 @@ state, and obtain a fresh independent review. Do not stage or commit.
 
 Every required check passes, review is blocker-free, the live package resumes
 from this plan, and no files are staged.
+
+## [x] 004 — Write clear pitches and plans
+
+### Outcome
+
+Pi can apply pragmatic ASD-STE100 rules to general human-facing text. The shape
+workflow uses those rules for pitches and plans without changing their
+contracts.
+
+### Pitch trace
+
+- [Solution](pitch.md#solution)
+- [Fixed decisions](pitch.md#fixed-decisions)
+- **AC-008**
+
+### Implementation
+
+Add an independent `simple-english` skill package with pragmatic ASD-STE100
+rules and focused references. Register its release metadata and aggregate
+discovery. Update the shape skill to revise completed pitch and plan content
+while preserving required structure and technical text.
+
+### Validation
+
+Run the new package test, the feature-flow resource test, package validation,
+security checks, source and packed smoke, and the full repository check. Review
+the adapted rules, attribution, package boundary, and shape integration.
+
+### Done when
+
+The aggregate and standalone package load the skill, feature-flow requires it at
+the correct authoring steps, all checks pass, and independent review has no
+blockers.

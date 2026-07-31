@@ -5,8 +5,9 @@ delivering one feature in an isolated Worktrunk worktree. It ships one `shape`
 skill, the `/shape [feature brief]` prompt, and Markdown templates. It registers
 no extension, service, agent, or runtime dependency.
 
-The workflow intentionally relies on the Worktrunk tool supplied by this
-repository's aggregate package; it is not a standalone feature-flow install.
+The workflow intentionally relies on the `worktree` tool and `simple-english`
+skill supplied by this repository's aggregate package. It is not a standalone
+feature-flow install.
 
 ## Use
 

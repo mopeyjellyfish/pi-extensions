@@ -47,7 +47,9 @@ Use them to inform the human, improve recommendations and tradeoffs in questions
 and shape the pitch. Ask only unresolved decisions that can still change the
 pitch. Keep the complete pitch useful to humans and agents: cite material primary
 sources, embed exact normative contracts, use Mermaid when it clarifies a flow,
-and include cross-functional boundaries only when material.
+and include cross-functional boundaries only when material. After the content is
+correct, use the `simple-english` skill in pragmatic mode to revise the pitch
+narrative as descriptive text.
 
 Before implementation, send the complete pitch to a separate read-only reviewer
 for value, feasibility, simplicity, contradictions, and missing decisions. Fix
@@ -63,7 +65,11 @@ Create one `plan.md` from `templates/plan.md`. Order the smallest coherent set o
 vertical outcomes. Each slice should cross the boundaries needed for one
 observable result and name its relevant public seam, smallest useful test,
 implementation route, applicable checks, integrated user or operator path when
-one exists, and objective completion conditions.
+one exists, and objective completion conditions. Use the `simple-english` skill
+in pragmatic mode to revise plan instructions as procedural text and supporting
+context as descriptive text. Across the pitch and plan, preserve required
+headings, YAML frontmatter, Markdown checkbox syntax, code, identifiers,
+commands, paths, links, and quoted text.
 
 Use a separate read-only whole-plan review for coverage, verticality,
 simplicity, and feasibility. Fix ordinary planning findings without a human
