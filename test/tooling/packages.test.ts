@@ -279,6 +279,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-github",
       "@mopeyjellyfish/pi-lsp",
       "@mopeyjellyfish/pi-question",
+      "@mopeyjellyfish/pi-simple-english",
       "@mopeyjellyfish/pi-status-line",
       "@mopeyjellyfish/pi-todo",
       "@mopeyjellyfish/pi-web-search",
