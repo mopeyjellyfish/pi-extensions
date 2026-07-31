@@ -6,8 +6,9 @@ skill, the `/shape [feature brief]` prompt, and Markdown templates. It registers
 no extension, service, agent, or runtime dependency.
 
 The workflow intentionally relies on the `question` and `worktree` tools and the
-`simple-english` skill supplied by this repository's aggregate package. It is
-not a standalone feature-flow install.
+`simple-english` skill supplied by this repository's aggregate package. It uses
+a separately installed `pi-subagents` package for specialist research and
+independent review. It is not a standalone feature-flow install.
 
 ## Use
 
@@ -30,6 +31,22 @@ Shaping uses three efficient human checkpoints:
    the pitch decisions.
 3. The complete pitch is attached to a final `question` call for human review
    and explicit approval.
+
+## Subagent orchestration
+
+Before the first delegation, Shape lists the live agent inventory. It prefers
+`scout` for local context, `researcher` for material external evidence,
+`context-builder` for broad handoffs, and `reviewer` for independent review. It
+can use equivalent discovered roles.
+
+Each research stage uses zero to three read-only specialists. Each required
+pitch, plan, or slice-diff review uses one to three. Shape uses fresh context,
+asynchronous launches, and only parallelizes independent topics. The
+controlling Shape agent remains the sole writer and synthesizes all findings.
+
+If specialist research is unavailable, the controlling agent completes the
+research and records the gap. If independent review is unavailable, Shape stops
+at that gate instead of substituting self-review.
 
 Each feature keeps two durable files:
 
@@ -55,9 +72,10 @@ separately authorized by repository instructions and the user.
 
 ## Install
 
-Install the repository aggregate so the skill and its required Worktrunk tool
-load together:
+Install `pi-subagents` and the repository aggregate so the skill and its
+required tools load together:
 
 ```sh
+pi install npm:pi-subagents
 pi install git:github.com/mopeyjellyfish/pi-extensions
 ```

@@ -45,15 +45,37 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/active path[\s\S]*worktree list[\s\S]*branch/iu);
     expect(skill).not.toContain("git branch --show-current");
     expect(skill).toMatch(/Whether the brief is specific or\s+broad/u);
-    expect(skill).toContain("specialist researcher subagents");
+    expect(skill).toContain('subagent({ action: "list" })');
+    expect(skill).toMatch(/before[^.]*first delegation[^.]*live agent inventory/iu);
+    expect(skill).toMatch(
+      /prefer[^.]*`scout`[^.]*`researcher`[^.]*`context-builder`[^.]*`reviewer`/iu,
+    );
+    expect(skill).toMatch(/research stage[^.]*zero to three[^.]*specialists/iu);
+    expect(skill).toMatch(/required review[^.]*one to three[^.]*specialists/iu);
+    expect(skill).toMatch(/fresh context[^.]*asynchronous/iu);
+    expect(skill).toMatch(/returned run identifier[^.]*results block synthesis/iu);
+    expect(skill).toMatch(/do not poll or\s+sleep/iu);
+    expect(skill).toMatch(/do not modify project or source files/iu);
+    expect(skill).toMatch(/controlling Shape agent[^.]*sole writer/iu);
+    expect(skill).toMatch(/synthesize[^.]*before[^.]*decision[^.]*edit/iu);
+    expect(skill).toMatch(
+      /`subagent` tool[^.]*unavailable[\s\S]*research[^.]*record the gap[\s\S]*review[^.]*stop/iu,
+    );
+    expect(skill).toMatch(/child fails[^.]*status[\s\S]*retry once[^.]*narrower task/iu);
     expect(skill).toMatch(/inform the human[\s\S]*questions[\s\S]*pitch/iu);
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
     expect(skill).toMatch(/first unchecked slice[\s\S]*dirty[\s\S]*Git/iu);
     expect(skill).toMatch(/tests[\s\S]*required checks[\s\S]*read-only review/iu);
-    expect(skill).toMatch(/never infer[^.]*commit[^.]*push[^.]*deploy/iu);
+    expect(skill).toMatch(/resolve a material base\s+choice with the human/iu);
+    expect(skill).toMatch(
+      /never infer[^.]*commit[^.]*push[^.]*open a pull request[^.]*merge[^.]*publish[^.]*deploy[^.]*remove a\s+worktree[^.]*destructive cleanup/iu,
+    );
     expect(skill).toMatch(/fresh human approval[\s\S]*status: accepted/iu);
     expect(skill).not.toMatch(/feature-flow\.mjs|index\.json|sha-?256|banking|Feature-Slice/iu);
     expect(readme).toMatch(/aggregate package[\s\S]*not a standalone/iu);
+    expect(readme).toMatch(/research stage[^.]*zero to three[\s\S]*review[^.]*one to three/iu);
+    expect(readme).toMatch(/controlling Shape agent[^.]*sole writer/iu);
+    expect(readme).toContain("pi install npm:pi-subagents");
     expect(readme).toContain("pi install git:github.com/mopeyjellyfish/pi-extensions");
     expect(`${skill}\n${readme}`).not.toMatch(/shape\/(?:<slug>|\*)/u);
 

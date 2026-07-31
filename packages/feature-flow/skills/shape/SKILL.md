@@ -13,6 +13,46 @@ Coordinate one feature with Worktrunk, Markdown, and Git. Worktrunk is the only
 worktree lifecycle authority. The durable feature artifacts are
 `docs/features/<slug>/pitch.md` and `docs/features/<slug>/plan.md`.
 
+## Orchestrate read-only specialists
+
+The controlling Shape agent is the sole writer for the active worktree. Keep
+all specialist subagents advisory.
+
+Before the first delegation, call `subagent({ action: "list" })` once to discover
+the live agent inventory when the `subagent` tool is available. Use only roles
+from that inventory. Prefer `scout` for local context, `researcher` for material
+external evidence, `context-builder` for a broad handoff, and `reviewer` for
+independent review. Use an equivalent discovered role when a preferred role is
+absent. Never invent a role.
+
+For each research stage, use zero to three specialists. Add a specialist only
+for a distinct angle that uncertainty, scope, or risk makes useful. Stop when
+the evidence is sufficient. For each required review, use one to three
+specialists. Start with one reviewer. Add another only for a separate material
+risk. Parallelize only independent topics.
+
+Run every advisory assignment with fresh context and asynchronous execution.
+Give the child the exact brief, artifact, diff, or question. Require evidence,
+source links or file references, gaps, and decision implications. Every task
+must say: `Do not modify project or source files.` Require the child to escalate
+human-owned product, scope, architecture, and safety decisions.
+
+Continue useful local inspection or preparation while children run. Wait on the
+returned run identifier only when the results block synthesis. Do not poll or
+sleep. Synthesize specialist evidence before any decision or edit. Keep raw
+child output ephemeral unless its size or a real handoff need justifies a saved
+artifact.
+
+If the `subagent` tool or a suitable research role is unavailable, do the
+research in the controlling agent and record the gap. If the `subagent` tool or
+a suitable independent reviewer is unavailable, stop at the affected pitch,
+plan, or slice gate. Never replace required independent review with self-review.
+
+If a child fails, inspect its status and available output. Retry once with a
+narrower task when the missing evidence is material. Continue without that
+angle only when the remaining evidence is sufficient and the failed angle is
+not a required independent review.
+
 ## Establish the brief, then route
 
 For new shaping, run an initial questioning pass before any worktree call. Use
@@ -48,13 +88,14 @@ before that route is active. Do not inspect candidate artifacts or replace the
 ## Shape and approve the pitch
 
 Research the confirmed brief and initial answers before creating `pitch.md`.
-Whether the brief is specific or broad, start with repository truth, then
-delegate bounded current or external topics to specialist researcher subagents;
-parallelize only independent topics. For a named framework, inspect current
-primary documentation, compatibility, established patterns, and material risks.
-For a broad feature, investigate relevant prior art, product and technical
-options, failure boundaries, and unknowns. Scale the work to uncertainty rather
-than researching for ceremony.
+Whether the brief is specific or broad, start with direct inspection of
+load-bearing repository sources. Use a local-context specialist when a separate
+code-path, test, history, or risk angle can reduce uncertainty. Use an external
+research specialist when current primary documentation, standards,
+compatibility, or prior art is material. Use a broad context builder only when
+it prevents substantial rediscovery. For a broad feature, investigate relevant
+product and technical options, failure boundaries, and unknowns. Scale the work
+to uncertainty rather than researching for ceremony.
 
 Synthesize source-backed implications instead of retaining raw research output.
 Use them to inform the human, then run a second questioning pass with the
@@ -71,8 +112,9 @@ clarifies a flow, and include cross-functional boundaries only when material.
 After the content is correct, use the `simple-english` skill in pragmatic mode
 to revise the pitch narrative as descriptive text.
 
-Before implementation, send the complete pitch to a separate read-only reviewer
-for value, feasibility, simplicity, contradictions, and missing decisions. Fix
+Before implementation, send the complete pitch to one fresh read-only reviewer
+subagent for value, feasibility, simplicity, contradictions, and missing
+decisions. Add up to two more reviewers only for separate material risks. Fix
 material findings and repeat review when the fix warrants it. Then call the
 `question` tool and use its document field to attach the complete pitch with
 concise approve or revise options. This is the human's full-document review.
@@ -94,8 +136,9 @@ context as descriptive text. Across the pitch and plan, preserve required
 headings, YAML frontmatter, Markdown checkbox syntax, code, identifiers,
 commands, paths, links, and quoted text.
 
-Use a separate read-only whole-plan review for coverage, verticality,
-simplicity, and feasibility. Fix ordinary planning findings without a human
+Send the whole plan to one fresh read-only reviewer subagent for coverage,
+verticality, simplicity, and feasibility. Add up to two more reviewers only for
+separate material risks. Fix ordinary planning findings without a human
 plan-approval gate. Pending slices may be reordered, rewritten, split, merged,
 or deleted as implementation teaches more.
 
@@ -106,11 +149,13 @@ its diff and test state and resume that slice; if Git is clean, start it. Read
 the accepted pitch, that slice, repository instructions, relevant sources,
 tests, and public contracts before editing.
 
-Keep one writer. Add the smallest behavior-focused test that can fail for the
-intended reason, implement the minimum behavior, then run focused tests and all
-applicable required checks. Exercise a real integrated user or operator path
-when the slice exposes one. Request a fresh read-only review of the slice diff;
-fix blockers and re-review when necessary.
+The controlling Shape agent remains the sole writer. Add the smallest
+behavior-focused test that can fail for the intended reason, implement the
+minimum behavior, then run focused tests and all applicable required checks.
+Exercise a real integrated user or operator path when the slice exposes one.
+Send the completed slice diff to one fresh read-only reviewer subagent. Add up
+to two more reviewers only for separate material risks. Synthesize findings,
+fix blockers, and re-review material fixes.
 
 A blocked slice remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
