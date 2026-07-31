@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describeFailure, npmInvocation, runCommand } from "./lib/process.ts";
 import { repositoryRoot } from "./lib/repository.ts";
 
+const ADVISORY_RANGE = ">=4.0.0 <5.0.8";
+const ADVISORY_SOURCE = 1_130_591;
 const ADVISORY_URL = "https://github.com/advisories/GHSA-mh99-v99m-4gvg";
+const AUDIT_RANGE = "4.0.0 - 5.0.7";
 const PI_BRACE_EXPANSION =
   "node_modules/@earendil-works/pi-coding-agent/node_modules/brace-expansion";
 const ALLOWED_NODES = new Set([PI_BRACE_EXPANSION, "node_modules/brace-expansion"]);
@@ -25,7 +28,9 @@ function isExpectedAdvisory(value: unknown): boolean {
   return (
     isRecord(value) &&
     value["name"] === "brace-expansion" &&
+    value["range"] === ADVISORY_RANGE &&
     value["severity"] === "high" &&
+    value["source"] === ADVISORY_SOURCE &&
     value["url"] === ADVISORY_URL
   );
 }
@@ -51,7 +56,7 @@ export function isExpectedPiDevelopmentAdvisory(report: unknown): boolean {
   return (
     finding["severity"] === "high" &&
     finding["isDirect"] === false &&
-    finding["range"] === "<=5.0.7" &&
+    finding["range"] === AUDIT_RANGE &&
     finding["fixAvailable"] === true &&
     hasExpectedNodes(finding["nodes"]) &&
     Array.isArray(via) &&

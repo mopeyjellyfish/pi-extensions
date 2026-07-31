@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { isExpectedPiDevelopmentAdvisory } from "../../scripts/audit.ts";
 
+const advisory = {
+  name: "brace-expansion",
+  range: ">=4.0.0 <5.0.8",
+  severity: "high",
+  source: 1_130_591,
+  url: "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+} as const;
 const piNode = "node_modules/@earendil-works/pi-coding-agent/node_modules/brace-expansion";
 
 function report(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -11,15 +18,9 @@ function report(overrides: Record<string, unknown> = {}): Record<string, unknown
         fixAvailable: true,
         isDirect: false,
         nodes: [piNode, "node_modules/brace-expansion"],
-        range: "<=5.0.7",
+        range: "4.0.0 - 5.0.7",
         severity: "high",
-        via: [
-          {
-            name: "brace-expansion",
-            severity: "high",
-            url: "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
-          },
-        ],
+        via: [advisory],
         ...overrides,
       },
     },
@@ -44,16 +45,25 @@ describe("temporary Pi audit exception", () => {
     expect(
       isExpectedPiDevelopmentAdvisory(
         report({
-          via: [
-            {
-              name: "brace-expansion",
-              severity: "high",
-              url: "https://example.test/different-advisory",
-            },
-          ],
+          via: [{ ...advisory, url: "https://example.test/different-advisory" }],
         }),
       ),
     ).toBe(false);
+  });
+
+  it("rejects a changed advisory source or range", () => {
+    expect.hasAssertions();
+    expect(isExpectedPiDevelopmentAdvisory(report({ via: [{ ...advisory, source: 1 }] }))).toBe(
+      false,
+    );
+    expect(
+      isExpectedPiDevelopmentAdvisory(report({ via: [{ ...advisory, range: "<5.0.8" }] })),
+    ).toBe(false);
+  });
+
+  it("rejects a changed affected range", () => {
+    expect.hasAssertions();
+    expect(isExpectedPiDevelopmentAdvisory(report({ range: "<=5.0.7" }))).toBe(false);
   });
 
   it("rejects every additional high or critical vulnerability", () => {
