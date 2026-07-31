@@ -89,6 +89,11 @@ start it. A concise blocked note records only the reason and next action. A slic
 is checked after its implementation, applicable tests and required checks,
 independent review, and real user or operator QA when such a path exists.
 
+After content is correct, the `simple-english` skill applies pragmatic
+ASD-STE100 rules to pitches and plans. It treats pitch narrative as descriptive
+text and plan instructions as procedural text. It preserves templates,
+frontmatter, checkbox syntax, code, identifiers, commands, links, and quotations.
+
 Pending slices remain flexible. There is no separate plan-approval gate. When a
 local commit is authorized, its delivery changes and checkbox update belong
 together. Local completion grants no remote, publication, deployment,
@@ -97,8 +102,10 @@ destructive cleanup, or worktree-removal authority.
 ## Fixed decisions
 
 - Ship one public `shape` skill and one thin `/shape` prompt.
-- Install through this repository's aggregate so Worktrunk is available; do not
-  advertise feature-flow as a standalone install.
+- Install through this repository's aggregate so Worktrunk and the
+  `simple-english` skill are available; do not advertise feature-flow as a
+  standalone install.
+- Apply pragmatic ASD-STE100 rules after pitch and plan content is correct.
 - Keep the classic nine pitch headings used by this document and the package
   template.
 - Keep exactly `pitch.md` and `plan.md` as durable feature-flow artifacts.
@@ -156,3 +163,6 @@ destructive cleanup, or worktree-removal authority.
   pitch and one ordered plan.
 - **AC-007 — Verification:** Focused package tests, repository checks, security
   checks, packed smoke, and live Pi reload acceptance pass.
+- **AC-008 — Clear documents:** The aggregate supplies an independent
+  `simple-english` skill, and feature-flow applies it to pitches and plans
+  without changing document contracts.
