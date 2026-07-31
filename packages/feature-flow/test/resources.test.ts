@@ -31,7 +31,13 @@ describe("feature-flow resources", () => {
 
     expect(skill).toMatch(/Worktrunk[\s\S]*only\s+worktree lifecycle authority/iu);
     expect(skill).toMatch(
-      /no usable brief[\s\S]*ask the human[\s\S]*before calling[^.]*`worktree` tool/iu,
+      /no usable brief[\s\S]*ask\s+the\s+human[\s\S]*before calling[^.]*`worktree` tool/iu,
+    );
+    expect(skill).toMatch(/initial questioning pass[\s\S]*before any worktree call/iu);
+    expect(skill).toMatch(/`question` tool[\s\S]*one to four[^.]*in one call/iu);
+    expect(skill).toMatch(/research[\s\S]*second questioning pass[\s\S]*create `pitch\.md`/iu);
+    expect(skill).toMatch(
+      /document field[\s\S]*complete pitch[\s\S]*explicit\s+human\s+approval/iu,
     );
     expect(skill).toContain('action: "status"');
     expect(skill).toContain('action: "list"');

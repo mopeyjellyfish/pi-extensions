@@ -119,10 +119,43 @@ while preserving required structure and technical text.
 
 Run the new package test, the feature-flow resource test, package validation,
 security checks, source and packed smoke, and the full repository check. Review
-the adapted rules, attribution, package boundary, and shape integration.
+the rules, compliance caveat, package boundary, and shape integration.
 
 ### Done when
 
 The aggregate and standalone package load the skill, feature-flow requires it at
 the correct authoring steps, all checks pass, and independent review has no
 blockers.
+
+## [x] 005 — Clarify intent before pitch approval
+
+### Outcome
+
+The shape workflow efficiently challenges unclear intent before research,
+resolves research-backed decisions afterward, and confirms the complete pitch
+with the human.
+
+### Pitch trace
+
+- [Solution](pitch.md#solution)
+- [Fixed decisions](pitch.md#fixed-decisions)
+- **AC-009**
+
+### Implementation
+
+Use the `question` tool for an initial grouped discovery pass before worktree
+routing. Base research on those answers. Use a second grouped pass to resolve the
+pitch decisions, then attach the complete reviewed pitch to a final approval
+question.
+
+### Validation
+
+Extend the feature-flow resource test for the required ordering, grouped question
+calls, and full-document approval. Run the focused test and required repository
+checks. Review the workflow for useful challenge without a fixed questionnaire
+or serial interrogation.
+
+### Done when
+
+The skill enforces question, research, question, and full-pitch approval in that
+order, and all checks and independent review pass.

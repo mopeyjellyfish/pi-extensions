@@ -13,12 +13,26 @@ Coordinate one feature with Worktrunk, Markdown, and Git. Worktrunk is the only
 worktree lifecycle authority. The durable feature artifacts are
 `docs/features/<slug>/pitch.md` and `docs/features/<slug>/plan.md`.
 
-## Route before writing
+## Establish the brief, then route
 
-If no usable brief was supplied, ask the human for one and stop before calling
-the `worktree` tool. The brief must describe enough of the intended feature to
-derive its canonical slug and `feat/<slug>` branch; never create or choose a
-worktree from an invented name.
+For new shaping, run an initial questioning pass before any worktree call. Use
+the `question` tool to grill the brief constructively. If no usable brief was
+supplied, ask the human for one and stop before calling the `worktree` tool. Ask
+one to four material questions in one call. Group them when their answers can be
+considered together. Give a recommended option and meaningful tradeoffs. Ask only what the
+human can decide; do not ask for facts that repository inspection or research
+can answer.
+
+Confirm the affected people, problem, desired outcome, appetite, hard
+constraints, and no-gos at the level needed to understand and name the feature.
+Challenge vague or solution-first answers without forcing a fixed questionnaire.
+If a question redirects to conversation, address it and continue with the
+returned continuation ID. For new work, do not call the `worktree` tool until
+the answers provide enough information to derive the canonical slug and
+`feat/<slug>` branch. Never create or choose a worktree from an invented name.
+For an explicit resume request that identifies an accepted feature, use that
+identifier to route without reopening settled decisions unless the human asks to
+reshape them.
 
 Once the brief exists, read repository instructions and resolve a material base
 choice with the human. For new work, call the `worktree` tool to create or
@@ -33,8 +47,8 @@ before that route is active. Do not inspect candidate artifacts or replace the
 
 ## Shape and approve the pitch
 
-Create `pitch.md` from `templates/pitch.md`. Whether the brief is specific or
-broad, research before settling the pitch. Start with repository truth, then
+Research the confirmed brief and initial answers before creating `pitch.md`.
+Whether the brief is specific or broad, start with repository truth, then
 delegate bounded current or external topics to specialist researcher subagents;
 parallelize only independent topics. For a named framework, inspect current
 primary documentation, compatibility, established patterns, and material risks.
@@ -43,21 +57,30 @@ options, failure boundaries, and unknowns. Scale the work to uncertainty rather
 than researching for ceremony.
 
 Synthesize source-backed implications instead of retaining raw research output.
-Use them to inform the human, improve recommendations and tradeoffs in questions,
-and shape the pitch. Ask only unresolved decisions that can still change the
-pitch. Keep the complete pitch useful to humans and agents: cite material primary
-sources, embed exact normative contracts, use Mermaid when it clarifies a flow,
-and include cross-functional boundaries only when material. After the content is
-correct, use the `simple-english` skill in pragmatic mode to revise the pitch
-narrative as descriptive text.
+Use them to inform the human, then run a second questioning pass with the
+`question` tool. Present findings, a recommendation, and meaningful tradeoffs.
+Ask one to four unresolved questions in one call when possible. Resolve the
+solution, fixed decisions, rabbit holes, no-gos, and measurable acceptance
+criteria. If an answer exposes a material unknown, do targeted research and ask
+one more grouped follow-up only when needed.
+
+After these answers give the full picture, create `pitch.md` from
+`templates/pitch.md`. Keep the complete pitch useful to humans and agents: cite
+material primary sources, embed exact normative contracts, use Mermaid when it
+clarifies a flow, and include cross-functional boundaries only when material.
+After the content is correct, use the `simple-english` skill in pragmatic mode
+to revise the pitch narrative as descriptive text.
 
 Before implementation, send the complete pitch to a separate read-only reviewer
 for value, feasibility, simplicity, contradictions, and missing decisions. Fix
-material findings, repeat review when the fix warrants it, then show the human
-the complete pitch document for one explicit human approval. Never substitute a
-summary or link. If the current interface cannot show the complete document,
-stop without accepting it. After approval, change only `status: draft` to
-`status: accepted` and create `plan.md`.
+material findings and repeat review when the fix warrants it. Then call the
+`question` tool and use its document field to attach the complete pitch with
+concise approve or revise options. This is the human's full-document review.
+Never use a summary or link in place of the document. Require explicit human
+approval. If the human requests changes, update and re-review material changes,
+then present the complete revised pitch again. If the interface cannot show the complete document, stop without
+accepting it. After approval, change only `status: draft` to `status: accepted`
+and create `plan.md`.
 
 ## Plan vertical slices
 

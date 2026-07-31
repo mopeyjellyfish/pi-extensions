@@ -63,11 +63,18 @@ compatibility obligation.
 
 ## Solution
 
-No worktree action occurs until the human provides a brief specific enough to
-derive `feat/<slug>`. The `worktree` tool then creates or activates that route
-before feature artifacts are written. For an explicit resume request, the skill
-matches the tool's status active path to its list entry to obtain branch identity
-without a direct Git query.
+Before routing a new feature, the `question` tool runs a grouped discovery pass
+to clarify the people, problem, outcome, appetite, constraints, and no-gos. The
+answers must define a brief specific enough to derive `feat/<slug>`. The
+`worktree` tool then creates or activates that route before feature artifacts are
+written. For an explicit resume request, the skill matches the tool's status
+active path to its list entry to obtain branch identity without a direct Git
+query.
+
+Research follows the initial answers. A second grouped question pass presents
+findings, a recommendation, and tradeoffs to resolve the pitch decisions. After
+independent review, the complete pitch is attached to a final `question` call for
+human review and explicit approval.
 
 Each feature contains only:
 
@@ -102,9 +109,11 @@ destructive cleanup, or worktree-removal authority.
 ## Fixed decisions
 
 - Ship one public `shape` skill and one thin `/shape` prompt.
-- Install through this repository's aggregate so Worktrunk and the
-  `simple-english` skill are available; do not advertise feature-flow as a
-  standalone install.
+- Install through this repository's aggregate so the `question` and `worktree`
+  tools and the `simple-english` skill are available; do not advertise
+  feature-flow as a standalone install.
+- Use grouped question passes before research and after research, then attach the
+  complete pitch for human review and approval.
 - Apply pragmatic ASD-STE100 rules after pitch and plan content is correct.
 - Keep the classic nine pitch headings used by this document and the package
   template.
@@ -166,3 +175,6 @@ destructive cleanup, or worktree-removal authority.
 - **AC-008 — Clear documents:** The aggregate supplies an independent
   `simple-english` skill, and feature-flow applies it to pitches and plans
   without changing document contracts.
+- **AC-009 — Informed pitch:** The shape skill groups material questions before
+  research, repeats the questioning pass after research, and attaches the
+  complete pitch for explicit human review and approval.
