@@ -5,9 +5,9 @@ delivering one feature in an isolated Worktrunk worktree. It ships one `shape`
 skill, the `/shape [feature brief]` prompt, and Markdown templates. It registers
 no extension, service, agent, or runtime dependency.
 
-The workflow intentionally relies on the `worktree` tool and `simple-english`
-skill supplied by this repository's aggregate package. It is not a standalone
-feature-flow install.
+The workflow intentionally relies on the `question` and `worktree` tools and the
+`simple-english` skill supplied by this repository's aggregate package. It is
+not a standalone feature-flow install.
 
 ## Use
 
@@ -21,6 +21,15 @@ Run `/shape` without arguments to be asked for the feature brief. The skill does
 not call the `worktree` tool until that answer is specific enough to derive the
 `feat/<slug>` branch. To resume existing work, identify it in the request, for
 example `/shape resume resumable uploads`.
+
+Shaping uses three efficient human checkpoints:
+
+1. For new shaping, the `question` tool groups up to four material questions to
+   clarify the brief before worktree routing.
+2. Research follows those answers, then a second grouped question pass resolves
+   the pitch decisions.
+3. The complete pitch is attached to a final `question` call for human review
+   and explicit approval.
 
 Each feature keeps two durable files:
 
