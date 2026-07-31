@@ -15,19 +15,21 @@ worktree lifecycle authority. The durable feature artifacts are
 
 ## Route before writing
 
-With a brief, derive a short canonical slug and expected `feat/<slug>` branch.
-Read repository instructions, resolve a material base choice with the human,
-then call the `worktree` tool to create or activate the route. Verify its
-returned worktree branch; write no feature artifact before that route is active.
+If no usable brief was supplied, ask the human for one and stop before calling
+the `worktree` tool. The brief must describe enough of the intended feature to
+derive its canonical slug and `feat/<slug>` branch; never create or choose a
+worktree from an invented name.
 
-Without a brief, call `worktree({ action: "status" })`, then
-`worktree({ action: "list" })`. Match the status active path to the worktree list entry and use that
-entry's branch. If the matching entry is omitted by truncation, follow the
-`pi-worktrunk` skill's complete-list guidance. An active `feat/<slug>` branch
-maps directly to `docs/features/<slug>/`. If no feature route is active, ask the
-human to choose among listed `feat/*` worktrees, then activate and verify only
-that choice. If none exists, ask for a feature brief. Do not inspect candidate
-artifacts or replace the `worktree` tool with direct Git worktree commands.
+Once the brief exists, read repository instructions and resolve a material base
+choice with the human. For new work, call the `worktree` tool to create or
+activate the derived branch and verify its returned worktree branch. For an
+explicit resume request, call `worktree({ action: "status" })`, then
+`worktree({ action: "list" })`. Match the status active path to the worktree list
+entry and use that entry's branch. If the matching entry is omitted by
+truncation, follow the `pi-worktrunk` skill's complete-list guidance. Activate
+and verify only the matching `feat/<slug>` route. Write no feature artifact
+before that route is active. Do not inspect candidate artifacts or replace the
+`worktree` tool with direct Git worktree commands.
 
 ## Shape and approve the pitch
 
