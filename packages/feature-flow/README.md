@@ -16,9 +16,10 @@ Start naturally with an end-to-end feature brief or run:
 /shape let users resume interrupted uploads
 ```
 
-Run `/shape` without a brief to resume the active `feat/<slug>` Worktrunk route.
-If none is active, the skill uses the `worktree` tool's list and asks which
-existing feature worktree to activate.
+Run `/shape` without arguments to be asked for the feature brief. The skill does
+not call the `worktree` tool until that answer is specific enough to derive the
+`feat/<slug>` branch. To resume existing work, identify it in the request, for
+example `/shape resume resumable uploads`.
 
 Each feature keeps two durable files:
 

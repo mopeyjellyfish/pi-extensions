@@ -5,4 +5,4 @@ argument-hint: "[feature brief]"
 
 <!-- markdownlint-disable MD041 -->
 
-Use the `shape` skill. ${ARGUMENTS:-Resume the active feature from Git and its plan.}
+Use the `shape` skill. ${ARGUMENTS:-Ask the user for a feature brief before any worktree action.}

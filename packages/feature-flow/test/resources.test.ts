@@ -30,6 +30,9 @@ describe("feature-flow resources", () => {
     ]);
 
     expect(skill).toMatch(/Worktrunk[\s\S]*only\s+worktree lifecycle authority/iu);
+    expect(skill).toMatch(
+      /no usable brief[\s\S]*ask the human[\s\S]*before calling[^.]*`worktree` tool/iu,
+    );
     expect(skill).toContain('action: "status"');
     expect(skill).toContain('action: "list"');
     expect(skill).toContain("`feat/<slug>`");
@@ -86,9 +89,11 @@ describe("feature-flow resources", () => {
       includeDefaults: false,
     });
 
-    expect(prompt).toContain("${ARGUMENTS:-Resume the active feature from Git and its plan.}");
+    expect(prompt).toContain(
+      "${ARGUMENTS:-Ask the user for a feature brief before any worktree action.}",
+    );
     expect(piPromptTemplates.expandPromptTemplate("/shape", templates)).toContain(
-      "Resume the active feature from Git and its plan.",
+      "Ask the user for a feature brief before any worktree action.",
     );
     expect(
       piPromptTemplates.expandPromptTemplate("/shape add resumable uploads", templates),

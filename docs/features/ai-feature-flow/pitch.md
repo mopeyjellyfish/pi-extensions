@@ -63,11 +63,11 @@ compatibility obligation.
 
 ## Solution
 
-The `worktree` tool routes every feature to `feat/<slug>` before feature
-artifacts are written. The skill matches its status active path to its list entry
-to obtain branch identity without a direct Git query. With no brief, it resumes
-the active feature route or asks the human to choose from the tool's existing
-feature worktrees.
+No worktree action occurs until the human provides a brief specific enough to
+derive `feat/<slug>`. The `worktree` tool then creates or activates that route
+before feature artifacts are written. For an explicit resume request, the skill
+matches the tool's status active path to its list entry to obtain branch identity
+without a direct Git query.
 
 Each feature contains only:
 
