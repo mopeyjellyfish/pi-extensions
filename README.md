@@ -56,6 +56,15 @@ definitions. The `researcher` remains the standard web-only agent. These role
 prompts are synchronized with `pi-subagents` 0.38.0; compare its `agents/`
 directory and update this compatibility note when adopting a newer version.
 
+The aggregate uses `openai-codex/gpt-5.6-luna` for `scout` and
+`context-builder`, `openai-codex/gpt-5.6-sol` for `advisor`, `oracle`, `planner`,
+`reviewer`, and `worker`, and the reasoning levels declared in their frontmatter.
+`delegate` continues to inherit the parent model. Per-run and chain-step model
+overrides take precedence, but `subagents.agentOverrides` cannot replace explicit
+package frontmatter. A user or project agent definition can still shadow a package
+agent. These defaults therefore require OpenAI Codex authentication unless the
+caller supplies another model when launching the agent.
+
 Workers apply the `ponytail` skill before coding. Reviewers apply
 `ponytail-review` when explicitly launched for a code, diff, pull request, or
 codebase review. Whole-repository `ponytail-audit` runs only when explicitly

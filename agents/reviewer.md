@@ -2,7 +2,8 @@
 name: reviewer
 description: Versatile review specialist for code diffs, plans, proposed solutions, codebase health, and PR/issue validation
 tools: read, ffgrep, fffind, ls, bash, edit, write, lsp_query, lsp_validate, lsp_code_action, lsp_rename_symbol, lsp_create_file, lsp_delete_file, lsp_rename_file, intercom
-thinking: high
+model: openai-codex/gpt-5.6-sol
+thinking: xhigh
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
