@@ -52,12 +52,14 @@ and `worker` definitions. Read-only roles receive search, semantic query, and
 validation tools; writer roles also receive safe LSP mutation tools. The strict
 tool lists require FFF's `tools-and-ui` (default) or `tools-only` mode; FFF's
 `override` mode uses different tool names and is not compatible with these
-definitions. The `researcher` remains the standard web-only agent. These role
-prompts are synchronized with `pi-subagents` 0.38.0; compare its `agents/`
-directory and update this compatibility note when adopting a newer version.
+definitions. The `researcher` remains web-only and uses the aggregate's
+provider-native `web_search` tool instead of the separate `pi-web-access` tool
+set. The code-role prompts are synchronized with `pi-subagents` 0.38.0; compare
+its `agents/` directory and update this compatibility note when adopting a newer
+version.
 
-The aggregate uses `openai-codex/gpt-5.6-luna` for `scout` and
-`context-builder`, `openai-codex/gpt-5.6-sol` for `advisor`, `oracle`, `planner`,
+The aggregate uses `openai-codex/gpt-5.6-luna` for `scout`, `context-builder`,
+and `researcher`, and `openai-codex/gpt-5.6-sol` for `advisor`, `oracle`, `planner`,
 `reviewer`, and `worker`, and the reasoning levels declared in their frontmatter.
 `delegate` continues to inherit the parent model. Per-run and chain-step model
 overrides take precedence, but `subagents.agentOverrides` cannot replace explicit

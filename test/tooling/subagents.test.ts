@@ -83,6 +83,7 @@ describe("aggregate subagent resources", () => {
         "lsp_rename_file",
         "intercom",
       ],
+      "researcher.md": ["read", "write", "web_search", "intercom"],
       "scout.md": [
         "read",
         "ffgrep",
@@ -119,6 +120,7 @@ describe("aggregate subagent resources", () => {
       "oracle.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
       "planner.md": { model: "openai-codex/gpt-5.6-sol", thinking: "high" },
       "reviewer.md": { model: "openai-codex/gpt-5.6-sol", thinking: "xhigh" },
+      "researcher.md": { model: "openai-codex/gpt-5.6-luna", thinking: "high" },
       "scout.md": { model: "openai-codex/gpt-5.6-luna", thinking: "low" },
       "worker.md": { model: "openai-codex/gpt-5.6-sol", thinking: "medium" },
     } as const;
@@ -166,11 +168,20 @@ describe("aggregate subagent resources", () => {
       expect(tools).toEqual(expectedTools[name]);
       expect(field("model")).toBe(expectedExecutionProfiles[name].model);
       expect(field("thinking")).toBe(expectedExecutionProfiles[name].thinking);
+    }
+
+    for (const name of agentFileNames.filter((name) => name !== "researcher.md")) {
+      const agent = agents.get(name) ?? "";
       expect(agent).toContain("`fffind`");
       expect(agent).toContain("`ffgrep`");
       expect(agent).toContain("`lsp_query`");
       expect(agent).toContain("`lsp_validate`");
     }
+
+    const researcher = agents.get("researcher.md") ?? "";
+    expect(researcher).toContain("one focused, self-contained `query`");
+    expect(researcher).not.toContain("fetch_content");
+    expect(researcher).not.toContain("get_search_content");
 
     const worker = agents.get("worker.md") ?? "";
     const reviewer = agents.get("reviewer.md") ?? "";
