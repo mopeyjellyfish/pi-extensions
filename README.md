@@ -46,11 +46,20 @@ This aggregate also installs and loads these external resources:
 
 Installing one package from `packages/` does not include those external resources.
 
-When `pi-subagents` is installed, the aggregate also supplies Ponytail-aware
-`worker` and `reviewer` definitions. Workers apply the `ponytail` skill before
-coding. Reviewers apply `ponytail-review` when explicitly launched for a code,
-diff, pull request, or codebase review. Whole-repository `ponytail-audit` runs
-only when explicitly requested.
+When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
+`advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `reviewer`, `scout`,
+and `worker` definitions. Read-only roles receive search, semantic query, and
+validation tools; writer roles also receive safe LSP mutation tools. The strict
+tool lists require FFF's `tools-and-ui` (default) or `tools-only` mode; FFF's
+`override` mode uses different tool names and is not compatible with these
+definitions. The `researcher` remains the standard web-only agent. These role
+prompts are synchronized with `pi-subagents` 0.38.0; compare its `agents/`
+directory and update this compatibility note when adopting a newer version.
+
+Workers apply the `ponytail` skill before coding. Reviewers apply
+`ponytail-review` when explicitly launched for a code, diff, pull request, or
+codebase review. Whole-repository `ponytail-audit` runs only when explicitly
+requested.
 
 Update it later with:
 
