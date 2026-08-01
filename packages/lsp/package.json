@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "vitest": "4.1.10",
-    "vscode-languageserver-protocol": "3.17.5"
+    "vscode-languageserver-protocol": "3.18.2"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
