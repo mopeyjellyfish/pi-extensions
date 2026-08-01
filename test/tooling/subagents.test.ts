@@ -112,6 +112,16 @@ describe("aggregate subagent resources", () => {
         "contact_supervisor",
       ],
     } as const;
+    const expectedExecutionProfiles = {
+      "advisor.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
+      "context-builder.md": { model: "openai-codex/gpt-5.6-luna", thinking: "high" },
+      "delegate.md": { model: undefined, thinking: undefined },
+      "oracle.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
+      "planner.md": { model: "openai-codex/gpt-5.6-sol", thinking: "high" },
+      "reviewer.md": { model: "openai-codex/gpt-5.6-sol", thinking: "xhigh" },
+      "scout.md": { model: "openai-codex/gpt-5.6-luna", thinking: "low" },
+      "worker.md": { model: "openai-codex/gpt-5.6-sol", thinking: "medium" },
+    } as const;
     const agentFileNames = Object.keys(expectedTools).sort((left, right) =>
       left.localeCompare(right),
     ) as (keyof typeof expectedTools)[];
@@ -135,15 +145,27 @@ describe("aggregate subagent resources", () => {
       /require FFF's `tools-and-ui` \(default\) or `tools-only` mode; FFF's\s+`override` mode[\s\S]*not compatible/iu,
     );
     expect(readme).toContain("synchronized with `pi-subagents` 0.38.0");
+    expect(readme).toMatch(/Per-run and chain-step model\s+overrides take precedence/u);
+    expect(readme).toMatch(
+      /`subagents\.agentOverrides` cannot replace explicit\s+package frontmatter/u,
+    );
 
     for (const name of agentFileNames) {
       const agent = agents.get(name) ?? "";
+      const frontmatter = agent.split("---", 2)[1] ?? "";
+      const field = (key: string) =>
+        frontmatter
+          .split("\n")
+          .find((line) => line.startsWith(`${key}: `))
+          ?.slice(key.length + 2);
       const tools = agent
         .split("\n")
         .find((line) => line.startsWith("tools: "))
         ?.slice("tools: ".length)
         .split(", ");
       expect(tools).toEqual(expectedTools[name]);
+      expect(field("model")).toBe(expectedExecutionProfiles[name].model);
+      expect(field("thinking")).toBe(expectedExecutionProfiles[name].thinking);
       expect(agent).toContain("`fffind`");
       expect(agent).toContain("`ffgrep`");
       expect(agent).toContain("`lsp_query`");

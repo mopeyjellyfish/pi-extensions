@@ -2,7 +2,8 @@
 name: context-builder
 description: Analyzes requirements and codebase, generates context and meta-prompt
 tools: read, ffgrep, fffind, ls, bash, write, web_search, lsp_query, lsp_validate, intercom
-thinking: medium
+model: openai-codex/gpt-5.6-luna
+thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

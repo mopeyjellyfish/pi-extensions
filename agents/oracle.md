@@ -2,7 +2,8 @@
 name: oracle
 description: High-context decision-consistency oracle that protects inherited state and prevents drift
 tools: read, ffgrep, fffind, ls, bash, lsp_query, lsp_validate, intercom
-thinking: high
+model: openai-codex/gpt-5.6-sol
+thinking: max
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
