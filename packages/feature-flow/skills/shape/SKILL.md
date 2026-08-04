@@ -11,7 +11,9 @@ description: >-
 
 Coordinate one feature with Worktrunk, Markdown, and Git. Worktrunk is the only
 worktree lifecycle authority. The durable feature artifacts are
-`docs/features/<slug>/pitch.md` and `docs/features/<slug>/plan.md`.
+`docs/features/<slug>/pitch.md` and `docs/features/<slug>/plan.md`. The accepted
+pitch defines intent, the current `plan.md` defines slice membership, order, and
+check state, and Git provides durable history and resume evidence.
 
 ## Orchestrate read-only specialists
 
@@ -139,8 +141,56 @@ commands, paths, links, and quoted text.
 Send the whole plan to one fresh read-only reviewer subagent for coverage,
 verticality, simplicity, and feasibility. Add up to two more reviewers only for
 separate material risks. Fix ordinary planning findings without a human
-plan-approval gate. Pending slices may be reordered, rewritten, split, merged,
-or deleted as implementation teaches more.
+plan-approval gate.
+
+Keep one `Next slice number: <NNN>` high-water mark in `plan.md`. Assign its
+current value to each new or replacement slice, then increase it. Slice numbers
+are unique and immutable. Never decrease the high-water mark. Never reuse a
+retired number. Pending slices may be reordered without renumbering, rewritten, split,
+merged, or deleted as implementation teaches more.
+
+## Mirror vertical slices to todo
+
+Treat the `todo` tool as a best-effort session progress mirror when it is
+available. `plan.md` remains authoritative. Track only vertical slices, not
+pitch, research, review, commit, or delivery tasks. Use one concise managed item
+per slice:
+
+```text
+Shape <slug>: <slice number> — <outcome>
+```
+
+Reserve the exact `Shape <slug>:` namespace for that feature. Reconcile after
+plan creation, after plan changes, before build or resume, after a slice is
+checked, and before finish.
+
+Before any todo mutation, list all todos and validate the complete plan and
+reserved namespace. Require one valid high-water mark, unique plan numbers below
+that mark, well-formed managed items, all managed item numbers below that mark,
+and at most one managed item for each slice number. Treat a managed number at or
+above the mark as a namespace collision, not a stale slice. Identify stale
+managed numbers and any unrelated `in_progress` item. If listing or preflight
+fails because an item is malformed, ambiguous, duplicated, or collides with the
+namespace, make no todo mutation. Report the exact gap and continue from
+`plan.md` and Git.
+
+If a plan predates the high-water mark format, do not automatically migrate it.
+Report the missing mark and continue from `plan.md`. Add the mark only through an
+explicit reviewed plan change.
+
+After successful preflight, add missing managed items in plan order. Update a
+renamed item that keeps its slice number. Mark checked items `completed`, stale
+or replaced items `cancelled`, and later unchecked items `pending`. Mark the
+first unchecked item `in_progress` only when no unrelated item already has that
+status. If an unrelated todo is `in_progress`, keep the first unchecked Shape item
+`pending`, leave the unrelated item unchanged, and report the conflict. A blocked slice
+keeps its reconciled status while its `> Blocked: … Next: …` note remains in
+`plan.md`.
+
+After the first failed todo mutation, stop that reconciliation pass, report the
+exact gap, continue from `plan.md` and Git, and retry at the next reconciliation.
+Never weaken an approval, test, review, validation, or delivery gate because the
+`todo` tool is unavailable or the best-effort instruction fails.
 
 ## Build or resume
 
@@ -159,8 +209,10 @@ fix blockers, and re-review material fixes.
 
 A blocked slice remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
-`[x]` only after implementation, appropriate tests, required checks, review, and
-applicable integrated QA pass.
+checkbox `[x]` only after implementation, appropriate tests, required checks,
+review, and applicable integrated QA pass. Then reconcile its todo to
+`completed`. If that update fails, keep the durable checkbox checked, report the
+gap, and retry later.
 
 When repository instructions and explicit user authority permit a local commit,
 include the checkbox update with that slice's delivery changes. Never infer
@@ -178,6 +230,7 @@ copies.
 
 ## Finish
 
-When every slice is checked, report local completion and remaining separately
-authorized actions. Do not turn local completion into remote delivery or
-cleanup authority.
+When every slice is checked, run a final todo reconciliation. After a successful
+reconciliation, no managed slice todo can remain `pending` or `in_progress`.
+Report local completion and remaining separately authorized actions. Do not turn
+local completion into remote delivery or cleanup authority.
