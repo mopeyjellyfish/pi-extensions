@@ -1,8 +1,15 @@
 # Plan: {{feature}}
 
-Resume by inspecting Git, then work the first unchecked slice. Reorder, rewrite,
-split, merge, or delete pending slices when implementation teaches something
-new.
+Next slice number: 002
+
+Resume by inspecting Git, then work the first unchecked slice. Keep slice
+numbers unique and unchanged. Assign the current `Next slice number` to a new or
+replacement slice, then increase it. Never decrease the value. Never reuse a
+retired number. Reorder headings without renumbering them.
+
+When the `todo` tool is available, validate the complete plan and managed todo
+namespace before mutation. Reconcile one `Shape <slug>:` item per slice. Keep
+`plan.md` authoritative and preserve unrelated todos.
 
 ## [ ] 001 — Observable vertical outcome
 

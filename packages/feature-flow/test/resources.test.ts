@@ -66,13 +66,38 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
     expect(skill).toMatch(/first unchecked slice[\s\S]*dirty[\s\S]*Git/iu);
     expect(skill).toMatch(/tests[\s\S]*required checks[\s\S]*read-only review/iu);
+    expect(skill).toMatch(/`todo` tool[\s\S]*session[^.]*mirror/iu);
+    expect(skill).toContain("Shape <slug>: <slice number> — <outcome>");
+    expect(skill).toMatch(/next[^.]*slice number[\s\S]*never[^.]*decrease[\s\S]*never[^.]*reuse/iu);
+    expect(skill).toMatch(
+      /before any todo mutation[\s\S]*complete plan[\s\S]*reserved[^.]*namespace[\s\S]*duplicate/iu,
+    );
+    expect(skill).toMatch(
+      /one valid high-water mark[^.]*unique plan numbers below[^.]*mark[\s\S]*managed[^.]*numbers below[^.]*mark/iu,
+    );
+    expect(skill).toMatch(/preflight[^.]*fails[\s\S]*no todo[^.]*mutat/iu);
+    expect(skill).toMatch(/plan[^.]*predates[^.]*high-water[\s\S]*do not[^.]*migrat/iu);
+    expect(skill).toMatch(
+      /unrelated[^.]*`in_progress`[\s\S]*first unchecked[^.]*`pending`[\s\S]*unchanged/iu,
+    );
+    expect(skill).toMatch(/plan creation[\s\S]*plan changes[\s\S]*resume/iu);
+    expect(skill).toMatch(/renamed[^.]*slice number[\s\S]*stale[^.]*`cancelled`/iu);
+    expect(skill).toMatch(/blocked[^.]*reconciled[^.]*status/iu);
+    expect(skill).toMatch(/checkbox[^.]*`\[x\]`[\s\S]*todo[^.]*`completed`/iu);
+    expect(skill).toMatch(
+      /final todo reconciliation[\s\S]*no managed[^.]*`pending`[^.]*`in_progress`/iu,
+    );
+    expect(skill).toMatch(/first failed todo mutation[\s\S]*stop[^.]*reconciliation[\s\S]*retry/iu);
+    expect(skill).toMatch(/accepted\s+pitch[^.]*intent[\s\S]*current\s+`plan\.md`[^.]*slice/iu);
+    expect(skill).toMatch(/Git[^.]*history[^.]*resume evidence/iu);
+    expect(skill).toMatch(/best-effort[^.]*instruction/iu);
     expect(skill).toMatch(/resolve a material base\s+choice with the human/iu);
     expect(skill).toMatch(
       /never infer[^.]*commit[^.]*push[^.]*open a pull request[^.]*merge[^.]*publish[^.]*deploy[^.]*remove a\s+worktree[^.]*destructive cleanup/iu,
     );
     expect(skill).toMatch(/fresh human approval[\s\S]*status: accepted/iu);
     expect(skill).not.toMatch(/feature-flow\.mjs|index\.json|sha-?256|banking|Feature-Slice/iu);
-    expect(readme).toMatch(/aggregate package[\s\S]*not a standalone/iu);
+    expect(readme).toMatch(/aggregate\s+package[\s\S]*not a standalone/iu);
     expect(readme).toMatch(/research stage[^.]*zero to three[\s\S]*review[^.]*one to three/iu);
     expect(readme).toMatch(/controlling Shape agent[^.]*sole writer/iu);
     expect(readme).toContain("pi install npm:pi-subagents");
@@ -81,9 +106,15 @@ describe("feature-flow resources", () => {
 
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
     expect(pitch.match(/^## .+$/gmu)?.map((heading) => heading.slice(3))).toEqual(PITCH_HEADINGS);
+    expect(plan).toContain("Next slice number: 002");
     expect(plan).toContain("## [ ] 001 — Observable vertical outcome");
     expect(plan).toMatch(/first unchecked slice/iu);
+    expect(plan).toMatch(/never[^.]*decrease[\s\S]*never[^.]*reuse/iu);
+    expect(plan).toMatch(/`todo` tool[\s\S]*validate[\s\S]*reconcile/iu);
     expect(plan).not.toMatch(/depends_on|evidence|banking|estimate/iu);
+    expect(readme).toMatch(/session todo[^.]*mirror/iu);
+    expect(readme).toMatch(/preserv[^.]*unrelated todos/iu);
+    expect(readme).toMatch(/best-effort[^.]*plan\.md/iu);
   });
 
   it("expands one /shape prompt with or without a brief", async () => {
