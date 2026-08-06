@@ -57,16 +57,16 @@
     "workflows:actionlint": "go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12",
     "workflows:zizmor": "zizmor --persona pedantic --min-severity low --offline .github/workflows",
     "workflows:check": "npm run workflows:actionlint && npm run workflows:zizmor",
-    "security:audit": "tsx scripts/audit.ts",
+    "security:audit": "npm audit --audit-level=high",
     "security:secrets": "go run github.com/zricethezav/gitleaks/v8@v8.30.1 dir . --redact --no-banner && go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner",
     "security:check": "npm run security:audit && npm run security:secrets"
   },
   "devDependencies": {
     "@commitlint/cli": "21.1.0",
     "@commitlint/config-conventional": "21.1.0",
-    "@earendil-works/pi-ai": "0.82.0",
-    "@earendil-works/pi-coding-agent": "0.82.0",
-    "@earendil-works/pi-tui": "0.82.0",
+    "@earendil-works/pi-ai": "0.84.0",
+    "@earendil-works/pi-coding-agent": "0.84.0",
+    "@earendil-works/pi-tui": "0.84.0",
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.2",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.0",
@@ -98,6 +98,9 @@
     "@ff-labs/pi-fff": "0.9.6"
   },
   "overrides": {
+    "cosmiconfig": {
+      "js-yaml": "4.3.1"
+    },
     "markdownlint-cli2": {
       "js-yaml": "5.2.2"
     }
