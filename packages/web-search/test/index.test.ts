@@ -47,7 +47,8 @@ interface RegisteredTool {
 type ResolvedAuth =
   | {
       readonly apiKey?: string;
-      readonly headers?: Record<string, string>;
+      readonly env?: Record<string, string>;
+      readonly headers?: Record<string, string | null>;
       readonly ok: true;
     }
   | { readonly error: string; readonly ok: false };
@@ -181,7 +182,10 @@ describe("pi-web-search extension", () => {
     expect.hasAssertions();
     const fetch = vi.fn((input: string | URL | Request, init?: RequestInit) => {
       expect(requestUrl(input)).toBe("https://api.openai.com/v1/responses");
-      expect(init?.headers).toEqual(expect.objectContaining({ authorization: "Bearer test-key" }));
+      const headers = new Headers(init?.headers);
+      expect(headers.get("authorization")).toBe("Bearer test-key");
+      expect(headers.get("x-preserved")).toBe("registry");
+      expect(headers.has("x-removed")).toBe(false);
       const body = requestJson(init);
       expect(body).toEqual(
         expect.objectContaining({
@@ -213,12 +217,14 @@ describe("pi-web-search extension", () => {
     const ctx = context({
       api: "openai-responses",
       baseUrl: "https://api.openai.com/v1",
+      headers: { "X-Preserved": "model", "X-Removed": "model" },
       id: "gpt-5.6",
       provider: "openai",
       reasoning: true,
     });
     registryMocks(ctx).getAuth.mockResolvedValue({
       apiKey: "test-key",
+      headers: { "x-PrEsErVeD": "registry", "x-rEmOvEd": null },
       ok: true,
     });
     const updates: string[] = [];
@@ -250,6 +256,71 @@ describe("pi-web-search extension", () => {
         ],
       }),
     );
+  });
+
+  it("preserves registry-owned Cloudflare authentication and native auth tombstones", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      expect(headers.get("cf-aig-authorization")).toBe("Bearer cloudflare-key");
+      expect(headers.has("authorization")).toBe(false);
+      return Promise.resolve(
+        sseResponse([{ delta: "Cloudflare answer.", type: "response.output_text.delta" }]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context({
+      ...providerModel("openai-responses"),
+      headers: { Authorization: "Bearer model-key" },
+      provider: "cloudflare-ai-gateway",
+    });
+    registryMocks(ctx).getAuth.mockResolvedValue({
+      env: { CLOUDFLARE_API_KEY: "cloudflare-key" },
+      headers: {
+        aUtHoRiZaTiOn: null,
+        "Cf-Aig-Authorization": "Bearer cloudflare-key",
+      },
+      ok: true,
+    });
+
+    const result = await registerTool().execute(
+      "search-cloudflare-auth",
+      { query: "Search through Cloudflare" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(result.content[0]?.text).toContain("Cloudflare answer.");
+  });
+
+  it("does not recreate a native auth header deleted by resolved auth", async () => {
+    expect.hasAssertions();
+    const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      expect(new Headers(init?.headers).has("authorization")).toBe(false);
+      return Promise.resolve(
+        sseResponse([{ delta: "Gateway answer.", type: "response.output_text.delta" }]),
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const ctx = context(providerModel("openai-responses"));
+    registryMocks(ctx).getAuth.mockResolvedValue({
+      apiKey: "must-not-send",
+      headers: { Authorization: null },
+      ok: true,
+    });
+
+    const result = await registerTool().execute(
+      "search-auth-tombstone",
+      { query: "Search through an authenticated gateway" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(result.content[0]?.text).toContain("Gateway answer.");
   });
 
   it("maps Pi's selected thinking level through the current OpenAI model metadata", async () => {
