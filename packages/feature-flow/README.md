@@ -66,13 +66,13 @@ current or next. Git state shows whether to start or resume it. A slice is
 checked only after implementation, appropriate tests and required checks,
 independent review, and applicable integrated QA.
 
-Shape uses the session todo list as a best-effort mirror of `plan.md` vertical
-slices. It validates the complete plan and its reserved todo namespace before
-mutation, preserves unrelated todos, and never replaces the durable plan. If an
-unrelated todo is already active, the current Shape slice remains pending. A
-missing or failed mirror does not block work from `plan.md`, weaken a delivery
-gate, or add runtime state to this skill-only package. Shape does not
-automatically migrate older plans that lack the next-slice-number mark.
+Shape uses one rolling session todo item as a best-effort display of `plan.md`
+progress and the first unchecked slice. Accurate text is available in todo
+state, tool output, and `/todos`; bounded widget and status line visibility is
+opportunistic. Shape preserves unrelated todos and never replaces the durable
+plan. If an unrelated todo is already active, the rolling item remains pending.
+A missing or failed display does not block work from `plan.md`, weaken a
+delivery gate, or add runtime state to this skill-only package.
 
 Worktrunk alone owns worktree lifecycle. Local commits and every push, pull
 request, merge, publication, deployment, cleanup, or worktree removal remain
