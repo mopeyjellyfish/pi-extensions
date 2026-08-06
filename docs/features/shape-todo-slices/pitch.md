@@ -6,37 +6,38 @@ status: accepted
 
 ## Executive summary
 
-The `shape` skill will mirror each planned vertical slice to Pi's session todo
-list when the `todo` tool is available. The mirror will show completed and
-pending slices. It will show the current slice as `in_progress` when no unrelated
-todo already owns that global status.
+The `shape` skill will keep one rolling todo item for each active Shape feature
+when the `todo` tool is available. The item will show scoped slice progress and
+the current slice:
 
-The accepted pitch defines intent. The current `plan.md` defines slice
-membership, order, and check state. Git provides history and resume evidence.
+```text
+Shape <slug>: <checked>/<total> — <slice number> <outcome>
+```
 
-Shape will manage only todo items with a feature-specific prefix. It will
-preserve unrelated todos. Shape will reconcile the mirror after plan changes and
-when work resumes in a new or restored session.
+When all slices are checked, the item will show `<total>/<total> — complete` and
+become `completed`. `plan.md` remains the detailed and durable source of truth.
+The todo item is a compact session display only.
 
 ## Problem
 
-Shape records vertical slices as Markdown checkboxes in `plan.md`. This durable
-format supports Git review and resume, but it does not use Pi's compact progress
-list during implementation.
+Shape records vertical slices as Markdown checkboxes in `plan.md`. The plan is
+accurate and durable, but it does not give compact in-session feedback about the
+agent's current position.
 
-The repository already provides a session-aware `todo` tool. The tool supports
-stable IDs and atomic status updates, but its state belongs to one Pi session
-branch. A new session can start with an empty list. A restored or forked session
-can contain state that does not match a changed plan. See
+One todo per slice looks like a direct mirror, but Pi's todo list is global and
+ungrouped. Its displayed closed/total ratio includes unrelated and cancelled
+items. Its widget shows at most eight rows, and only one item can be
+`in_progress`. A per-slice mirror therefore adds clutter and identity rules
+without producing reliable Shape-scoped progress. See
 [`packages/todo/README.md`](../../../packages/todo/README.md).
 
-The integration must make current work visible without creating two competing
-plans or deleting unrelated session work.
+The integration must show where the agent is and how much Shape work remains. It
+must not create a second authoritative plan or change unrelated todos.
 
 ## Appetite
 
-Make a small skill-only change. Update the Shape instructions, plan template,
-focused resource tests, and package README.
+Keep this a small skill-only change. Update Shape instructions, the plan
+template, focused resource tests, and the package README.
 
 Keep these quality floors:
 
@@ -44,14 +45,13 @@ Keep these quality floors:
 - Keep the current `plan.md` authoritative for slice membership, order, and
   check state.
 - Use Git only for durable history and resume evidence.
-- Preserve all existing approval, review, validation, and delivery gates.
-- Preserve unrelated todo items.
-- Continue safely when the `todo` tool is unavailable or cannot accept all
-  slices.
+- Show Shape-scoped progress in the rolling item text.
+- Preserve unrelated todo items and the global active item.
+- Continue safely when the `todo` tool is unavailable or a mutation fails.
 - Keep the package free of a production extension and new runtime dependencies.
 
-Stop and reshape the work if reliable tracking requires durable todo IDs,
-cross-session storage, or executable integration code.
+Stop and reshape the work if the required display needs todo grouping,
+cross-session ownership, or executable synchronization.
 
 ## Research and prior art
 
@@ -61,177 +61,163 @@ The first unchecked plan slice is already the current or next slice. A slice is
 checked only after its tests, required checks, review, and applicable integrated
 QA pass.
 
-The `todo` tool supports `list`, `add`, and atomic `update` actions. Todo items
-have `pending`, `in_progress`, `completed`, and `cancelled` states. Only one
-item can be `in_progress`. Todo state follows a Pi session branch through
-reload, resume, compaction, fork, and tree navigation. It is not shared between
-new sessions.
+The todo extension already provides a persistent widget, `/todos`, tool
+transcript rows, and a compact status-line summary. Todo state follows the Pi
+session branch through reload, resume, compaction, fork, and tree navigation. A
+new session starts with an empty list.
 
-Numeric todo IDs are not suitable for `plan.md`. The IDs are session-specific,
-while pending slices can be renamed, reordered, split, merged, or deleted.
-Shape must reconcile by a feature-specific text prefix and stable slice number
-instead. `plan.md` stores the next unused slice number as a durable high-water
-mark. Slice numbers are unique, immutable, and never reused in one feature.
-Reordering changes heading order without changing numbers. Splits and
-replacements receive the next unused numbers.
+The todo extension intentionally has no grouping or ownership metadata. Its
+closed/total summary covers the complete session list. The status line shows the
+global active item before the next pending item. Shape must therefore put its
+own checked/total count in the managed item text instead of treating the global
+ratio as Shape progress.
 
-The todo tool allows only one global `in_progress` item. Setting a Shape slice
-active can demote an unrelated active item. Shape must preserve the unrelated
-item and leave its slice pending until the global active status is available.
+A plan-only design is simpler but does not meet the requested in-session display.
+Adding todo groups would provide stronger ownership and scoped rendering, but it
+would require a broader todo and status-line product change. One rolling item is
+the smallest design that keeps current-slice feedback and accurate scoped
+progress.
 
-Pi loads skill instructions on demand from `SKILL.md`. The smallest correct
-change is a best-effort instruction contract with focused resource tests and
-live acceptance. It does not need a runtime import or a second state store. See
-Pi's primary
-[Skills documentation](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md)
-for the skill loading model.
+Pi loads skill instructions on demand from `SKILL.md`. This feature needs a
+best-effort instruction contract with focused tests and live acceptance. It does
+not need runtime code or another state store. See Pi's primary
+[Skills documentation](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md).
 
 ## Solution
 
-After Shape creates or changes `plan.md`, it will use the `todo` tool when the
-tool is available. Each slice will have one concise todo item with this form:
+After plan creation, plan changes, resume, slice completion, and before finish,
+Shape will derive these values from the current `plan.md`:
+
+- `checked`: the number of checked slice headings.
+- `total`: the number of slice headings.
+- `current`: the first unchecked slice number and outcome.
+
+The managed item uses one of these forms:
 
 ```text
-Shape <slug>: <slice number> — <outcome>
+Shape <slug>: <checked>/<total> — <slice number> <outcome>
+Shape <slug>: <checked>/<total> — <slice number> <outcome> · blocked: <reason>
+Shape <slug>: <total>/<total> — complete
 ```
 
-Shape reserves the exact `Shape <slug>:` namespace for its managed slice items.
-The plan stores one line in this form:
+Todo text is limited to 300 characters. Shape will always preserve
+`Shape <slug>: <checked>/<total> — <slice number>` and will truncate only the
+trailing outcome and blocked detail with an ellipsis. If the fixed prefix cannot
+fit, Shape will report the gap and continue from `plan.md` without a todo
+mutation.
 
-```text
-Next slice number: <NNN>
-```
+Shape reserves the exact `Shape <slug>:` prefix for the rolling item. Before any
+mutation, Shape will list all todos and count exact prefix matches:
 
-Shape increments the value when it assigns a slice number. Shape never decreases
-the value.
+- If no item matches, add the rolling item as `pending`, then update it to the
+  required status.
+- If one item matches, update its text and status atomically when possible.
+- If more than one item matches, mutate no todo and report the collision.
 
-Before any todo mutation, Shape will validate the complete plan and todo list.
-The plan must contain one valid high-water mark and unique slice numbers below
-that mark. Each item in the reserved namespace must match one unique plan or
-stale slice number. No two managed items can use the same slice number. Shape
-will also identify any unrelated `in_progress` item.
+When slices remain, Shape will set the rolling item `in_progress` only when no
+unrelated todo is already `in_progress`. If an unrelated item is active, Shape
+will leave it unchanged and keep the rolling item `pending`. If the post-add
+status update fails, Shape will leave the new item `pending`, report the gap, and
+retry later.
 
-If listing fails or any preflight validation is ambiguous, Shape will mutate no
-todo. It will report the exact gap and continue from `plan.md` and Git. After a
-successful preflight, Shape will reconcile only items in the reserved namespace:
+Shape guarantees accurate rolling text in todo state, tool output, and the
+complete `/todos` view. The bounded widget and compact status line are
+opportunistic displays. The widget can omit the Shape row after eight
+higher-priority items. The status line can prefer an unrelated active item,
+truncate the title, or omit its todo segment at narrow widths.
 
-- Add missing slice items in plan order.
-- Update renamed items that retain the same immutable slice number.
-- Mark checked slices `completed`.
-- Mark the first unchecked slice `in_progress` when no unrelated todo is already
-  `in_progress`.
-- Keep the first unchecked slice `pending` and report the conflict when an
-  unrelated todo is already `in_progress`.
-- Mark later unchecked slices `pending`.
-- Mark removed, merged, or replaced slice items `cancelled`.
-- Leave unrelated todo items unchanged.
+A blocked current slice keeps its reconciled `in_progress` or `pending` status.
+Shape will append a concise blocked reason from the durable
+`> Blocked: … Next: …` note. Shape will remove the suffix when work resumes.
 
-A malformed item, duplicate number, or namespace collision fails preflight.
-Shape will leave every todo unchanged for that reconciliation pass.
+When all slices are checked, Shape will update the text to
+`Shape <slug>: <total>/<total> — complete` and mark the item `completed`.
 
-The first unchecked slice in `plan.md` remains authoritative even when the todo
-list is stale or ordered differently. Shape will reconcile the list before it
-starts or resumes implementation. A blocked current slice will stay
-`in_progress` when the Shape slice owns that status. It will stay `pending` when
-an unrelated item owns the status. The `> Blocked: … Next: …` note in `plan.md`
-will contain the blocking detail.
-
-Shape will mark a slice todo `completed` only after the existing Shape done
-conditions hold and the matching plan checkbox is `[x]`. When every slice is
-checked, Shape will reconcile all managed slice todos so none remain `pending`
-or `in_progress`.
-
-If the `todo` tool is unavailable, Shape will report the missing mirror and
-continue from `plan.md` and Git. If any todo mutation fails, Shape will stop todo
-mutations for that reconciliation pass. Shape will report the exact gap,
-continue from `plan.md` and Git, and retry during the next reconciliation. A todo
-failure will not weaken a test, review, approval, or validation gate.
+If listing or mutation fails, Shape will stop that reconciliation pass, report
+the exact gap, continue from `plan.md` and Git, and retry later. A todo failure
+will not weaken an approval, test, review, validation, or delivery gate.
 
 ## Fixed decisions
 
-- Todo is a session progress mirror, not a durable feature artifact.
+- Todo is a compact session progress display, not a durable feature artifact.
 - The accepted pitch defines intent. The current `plan.md` defines slice
-  membership, order, and check state. Git provides history and resume evidence.
-- Shape tracks vertical slices only. It does not add pitch, research, review,
-  commit, or delivery todos.
-- Managed item text starts with the reserved `Shape <slug>:` namespace and
-  includes the slice number.
-- `plan.md` stores a next-slice-number high-water mark that only increases.
-- Slice numbers are unique, immutable, and never reused within one feature.
-- Shape lists and validates the complete plan and todo namespace before any todo
-  mutation.
-- A list failure, malformed or ambiguous managed item, duplicate number, or
-  namespace collision aborts the reconciliation pass without todo mutations.
-- Shape reconciles managed items after plan creation, plan changes, and resume.
+  membership, order, check state, and blocked details. Git provides history and
+  resume evidence.
+- Shape manages one rolling todo item per feature, not one item per slice.
+- The item text includes Shape-scoped checked/total progress and the current
+  slice number and outcome.
+- Shape preserves the fixed progress/current-slice prefix and truncates only
+  trailing outcome and blocked detail to fit the 300-character todo limit.
+- Accurate text is guaranteed in todo state, tool output, and `/todos`. Widget
+  and status-line visibility is opportunistic.
+- The first unchecked plan slice determines the current item text.
+- A blocked slice adds a concise reason to the rolling item.
+- With open slices and no unrelated active todo, the rolling item is
+  `in_progress`. Otherwise, it remains `pending`.
+- Shape lists todos before mutation and requires zero or one exact prefix match.
+- Multiple prefix matches abort reconciliation without todo mutations.
 - Shape preserves unrelated todos, including an unrelated `in_progress` item.
-- The first unchecked managed slice is `in_progress` only when no unrelated item
-  owns that status. Otherwise, the slice remains `pending` and Shape reports the
-  conflict.
-- A blocked current slice keeps its reconciled `in_progress` or `pending`
-  status.
-- Removed or replaced managed items become `cancelled`.
-- After the first failed todo mutation, Shape stops that reconciliation pass,
-  reports the exact gap, continues from the durable plan, and retries later.
-- Add no production extension, runtime dependency, durable todo ID, or third
-  feature artifact.
+- A missing or failed todo mirror does not block the durable Shape workflow.
+- Add no production extension, runtime dependency, grouping protocol, durable
+  todo ID, or third feature artifact.
 - No commit, push, pull request, merge, publication, deployment, destructive
   cleanup, or worktree removal authority is inferred.
 
 ## Rabbit holes
 
-- Do not add a Shape-specific todo extension or import the todo package.
-- Do not persist todo IDs or snapshots in `plan.md`. Persist only the next
-  unused slice number.
+- Do not mirror every slice into the global todo list.
+- Do not add immutable slice IDs, high-water marks, stale-item cancellation, or
+  per-slice ownership rules for display synchronization.
+- Do not persist todo IDs or snapshots in `plan.md`.
 - Do not clear or replace the complete session todo list.
-- Do not mirror implementation subtasks, tests, reviews, or delivery actions.
-- Do not make todo state authoritative when it conflicts with the accepted
-  pitch, `plan.md`, or Git evidence.
-- Do not promise runtime enforcement from skill instructions.
-- Do not build automatic cross-session synchronization.
+- Do not mirror pitch, research, review, commit, or delivery tasks.
+- Do not interpret todo's global closed/total ratio as Shape progress.
+- Do not promise that the bounded widget or compact status line always shows the
+  rolling item.
+- Do not add todo grouping, a Shape extension, or automatic cross-session
+  synchronization without a broader approved use case.
 
 ## No-gos
 
 - No new runtime resource, service, dependency, state file, or database.
-- No changes to the todo extension protocol or UI.
-- No todo mutation before complete plan and namespace preflight succeeds.
-- No deletion or mutation of unrelated todo items.
-- No completion of a slice todo before all existing slice done conditions hold.
-- No blocked status invented outside the current todo protocol.
-- No failure of the durable Shape workflow only because todo mirroring is
+- No changes to the todo extension protocol, widget, or status line.
+- No guarantee that the bounded widget or compact status line always shows
+  Shape.
+- No deletion, demotion, or mutation of unrelated todo items.
+- No more than one managed rolling item for a Shape feature.
+- No completion of the rolling item before every plan slice is checked.
+- No failure of the durable Shape workflow only because todo display is
   unavailable.
 - No weakening of human approval, independent review, validation, Worktrunk, or
   delivery authority boundaries.
 
 ## Acceptance criteria
 
-- **AC-001 — Initial mirror:** After plan creation and successful todo
-  mutations, Shape has one reserved-prefix item per vertical slice.
-- **AC-002 — Stable identity:** `plan.md` stores a next-slice-number high-water
-  mark that only increases. Slice numbers remain unique, immutable, and never
-  reused. Reordering preserves numbers, while splits and replacements use new
-  numbers.
-- **AC-003 — Safe preflight:** Before todo mutation, Shape validates the complete
-  plan, reserved namespace, number mapping, and unrelated active item. A list or
-  validation failure leaves every todo unchanged.
-- **AC-004 — One current slice:** After successful reconciliation, Shape marks
-  only the first unchecked managed slice `in_progress` when no unrelated item
-  already owns that status. Otherwise, the slice remains `pending`.
-- **AC-005 — Safe reconciliation:** On resume and after pending-plan changes,
-  Shape reconciles managed items by reserved feature namespace and stable slice
-  number. The accepted pitch, current plan, and Git retain their distinct
-  authority roles.
-- **AC-006 — Preserved session work:** Shape leaves every unrelated todo item
-  unchanged and cancels only stale managed slice items.
-- **AC-007 — Verified completion:** Shape marks a managed item `completed` only
-  after the matching plan slice meets its existing done conditions and is
-  checked.
-- **AC-008 — Visible blocking:** A blocked first unchecked slice keeps its
-  reconciled status, and its durable blocked detail remains in `plan.md`.
-- **AC-009 — Safe fallback:** If todo mirroring is unavailable or a mutation
-  fails, Shape reports the exact gap, stops that reconciliation pass, continues
-  from `plan.md` and Git, and retries later without weakening gates.
-- **AC-010 — Clean finish:** After a successful final reconciliation, no managed
-  slice todo remains `pending` or `in_progress`.
+- **AC-001 — One rolling item:** After successful reconciliation, Shape has at
+  most one `Shape <slug>:` todo item for the feature.
+- **AC-002 — Scoped progress:** The item text contains the checked and total
+  slice counts derived from the current `plan.md`.
+- **AC-003 — Current position:** While slices remain, the item text contains the
+  first unchecked slice number and outcome. Accurate text is available in todo
+  state, tool output, and `/todos`. Widget and status-line visibility is
+  opportunistic.
+- **AC-004 — Bounded text:** Shape preserves the fixed progress/current-slice
+  prefix and truncates only trailing detail to fit 300 characters. If the fixed
+  prefix cannot fit, Shape reports the gap without mutation.
+- **AC-005 — Active feedback:** With open slices and no unrelated active todo,
+  the rolling item becomes `in_progress`. If an unrelated item is active, Shape
+  leaves it unchanged and keeps the rolling item `pending`.
+- **AC-006 — Safe reconciliation:** Zero prefix matches add the item, one match
+  updates it, and multiple matches cause no todo mutation.
+- **AC-007 — Resume and plan changes:** Shape recomputes text and status from
+  `plan.md` after plan creation, plan changes, resume, and slice completion.
+- **AC-008 — Visible blocking:** A blocked current slice adds its concise blocked
+  reason to the rolling item without changing durable plan authority.
+- **AC-009 — Verified completion:** After every slice is checked, the rolling
+  item shows `<total>/<total> — complete` and becomes `completed`.
+- **AC-010 — Safe fallback:** If todo display is unavailable or a mutation fails,
+  Shape reports the gap and continues from `plan.md` and Git without weakening
+  gates.
 - **AC-011 — Narrow package change:** Focused tests, live acceptance, and the
-  README describe best-effort instruction behavior without adding an extension,
-  dependency, durable todo ID, or artifact.
+  README describe best-effort instruction behavior without adding runtime code,
+  dependencies, grouping, durable todo IDs, or artifacts.

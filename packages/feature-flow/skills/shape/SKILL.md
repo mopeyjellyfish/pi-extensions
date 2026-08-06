@@ -143,54 +143,50 @@ verticality, simplicity, and feasibility. Add up to two more reviewers only for
 separate material risks. Fix ordinary planning findings without a human
 plan-approval gate.
 
-Keep one `Next slice number: <NNN>` high-water mark in `plan.md`. Assign its
-current value to each new or replacement slice, then increase it. Slice numbers
-are unique and immutable. Never decrease the high-water mark. Never reuse a
-retired number. Pending slices may be reordered without renumbering, rewritten, split,
-merged, or deleted as implementation teaches more.
+Pending slices may be reordered, rewritten, split, merged, or deleted as
+implementation teaches more.
 
-## Mirror vertical slices to todo
+## Show rolling Shape progress in todo
 
-Treat the `todo` tool as a best-effort session progress mirror when it is
-available. `plan.md` remains authoritative. Track only vertical slices, not
-pitch, research, review, commit, or delivery tasks. Use one concise managed item
-per slice:
+Treat the `todo` tool as a best-effort session progress display when it is
+available. `plan.md` remains authoritative. Track Shape with one rolling item,
+not one item per slice or workflow task:
 
 ```text
-Shape <slug>: <slice number> — <outcome>
+Shape <slug>: <checked>/<total> — <slice number> <outcome>
 ```
 
-Reserve the exact `Shape <slug>:` namespace for that feature. Reconcile after
-plan creation, after plan changes, before build or resume, after a slice is
-checked, and before finish.
+After plan creation, plan changes, resume, slice completion, and before finish,
+derive `checked`, `total`, and the first unchecked slice from the current plan.
+Use `<total>/<total> — complete` when all slices are checked. Append the suffix
+`· blocked: <reason>` with a preceding space from a current
+`> Blocked: … Next: …` note, and remove the blocked suffix when work resumes.
 
-Before any todo mutation, list all todos and validate the complete plan and
-reserved namespace. Require one valid high-water mark, unique plan numbers below
-that mark, well-formed managed items, all managed item numbers below that mark,
-and at most one managed item for each slice number. Treat a managed number at or
-above the mark as a namespace collision, not a stale slice. Identify stale
-managed numbers and any unrelated `in_progress` item. If listing or preflight
-fails because an item is malformed, ambiguous, duplicated, or collides with the
-namespace, make no todo mutation. Report the exact gap and continue from
-`plan.md` and Git.
+Todo text is limited to 300 characters. Preserve the fixed progress and
+current-slice prefix `Shape <slug>: <checked>/<total> — <slice number>`. Truncate
+only trailing outcome and blocked detail with an ellipsis. If the fixed prefix
+cannot fit, report the gap and continue from `plan.md` without a todo mutation.
 
-If a plan predates the high-water mark format, do not automatically migrate it.
-Report the missing mark and continue from `plan.md`. Add the mark only through an
-explicit reviewed plan change.
+Before any mutation, list all todos and count items with the exact
+`Shape <slug>:` prefix:
 
-After successful preflight, add missing managed items in plan order. Update a
-renamed item that keeps its slice number. Mark checked items `completed`, stale
-or replaced items `cancelled`, and later unchecked items `pending`. Mark the
-first unchecked item `in_progress` only when no unrelated item already has that
-status. If an unrelated todo is `in_progress`, keep the first unchecked Shape item
-`pending`, leave the unrelated item unchanged, and report the conflict. A blocked slice
-keeps its reconciled status while its `> Blocked: … Next: …` note remains in
-`plan.md`.
+- If there is no prefix match, add the rolling item as `pending`, then update it
+  to the required status.
+- If there is one match, update its text and status atomically when possible.
+- If there is more than one match, make no todo mutation and report the
+  collision.
 
-After the first failed todo mutation, stop that reconciliation pass, report the
-exact gap, continue from `plan.md` and Git, and retry at the next reconciliation.
-Never weaken an approval, test, review, validation, or delivery gate because the
-`todo` tool is unavailable or the best-effort instruction fails.
+With open slices and no unrelated todo `in_progress`, set the rolling item
+`in_progress`. If an unrelated todo is active, keep the rolling item `pending`,
+leave the unrelated item unchanged, and report the conflict. If the post-add
+status update or another todo mutation fails, stop that reconciliation pass,
+report the exact gap, continue from `plan.md` and Git, and retry later.
+
+Guarantee accurate rolling text in todo state, tool output, and `/todos`. Treat
+widget and status line visibility as opportunistic because they are bounded and
+can prefer unrelated work. Never weaken an approval, test, review, validation,
+or delivery gate because the `todo` tool is unavailable or the best-effort
+instruction fails.
 
 ## Build or resume
 
@@ -210,8 +206,8 @@ fix blockers, and re-review material fixes.
 A blocked slice remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
 checkbox `[x]` only after implementation, appropriate tests, required checks,
-review, and applicable integrated QA pass. Then reconcile its todo to
-`completed`. If that update fails, keep the durable checkbox checked, report the
+review, and applicable integrated QA pass. Then recompute the rolling todo from
+`plan.md`. If that update fails, keep the durable checkbox checked, report the
 gap, and retry later.
 
 When repository instructions and explicit user authority permit a local commit,
@@ -231,6 +227,7 @@ copies.
 ## Finish
 
 When every slice is checked, run a final todo reconciliation. After a successful
-reconciliation, no managed slice todo can remain `pending` or `in_progress`.
-Report local completion and remaining separately authorized actions. Do not turn
-local completion into remote delivery or cleanup authority.
+reconciliation, the rolling item reads
+`Shape <slug>: <total>/<total> — complete` and is `completed`. Report local
+completion and remaining separately authorized actions. Do not turn local
+completion into remote delivery or cleanup authority.

@@ -66,31 +66,31 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
     expect(skill).toMatch(/first unchecked slice[\s\S]*dirty[\s\S]*Git/iu);
     expect(skill).toMatch(/tests[\s\S]*required checks[\s\S]*read-only review/iu);
-    expect(skill).toMatch(/`todo` tool[\s\S]*session[^.]*mirror/iu);
-    expect(skill).toContain("Shape <slug>: <slice number> — <outcome>");
-    expect(skill).toMatch(/next[^.]*slice number[\s\S]*never[^.]*decrease[\s\S]*never[^.]*reuse/iu);
+    expect(skill).toMatch(/`todo` tool[\s\S]*session[^.]*progress/iu);
+    expect(skill).toContain("Shape <slug>: <checked>/<total> — <slice number> <outcome>");
+    expect(skill).toMatch(/derive[^.]*checked[^.]*total[\s\S]*first unchecked slice/iu);
     expect(skill).toMatch(
-      /before any todo mutation[\s\S]*complete plan[\s\S]*reserved[^.]*namespace[\s\S]*duplicate/iu,
+      /no[^.]*prefix match[\s\S]*add[\s\S]*one[^.]*match[\s\S]*update[\s\S]*more than one[^.]*match[\s\S]*no todo mutation/iu,
     );
     expect(skill).toMatch(
-      /one valid high-water mark[^.]*unique plan numbers below[^.]*mark[\s\S]*managed[^.]*numbers below[^.]*mark/iu,
+      /no unrelated[^.]*`in_progress`[\s\S]*rolling item[^.]*`in_progress`[\s\S]*unrelated[^.]*active[\s\S]*`pending`[^.]*unchanged/iu,
     );
-    expect(skill).toMatch(/preflight[^.]*fails[\s\S]*no todo[^.]*mutat/iu);
-    expect(skill).toMatch(/plan[^.]*predates[^.]*high-water[\s\S]*do not[^.]*migrat/iu);
     expect(skill).toMatch(
-      /unrelated[^.]*`in_progress`[\s\S]*first unchecked[^.]*`pending`[\s\S]*unchanged/iu,
+      /300 characters[\s\S]*preserve[^.]*progress[^.]*current-slice prefix[\s\S]*truncate[^.]*outcome[^.]*blocked/iu,
     );
-    expect(skill).toMatch(/plan creation[\s\S]*plan changes[\s\S]*resume/iu);
-    expect(skill).toMatch(/renamed[^.]*slice number[\s\S]*stale[^.]*`cancelled`/iu);
-    expect(skill).toMatch(/blocked[^.]*reconciled[^.]*status/iu);
-    expect(skill).toMatch(/checkbox[^.]*`\[x\]`[\s\S]*todo[^.]*`completed`/iu);
     expect(skill).toMatch(
-      /final todo reconciliation[\s\S]*no managed[^.]*`pending`[^.]*`in_progress`/iu,
+      /todo state[^.]*tool output[^.]*`\/todos`[\s\S]*widget[^.]*status line[^.]*opportunistic/iu,
     );
-    expect(skill).toMatch(/first failed todo mutation[\s\S]*stop[^.]*reconciliation[\s\S]*retry/iu);
+    expect(skill).toMatch(/plan creation[\s\S]*plan changes[\s\S]*resume[\s\S]*slice completion/iu);
+    expect(skill).toMatch(/blocked[^.]*suffix[\s\S]*remove[^.]*resumes/iu);
+    expect(skill).toMatch(
+      /all slices[^.]*checked[\s\S]*<total>\/<total> — complete[\s\S]*`completed`/iu,
+    );
+    expect(skill).toMatch(/todo mutation fails[\s\S]*stop[^.]*reconciliation[\s\S]*retry/iu);
     expect(skill).toMatch(/accepted\s+pitch[^.]*intent[\s\S]*current\s+`plan\.md`[^.]*slice/iu);
     expect(skill).toMatch(/Git[^.]*history[^.]*resume evidence/iu);
     expect(skill).toMatch(/best-effort[^.]*instruction/iu);
+    expect(skill).not.toMatch(/high-water|Next slice number|stale managed|retired number/iu);
     expect(skill).toMatch(/resolve a material base\s+choice with the human/iu);
     expect(skill).toMatch(
       /never infer[^.]*commit[^.]*push[^.]*open a pull request[^.]*merge[^.]*publish[^.]*deploy[^.]*remove a\s+worktree[^.]*destructive cleanup/iu,
@@ -106,14 +106,14 @@ describe("feature-flow resources", () => {
 
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
     expect(pitch.match(/^## .+$/gmu)?.map((heading) => heading.slice(3))).toEqual(PITCH_HEADINGS);
-    expect(plan).toContain("Next slice number: 002");
     expect(plan).toContain("## [ ] 001 — Observable vertical outcome");
     expect(plan).toMatch(/first unchecked slice/iu);
-    expect(plan).toMatch(/never[^.]*decrease[\s\S]*never[^.]*reuse/iu);
-    expect(plan).toMatch(/`todo` tool[\s\S]*validate[\s\S]*reconcile/iu);
+    expect(plan).toMatch(/`todo` tool[\s\S]*checked[^.]*total[\s\S]*rolling/iu);
+    expect(plan).not.toMatch(/Next slice number|high-water|retired number/iu);
     expect(plan).not.toMatch(/depends_on|evidence|banking|estimate/iu);
-    expect(readme).toMatch(/session todo[^.]*mirror/iu);
+    expect(readme).toMatch(/rolling[^.]*session todo/iu);
     expect(readme).toMatch(/preserv[^.]*unrelated todos/iu);
+    expect(readme).toMatch(/widget[^.]*status line[^.]*opportunistic/iu);
     expect(readme).toMatch(/best-effort[^.]*plan\.md/iu);
   });
 
