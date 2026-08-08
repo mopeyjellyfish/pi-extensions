@@ -1,0 +1,41 @@
+{
+  "name": "@mopeyjellyfish/pi-engineering",
+  "version": "0.0.0",
+  "description": "Focused engineering workflow skills and prompt templates for Pi.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "skills/",
+    "prompts/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "pi-prompt"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/engineering"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/engineering/test"
+  }
+}
