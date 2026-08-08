@@ -1,0 +1,42 @@
+{
+  "name": "@mopeyjellyfish/pi-productivity",
+  "version": "0.0.0",
+  "description": "Small Pi skills and prompts for clear human-and-agent communication.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "skills/",
+    "prompts/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "pi-prompt",
+    "communication"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/productivity"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/productivity/test"
+  }
+}

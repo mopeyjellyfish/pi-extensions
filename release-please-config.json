@@ -43,6 +43,9 @@
     "packages/status-line": {
       "release-type": "node"
     },
+    "packages/productivity": {
+      "release-type": "node"
+    },
     "packages/question": {
       "release-type": "node"
     },
