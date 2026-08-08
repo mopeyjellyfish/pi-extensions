@@ -20,24 +20,30 @@ writer per worktree. Use isolated worktrees for independent write lanes.
 
 Use the configured profiles by task shape:
 
-- Use Terra at `low` for fast, bounded scout work.
-- Use Terra at `high` for broad context building and source research.
-- Use Luna at `medium` for a worker task that is bounded, reversible, follows an
-  existing pattern, has explicit acceptance criteria, and has focused checks.
+- Use Luna at `low` for fast, bounded scout work.
+- Use Sol at `medium` for context building, source research, and normal worker
+  tasks.
 - Use Sol at `high` for planning and every formal child review.
 - Reserve Sol at `max` for `advisor` and `oracle` decisions.
+
+Use Luna only when speed matters more than accuracy. Suitable work includes
+targeted discovery, mechanical documentation or metadata changes, inventories,
+known test-output summaries, and narrow, repeatable, low-risk edits with focused
+deterministic checks. Use `model: "openai-codex/gpt-5.6-luna:medium"` for a
+speed-first worker run. Do not increase Luna reasoning to handle complexity.
+Promote the run to Sol instead.
 
 Use `model: "openai-codex/gpt-5.6-sol:high"` for a worker when the task includes
 security or data-loss risks, concurrency or lifecycle work, migrations, public
 APIs, protocols, provider transports, cross-package architecture,
-nondeterministic failures, or expensive or unclear validation. Escalate to this
-profile after one failed Luna attempt. Do not repeat the same Luna attempt.
+nondeterministic failures, or expensive or unclear validation. Escalate a
+failed Luna run to Sol at `medium`, or to `high` when these risks apply. Do not
+repeat the same Luna attempt.
 
 For a trivial edit, the parent can verify the result directly instead of
 starting a child review. Every formal review uses one Sol `high` reviewer as the
-quality gate. Extra independent, read-heavy review lanes can use Terra at `high`
-for bounded test-gap, documentation, or large-file analysis. They do not replace
-the Sol reviewer.
+quality gate. Extra speed-first lanes can use Luna only for bounded, mechanical,
+non-gating checks. They do not replace the Sol reviewer.
 
 Each child task must state its goal, scope, authority, evidence, success
 criteria, validation, and output. The parent must synthesize

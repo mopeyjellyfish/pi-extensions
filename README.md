@@ -64,29 +64,33 @@ version used when their acceptance work ran.
 
 The execution profiles follow OpenAI's
 [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model)
-and [Codex subagent guidance](https://developers.openai.com/codex/agent-configuration/subagents):
+and [Codex subagent guidance](https://developers.openai.com/codex/agent-configuration/subagents).
+The aggregate uses Sol when accuracy matters and Luna when speed matters more:
 
-- `scout` uses `openai-codex/gpt-5.6-terra` at `low` for fast, bounded codebase
+- `scout` uses `openai-codex/gpt-5.6-luna` at `low` for fast, bounded codebase
   exploration.
-- `context-builder` and `researcher` use Terra at `high` for broad codebase,
-  document, source, and evidence analysis.
-- `worker` uses `openai-codex/gpt-5.6-luna` at `medium` for narrow, repeatable,
-  well-specified implementation.
-- `planner` and `reviewer` use `openai-codex/gpt-5.6-sol` at `high` for
-  multi-step decisions and independent quality review.
+- `context-builder`, `researcher`, and `worker` use
+  `openai-codex/gpt-5.6-sol` at `medium` for normal analysis and implementation.
+- `planner` and `reviewer` use Sol at `high` for multi-step decisions and
+  independent quality review.
 - `advisor` and `oracle` use Sol at `max` only for the hardest inherited
   decisions. `delegate` inherits the parent model.
 
-Before a worker launch, classify the task:
+Before a launch, classify the task:
 
-- Use the Luna `medium` default when the task is bounded, reversible, follows an
-  existing pattern, has explicit acceptance criteria, and has focused checks.
-- Override the worker with `openai-codex/gpt-5.6-sol:high` for security or
+- Use Luna for targeted discovery, mechanical documentation or metadata
+  changes, inventories, known test-output summaries, and narrow, repeatable,
+  low-risk edits with focused deterministic checks.
+- Override a worker with `openai-codex/gpt-5.6-luna:medium` when speed matters
+  more than accuracy.
+- Do not increase Luna reasoning to handle complexity. Promote the run to Sol
+  instead.
+- Override a worker with `openai-codex/gpt-5.6-sol:high` for security or
   data-loss risks, concurrency or lifecycle work, migrations, public APIs,
   protocols, provider transports, cross-package architecture, nondeterministic
   failures, or expensive or unclear validation.
-- Escalate a failed Luna attempt to Sol at `high`. Do not repeat the same Luna
-  attempt.
+- Escalate a failed Luna attempt to Sol at `medium`, or to `high` when these
+  risks apply. Do not repeat the same Luna attempt.
 - For a trivial edit, let the parent verify the result directly. If the parent
   starts a formal child review, use the Sol reviewer rather than a Luna quality
   gate.
@@ -98,10 +102,9 @@ security, or test-gap review. Start with one child and use no more than three
 parallel children unless distinct evidence justifies more. Keep one writer per
 worktree. Use isolated worktrees for truly independent write lanes.
 
-Use one Sol `high` reviewer as the formal quality gate. Additional independent,
-read-heavy review lanes can use Terra at `high` for bounded test-gap,
-documentation, or large-file analysis. These supporting lanes do not replace
-the Sol reviewer.
+Use one Sol `high` reviewer as the formal quality gate. Additional speed-first
+lanes can use Luna only for bounded, mechanical, non-gating checks. These
+supporting lanes do not replace the Sol reviewer.
 
 Each child task must state its goal, scope, authority, evidence, success
 criteria, validation, and output. The parent waits for required children,

@@ -1,9 +1,9 @@
 ---
 name: researcher
-description: Terra high web researcher for source evaluation and focused evidence synthesis
+description: Sol medium web researcher for source evaluation and focused evidence synthesis
 tools: read, write, web_search, intercom
-model: openai-codex/gpt-5.6-terra
-thinking: high
+model: openai-codex/gpt-5.6-sol
+thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
