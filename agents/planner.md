@@ -1,8 +1,8 @@
 ---
 name: planner
-description: Creates implementation plans from context and requirements
+description: Sol high planner for nontrivial, multi-step implementation decisions
 tools: read, ffgrep, fffind, ls, lsp_query, lsp_validate, intercom
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-5.6-sol
 thinking: high
 acceptanceRole: read-only
 systemPromptMode: replace

@@ -62,16 +62,60 @@ overrides are validated with `pi-subagents` 0.43.0; compare its `agents/`
 directory when adopting a newer version. Historical feature records keep the
 version used when their acceptance work ran.
 
-The aggregate uses `openai-codex/gpt-5.6-luna` for `scout`, `context-builder`,
-`researcher`, `planner`, `reviewer`, and `worker`, with `medium` effort for
-`worker` and `reviewer`, `high` for `context-builder`, `researcher`, and
-`planner`, and `low` for `scout`. It uses `openai-codex/gpt-5.6-sol` at `max`
-for `advisor` and `oracle`; `delegate` inherits the parent model. Per-run and
-chain-step model overrides take precedence. `subagents.agentOverrides` can fill
-fields that package frontmatter leaves unset, but cannot replace explicit
-frontmatter fields. A user or project agent definition can still shadow a
-package agent. These defaults therefore require OpenAI Codex
-authentication unless the caller supplies another model when launching the agent.
+The execution profiles follow OpenAI's
+[GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model)
+and [Codex subagent guidance](https://developers.openai.com/codex/agent-configuration/subagents):
+
+- `scout` uses `openai-codex/gpt-5.6-terra` at `low` for fast, bounded codebase
+  exploration.
+- `context-builder` and `researcher` use Terra at `high` for broad codebase,
+  document, source, and evidence analysis.
+- `worker` uses `openai-codex/gpt-5.6-luna` at `medium` for narrow, repeatable,
+  well-specified implementation.
+- `planner` and `reviewer` use `openai-codex/gpt-5.6-sol` at `high` for
+  multi-step decisions and independent quality review.
+- `advisor` and `oracle` use Sol at `max` only for the hardest inherited
+  decisions. `delegate` inherits the parent model.
+
+Before a worker launch, classify the task:
+
+- Use the Luna `medium` default when the task is bounded, reversible, follows an
+  existing pattern, has explicit acceptance criteria, and has focused checks.
+- Override the worker with `openai-codex/gpt-5.6-sol:high` for security or
+  data-loss risks, concurrency or lifecycle work, migrations, public APIs,
+  protocols, provider transports, cross-package architecture, nondeterministic
+  failures, or expensive or unclear validation.
+- Escalate a failed Luna attempt to Sol at `high`. Do not repeat the same Luna
+  attempt.
+- For a trivial edit, let the parent verify the result directly. If the parent
+  starts a formal child review, use the Sol reviewer rather than a Luna quality
+  gate.
+
+Start with one agent. Add a subagent only for a bounded specialist lane or when
+one agent is measurably struggling. Parallelize independent read-only work such
+as codebase exploration, separate failure hypotheses, and correctness,
+security, or test-gap review. Start with one child and use no more than three
+parallel children unless distinct evidence justifies more. Keep one writer per
+worktree. Use isolated worktrees for truly independent write lanes.
+
+Use one Sol `high` reviewer as the formal quality gate. Additional independent,
+read-heavy review lanes can use Terra at `high` for bounded test-gap,
+documentation, or large-file analysis. These supporting lanes do not replace
+the Sol reviewer.
+
+Each child task must state its goal, scope, authority, evidence, success
+criteria, validation, and output. The parent waits for required children,
+reconciles conflicting findings, verifies evidence, inspects the final diff,
+and runs the applicable checks.
+
+Per-run and chain-step model overrides take precedence. Include the thinking
+suffix in a per-run model value when changing both settings.
+`subagents.agentOverrides` can replace `description`. Other override fields fill
+values that package frontmatter leaves unset and cannot replace explicit
+frontmatter values. A user or project agent definition can still shadow a
+package agent. These defaults therefore require
+OpenAI Codex authentication unless the caller supplies another model when
+launching the agent.
 
 Roles load skills selectively because every custom role sets `inheritSkills: false`:
 workers use `ponytail` and conditional bug diagnosis, reviewers use change

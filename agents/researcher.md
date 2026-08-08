@@ -1,8 +1,8 @@
 ---
 name: researcher
-description: Autonomous web researcher — searches, evaluates, and synthesizes a focused research brief
+description: Terra high web researcher for source evaluation and focused evidence synthesis
 tools: read, write, web_search, intercom
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-5.6-terra
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

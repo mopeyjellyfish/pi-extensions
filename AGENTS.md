@@ -10,6 +10,40 @@ production extension as scaffolding for tooling, tests, or skills.
 
 Human-facing plans, handoffs, reviews, documentation, and status summaries use pragmatic Simplified Technical English and terms from the nearest `CONTEXT.md`. Preserve exact technical content.
 
+## Subagent execution profiles
+
+Start with one agent. Add a child only for a bounded specialist lane or when one
+agent is measurably struggling. Parallelize independent read-only exploration,
+failure hypotheses, and review angles. Start with one child and use no more than
+three parallel children unless distinct evidence justifies more. Keep one
+writer per worktree. Use isolated worktrees for independent write lanes.
+
+Use the configured profiles by task shape:
+
+- Use Terra at `low` for fast, bounded scout work.
+- Use Terra at `high` for broad context building and source research.
+- Use Luna at `medium` for a worker task that is bounded, reversible, follows an
+  existing pattern, has explicit acceptance criteria, and has focused checks.
+- Use Sol at `high` for planning and every formal child review.
+- Reserve Sol at `max` for `advisor` and `oracle` decisions.
+
+Use `model: "openai-codex/gpt-5.6-sol:high"` for a worker when the task includes
+security or data-loss risks, concurrency or lifecycle work, migrations, public
+APIs, protocols, provider transports, cross-package architecture,
+nondeterministic failures, or expensive or unclear validation. Escalate to this
+profile after one failed Luna attempt. Do not repeat the same Luna attempt.
+
+For a trivial edit, the parent can verify the result directly instead of
+starting a child review. Every formal review uses one Sol `high` reviewer as the
+quality gate. Extra independent, read-heavy review lanes can use Terra at `high`
+for bounded test-gap, documentation, or large-file analysis. They do not replace
+the Sol reviewer.
+
+Each child task must state its goal, scope, authority, evidence, success
+criteria, validation, and output. The parent must synthesize
+child results, verify evidence, inspect the final diff, and run applicable
+checks.
+
 ## Start with repository truth
 
 Before editing, inspect the current branch, worktree, and dirty files. Preserve

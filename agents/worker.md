@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Implementation agent for normal tasks and approved oracle handoffs
+description: Luna medium worker for bounded routine tasks; use Sol high for security, data-loss, concurrency, lifecycle, migration, public-API, protocol, provider-transport, cross-package, nondeterministic, expensive-validation, unclear-validation, or failed-Luna work
 model: openai-codex/gpt-5.6-luna
 thinking: medium
 systemPromptMode: replace
