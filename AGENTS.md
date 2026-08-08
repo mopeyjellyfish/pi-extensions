@@ -6,6 +6,10 @@ This repository contains independently installable Pi extension packages. Keep
 changes narrow, preserve package independence, and do not introduce a
 production extension as scaffolding for tooling, tests, or skills.
 
+## Communication
+
+Human-facing plans, handoffs, reviews, documentation, and status summaries use pragmatic Simplified Technical English and terms from the nearest `CONTEXT.md`. Preserve exact technical content.
+
 ## Start with repository truth
 
 Before editing, inspect the current branch, worktree, and dirty files. Preserve

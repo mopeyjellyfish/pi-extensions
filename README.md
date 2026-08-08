@@ -50,29 +50,35 @@ Installing one package from `packages/` does not include those external resource
 
 When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
 `advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `reviewer`, `scout`,
-and `worker` definitions. Read-only roles receive search, semantic query, and
-validation tools; writer roles also receive safe LSP mutation tools. The strict
-tool lists require FFF's `tools-and-ui` (default) or `tools-only` mode; FFF's
-`override` mode uses different tool names and is not compatible with these
-definitions. The `researcher` remains web-only and uses the aggregate's
-provider-native `web_search` tool instead of the separate `pi-web-access` tool
-set. The code-role prompts are synchronized with `pi-subagents` 0.38.0; compare
-its `agents/` directory and update this compatibility note when adopting a newer
-version.
+and `worker` definitions. `planner` and `context-builder` are repository-owned
+roles; the other definitions remain external companion overrides. Read-only
+roles receive search, semantic query, and validation tools; writer roles also
+receive safe LSP mutation tools. The strict tool lists require FFF's
+`tools-and-ui` (default) or `tools-only` mode; FFF's `override` mode uses
+different tool names and is not compatible with these definitions. The
+`researcher` remains web-only and uses the aggregate's provider-native
+`web_search` tool instead of the separate `pi-web-access` tool set. The custom
+overrides are validated with `pi-subagents` 0.43.0; compare its `agents/`
+directory when adopting a newer version. Historical feature records keep the
+version used when their acceptance work ran.
 
 The aggregate uses `openai-codex/gpt-5.6-luna` for `scout`, `context-builder`,
-and `researcher`, and `openai-codex/gpt-5.6-sol` for `advisor`, `oracle`, `planner`,
-`reviewer`, and `worker`, and the reasoning levels declared in their frontmatter.
-`delegate` continues to inherit the parent model. Per-run and chain-step model
-overrides take precedence, but `subagents.agentOverrides` cannot replace explicit
-package frontmatter. A user or project agent definition can still shadow a package
-agent. These defaults therefore require OpenAI Codex authentication unless the
-caller supplies another model when launching the agent.
+`researcher`, `planner`, `reviewer`, and `worker`, with `medium` effort for
+`worker` and `reviewer`, `high` for `context-builder`, `researcher`, and
+`planner`, and `low` for `scout`. It uses `openai-codex/gpt-5.6-sol` at `max`
+for `advisor` and `oracle`; `delegate` inherits the parent model. Per-run and
+chain-step model overrides take precedence. `subagents.agentOverrides` can fill
+fields that package frontmatter leaves unset, but cannot replace explicit
+frontmatter fields. A user or project agent definition can still shadow a
+package agent. These defaults therefore require OpenAI Codex
+authentication unless the caller supplies another model when launching the agent.
 
-Workers apply the `ponytail` skill before coding. Reviewers apply
-`ponytail-review` when explicitly launched for a code, diff, pull request, or
-codebase review. Whole-repository `ponytail-audit` runs only when explicitly
-requested.
+Roles load skills selectively because every custom role sets `inheritSkills: false`:
+workers use `ponytail` and conditional bug diagnosis, reviewers use change
+review and reserve `ponytail-review` for explicit simplicity reviews, planners
+and context builders use domain modeling and agent writing, oracle and advisor
+use conditional domain modeling, and researchers use agent writing. Scout and delegate add no role skills.
+Whole-repository `ponytail-audit` runs only when explicitly requested.
 
 Update it later with:
 
