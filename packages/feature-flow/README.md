@@ -5,10 +5,10 @@ delivering one feature in an isolated Worktrunk worktree. It ships one `shape`
 skill, the `/shape [feature brief]` prompt, and Markdown templates. It registers
 no extension, service, agent, or runtime dependency.
 
-The workflow intentionally relies on the `question` and `worktree` tools and the
-`simple-english` skill supplied by this repository's aggregate package. It uses
-a separately installed `pi-subagents` package for specialist research and
-independent review. It is not a standalone feature-flow install.
+The workflow intentionally relies on the `question`, `worktree`, and `todo`
+tools and the `simple-english` skill supplied by this repository's aggregate
+package. It uses a separately installed `pi-subagents` package for specialist
+research and independent review. It is not a standalone feature-flow install.
 
 ## Use
 
@@ -65,6 +65,14 @@ Git preserves history.
 current or next. Git state shows whether to start or resume it. A slice is
 checked only after implementation, appropriate tests and required checks,
 independent review, and applicable integrated QA.
+
+Shape uses one rolling session todo item as a best-effort display of `plan.md`
+progress and the first unchecked slice. Accurate text is available in todo
+state, tool output, and `/todos`; bounded widget and status line visibility is
+opportunistic. Shape preserves unrelated todos and never replaces the durable
+plan. If an unrelated todo is already active, the rolling item remains pending.
+A missing or failed display does not block work from `plan.md`, weaken a
+delivery gate, or add runtime state to this skill-only package.
 
 Worktrunk alone owns worktree lifecycle. Local commits and every push, pull
 request, merge, publication, deployment, cleanup, or worktree removal remain

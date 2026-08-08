@@ -4,6 +4,10 @@ Resume by inspecting Git, then work the first unchecked slice. Reorder, rewrite,
 split, merge, or delete pending slices when implementation teaches something
 new.
 
+When the `todo` tool is available, derive checked/total progress and the first
+unchecked slice from this plan. Reconcile one rolling `Shape <slug>:` item. Keep
+`plan.md` authoritative and preserve unrelated todos.
+
 ## [ ] 001 — Observable vertical outcome
 
 ### Outcome

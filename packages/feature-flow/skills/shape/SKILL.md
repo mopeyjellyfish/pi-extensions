@@ -11,7 +11,9 @@ description: >-
 
 Coordinate one feature with Worktrunk, Markdown, and Git. Worktrunk is the only
 worktree lifecycle authority. The durable feature artifacts are
-`docs/features/<slug>/pitch.md` and `docs/features/<slug>/plan.md`.
+`docs/features/<slug>/pitch.md` and `docs/features/<slug>/plan.md`. The accepted
+pitch defines intent, the current `plan.md` defines slice membership, order, and
+check state, and Git provides durable history and resume evidence.
 
 ## Orchestrate read-only specialists
 
@@ -139,8 +141,52 @@ commands, paths, links, and quoted text.
 Send the whole plan to one fresh read-only reviewer subagent for coverage,
 verticality, simplicity, and feasibility. Add up to two more reviewers only for
 separate material risks. Fix ordinary planning findings without a human
-plan-approval gate. Pending slices may be reordered, rewritten, split, merged,
-or deleted as implementation teaches more.
+plan-approval gate.
+
+Pending slices may be reordered, rewritten, split, merged, or deleted as
+implementation teaches more.
+
+## Show rolling Shape progress in todo
+
+Treat the `todo` tool as a best-effort session progress display when it is
+available. `plan.md` remains authoritative. Track Shape with one rolling item,
+not one item per slice or workflow task:
+
+```text
+Shape <slug>: <checked>/<total> — <slice number> <outcome>
+```
+
+After plan creation, plan changes, resume, slice completion, and before finish,
+derive `checked`, `total`, and the first unchecked slice from the current plan.
+Use `<total>/<total> — complete` when all slices are checked. Append the suffix
+`· blocked: <reason>` with a preceding space from a current
+`> Blocked: … Next: …` note, and remove the blocked suffix when work resumes.
+
+Todo text is limited to 300 characters. Preserve the fixed progress and
+current-slice prefix `Shape <slug>: <checked>/<total> — <slice number>`. Truncate
+only trailing outcome and blocked detail with an ellipsis. If the fixed prefix
+cannot fit, report the gap and continue from `plan.md` without a todo mutation.
+
+Before any mutation, list all todos and count items with the exact
+`Shape <slug>:` prefix:
+
+- If there is no prefix match, add the rolling item as `pending`, then update it
+  to the required status.
+- If there is one match, update its text and status atomically when possible.
+- If there is more than one match, make no todo mutation and report the
+  collision.
+
+With open slices and no unrelated todo `in_progress`, set the rolling item
+`in_progress`. If an unrelated todo is active, keep the rolling item `pending`,
+leave the unrelated item unchanged, and report the conflict. If the post-add
+status update or another todo mutation fails, stop that reconciliation pass,
+report the exact gap, continue from `plan.md` and Git, and retry later.
+
+Guarantee accurate rolling text in todo state, tool output, and `/todos`. Treat
+widget and status line visibility as opportunistic because they are bounded and
+can prefer unrelated work. Never weaken an approval, test, review, validation,
+or delivery gate because the `todo` tool is unavailable or the best-effort
+instruction fails.
 
 ## Build or resume
 
@@ -159,8 +205,10 @@ fix blockers, and re-review material fixes.
 
 A blocked slice remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
-`[x]` only after implementation, appropriate tests, required checks, review, and
-applicable integrated QA pass.
+checkbox `[x]` only after implementation, appropriate tests, required checks,
+review, and applicable integrated QA pass. Then recompute the rolling todo from
+`plan.md`. If that update fails, keep the durable checkbox checked, report the
+gap, and retry later.
 
 When repository instructions and explicit user authority permit a local commit,
 include the checkbox update with that slice's delivery changes. Never infer
@@ -178,6 +226,8 @@ copies.
 
 ## Finish
 
-When every slice is checked, report local completion and remaining separately
-authorized actions. Do not turn local completion into remote delivery or
-cleanup authority.
+When every slice is checked, run a final todo reconciliation. After a successful
+reconciliation, the rolling item reads
+`Shape <slug>: <total>/<total> — complete` and is `completed`. Report local
+completion and remaining separately authorized actions. Do not turn local
+completion into remote delivery or cleanup authority.

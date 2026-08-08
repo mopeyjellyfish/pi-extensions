@@ -8,7 +8,7 @@ import {
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
 
-import type { Api, Model } from "@earendil-works/pi-ai";
+import type { Api, Model, ProviderHeaders } from "@earendil-works/pi-ai";
 
 interface SearchSource {
   readonly title: string;
@@ -28,7 +28,7 @@ type ProviderThinkingLevel = (typeof PROVIDER_THINKING_LEVELS)[number];
 interface SearchAuth {
   readonly apiKey?: string;
   readonly env?: Readonly<Record<string, string>>;
-  readonly headers?: Readonly<Record<string, string>>;
+  readonly headers?: ProviderHeaders;
 }
 
 interface SearchState {
@@ -227,9 +227,38 @@ function emitUpdate(text: string, update: AgentToolUpdateCallback | undefined): 
   });
 }
 
-function hasAuthHeader(headers: Readonly<Record<string, string>> | undefined): boolean {
-  const bag = new Headers(headers);
-  return ["authorization", "x-api-key", "x-goog-api-key"].some(
+function mergeProviderHeaders(...sources: readonly (ProviderHeaders | undefined)[]): Headers {
+  const headers = new Headers();
+  for (const source of sources) {
+    for (const [name, value] of Object.entries(source ?? {})) {
+      if (value === null) {
+        headers.delete(name);
+      } else {
+        headers.set(name, value);
+      }
+    }
+  }
+  return headers;
+}
+
+function hasHeaderTombstone(
+  name: string,
+  ...sources: readonly (ProviderHeaders | undefined)[]
+): boolean {
+  let value: string | null | undefined;
+  for (const source of sources) {
+    for (const [headerName, headerValue] of Object.entries(source ?? {})) {
+      if (headerName.toLowerCase() === name) {
+        value = headerValue;
+      }
+    }
+  }
+  return value === null;
+}
+
+function hasAuthHeader(headers: ProviderHeaders | undefined): boolean {
+  const bag = mergeProviderHeaders(headers);
+  return ["authorization", "cf-aig-authorization", "x-api-key", "x-goog-api-key"].some(
     (name) => (bag.get(name)?.trim().length ?? 0) > 0,
   );
 }
@@ -352,13 +381,16 @@ function bearerToken(authorization: string | null): string | undefined {
 }
 
 function openAiHeaders(model: Model<Api>, auth: SearchAuth): Headers {
-  const headers = new Headers({
-    accept: "text/event-stream",
-    "content-type": "application/json",
-    ...model.headers,
-    ...auth.headers,
-  });
-  if (auth.apiKey !== undefined && !headers.has("authorization")) {
+  const headers = mergeProviderHeaders(
+    { accept: "text/event-stream", "content-type": "application/json" },
+    model.headers,
+    auth.headers,
+  );
+  if (
+    auth.apiKey !== undefined &&
+    !headers.has("authorization") &&
+    !hasHeaderTombstone("authorization", model.headers, auth.headers)
+  ) {
     headers.set("authorization", `Bearer ${auth.apiKey}`);
   }
   if (model.api !== "openai-codex-responses") {
@@ -517,13 +549,16 @@ export async function searchGoogle(
   thinkingLevel: SearchThinkingLevel,
 ): Promise<NativeSearchResult> {
   const auth = await resolveAuth(ctx, model);
-  const headerBag = new Headers({
-    accept: "text/event-stream",
-    "content-type": "application/json",
-    ...model.headers,
-    ...auth.headers,
-  });
-  if (auth.apiKey !== undefined && !headerBag.has("x-goog-api-key")) {
+  const headerBag = mergeProviderHeaders(
+    { accept: "text/event-stream", "content-type": "application/json" },
+    model.headers,
+    auth.headers,
+  );
+  if (
+    auth.apiKey !== undefined &&
+    !headerBag.has("x-goog-api-key") &&
+    !hasHeaderTombstone("x-goog-api-key", model.headers, auth.headers)
+  ) {
     headerBag.set("x-goog-api-key", auth.apiKey);
   }
   const baseUrl = model.baseUrl.replace(/\/+$/u, "");
@@ -729,24 +764,32 @@ function handleAnthropicEvent(
 }
 
 function anthropicHeaders(model: Model<Api>, auth: SearchAuth): Headers {
-  const headers = new Headers({
-    accept: "text/event-stream",
-    "anthropic-version": "2023-06-01",
-    "content-type": "application/json",
-    ...model.headers,
-    ...auth.headers,
-  });
+  const headers = mergeProviderHeaders(
+    {
+      accept: "text/event-stream",
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    model.headers,
+    auth.headers,
+  );
   const isOAuth = auth.apiKey?.includes("sk-ant-oat") === true;
   if (auth.apiKey === undefined) {
     return headers;
   }
   if (!isOAuth) {
-    if (!headers.has("x-api-key")) {
+    if (
+      !headers.has("x-api-key") &&
+      !hasHeaderTombstone("x-api-key", model.headers, auth.headers)
+    ) {
       headers.set("x-api-key", auth.apiKey);
     }
     return headers;
   }
-  if (!headers.has("authorization")) {
+  if (
+    !headers.has("authorization") &&
+    !hasHeaderTombstone("authorization", model.headers, auth.headers)
+  ) {
     headers.set("authorization", `Bearer ${auth.apiKey}`);
   }
   const oauthBetas = ["claude-code-20250219", "oauth-2025-04-20"];
