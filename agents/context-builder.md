@@ -1,8 +1,8 @@
 ---
 name: context-builder
-description: Analyzes requirements and codebase, generates context and meta-prompt
+description: Broad requirements and codebase analysis on Terra high for durable context handoffs
 tools: read, ffgrep, fffind, ls, bash, write, web_search, lsp_query, lsp_validate, intercom
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-5.6-terra
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

@@ -1,9 +1,9 @@
 ---
 name: reviewer
-description: Versatile review specialist for code diffs, plans, proposed solutions, codebase health, and PR/issue validation
+description: Independent review specialist using Sol high for code, plans, solutions, codebase health, and PR or issue validation
 tools: read, ffgrep, fffind, ls, bash, edit, write, lsp_query, lsp_validate, lsp_code_action, lsp_rename_symbol, lsp_create_file, lsp_delete_file, lsp_rename_file, intercom
-model: openai-codex/gpt-5.6-luna
-thinking: medium
+model: openai-codex/gpt-5.6-sol
+thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

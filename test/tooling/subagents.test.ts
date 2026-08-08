@@ -132,13 +132,13 @@ describe("aggregate subagent resources", () => {
     } as const;
     const expectedExecutionProfiles = {
       "advisor.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
-      "context-builder.md": { model: "openai-codex/gpt-5.6-luna", thinking: "high" },
+      "context-builder.md": { model: "openai-codex/gpt-5.6-terra", thinking: "high" },
       "delegate.md": { model: undefined, thinking: undefined },
       "oracle.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
-      "planner.md": { model: "openai-codex/gpt-5.6-luna", thinking: "high" },
-      "reviewer.md": { model: "openai-codex/gpt-5.6-luna", thinking: "medium" },
-      "researcher.md": { model: "openai-codex/gpt-5.6-luna", thinking: "high" },
-      "scout.md": { model: "openai-codex/gpt-5.6-luna", thinking: "low" },
+      "planner.md": { model: "openai-codex/gpt-5.6-sol", thinking: "high" },
+      "reviewer.md": { model: "openai-codex/gpt-5.6-sol", thinking: "high" },
+      "researcher.md": { model: "openai-codex/gpt-5.6-terra", thinking: "high" },
+      "scout.md": { model: "openai-codex/gpt-5.6-terra", thinking: "low" },
       "worker.md": { model: "openai-codex/gpt-5.6-luna", thinking: "medium" },
     } as const;
     const agentFileNames = Object.keys(expectedTools).sort((left, right) =>
@@ -168,8 +168,16 @@ describe("aggregate subagent resources", () => {
     expect(readme).toContain("`planner` and `context-builder` are repository-owned");
     expect(readme).toContain("Roles load skills selectively");
     expect(readme).toMatch(/Per-run and\s+chain-step model\s+overrides take precedence/u);
+    expect(readme).toContain("openai-codex/gpt-5.6-sol:high");
+    expect(readme).toContain("openai-codex/gpt-5.6-terra");
+    expect(readme).toContain("https://developers.openai.com/api/docs/guides/latest-model");
+    expect(readme).toMatch(/parallelize[^.]*independent[^.]*read-only/iu);
+    expect(readme).toMatch(/one writer[^.]*worktree/iu);
+    expect(readme).toMatch(/formal child review[^.]*Sol reviewer/iu);
+    expect(readme).toMatch(/failed Luna[^.]*Sol[^.]*`high`/iu);
+    expect(readme).toContain("`subagents.agentOverrides` can replace `description`");
     expect(readme).toMatch(
-      /`subagents\.agentOverrides` can fill\s+fields[^.]*unset[^.]*cannot replace explicit\s+frontmatter fields/u,
+      /Other override fields fill\s+values[^.]*unset[^.]*cannot replace explicit\s+frontmatter values/u,
     );
 
     for (const name of agentFileNames) {
@@ -213,6 +221,10 @@ describe("aggregate subagent resources", () => {
 
     const worker = agents.get("worker.md") ?? "";
     const reviewer = agents.get("reviewer.md") ?? "";
+    expect(frontmatterField(worker, "description")).toMatch(
+      /Luna.*routine.*Sol.*security.*concurrency.*protocol.*provider-transport.*cross-package.*expensive-validation.*failed-Luna/iu,
+    );
+    expect(frontmatterField(reviewer, "description")).toMatch(/independent.*Sol.*high/iu);
     expect(worker).toContain("skills: ponytail, diagnosing-bugs");
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",
