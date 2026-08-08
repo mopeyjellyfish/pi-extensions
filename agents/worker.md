@@ -1,7 +1,7 @@
 ---
 name: worker
-description: Luna medium worker for bounded routine tasks; use Sol high for security, data-loss, concurrency, lifecycle, migration, public-API, protocol, provider-transport, cross-package, nondeterministic, expensive-validation, unclear-validation, or failed-Luna work
-model: openai-codex/gpt-5.6-luna
+description: Sol medium worker; use Luna medium when speed matters more than accuracy and Sol high for security, data-loss, concurrency, lifecycle, migration, public-API, protocol, provider-transport, cross-package, nondeterministic, expensive-validation, or unclear-validation work
+model: openai-codex/gpt-5.6-sol
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

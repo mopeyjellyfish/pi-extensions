@@ -1,9 +1,9 @@
 ---
 name: context-builder
-description: Broad requirements and codebase analysis on Terra high for durable context handoffs
+description: Broad requirements and codebase analysis on Sol medium for durable context handoffs
 tools: read, ffgrep, fffind, ls, bash, write, web_search, lsp_query, lsp_validate, intercom
-model: openai-codex/gpt-5.6-terra
-thinking: high
+model: openai-codex/gpt-5.6-sol
+thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
