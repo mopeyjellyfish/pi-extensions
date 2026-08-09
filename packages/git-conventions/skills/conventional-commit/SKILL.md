@@ -1,6 +1,6 @@
 ---
 name: conventional-commit
-description: Create, validate, and optionally make one repository-aware Conventional Commit, and suggest a matching valid branch name. Use when naming a branch, drafting or checking commit format, splitting changes into logical commits, or committing work after the user requests it.
+description: Create, split, validate, and optionally make repository-aware atomic Conventional Commits, and suggest a matching valid branch name. Use when naming a branch, drafting or checking commit format, splitting changes into logical commits, or committing work after the user requests it.
 ---
 
 # Conventional Commit
@@ -32,15 +32,61 @@ the repository requires them. Validate the candidate with
 Never create or rename a branch without an explicit user request. Do not rename
 a branch already attached to another worktree.
 
-## Inspect the logical unit
+## Inspect the worktree
 
-Run `git status --short`, `git diff --cached --stat`, and `git diff --cached`.
-If nothing is staged, inspect the unstaged diff and explain what could form a
-logical unit, but do not stage it without authorization.
+Run `git status --short --untracked-files=all`, `git diff --stat`, `git diff`,
+`git diff --cached --stat`, and `git diff --cached`. Inspect each untracked file
+before assigning it to a unit. Use the complete working tree, not only the first
+file or the staged summary.
 
-Keep unrelated changes separate. Never run `git add -A`, `git add .`, or stage
-files outside the named unit. If the user requests staging, add only explicit
-paths and show the resulting staged summary.
+For one staged logical unit, continue to message drafting. If nothing is staged,
+explain what can form one logical unit, but do not stage it without
+authorization.
+
+## Plan an atomic split
+
+Use this workflow when the user asks to split mixed changes into several
+commits.
+
+1. Require an empty Git index with
+   `git diff --cached --quiet --ita-visible-in-index`. This also detects
+   intent-to-add entries. If any change is staged or partially staged, preserve
+   it and stop. Ask the user to finish that
+   unit or change the index explicitly. Never reset or unstage pre-existing work.
+2. Inventory every changed path and the relevant hunks. Group changes by one
+   observable outcome, package boundary, or inseparable dependency. Keep source,
+   its focused tests, and its necessary documentation in the same unit. Let the
+   source behavior supply the headline when tests, documentation, or configuration
+   support that behavior.
+3. Exclude each lockfile from semantic grouping. Attach it to the unit that owns
+   its manifest change. If several changed manifests share a shared lockfile,
+   keep those dependency metadata changes in one unit. Split them only when the
+   user approves sequential lockfile regeneration and validation for every
+   intermediate commit. Sequential lockfile regeneration is the narrow
+   exception to the rule against changing working-tree content to manufacture a
+   split. Inventory and validate every regenerated intermediate state.
+4. Order units by dependency. Put shared contracts and prerequisites before
+   their consumers. Put documentation-only follow-up after the behavior that it
+   describes.
+5. Present an ordered plan. For each unit, show its outcome, explicit paths or
+   approved hunks, dependencies, proposed Conventional Commit message, and
+   required checks.
+
+If units overlap or an unresolved dependency cycle exists, stop before staging.
+Revise, combine, or remove units, then obtain approval for the complete plan.
+Do not write a partial stack from an invalid plan.
+
+## Stage one approved unit
+
+Immediately before staging, run
+`git diff --cached --quiet --ita-visible-in-index` again. If the index is not
+empty, preserve it and stop. Stage only explicit paths or approved hunks
+from the next unit. Never run `git add -A`. Never run `git add .`. Do not stage a path outside that
+unit. Do not change the working-tree content to manufacture a split.
+
+Show `git diff --cached --stat` and `git diff --cached`. Confirm that the staged
+diff matches only the approved unit before message drafting. Obtain explicit
+commit authority for this unit even when the user approved the split plan.
 
 ## Draft the message
 
@@ -69,15 +115,28 @@ obvious.
 
 ## Validate and commit
 
-1. Run `git diff --cached --check` and the focused tests or checks required by
-   the repository.
-2. Run repository-provided commit validation against the proposed message when
-   a pre-commit path exists. Otherwise validate the created commit through the
-   repository's documented range or commit-file command.
-3. Run `git commit` only when the user explicitly requests the commit. Never
-   amend or replace an existing commit without equally explicit permission.
-4. After committing, inspect the new subject, changed-file summary, and clean
-   or remaining worktree state. Report the commit hash and validation result.
+1. Run `git diff --cached --check`. Record the staged tree with
+   `git write-tree`.
+2. Run the focused tests and checks required by the repository. Run
+   repository-provided commit validation against the proposed message.
+3. Run `git write-tree` again. If validation changes the staged tree, report the
+   mismatch and stop before commit.
+4. Run normal `git commit` only when the user explicitly requests the commit
+   for this unit. Do not use `git commit-tree`. Do not bypass repository hooks
+   or commit signing.
+5. Compare `git rev-parse HEAD^{tree}` with the validated staged tree. A hook or
+   external process can change the index before `git commit` acquires its lock.
+   If the trees differ, report the commit hash and mismatch, then stop.
+   Do not amend, reset, revert, or replace the commit without new user authority.
+6. Validate the actual `HEAD` message with repository-provided commit
+   validation. If it fails, report the commit hash and stop. Do not repair or
+   replace the commit without new user authority.
+7. Inspect the new subject, changed-file summary, and remaining worktree state.
+   Report the commit hash, checks, message validation, and tree attestation.
+
+For an approved split, confirm that the index is empty after each successful
+commit, then repeat staging, validation, and explicit authorization for the next
+unit. Stop on the first failure. Do not silently skip or reorder a unit.
 
 Never push, force-push, tag, merge, or open a pull request unless the user
 separately requests that action.
