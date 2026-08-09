@@ -21,6 +21,8 @@ writer per worktree. Use isolated worktrees for independent write lanes.
 Use the configured profiles by task shape:
 
 - Use Luna at `low` for fast, bounded scout work.
+- Use Luna at `medium` for the `qa` agent when it executes a clear, bounded,
+  repeatable test plan. QA evidence does not replace a formal Sol review.
 - Use Sol at `medium` for context building, source research, and normal worker
   tasks.
 - Use Sol at `high` for planning and every formal child review.

@@ -83,6 +83,17 @@ describe("aggregate subagent resources", () => {
         "intercom",
       ],
       "planner.md": ["read", "ffgrep", "fffind", "ls", "lsp_query", "lsp_validate", "intercom"],
+      "qa.md": [
+        "read",
+        "ffgrep",
+        "fffind",
+        "ls",
+        "bash",
+        "write",
+        "lsp_query",
+        "lsp_validate",
+        "intercom",
+      ],
       "reviewer.md": [
         "read",
         "ffgrep",
@@ -136,6 +147,7 @@ describe("aggregate subagent resources", () => {
       "delegate.md": { model: undefined, thinking: undefined },
       "oracle.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
       "planner.md": { model: "openai-codex/gpt-5.6-sol", thinking: "high" },
+      "qa.md": { model: "openai-codex/gpt-5.6-luna", thinking: "medium" },
       "reviewer.md": { model: "openai-codex/gpt-5.6-sol", thinking: "high" },
       "researcher.md": { model: "openai-codex/gpt-5.6-sol", thinking: "medium" },
       "scout.md": { model: "openai-codex/gpt-5.6-luna", thinking: "low" },
@@ -166,11 +178,13 @@ describe("aggregate subagent resources", () => {
     );
     expect(readme).toContain("validated with `pi-subagents` 0.43.0");
     expect(readme).toMatch(/Historical feature records[^.]*version used/iu);
-    expect(readme).toContain("`planner` and `context-builder` are repository-owned");
+    expect(readme).toContain("`planner`, `context-builder`, and `qa` are");
+    expect(readme).toContain("Parent agents and explicitly permitted fanout subagents can select");
     expect(readme).toContain("Roles load skills selectively");
     expect(readme).toMatch(/Per-run and\s+chain-step model\s+overrides take precedence/u);
     expect(readme).toContain("openai-codex/gpt-5.6-sol:high");
     expect(readme).toContain("openai-codex/gpt-5.6-luna:medium");
+    expect(readme).toContain("`qa` uses `openai-codex/gpt-5.6-luna` at `medium`");
     expect(readme).not.toContain("openai-codex/gpt-5.6-terra");
     expect(readme).toContain("https://developers.openai.com/api/docs/guides/latest-model");
     expect(readme).toMatch(/parallelize[^.]*independent[^.]*read-only/iu);
@@ -184,6 +198,7 @@ describe("aggregate subagent resources", () => {
       /Other override fields fill\s+values[^.]*unset[^.]*cannot replace explicit\s+frontmatter values/u,
     );
     expect(repositoryGuidance).toContain("Use Luna at `low` for fast, bounded scout work.");
+    expect(repositoryGuidance).toContain("Use Luna at `medium` for the `qa` agent");
     expect(repositoryGuidance).toMatch(
       /Use Sol at `medium` for context building[^.]*normal worker/u,
     );
@@ -211,6 +226,7 @@ describe("aggregate subagent resources", () => {
       "delegate.md": undefined,
       "oracle.md": "domain-modeling",
       "planner.md": "domain-modeling, writing-for-agents",
+      "qa.md": "writing-for-agents",
       "reviewer.md": "ponytail-review, reviewing-changes",
       "researcher.md": "writing-for-agents",
       "scout.md": undefined,
@@ -232,11 +248,20 @@ describe("aggregate subagent resources", () => {
     expect(researcher).not.toContain("get_search_content");
 
     const worker = agents.get("worker.md") ?? "";
+    const qa = agents.get("qa.md") ?? "";
     const reviewer = agents.get("reviewer.md") ?? "";
     expect(frontmatterField(worker, "description")).toMatch(
       /Sol.*medium.*Luna.*speed.*Sol.*high.*security.*concurrency.*protocol.*provider-transport.*cross-package.*expensive-validation/iu,
     );
+    expect(frontmatterField(qa, "description")).toMatch(/Luna.*repeatable.*end-to-end/iu);
+    expect(frontmatterField(qa, "acceptanceRole")).toBe("read-only");
     expect(frontmatterField(reviewer, "description")).toMatch(/independent.*Sol.*high/iu);
+    expect(qa).toContain("skills: writing-for-agents");
+    expect(qa).toMatch(/For websites[\s\S]*For CLIs[\s\S]*For other software/iu);
+    expect(qa).toMatch(/severity.*reproduction.*expected behavior.*actual behavior.*evidence/iu);
+    expect(qa).toMatch(/write or update a repeatable test plan/iu);
+    expect(qa).toContain("Do not modify product or source files");
+    expect(qa).toMatch(/rerun the exact failing scenario after a fix/iu);
     expect(worker).toContain("skills: ponytail, diagnosing-bugs");
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",
