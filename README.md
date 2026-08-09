@@ -49,11 +49,13 @@ This aggregate also installs and loads these external resources:
 Installing one package from `packages/` does not include those external resources.
 
 When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
-`advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `reviewer`, `scout`,
-and `worker` definitions. `planner` and `context-builder` are repository-owned
-roles; the other definitions remain external companion overrides. Read-only
-roles receive search, semantic query, and validation tools; writer roles also
-receive safe LSP mutation tools. The strict tool lists require FFF's
+`advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `qa`, `reviewer`,
+`scout`, and `worker` definitions. `planner`, `context-builder`, and `qa` are
+repository-owned roles; the other definitions remain external companion
+overrides. Parent agents and explicitly permitted fanout subagents can select
+`qa` through `pi-subagents`. Ordinary child roles remain non-orchestrating.
+Read-only roles receive search, semantic query, and validation tools; writer
+roles also receive safe LSP mutation tools. The strict tool lists require FFF's
 `tools-and-ui` (default) or `tools-only` mode; FFF's `override` mode uses
 different tool names and is not compatible with these definitions. The
 `researcher` remains web-only and uses the aggregate's provider-native
@@ -69,6 +71,8 @@ The aggregate uses Sol when accuracy matters and Luna when speed matters more:
 
 - `scout` uses `openai-codex/gpt-5.6-luna` at `low` for fast, bounded codebase
   exploration.
+- `qa` uses `openai-codex/gpt-5.6-luna` at `medium` to execute repeatable test
+  plans and validate fixes through the product's user surface.
 - `context-builder`, `researcher`, and `worker` use
   `openai-codex/gpt-5.6-sol` at `medium` for normal analysis and implementation.
 - `planner` and `reviewer` use Sol at `high` for multi-step decisions and
@@ -81,6 +85,10 @@ Before a launch, classify the task:
 - Use Luna for targeted discovery, mechanical documentation or metadata
   changes, inventories, known test-output summaries, and narrow, repeatable,
   low-risk edits with focused deterministic checks.
+- Use `qa` for bounded user-surface testing of websites, CLIs, and other
+  software. It writes or updates `qa-plan.md`, records evidence, and reports
+  coverage gaps. It uses an existing Playwright setup or `playwright-cli` when
+  available.
 - Override a worker with `openai-codex/gpt-5.6-luna:medium` when speed matters
   more than accuracy.
 - Do not increase Luna reasoning to handle complexity. Promote the run to Sol
@@ -124,7 +132,9 @@ Roles load skills selectively because every custom role sets `inheritSkills: fal
 workers use `ponytail` and conditional bug diagnosis, reviewers use change
 review and reserve `ponytail-review` for explicit simplicity reviews, planners
 and context builders use domain modeling and agent writing, oracle and advisor
-use conditional domain modeling, and researchers use agent writing. Scout and delegate add no role skills.
+use conditional domain modeling, and researchers and QA use agent writing. QA
+can use `playwright-cli` through its shell tool when the command is available.
+Scout and delegate add no role skills.
 Whole-repository `ponytail-audit` runs only when explicitly requested.
 
 Update it later with:
