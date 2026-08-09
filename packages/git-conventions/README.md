@@ -6,8 +6,9 @@ replace Git, Worktrunk, repository hooks, or project-specific instructions.
 
 ## Skills
 
-- `conventional-commit` inspects the actual change, follows repository rules,
-  proposes an honest Conventional Commit, and commits only when requested.
+- `conventional-commit` inspects the complete worktree, plans safe atomic
+  Conventional Commit splits, follows repository rules, and commits only when
+  requested.
 - `git-rebase-base` fetches `origin` and rebases the current branch onto an
   explicit or safely resolved `origin/<base>` without pushing.
 

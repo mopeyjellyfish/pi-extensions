@@ -162,7 +162,7 @@ The installed package changes agent instructions, not completed output. Tests
 prove that technical detail remains protected. The fourth stack pull request is
 open with one validated commit.
 
-## [ ] 005 — Split changes into safe Conventional Commits
+## [x] 005 — Split changes into safe Conventional Commits
 
 ### Outcome
 
