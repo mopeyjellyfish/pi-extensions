@@ -1,14 +1,16 @@
 # pi-status-line
 
-`@mopeyjellyfish/pi-status-line` replaces Pi's footer with a focused,
-Powerlevel10k-style status line. It uses the same thin inline segment grammar,
-Nerd Font v3 icons, and semantic palette as `pi-powerline-footer`.
+`@mopeyjellyfish/pi-status-line` gives Pi one integrated,
+Powerlevel10k-style prompt. The status fields form the top divider, the editable
+prompt follows below, and a curved divider closes the component. It uses the
+same thin inline segment grammar, Nerd Font v3 icons, and semantic palette as
+`pi-powerline-footer`.
 
 ## Install
 
 Remove `pi-powerline-footer` before installing this package. Pi supports one
-custom footer at a time, so two footer extensions are last-writer-wins rather
-than composable.
+custom footer and one custom editor at a time. Extensions that replace either
+surface are last-writer-wins.
 
 ```sh
 pi remove npm:pi-powerline-footer
@@ -45,17 +47,25 @@ Segments appear in this order:
 For example:
 
 ```text
- GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement integration
+ GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement integration ─╮
+❯ Write here
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-Unrelated extension statuses follow the first-party segments. The renderer
+The editor keeps Pi's normal input, keybindings, multiline text, history,
+autocomplete, paste handling, and abort behavior. Unrelated extension statuses
+follow the first-party segments. The renderer
 drops optional segments and shortens long values to remain within the terminal
 width.
 
-This package replaces only the footer/status function of
-`pi-powerline-footer`. It intentionally does not reproduce that package's
-custom editor, welcome overlay, stash, bash mode, prompt history, or working
-vibes.
+The package composes with an earlier custom editor when that editor uses Pi's
+standard horizontal border layout. A structurally different custom editor can
+still conflict because Pi does not expose a general editor-layout composition
+contract. Pi also does not expose the previous custom footer, so shutdown
+restores Pi's built-in footer.
+
+The package does not reproduce `pi-powerline-footer` welcome overlays, stash,
+bash mode, separate prompt history, or working vibes.
 
 ## First-party integrations
 
