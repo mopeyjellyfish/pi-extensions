@@ -26,7 +26,9 @@ Use the configured profiles by task shape:
 - Use Sol at `medium` for context building, source research, and normal worker
   tasks.
 - Use Sol at `high` for planning and every formal child review.
-- Reserve Sol at `max` for `advisor` and `oracle` decisions.
+- Reserve Sol at `max` for `oracle` decisions.
+- Let `advisor` inherit the parent model and thinking effort by default. Use an
+  explicit complementary model when the decision needs a second perspective.
 
 Use Luna only when speed matters more than accuracy. Suitable work includes
 targeted discovery, mechanical documentation or metadata changes, inventories,

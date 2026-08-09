@@ -142,7 +142,7 @@ describe("aggregate subagent resources", () => {
       ],
     } as const;
     const expectedExecutionProfiles = {
-      "advisor.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
+      "advisor.md": { model: undefined, thinking: undefined },
       "context-builder.md": { model: "openai-codex/gpt-5.6-sol", thinking: "medium" },
       "delegate.md": { model: undefined, thinking: undefined },
       "oracle.md": { model: "openai-codex/gpt-5.6-sol", thinking: "max" },
@@ -185,6 +185,10 @@ describe("aggregate subagent resources", () => {
     expect(readme).toContain("openai-codex/gpt-5.6-sol:high");
     expect(readme).toContain("openai-codex/gpt-5.6-luna:medium");
     expect(readme).toContain("`qa` uses `openai-codex/gpt-5.6-luna` at `medium`");
+    expect(readme).toContain("`advisor` and `delegate` inherit the parent model");
+    expect(readme).toContain("/run advisor[model=anthropic/<opus-model-id>:high]");
+    expect(readme).toContain("`pi --list-models` or Pi's `/model` selector");
+    expect(readme).toContain("This configuration does not start the advisor automatically.");
     expect(readme).toContain("`docs/qa/plans/`");
     expect(readme).toContain("`docs/qa/runs/`");
     expect(readme).toMatch(/latest\s+compatible evidence[^.]*unchanged discovery/iu);
@@ -208,6 +212,8 @@ describe("aggregate subagent resources", () => {
     expect(repositoryGuidance).toContain('model: "openai-codex/gpt-5.6-luna:medium"');
     expect(repositoryGuidance).toContain('model: "openai-codex/gpt-5.6-sol:high"');
     expect(repositoryGuidance).toContain("Every formal review uses one Sol `high` reviewer");
+    expect(repositoryGuidance).toContain("Let `advisor` inherit the parent model");
+    expect(repositoryGuidance).toContain("Reserve Sol at `max` for `oracle` decisions.");
     expect(repositoryGuidance).not.toContain("Terra");
 
     for (const name of agentFileNames) {

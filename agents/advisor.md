@@ -2,8 +2,6 @@
 name: advisor
 description: Compatibility alias for oracle; high-context decision-consistency advisor
 tools: read, ffgrep, fffind, ls, bash, lsp_query, lsp_validate, intercom
-model: openai-codex/gpt-5.6-sol
-thinking: max
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

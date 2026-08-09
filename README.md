@@ -104,8 +104,33 @@ The aggregate uses Sol when accuracy matters and Luna when speed matters more:
   `openai-codex/gpt-5.6-sol` at `medium` for normal analysis and implementation.
 - `planner` and `reviewer` use Sol at `high` for multi-step decisions and
   independent quality review.
-- `advisor` and `oracle` use Sol at `max` only for the hardest inherited
-  decisions. `delegate` inherits the parent model.
+- `oracle` uses Sol at `max` only for the hardest inherited decisions.
+- `advisor` and `delegate` inherit the parent model and thinking effort.
+
+The advisor remains on demand. Select a complementary model for one run with:
+
+```text
+/run advisor[model=anthropic/<opus-model-id>:high] "Review this direction"
+```
+
+Use `pi --list-models` or Pi's `/model` selector to choose an available model
+ID. For a persistent user or project choice, add an advisor override to the
+applicable Pi settings:
+
+```json
+{
+  "subagents": {
+    "agentOverrides": {
+      "advisor": {
+        "model": "anthropic/<opus-model-id>",
+        "thinking": "high"
+      }
+    }
+  }
+}
+```
+
+This configuration does not start the advisor automatically.
 
 Before a launch, classify the task:
 
@@ -152,9 +177,9 @@ suffix in a per-run model value when changing both settings.
 `subagents.agentOverrides` can replace `description`. Other override fields fill
 values that package frontmatter leaves unset and cannot replace explicit
 frontmatter values. A user or project agent definition can still shadow a
-package agent. These defaults therefore require
-OpenAI Codex authentication unless the caller supplies another model when
-launching the agent.
+package agent. Pinned OpenAI defaults require OpenAI Codex authentication unless
+the caller supplies another model when launching the agent. The unpinned
+advisor follows the parent model or its configured override.
 
 Roles load skills selectively because every custom role sets `inheritSkills: false`:
 workers use `ponytail` and conditional bug diagnosis, reviewers use change
