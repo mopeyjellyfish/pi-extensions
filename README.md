@@ -86,9 +86,10 @@ Before a launch, classify the task:
   changes, inventories, known test-output summaries, and narrow, repeatable,
   low-risk edits with focused deterministic checks.
 - Use `qa` for bounded user-surface testing of websites, CLIs, and other
-  software. It writes or updates `qa-plan.md`, records evidence, and reports
-  coverage gaps. It uses an existing Playwright setup or `playwright-cli` when
-  available.
+  software. It keeps reusable plans in `docs/qa/plans/` and comparable run
+  evidence in `docs/qa/runs/`. Later runs reuse the applicable plans and latest
+  compatible evidence instead of repeating unchanged discovery. It uses an
+  existing Playwright setup or `playwright-cli` when available.
 - Override a worker with `openai-codex/gpt-5.6-luna:medium` when speed matters
   more than accuracy.
 - Do not increase Luna reasoning to handle complexity. Promote the run to Sol
