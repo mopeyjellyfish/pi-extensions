@@ -124,7 +124,7 @@ Tests prove that advisor frontmatter leaves model selection open and oracle
 remains pinned. Documentation shows persistent and per-run configuration. The
 third stack pull request is open with one validated commit.
 
-## [ ] 004 — Tell the agent to use Simple English
+## [x] 004 — Tell the agent to use Simple English
 
 ### Outcome
 
