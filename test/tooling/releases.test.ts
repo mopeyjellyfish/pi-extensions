@@ -24,6 +24,7 @@ function configuration(
 ): Record<string, unknown> {
   return {
     "release-type": "node",
+    "initial-version": "0.1.0",
     versioning: "default",
     "bump-minor-pre-major": false,
     "bump-patch-for-minor-pre-major": false,
@@ -74,6 +75,7 @@ describe("release configuration", () => {
   });
 
   it.each([
+    ["wrong initial version", { "initial-version": "1.0.0" }, "initial version must be 0.1.0"],
     ["non-default versioning", { versioning: "always-bump-patch" }, "versioning must be"],
     ["pre-major exceptions", { "bump-minor-pre-major": true }, "standard SemVer"],
     ["component-less tags", { "include-component-in-tag": false }, "component and v prefix"],
@@ -159,6 +161,24 @@ describe("release configuration", () => {
         expect.stringContaining("package name must derive an unscoped pi-* release component"),
         expect.stringContaining("release manifest version 1.2.2 must match package version 1.2.3"),
       ]),
+    );
+  });
+
+  it("rejects a package-level initial version override", () => {
+    expect.hasAssertions();
+    const errors = validateReleaseState(
+      [descriptor("pi-alpha", "0.0.0")],
+      configuration({
+        "packages/alpha": {
+          "release-type": "node",
+          "initial-version": "1.0.0",
+        },
+      }),
+      { "packages/alpha": "0.0.0" },
+      root,
+    );
+    expect(errors).toContainEqual(
+      expect.stringContaining("packages/alpha: initial version must be 0.1.0"),
     );
   });
 

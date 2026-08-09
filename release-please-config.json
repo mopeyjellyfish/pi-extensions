@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/v17.6.0/schemas/config.json",
   "release-type": "node",
+  "initial-version": "0.1.0",
   "versioning": "default",
   "bump-minor-pre-major": false,
   "bump-patch-for-minor-pre-major": false,

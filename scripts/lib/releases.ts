@@ -41,6 +41,9 @@ function validateVersionPolicy(config: Record<string, unknown>, errors: string[]
   if (config["release-type"] !== "node") {
     errors.push('Release Please release-type must be "node".');
   }
+  if (config["initial-version"] !== "0.1.0") {
+    errors.push("Release Please initial version must be 0.1.0.");
+  }
   if (config["versioning"] !== "default") {
     errors.push('Release Please versioning must be "default".');
   }
@@ -108,6 +111,9 @@ function validatePackageEntry(
   if (isRecord(packageConfig)) {
     if (packageConfig["release-type"] !== "node") {
       errors.push(`${path}: release-type must be node.`);
+    }
+    if ("initial-version" in packageConfig && packageConfig["initial-version"] !== "0.1.0") {
+      errors.push(`${path}: initial version must be 0.1.0.`);
     }
     if ("component" in packageConfig || "package-name" in packageConfig) {
       errors.push(`${path}: Release Please must derive identity from package.json.`);

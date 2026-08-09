@@ -18,6 +18,7 @@ its own README with setup and usage details.
 | [`@mopeyjellyfish/pi-engineering`](packages/engineering/README.md)         | Guides bug diagnosis, domain language, and two-axis change review.                  |
 | [`@mopeyjellyfish/pi-feature-flow`](packages/feature-flow/README.md)       | Starts or resumes shaped features through one skill and `/shape` prompt.            |
 | [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md) | Helps write Conventional Commits and safely rebase a branch onto its base.          |
+| [`@mopeyjellyfish/pi-github`](packages/github/README.md)                   | Guides authenticated GitHub CLI workflows for common repository operations.         |
 | [`@mopeyjellyfish/pi-productivity`](packages/productivity/README.md)       | Helps humans and agents write clear instructions and repair unclear messages.       |
 | [`@mopeyjellyfish/pi-question`](packages/question/README.md)               | Gives agents a structured way to ask clear questions.                               |
 | [`@mopeyjellyfish/pi-simple-english`](packages/simple-english/README.md)   | Helps agents write clear human-facing text with pragmatic ASD-STE100 rules.         |
@@ -30,6 +31,32 @@ its own README with setup and usage details.
 The Worktrunk package needs
 [Worktrunk](https://worktrunk.dev) installed separately. It is an independent
 Pi extension, not an official Worktrunk integration.
+
+## Choose an install profile
+
+Use the smallest profile that supports the project:
+
+- **Small:** Install only the repository packages that the project needs.
+- **Medium:** Install the private Git aggregate and install `pi-subagents`
+  separately.
+- **Large:** Use the medium profile. Also install `context-mode`, the language
+  servers that the project needs, and Worktrunk when you use linked worktrees.
+
+These profiles are recommendations. The aggregate does not install
+`pi-subagents`, `context-mode`, language servers, or the Worktrunk program.
+
+For the medium profile:
+
+```sh
+pi install npm:pi-subagents
+pi install git:github.com/mopeyjellyfish/pi-extensions
+```
+
+For the large profile, also install context-mode:
+
+```sh
+pi install npm:context-mode
+```
 
 ## Install everything
 
@@ -223,6 +250,22 @@ npm exec -- pi \
   --no-themes \
   -e packages/status-line
 ```
+
+## Publish packages
+
+Release Please creates package tags and GitHub Releases. It does not publish to
+npm. Do not advertise an npm version until a maintainer completes this checklist:
+
+1. Review the generated version and changelog for each package.
+2. Run `npm run check` from the clean release commit.
+3. Inspect each artifact with `npm pack --dry-run --workspace <package>`.
+4. Publish each intended public package with
+   `npm publish --access public --workspace <package>`.
+5. Confirm the exact version with `npm view <package>@<version> version`.
+6. Install that exact version in an isolated Pi environment and confirm that its
+   extensions, skills, and prompts load.
+
+Never publish the private root aggregate.
 
 ## Repository layout
 
