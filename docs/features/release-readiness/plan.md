@@ -39,7 +39,7 @@ The policy test fails without the configuration fix and passes with it. The
 README matches all 12 production packages. The first stack pull request is open
 and its branch contains one validated commit.
 
-## [ ] 002 — Show one integrated powerline prompt
+## [x] 002 — Show one integrated powerline prompt
 
 ### Outcome
 

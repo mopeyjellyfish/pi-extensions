@@ -1,3 +1,4 @@
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi, type Mock } from "vitest";
 
 import statusLineExtension from "../src/index.ts";
@@ -7,6 +8,9 @@ import type {
   ExtensionContext,
   ReadonlyFooterDataProvider,
 } from "@earendil-works/pi-coding-agent";
+import type { EditorComponent, EditorTheme, TUI } from "@earendil-works/pi-tui";
+
+type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
 const testTheme = {
   fg: (_color: string, text: string) => text,
@@ -30,9 +34,12 @@ interface Harness {
     string,
     ((event: Record<string, unknown>, context: ExtensionContext) => unknown)[]
   >;
+  editorFactory: EditorFactory | undefined;
+  readonly editorValues: unknown[];
   readonly exec: ReturnType<typeof vi.fn>;
   footerFactory: FooterFactory | undefined;
   readonly footerValues: unknown[];
+  previousEditorFactory: EditorFactory | undefined;
   readonly renders: Mock<() => void>;
 }
 
@@ -53,14 +60,18 @@ function createHarness(): Harness {
           : "# branch.oid 0123456789abcdef\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n",
       }),
   );
+  const editorValues: unknown[] = [];
   const footerValues: unknown[] = [];
   const renders = vi.fn<() => void>();
   const harness: Harness = {
     bus,
+    editorFactory: undefined,
+    editorValues,
     events,
     exec,
     footerFactory: undefined,
     footerValues,
+    previousEditorFactory: undefined,
     renders,
   };
   const pi = {
@@ -141,10 +152,18 @@ function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionCont
       getSessionName: () => "Status integration",
     },
     ui: {
+      getEditorComponent() {
+        return harness.previousEditorFactory;
+      },
+      setEditorComponent(value: EditorFactory | undefined) {
+        harness.editorValues.push(value);
+        harness.editorFactory = value;
+      },
       setFooter(value: unknown) {
         harness.footerValues.push(value);
         harness.footerFactory = typeof value === "function" ? (value as FooterFactory) : undefined;
       },
+      theme: testTheme,
     },
   } as unknown as ExtensionContext;
 }
@@ -177,7 +196,107 @@ function footerData(statuses: ReadonlyMap<string, string>): ReadonlyFooterDataPr
   };
 }
 
+function editor(harness: Harness): EditorComponent | undefined {
+  return harness.editorFactory?.(
+    {
+      requestRender: harness.renders,
+      terminal: { rows: 24 },
+    } as unknown as TUI,
+    {
+      borderColor: (text: string) => text,
+      selectList: {},
+    } as EditorTheme,
+    { matches: () => false } as never,
+  );
+}
+
+function moveCursorUp(component: EditorComponent | undefined, count: number): void {
+  for (let index = 0; index < count; index += 1) component?.handleInput("\u{1B}[A");
+}
+
+function expectNoTruncatedScrollBorders(component: EditorComponent | undefined): void {
+  expect(component?.render(8)).not.toContain("  ───...");
+  expect(component?.render(10)).not.toContain("  ─── ↓...");
+  expect(component?.render(12)).not.toEqual(
+    expect.arrayContaining([expect.stringMatching(/^ {2}─── ↓ \d\.\.\.$/u)]),
+  );
+  expect(component?.render(14)).not.toEqual(
+    expect.arrayContaining([expect.stringMatching(/^ {2}─── ↓ \d m\.\.\.$/u)]),
+  );
+}
+
 describe("pi-status-line extension", () => {
+  it("renders one integrated prompt and restores the previous editor", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const previousComponent: EditorComponent = {
+      getText: () => "",
+      handleInput: vi.fn(),
+      invalidate: vi.fn(),
+      render: (width) => ["─".repeat(width), "  ".padEnd(width), "─".repeat(width)],
+      setText: vi.fn(),
+    };
+    const previous = vi.fn<EditorFactory>(() => previousComponent);
+    harness.previousEditorFactory = previous;
+    const ctx = context(harness);
+
+    await emitLifecycle(harness, "session_start", ctx);
+    expect(harness.editorFactory).toBeDefined();
+    const footer = harness.footerFactory?.(
+      { requestRender: harness.renders },
+      testTheme,
+      footerData(new Map([["review", "review ready"]])),
+    );
+    const prompt = editor(harness);
+    expect(prompt).toBeDefined();
+    expect(prompt).toBe(previousComponent);
+    expect(prompt?.render(120)[0]).toContain(" GPT-5.4");
+    expect(prompt?.render(120)[0]).toContain("review ready");
+    expect(prompt?.render(120)[0]?.endsWith("╮")).toBe(true);
+    expect(prompt?.render(120)[1]?.startsWith("❯ ")).toBe(true);
+    expect(footer?.render(120)).toEqual([`╰${"─".repeat(118)}╯`]);
+    expect(footer?.render(120).join(" ")).not.toContain("GPT-5.4");
+
+    previousComponent.borderColor = (text) => `\u{1B}[32m${text}\u{1B}[39m`;
+    expect(prompt?.render(120)[0]).toContain("\u{1B}[32m");
+    expect(footer?.render(120)[0]).toContain("\u{1B}[32m");
+
+    await emitLifecycle(harness, "session_shutdown", ctx);
+    expect(harness.editorValues.at(-1)).toBe(previous);
+    expect(harness.footerValues.at(-1)).toBeUndefined();
+    expect(previousComponent.render(8)).toEqual(["────────", " ".repeat(8), "────────"]);
+  });
+
+  it("preserves the default editor and bounds prompt chrome at narrow widths", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    await emitLifecycle(harness, "session_start", ctx);
+    const footer = harness.footerFactory?.(
+      { requestRender: harness.renders },
+      testTheme,
+      footerData(new Map()),
+    );
+    const prompt = editor(harness);
+    prompt?.setText(Array.from({ length: 8 }, (_, index) => `line ${String(index)}`).join("\n"));
+    expect(prompt?.getText()).toContain("line 7");
+    expect(prompt?.render(120)[1]?.startsWith("❯ ")).toBe(true);
+    expect(prompt?.render(40)[0]).toContain("↑");
+
+    prompt?.setText(Array.from({ length: 20 }, (_, index) => `line ${String(index)}`).join("\n"));
+    moveCursorUp(prompt, 10);
+    expectNoTruncatedScrollBorders(prompt);
+    expect(footer?.render(8)).toEqual(["╰──────╯"]);
+
+    for (const width of [0, 1, 20, 120]) {
+      expect(
+        [...(prompt?.render(width) ?? []), ...(footer?.render(width) ?? [])].every(
+          (line) => visibleWidth(line) <= width,
+        ),
+      ).toBe(true);
+    }
+  });
+
   it("uses routed worktree state and todo summary without duplicate fallback statuses", async () => {
     expect.hasAssertions();
     const harness = createHarness();
@@ -202,7 +321,7 @@ describe("pi-status-line extension", () => {
       expect.objectContaining({ cwd: "/projects/example-feature" }),
     );
 
-    const component = harness.footerFactory?.(
+    harness.footerFactory?.(
       { requestRender: harness.renders },
       testTheme,
       footerData(
@@ -213,6 +332,7 @@ describe("pi-status-line extension", () => {
         ]),
       ),
     );
+    const component = editor(harness);
     const rendered = component?.render(240).join("\n") ?? "";
     expect(rendered).toContain(" example");
     expect(rendered).not.toContain("example-feature");
@@ -266,11 +386,12 @@ describe("pi-status-line extension", () => {
 
     const ctx = context(harness);
     await emitLifecycle(harness, "session_start", ctx);
-    const component = harness.footerFactory?.(
+    harness.footerFactory?.(
       { requestRender: harness.renders },
       testTheme,
       footerData(new Map([["subagent-slash", "running..."]])),
     );
+    const component = editor(harness);
     expect(requests.at(-1)).toMatchObject({
       method: "status",
       params: {},
@@ -298,11 +419,8 @@ describe("pi-status-line extension", () => {
     const harness = createHarness();
     const ctx = context(harness);
     await emitLifecycle(harness, "session_start", ctx);
-    const component = harness.footerFactory?.(
-      { requestRender: harness.renders },
-      testTheme,
-      footerData(new Map()),
-    );
+    harness.footerFactory?.({ requestRender: harness.renders }, testTheme, footerData(new Map()));
+    const component = editor(harness);
 
     for (const invalidRoute of [
       null,
@@ -398,20 +516,21 @@ describe("pi-status-line extension", () => {
 
     let branchChanged: (() => void) | undefined;
     const unsubscribe = vi.fn<() => void>();
-    const component = harness.footerFactory?.({ requestRender: harness.renders }, testTheme, {
+    const footer = harness.footerFactory?.({ requestRender: harness.renders }, testTheme, {
       ...footerData(new Map()),
       onBranchChange(handler) {
         branchChanged = handler;
         return unsubscribe;
       },
     });
+    const component = editor(harness);
     const rendered = component?.render(100).join(" ") ?? "";
     expect(rendered).toContain("main");
     expect(rendered).toContain("  500");
     expect(rendered).toContain(" ?%/2.0M 󰁨");
     expect(rendered).not.toContain("gpt-5.4");
 
-    component?.invalidate();
+    footer?.invalidate();
     branchChanged?.();
     await vi.waitFor(() => {
       expect(harness.exec).toHaveBeenCalledTimes(2);
@@ -424,7 +543,7 @@ describe("pi-status-line extension", () => {
       expect(harness.exec).toHaveBeenCalledTimes(callsAfterBranch + 1);
     });
     await emitLifecycle(harness, "session_tree", ctx);
-    component?.dispose?.();
+    footer?.dispose?.();
     expect(unsubscribe).toHaveBeenCalledOnce();
   });
 
@@ -454,6 +573,7 @@ describe("pi-status-line extension", () => {
     expect.hasAssertions();
     const harness = createHarness();
     await emitLifecycle(harness, "session_start", context(harness, "print"));
+    expect(harness.editorValues).toEqual([]);
     expect(harness.footerValues).toEqual([]);
     expect(harness.exec).not.toHaveBeenCalled();
   });
