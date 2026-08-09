@@ -76,7 +76,7 @@ The live terminal matches the accepted three-part layout. All current sections
 remain available. Prompt editing and reload work. The second stack pull request
 is open with one validated commit.
 
-## [ ] 003 — Let users select the advisor model
+## [x] 003 — Let users select the advisor model
 
 ### Outcome
 
