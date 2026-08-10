@@ -7,13 +7,13 @@ status: accepted
 ## Executive summary
 
 Prepare the independent Pi packages for their first releases and improve the
-main interactive workflow. Deliver five small, stacked pull requests. Keep each
+main interactive workflow. Deliver six small, stacked pull requests. Keep each
 change inside its owning package or root aggregate boundary.
 
 The stack will fix the initial release version, move the existing status line
 above the prompt, make the on-demand advisor model configurable, tell the agent
-to use pragmatic Simplified Technical English, and extend the Conventional
-Commit skill with safe atomic splitting.
+to use pragmatic Simplified Technical English, extend the Conventional Commit
+skill with safe atomic splitting, and guide stacked pull request publication.
 
 ## Problem
 
@@ -155,13 +155,14 @@ authority for every commit, push, and pull request.
 
 ### Delivery stack
 
-Create five stacked pull requests in this order:
+Create six stacked pull requests in this order:
 
 1. release policy and documentation;
 2. status-line prompt layout;
 3. configurable advisor;
 4. automatic Simple English guidance;
-5. atomic Conventional Commit splitting.
+5. atomic Conventional Commit splitting;
+6. stacked pull request workflow guidance.
 
 Each pull request will contain one validated Conventional Commit. Each pull
 request will target the branch immediately below it. The work will not merge or
@@ -169,7 +170,7 @@ publish releases.
 
 ## Fixed decisions
 
-- Use five small stacked pull requests.
+- Use six small stacked pull requests.
 - Keep all current status-line sections.
 - Render the status fields as the top divider of one integrated prompt component.
 - Preserve default prompt editing behavior through Pi's supported custom-editor
@@ -188,7 +189,12 @@ publish releases.
 - Group dependency metadata that shares one lockfile unless sequential lockfile
   regeneration is explicitly approved.
 - Require explicit approval before each staged unit is committed.
-- The user authorizes local commits, pushes, and opening the five pull requests.
+- Keep Worktrunk responsible for worktrees and use `gh stack` for the GitHub
+  stack relationship.
+- Verify adjacent branch ancestry, one unique commit per pull request, and
+  generated pull request metadata before review.
+- The user authorizes local commits, pushes, opening or updating the six pull
+  requests, and force-with-lease updates to these six reviewed stack branches.
 - The user does not authorize merge, npm publication, release publication, tag
   creation, or worktree removal.
 
@@ -209,7 +215,8 @@ publish releases.
 - No rewriting code or exact technical content for language style.
 - No `git add -A` or `git add .` in the commit workflow.
 - No commit without explicit user authority.
-- No force-push, merge, tag, release, publication, or destructive cleanup.
+- No force-push outside the six reviewed stack branches. No merge, tag, release,
+  publication, or destructive cleanup.
 - No unrelated package refactor.
 
 ## Acceptance criteria
@@ -243,7 +250,7 @@ publish releases.
   stops without automatic history repair.
 - **AC-011 — Conventional messages:** Every created commit uses a validated,
   repository-aware Conventional Commit message.
-- **AC-012 — Stack delivery:** Five atomic commits are pushed as five ordered,
+- **AC-012 — Stack delivery:** Six atomic commits are pushed as six ordered,
   stacked pull requests without merge or publication.
 - **AC-013 — Repository checks:** Focused tests and `npm run check` pass after the
   final change.

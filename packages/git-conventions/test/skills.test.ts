@@ -92,6 +92,64 @@ describe("git convention skills", () => {
     }
   });
 
+  it("uses gh stack for reviewable stacked pull requests", async () => {
+    expect.hasAssertions();
+    const [skill, readme, metadata] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "skills", "conventional-commit", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+      readFile(
+        join(PACKAGE_ROOT, "skills", "conventional-commit", "agents", "openai.yaml"),
+        "utf8",
+      ),
+    ]);
+
+    expect(skill).toContain("## Publish reviewable changes with `gh stack`");
+    expect(skill).toContain("gh stack --version");
+    expect(skill).toContain('gh stack init --base "$trunk" "$bottom"');
+    expect(skill).not.toContain('gh stack init --base "$trunk" "$bottom" ... "$top"');
+    expect(skill).toContain("gh stack submit --auto");
+    expect(skill).toContain('gh stack add "$next"');
+    expect(skill).toMatch(/new worktree[^.]*does not inherit[^.]*dirty changes/iu);
+    expect(skill).toMatch(/mixed\s+changes[^.]*stop[^.]*approv[^.]*transfer/iu);
+    const publishSection = skill.slice(
+      skill.indexOf("## Publish reviewable changes with `gh stack`"),
+      skill.indexOf("## Stage one approved unit"),
+    );
+    const remotePublication = publishSection.indexOf("After every branch has one validated unit");
+    const ancestryCheck = publishSection.indexOf('git merge-base --is-ancestor "$lower" "$upper"');
+    const commitCountCheck = publishSection.indexOf('git rev-list --count "$lower..$upper"');
+    expect(ancestryCheck).toBeGreaterThanOrEqual(0);
+    expect(ancestryCheck).toBeLessThan(remotePublication);
+    expect(commitCountCheck).toBeGreaterThanOrEqual(0);
+    expect(commitCountCheck).toBeLessThan(remotePublication);
+    const metadataView = publishSection.indexOf('gh pr view "$pr_number" --json');
+    const metadataEdit = publishSection.indexOf('gh pr edit "$pr_number"');
+    expect(metadataView).toBeGreaterThan(publishSection.indexOf("gh stack submit --auto"));
+    expect(metadataEdit).toBeGreaterThan(metadataView);
+    expect(publishSection.indexOf('gh pr ready "$pr_number"')).toBeGreaterThan(metadataView);
+    expect(skill).toMatch(/actual title[^.]*Conventional Commit validator/iu);
+    expect(skill).toMatch(/body states[^.]*checks[^.]*risks/iu);
+    expect(skill).not.toMatch(/gh stack (?:submit|link)[^\n]*--open/iu);
+    expect(skill).toMatch(/`--open`[^.]*process[^.]*ready for review/iu);
+    expect(skill).toMatch(/already-linked[^.]*skipped[^.]*draft/iu);
+    expect(skill).toContain('gh pr ready "$pr_number"');
+    expect(skill).toMatch(/`gh pr ready`[^.]*explicit authority[^.]*draft status/iu);
+    expect(skill).toContain("gh stack link --base");
+    expect(skill).not.toMatch(/gh stack link[^\n]*\.\.\./u);
+    expect(skill).toContain("gh stack view --json");
+    expect(skill).toMatch(/one(?: new)? logical unit[^.]*branch[^.]*pull\s+request/iu);
+    expect(skill).toMatch(/Worktrunk[^.]*`gh stack link`/iu);
+    expect(skill).toMatch(/Worktrunk\s+worktree[^.]*branch directly below/iu);
+    expect(skill).toMatch(/branch arguments[^.]*push[^.]*create pull\s+requests/iu);
+    expect(skill).toMatch(/PR URLs[^.]*numeric ambiguity/iu);
+    expect(skill).toMatch(/successful commit[^.]*next child branch[^.]*before staging/iu);
+    expect(skill).toMatch(/Never edit[^.]*base\s+branch[^.]*independently/iu);
+    expect(skill).toMatch(/Never run `gh stack merge`[^.]*separate/iu);
+    expect(skill).toMatch(/Never run\s+`gh stack unstack`[^.]*separate/iu);
+    expect(readme).toContain("`gh stack`");
+    expect(metadata).toMatch(/stacked pull requests/iu);
+  });
+
   it("suggests repository-aware branch names without inventing a standard", async () => {
     expect.hasAssertions();
     const skill = await readFile(
