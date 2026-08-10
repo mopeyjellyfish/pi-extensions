@@ -205,3 +205,39 @@ Commit message, commit, push, and open the fifth pull request against
 The skill stops before unsafe index changes, creates only authorized logical
 units, and validates each exact staged tree and message. All required checks
 pass. Five ordered pull requests are open without merge or publication.
+
+## [x] 006 — Guide stacked pull request publication
+
+### Outcome
+
+The Conventional Commit skill can publish approved review units as one safe,
+verifiable GitHub pull request stack while Worktrunk remains responsible for
+local worktrees.
+
+### Pitch trace
+
+[Delivery stack](pitch.md#delivery-stack), AC-012, and AC-013.
+
+### Implementation
+
+Create `feat/git-conventions-gh-stack` from the fifth stack branch. Extend the
+existing skill with local `gh stack` sequencing, Worktrunk boundaries, adjacent
+branch ancestry and unique-commit checks, generated pull request metadata
+verification, draft-status authority, and protected merge and unstack actions.
+Document the optional GitHub CLI extension and add ordered safety-contract tests.
+Do not add a runtime extension or replace Worktrunk.
+
+### Validation
+
+Run the Git Conventions tests, formatting, lint, and Markdown checks. Confirm the
+installed `gh stack` and Worktrunk contracts. Verify all six local branch tips,
+adjacent ancestry, one-commit ranges, pull request bases, titles, bodies, and
+ready states. Run `npm run check`, complete live Pi reload acceptance, and obtain
+final independent review. Amend and push the sixth validated Conventional Commit
+with force-with-lease only when its reviewed remote tip differs.
+
+### Done when
+
+Six ordered pull requests contain the reviewed tips and one unique commit each.
+All checks pass, each pull request is ready with complete metadata, and no review
+finding remains open. Nothing is merged or published.
