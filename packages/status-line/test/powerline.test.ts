@@ -27,6 +27,7 @@ const testTheme: StatusLineTheme = {
 const baseView: StatusLineView = {
   branch: "feat/status-line-integration",
   context: { contextWindow: 372_000, percent: 72.5 },
+  accountLimit: { remainingPercent: 30 },
   costUsd: 1.23,
   cwd: "/Users/david/code/personal/pi-extensions",
   effort: "high",
@@ -53,13 +54,14 @@ describe("Powerlevel10k status rendering", () => {
     expect(line).not.toContain("\u{E0B0}");
     expect(line).not.toContain("\u{E0B2}");
     expect(plain).toContain(
-      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement status integration",
+      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨  limit 30%    28M · $1.23   2 !1   2/5 · Implement status integration",
     );
 
     const styled = renderStatusLine(baseView, 240, testTheme);
     expect(styled).toContain("\u{1B}[38;5;1mthink:high\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m feat/status-line-integration ↑2 ↓1 +3 ~4\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 72.5%/372k 󰁨\u{1B}[0m");
+    expect(styled).toContain("\u{1B}[38;5;3mlimit 30%\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;4m  28M · $1.23\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;5m 2 !1\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 2/5 · Implement status integration\u{1B}[0m");
