@@ -1,6 +1,13 @@
 import { CustomEditor } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
+import {
+  fetchAccountUsage,
+  nearestAccountLimit,
+  parseProviderLimitHeaders,
+  type AccountUsageContext,
+  type AccountUsageSnapshot,
+} from "./account-usage.ts";
 import { parseGitStatus, type GitStatusDetails, type ParsedGitStatus } from "./git.ts";
 import {
   renderStatusLine,
@@ -34,6 +41,7 @@ const SUBAGENT_ASYNC_COMPLETE_EVENT = "subagent:async-complete";
 const SUBAGENT_CONTROL_EVENT = "subagent:control-event";
 const GIT_ARGUMENTS = ["status", "--porcelain=v2", "--branch", "--untracked-files=no"] as const;
 const GIT_REFRESH_TOOLS = new Set(["bash", "edit", "worktree", "write"]);
+const STATUS_ENTRY_TYPE = "mopeyjellyfish-pi-status";
 
 interface WorktreeRouteEventV1 {
   readonly activePath: string;
@@ -239,6 +247,7 @@ function branchLabel(
 }
 
 function optionalViewDetails(
+  accountUsage: AccountUsageSnapshot | undefined,
   branch: string | undefined,
   context: ContextStatusLineView | undefined,
   effort: string | undefined,
@@ -248,7 +257,11 @@ function optionalViewDetails(
   todo: TodoStatusLineView | undefined,
   totals: SessionTotals,
 ): Partial<StatusLineView> {
+  const accountLimit = nearestAccountLimit(accountUsage);
   return {
+    ...(accountLimit === undefined
+      ? {}
+      : { accountLimit: { remainingPercent: accountLimit.remainingPercent } }),
     ...(branch === undefined ? {} : { branch }),
     ...(context === undefined ? {} : { context }),
     ...(effort === undefined ? {} : { effort }),
@@ -258,6 +271,70 @@ function optionalViewDetails(
     ...(todo === undefined ? {} : { todo }),
     ...totals,
   };
+}
+
+function displayValue(value: string): string {
+  let clean = "";
+  for (const character of stripAnsi(value)) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    clean += codePoint < 32 || (codePoint >= 127 && codePoint <= 159) ? " " : character;
+    if (clean.length >= 200) break;
+  }
+  return clean.replaceAll(/\s+/gu, " ").trim();
+}
+
+function integer(value: number): string {
+  return Math.round(value).toLocaleString("en-US");
+}
+
+function limitBar(percent: number): string {
+  const filled = Math.round(Math.max(0, Math.min(100, percent)) / 5);
+  return `[${"█".repeat(filled)}${"░".repeat(20 - filled)}]`;
+}
+
+function contextStatusText(ctx: ExtensionContext): string {
+  const context = ctx.getContextUsage();
+  if (context === undefined) return "Context: unavailable";
+  const percent = context.percent === null ? "?" : (100 - context.percent).toFixed(1);
+  const tokens = context.tokens === null ? "?" : integer(context.tokens);
+  return `Context: ${percent}% left (${tokens} used / ${integer(context.contextWindow)})`;
+}
+
+function accountStatusLines(usage: AccountUsageSnapshot): string[] {
+  if (usage.status === "unavailable") {
+    return [`Account usage: unavailable — ${usage.reason}`];
+  }
+  const lines = [
+    `Account: ${displayValue(usage.provider)}${usage.plan === undefined ? "" : ` (${usage.plan})`}`,
+    `Observed: ${new Date(usage.observedAt).toISOString()}`,
+  ];
+  for (const limit of usage.limits) {
+    const reset =
+      limit.resetsAt === undefined ? "" : ` · resets ${new Date(limit.resetsAt).toISOString()}`;
+    lines.push(
+      `${limit.label}: ${limitBar(limit.remainingPercent)} ${String(Math.round(limit.remainingPercent))}% left${reset}`,
+    );
+  }
+  lines.push(
+    usage.source === "codex-usage"
+      ? "Source: OpenAI Codex internal usage endpoint; values can be stale or unavailable."
+      : "Source: provider response headers; values are from the last observed model response.",
+  );
+  return lines;
+}
+
+function statusText(pi: ExtensionAPI, ctx: ExtensionContext, usage: AccountUsageSnapshot): string {
+  const model = ctx.model;
+  const name = ctx.sessionManager.getSessionName();
+  return [
+    `Model: ${model === undefined ? "unavailable" : `${displayValue(model.name)} (${displayValue(model.provider)}/${displayValue(model.id)})`}`,
+    `Thinking: ${model?.reasoning === true ? pi.getThinkingLevel() : "off"}`,
+    `Directory: ${displayValue(ctx.cwd)}`,
+    `Session: ${displayValue(ctx.sessionManager.getSessionId())}`,
+    ...(name === undefined ? [] : [`Name: ${displayValue(name)}`]),
+    contextStatusText(ctx),
+    ...accountStatusLines(usage),
+  ].join("\n");
 }
 
 function scrollIndicator(border: string, direction: "↑" | "↓"): string | undefined {
@@ -355,6 +432,9 @@ function decorateEditor(
 }
 
 export default function statusLineExtension(pi: ExtensionAPI): void {
+  let accountUsage: AccountUsageSnapshot | undefined;
+  let accountUsageController: AbortController | undefined;
+  let accountUsageGeneration = 0;
   let route: WorktreeRouteEventV1 | undefined;
   let subagents: SubagentStatusLineView | undefined;
   let todo: TodoSummaryEventV1 | undefined;
@@ -371,6 +451,58 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
   const subagentRequestCleanups = new Set<() => void>();
 
   const effectiveCwd = (): string | undefined => route?.activePath ?? ctx?.cwd;
+
+  const refreshAccountUsage = async (
+    currentContext: ExtensionContext,
+  ): Promise<AccountUsageSnapshot> => {
+    accountUsageController?.abort();
+    const controller = new AbortController();
+    accountUsageController = controller;
+    const generation = ++accountUsageGeneration;
+    try {
+      const fetched = await fetchAccountUsage(
+        currentContext as unknown as AccountUsageContext,
+        controller.signal,
+      );
+      const next =
+        fetched.status === "unavailable" &&
+        accountUsage?.status === "available" &&
+        accountUsage.source === "response-headers" &&
+        accountUsage.provider === currentContext.model?.provider
+          ? accountUsage
+          : fetched;
+      if (generation === accountUsageGeneration) {
+        accountUsage = next;
+        requestRender?.();
+      }
+      return next;
+    } catch {
+      const provider = currentContext.model?.provider;
+      const unavailable: AccountUsageSnapshot = {
+        ...(provider === undefined ? {} : { provider }),
+        reason: "Usage request was cancelled",
+        status: "unavailable",
+      };
+      if (generation === accountUsageGeneration) accountUsage = unavailable;
+      return unavailable;
+    }
+  };
+
+  pi.registerEntryRenderer(STATUS_ENTRY_TYPE, (entry, _options, theme) => {
+    const data = isRecord(entry.data) ? entry.data : undefined;
+    const text = typeof data?.["text"] === "string" ? data["text"] : "Status unavailable";
+    return new Text(theme.fg("text", text), 1, 0);
+  });
+
+  pi.registerCommand("status", {
+    description: "Show model, session, context, and provider account usage",
+    handler: async (_args, currentContext) => {
+      const usage = await refreshAccountUsage(currentContext);
+      const text = statusText(pi, currentContext, usage);
+      if (currentContext.mode === "tui") pi.appendEntry(STATUS_ENTRY_TYPE, { text });
+      else if (currentContext.hasUI) currentContext.ui.notify(text, "info");
+    },
+  });
 
   const requestSubagentStatus = (): void => {
     const currentContext = ctx;
@@ -479,6 +611,7 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     const totals = sessionTotals(currentContext);
     return {
       ...optionalViewDetails(
+        accountUsage,
         branch,
         context,
         effort,
@@ -537,7 +670,34 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
       };
     });
     requestSubagentStatus();
+    void refreshAccountUsage(currentContext);
     await refreshGit();
+  });
+
+  pi.on("model_select", (_event, currentContext) => {
+    ctx = currentContext;
+    accountUsage = undefined;
+    requestRender?.();
+    if (currentContext.mode === "tui") void refreshAccountUsage(currentContext);
+  });
+
+  pi.on("agent_settled", (_event, currentContext) => {
+    ctx = currentContext;
+    if (currentContext.mode === "tui") void refreshAccountUsage(currentContext);
+  });
+
+  pi.on("after_provider_response", (event, currentContext) => {
+    const provider = currentContext.model?.provider;
+    if (provider === undefined) return;
+    const observed = parseProviderLimitHeaders(provider, event.headers);
+    if (
+      observed === undefined ||
+      (accountUsage?.status === "available" && accountUsage.source === "codex-usage")
+    ) {
+      return;
+    }
+    accountUsage = observed;
+    requestRender?.();
   });
 
   pi.on("tool_result", (event, currentContext) => {
@@ -567,6 +727,10 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
   pi.on("session_shutdown", (_event, currentContext) => {
     refreshGeneration += 1;
     sessionGeneration += 1;
+    accountUsageGeneration += 1;
+    accountUsageController?.abort();
+    accountUsageController = undefined;
+    accountUsage = undefined;
     for (const timer of refreshTimers) clearTimeout(timer);
     refreshTimers.clear();
     for (const cleanup of subagentRequestCleanups) cleanup();
