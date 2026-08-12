@@ -252,14 +252,14 @@ describe("pi-status-line extension", () => {
     expect(prompt).toBe(previousComponent);
     expect(prompt?.render(120)[0]).toContain(" GPT-5.4");
     expect(prompt?.render(120)[0]).toContain("review ready");
-    expect(prompt?.render(120)[0]?.endsWith("╮")).toBe(true);
-    expect(prompt?.render(120)[1]?.startsWith("❯ ")).toBe(true);
-    expect(footer?.render(120)).toEqual([`╰${"─".repeat(118)}╯`]);
-    expect(footer?.render(120).join(" ")).not.toContain("GPT-5.4");
+    expect(prompt?.render(120)[0]?.startsWith("╭─ ")).toBe(true);
+    expect(prompt?.render(120)[0]?.endsWith("─")).toBe(true);
+    expect(prompt?.render(120)[1]?.startsWith("╰─❯ ")).toBe(true);
+    expect(footer?.render(120)).toEqual([]);
 
     previousComponent.borderColor = (text) => `\u{1B}[32m${text}\u{1B}[39m`;
     expect(prompt?.render(120)[0]).toContain("\u{1B}[32m");
-    expect(footer?.render(120)[0]).toContain("\u{1B}[32m");
+    expect(prompt?.render(120)[1]).toContain("\u{1B}[32m╰─\u{1B}[39m");
 
     await emitLifecycle(harness, "session_shutdown", ctx);
     expect(harness.editorValues.at(-1)).toBe(previous);
@@ -278,19 +278,25 @@ describe("pi-status-line extension", () => {
       footerData(new Map()),
     );
     const prompt = editor(harness);
-    prompt?.setText(Array.from({ length: 8 }, (_, index) => `line ${String(index)}`).join("\n"));
-    expect(prompt?.getText()).toContain("line 7");
-    expect(prompt?.render(120)[1]?.startsWith("❯ ")).toBe(true);
-    expect(prompt?.render(40)[0]).toContain("↑");
+    if (prompt === undefined || footer === undefined)
+      throw new Error("Prompt chrome not installed");
+    prompt.setText(Array.from({ length: 8 }, (_, index) => `line ${String(index)}`).join("\n"));
+    expect(prompt.getText()).toContain("line 7");
+    expect(prompt.render(120)[1]?.startsWith("╰─❯ ")).toBe(true);
+    expect(prompt.render(40)[0]).toContain("↑");
+    expect(prompt.render(12)[0]).toMatch(/ ↑\d* $/u);
 
-    prompt?.setText(Array.from({ length: 20 }, (_, index) => `line ${String(index)}`).join("\n"));
+    prompt.setText(Array.from({ length: 20 }, (_, index) => `line ${String(index)}`).join("\n"));
     moveCursorUp(prompt, 10);
     expectNoTruncatedScrollBorders(prompt);
-    expect(footer?.render(8)).toEqual(["╰──────╯"]);
+    expect(prompt.render(40)[0]).toMatch(/[↑↓]/u);
+    expect(prompt.render(20)[0]).toMatch(/ ↑\d+ ↓\d+ $/u);
+    expect(prompt.render(17)[0]).toMatch(/ ↑\d* ↓\d* $/u);
+    expect(footer.render(8)).toEqual([]);
 
     for (const width of [0, 1, 20, 120]) {
       expect(
-        [...(prompt?.render(width) ?? []), ...(footer?.render(width) ?? [])].every(
+        [...prompt.render(width), ...footer.render(width)].every(
           (line) => visibleWidth(line) <= width,
         ),
       ).toBe(true);

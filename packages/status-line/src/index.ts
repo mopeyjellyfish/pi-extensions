@@ -261,7 +261,11 @@ function optionalViewDetails(
 }
 
 function scrollIndicator(border: string, direction: "↑" | "↓"): string | undefined {
-  return new RegExp(`${direction} \\d+ more`, "u").exec(stripAnsi(border))?.[0];
+  const plain = stripAnsi(border);
+  const full = new RegExp(`${direction} \\d+ more`, "u").exec(plain)?.[0];
+  if (full !== undefined) return full;
+  const partial = new RegExp(`${direction}(?: (\\d+))?`, "u").exec(plain);
+  return partial === null ? undefined : `${direction}${partial[1] ?? ""}`;
 }
 
 function truncatedScrollBorder(line: string, width: number): boolean {
@@ -283,37 +287,35 @@ function editorBorder(line: string, width: number): boolean {
 
 function renderTopDivider(
   view: StatusLineView | undefined,
-  nativeBorder: string,
+  nativeTop: string,
+  nativeBottom: string | undefined,
   width: number,
   theme: StatusLineTheme,
   borderColor: (text: string) => string,
 ): string {
   if (width <= 0) return "";
-  if (width === 1) return borderColor("╮");
-  const indicator = scrollIndicator(nativeBorder, "↑");
-  const suffix = indicator === undefined ? "" : ` ${indicator} `;
-  const contentWidth = Math.max(0, width - visibleWidth(suffix) - 1);
+  if (width === 1) return borderColor("╭");
+  const indicators = [
+    scrollIndicator(nativeTop, "↑"),
+    nativeBottom === undefined ? undefined : scrollIndicator(nativeBottom, "↓"),
+  ].filter((indicator): indicator is string => indicator !== undefined);
+  const prefix = "╭─";
+  const fullSuffix = indicators.length === 0 ? "" : ` ${indicators.join(" · ")} `;
+  const compactSuffix = ` ${indicators
+    .map((indicator) => indicator.replace(/^([↑↓]) (\d+) more$/u, "$1$2"))
+    .join(" ")} `;
+  const suffix =
+    visibleWidth(prefix) + visibleWidth(fullSuffix) <= width
+      ? fullSuffix
+      : visibleWidth(prefix) + visibleWidth(compactSuffix) <= width
+        ? compactSuffix
+        : "";
+  const contentWidth = Math.max(0, width - visibleWidth(prefix) - visibleWidth(suffix));
   const status = view === undefined ? "" : renderStatusLine(view, contentWidth, theme);
   const content = truncateToWidth(status, contentWidth, "");
   const fill = "─".repeat(Math.max(0, contentWidth - visibleWidth(content)));
-  const line = `${content}${borderColor(fill)}${theme.fg("dim", suffix)}${borderColor("╮")}`;
+  const line = `${borderColor(prefix)}${content}${borderColor(fill)}${theme.fg("dim", suffix)}`;
   return truncateToWidth(line, width, "");
-}
-
-function renderBottomDivider(
-  nativeBorder: string | undefined,
-  width: number,
-  theme: StatusLineTheme,
-  borderColor: (text: string) => string,
-): string {
-  if (width <= 0) return "";
-  if (width === 1) return borderColor("╰");
-  const indicator = nativeBorder === undefined ? undefined : scrollIndicator(nativeBorder, "↓");
-  const label = indicator === undefined ? "" : ` ${indicator} `;
-  const fillWidth = Math.max(0, width - visibleWidth(label) - 2);
-  const leadingFill = indicator === undefined ? 0 : Math.min(3, fillWidth);
-  const trailingFill = fillWidth - leadingFill;
-  return `${borderColor("╰")}${borderColor("─".repeat(leadingFill))}${theme.fg("dim", label)}${borderColor("─".repeat(trailingFill))}${borderColor("╯")}`;
 }
 
 function decorateEditor(
@@ -321,8 +323,6 @@ function decorateEditor(
   buildView: () => StatusLineView | undefined,
   theme: StatusLineTheme,
   editorTheme: EditorTheme,
-  setBorderColor: (color: (text: string) => string) => void,
-  setBottomBorder: (border?: string) => void,
   setRestore: (restore: () => void) => void,
 ): EditorComponent {
   const render = editor.render.bind(editor);
@@ -331,23 +331,21 @@ function decorateEditor(
   });
   editor.render = (width: number): string[] => {
     const borderColor = editor.borderColor ?? editorTheme.borderColor;
-    setBorderColor(borderColor);
-    const contentWidth = Math.max(0, width - 2);
+    const promptWidth = visibleWidth("╰─❯ ");
+    const contentWidth = Math.max(0, width - promptWidth);
     const lines = render(contentWidth);
     if (lines.length === 0) return lines;
     const nativeTop = lines[0] ?? "";
     const bottomIndex = lines.findIndex(
       (line, index) => index > 0 && editorBorder(line, contentWidth),
     );
-    if (bottomIndex === -1) {
-      setBottomBorder();
-    } else {
-      setBottomBorder(lines[bottomIndex]);
-      lines.splice(bottomIndex, 1);
-    }
-    lines[0] = renderTopDivider(buildView(), nativeTop, width, theme, borderColor);
+    const nativeBottom = bottomIndex === -1 ? undefined : lines.splice(bottomIndex, 1)[0];
+    lines[0] = renderTopDivider(buildView(), nativeTop, nativeBottom, width, theme, borderColor);
     for (let index = 1; index < lines.length; index += 1) {
-      lines[index] = `${index === 1 ? "❯ " : "  "}${lines[index] ?? ""}`;
+      lines[index] =
+        index === 1
+          ? `${borderColor("╰─")}${theme.fg("accent", "❯")} ${lines[index] ?? ""}`
+          : `${" ".repeat(promptWidth)}${lines[index] ?? ""}`;
     }
     return lines.map((line) =>
       visibleWidth(line) <= width ? line : truncateToWidth(line, width, ""),
@@ -361,8 +359,6 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
   let subagents: SubagentStatusLineView | undefined;
   let todo: TodoSummaryEventV1 | undefined;
   let ctx: ExtensionContext | undefined;
-  let editorBorderColor = (text: string): string => text;
-  let editorBottomBorder: string | undefined;
   let footerData: ReadonlyFooterDataProvider | undefined;
   let git: GitSnapshot | undefined;
   let previousEditorFactory: EditorFactory | undefined;
@@ -512,25 +508,12 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
       const editor =
         previousEditorFactory?.(tui, theme, keybindings) ??
         new CustomEditor(tui, theme, keybindings);
-      editorBorderColor = editor.borderColor ?? theme.borderColor;
       restoreEditor?.();
-      return decorateEditor(
-        editor,
-        buildView,
-        currentContext.ui.theme,
-        theme,
-        (color) => {
-          editorBorderColor = color;
-        },
-        (border) => {
-          editorBottomBorder = border;
-        },
-        (restore) => {
-          restoreEditor = restore;
-        },
-      );
+      return decorateEditor(editor, buildView, currentContext.ui.theme, theme, (restore) => {
+        restoreEditor = restore;
+      });
     });
-    currentContext.ui.setFooter((tui, theme, provider) => {
+    currentContext.ui.setFooter((tui, _theme, provider) => {
       footerData = provider;
       requestRender = () => {
         tui.requestRender();
@@ -548,8 +531,8 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
         invalidate() {
           requestRender?.();
         },
-        render(width: number): string[] {
-          return [renderBottomDivider(editorBottomBorder, width, theme, editorBorderColor)];
+        render(): string[] {
+          return [];
         },
       };
     });
@@ -595,7 +578,6 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     unsubscribeSubagentControl();
     subagents = undefined;
     ctx = undefined;
-    editorBottomBorder = undefined;
     footerData = undefined;
     requestRender = undefined;
     restoreEditor?.();
