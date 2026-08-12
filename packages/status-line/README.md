@@ -1,8 +1,8 @@
 # pi-status-line
 
 `@mopeyjellyfish/pi-status-line` gives Pi one integrated,
-Powerlevel10k-style prompt. The status fields form the top divider, the editable
-prompt follows below, and a curved divider closes the component. It uses the
+Powerlevel10k-style prompt. The status fields form the top divider, and a short
+hook with an accent chevron starts the editable prompt below it. It uses the
 same thin inline segment grammar, Nerd Font v3 icons, and semantic palette as
 `pi-powerline-footer`.
 
@@ -47,9 +47,8 @@ Segments appear in this order:
 For example:
 
 ```text
- GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement integration ─╮
-❯ Write here
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─  GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨    28M · $1.23   2 !1   2/5 · Implement integration ─
+╰─❯ Write here
 ```
 
 The editor keeps Pi's normal input, keybindings, multiline text, history,
