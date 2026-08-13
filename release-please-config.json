@@ -38,6 +38,9 @@
     "packages/lsp": {
       "release-type": "node"
     },
+    "packages/playwright-cleanup": {
+      "release-type": "node"
+    },
     "packages/todo": {
       "release-type": "node"
     },
