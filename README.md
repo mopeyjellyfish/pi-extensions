@@ -13,20 +13,21 @@ its own README with setup and usage details.
 
 ## Packages
 
-| Package                                                                    | What it does                                                                        |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [`@mopeyjellyfish/pi-engineering`](packages/engineering/README.md)         | Guides bug diagnosis, domain language, and two-axis change review.                  |
-| [`@mopeyjellyfish/pi-feature-flow`](packages/feature-flow/README.md)       | Starts or resumes shaped features through one skill and `/shape` prompt.            |
-| [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md) | Helps write Conventional Commits and safely rebase a branch onto its base.          |
-| [`@mopeyjellyfish/pi-github`](packages/github/README.md)                   | Guides authenticated GitHub CLI workflows for common repository operations.         |
-| [`@mopeyjellyfish/pi-productivity`](packages/productivity/README.md)       | Helps humans and agents write clear instructions and repair unclear messages.       |
-| [`@mopeyjellyfish/pi-question`](packages/question/README.md)               | Gives agents a structured way to ask clear questions.                               |
-| [`@mopeyjellyfish/pi-simple-english`](packages/simple-english/README.md)   | Helps agents write clear human-facing text with pragmatic ASD-STE100 rules.         |
-| [`@mopeyjellyfish/pi-lsp`](packages/lsp/README.md)                         | Adds LSP diagnostics, navigation, validation, and safe semantic refactoring tools.  |
-| [`@mopeyjellyfish/pi-status-line`](packages/status-line/README.md)         | Shows a worktree-aware Powerlevel10k-style prompt with todo progress.               |
-| [`@mopeyjellyfish/pi-todo`](packages/todo/README.md)                       | Keeps a small task list for the current Pi session.                                 |
-| [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)           | Searches the web through the selected model provider.                               |
-| [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)             | Creates and selects Worktrunk worktrees, then routes Pi tools to the selected path. |
+| Package                                                                          | What it does                                                                        |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`@mopeyjellyfish/pi-engineering`](packages/engineering/README.md)               | Guides bug diagnosis, domain language, and two-axis change review.                  |
+| [`@mopeyjellyfish/pi-feature-flow`](packages/feature-flow/README.md)             | Starts or resumes shaped features through one skill and `/shape` prompt.            |
+| [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md)       | Helps write Conventional Commits and safely rebase a branch onto its base.          |
+| [`@mopeyjellyfish/pi-github`](packages/github/README.md)                         | Guides authenticated GitHub CLI workflows for common repository operations.         |
+| [`@mopeyjellyfish/pi-productivity`](packages/productivity/README.md)             | Helps humans and agents write clear instructions and repair unclear messages.       |
+| [`@mopeyjellyfish/pi-question`](packages/question/README.md)                     | Gives agents a structured way to ask clear questions.                               |
+| [`@mopeyjellyfish/pi-simple-english`](packages/simple-english/README.md)         | Helps agents write clear human-facing text with pragmatic ASD-STE100 rules.         |
+| [`@mopeyjellyfish/pi-lsp`](packages/lsp/README.md)                               | Adds LSP diagnostics, navigation, validation, and safe semantic refactoring tools.  |
+| [`@mopeyjellyfish/pi-playwright-cleanup`](packages/playwright-cleanup/README.md) | Owns and verifies cleanup of browser sessions started by Pi agents.                 |
+| [`@mopeyjellyfish/pi-status-line`](packages/status-line/README.md)               | Shows a worktree-aware Powerlevel10k-style prompt with todo progress.               |
+| [`@mopeyjellyfish/pi-todo`](packages/todo/README.md)                             | Keeps a small task list for the current Pi session.                                 |
+| [`@mopeyjellyfish/pi-web-search`](packages/web-search/README.md)                 | Searches the web through the selected model provider.                               |
+| [`@mopeyjellyfish/pi-worktrunk`](packages/worktrunk/README.md)                   | Creates and selects Worktrunk worktrees, then routes Pi tools to the selected path. |
 
 The Worktrunk package needs
 [Worktrunk](https://worktrunk.dev) installed separately. It is an independent

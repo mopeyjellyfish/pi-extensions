@@ -283,6 +283,11 @@ describe("aggregate subagent resources", () => {
     expect(qa).toMatch(/maintain reusable test plans/iu);
     expect(qa).toContain("Do not modify product or source files");
     expect(qa).toMatch(/rerun the exact failing scenario after a fix/iu);
+    expect(qa).toMatch(/Playwright CLI registries are workspace-scoped/iu);
+    expect(qa).toMatch(/return to that exact checkout or worktree[^.]*targeted cleanup/iu);
+    expect(qa).toContain("playwright-cli list --all --json");
+    expect(qa).toMatch(/Never rely on `close-all` from a sibling checkout/iu);
+    expect(qa).toMatch(/global `kill-all`[^.]*every Playwright CLI daemon/iu);
     expect(worker).toContain("skills: ponytail, diagnosing-bugs");
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",
