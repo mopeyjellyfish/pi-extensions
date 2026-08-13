@@ -42,6 +42,7 @@ export interface WorktrunkList {
 }
 
 export interface WorktrunkSelection {
+  readonly existing?: boolean;
   readonly mainPath: string;
   readonly worktree: WorktrunkWorktree;
 }
@@ -218,7 +219,7 @@ function parseList(output: string): WorktrunkList {
   return { mainPath: main[0].path, worktrees };
 }
 
-function parseSwitchPath(output: string): string {
+function parseSwitchResult(output: string): { readonly action?: string; readonly path: string } {
   let document: unknown;
   try {
     document = JSON.parse(output) as unknown;
@@ -232,7 +233,8 @@ function parseSwitchPath(output: string): string {
   if (!isAbsolute(path)) {
     throw new WorktrunkError("Worktrunk returned a non-absolute path from `wt switch`.");
   }
-  return resolve(path);
+  const action = optionalString(document["action"], "switch.action");
+  return { ...(action === undefined ? {} : { action }), path: resolve(path) };
 }
 
 function assertRemovedPath(output: string, expectedPath: string): void {
@@ -286,6 +288,23 @@ export class WorktrunkClient {
     cwd: string,
     signal: AbortSignal | undefined,
   ): Promise<WorktrunkSelection> {
+    const list = await this.list(cwd, signal);
+    const existing = list.worktrees.filter(
+      (worktree) => !worktree.main && worktree.branch === branch,
+    );
+    if (existing.length > 1) {
+      throw new WorktrunkError("Worktrunk returned multiple linked worktrees for the branch.");
+    }
+    if (existing[0] !== undefined) {
+      return {
+        ...(await this.switch(["switch", "--no-cd", "--format=json", branch], cwd, signal, {
+          branch,
+          mainPath: list.mainPath,
+          path: existing[0].path,
+        })),
+        existing: true,
+      };
+    }
     return this.switch(
       [
         "switch",
@@ -340,6 +359,11 @@ export class WorktrunkClient {
     arguments_: readonly string[],
     cwd: string,
     signal: AbortSignal | undefined,
+    expectedExisting?: {
+      readonly branch: string;
+      readonly mainPath: string;
+      readonly path: string;
+    },
   ): Promise<WorktrunkSelection> {
     await this.ensureCompatible(cwd, signal);
     const result = await this.#run(arguments_, {
@@ -353,11 +377,22 @@ export class WorktrunkClient {
     if (result.code !== 0) {
       throw commandFailure("wt switch", result);
     }
-    const path = parseSwitchPath(result.stdout);
+    const switched = parseSwitchResult(result.stdout);
+    if (
+      expectedExisting !== undefined &&
+      (switched.action !== "existing" || switched.path !== expectedExisting.path)
+    ) {
+      throw new WorktrunkError("Worktrunk did not attach to the expected existing worktree.");
+    }
     // The mutation is complete; confirmation keeps its own bounded command timeout.
     const list = await this.list(cwd, undefined);
-    const current = list.worktrees.find((worktree) => worktree.path === path);
-    if (current === undefined || current.main) {
+    const current = list.worktrees.find((worktree) => worktree.path === switched.path);
+    if (
+      current === undefined ||
+      current.main ||
+      (expectedExisting !== undefined &&
+        (list.mainPath !== expectedExisting.mainPath || current.branch !== expectedExisting.branch))
+    ) {
       throw new WorktrunkError(
         "Worktrunk switch returned a path that was not confirmed as a linked worktree.",
       );

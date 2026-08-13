@@ -13,9 +13,11 @@ Pi extension, not an official Worktrunk integration.
 ## Start or resume work
 
 1. Call `worktree` with `action: "status"` or `action: "list"`.
-2. Call `worktree` with `action: "create"`, a branch, and an optional `base`,
-   or with `action: "activate"` and a branch name, Worktrunk's `-` shortcut,
-   or a PR/MR reference such as `pr:123`, `mr:123`, or a supported forge URL.
+2. Call `worktree` with `action: "create"`, a branch, and an optional `base`.
+   Create attaches when that exact branch already has a linked worktree.
+   Otherwise, it creates the branch and worktree. Use `action: "activate"` with
+   a branch name, Worktrunk's `-` shortcut, or a PR/MR reference such as
+   `pr:123`, `mr:123`, or a supported forge URL.
 3. `worktree` is sequential. A successful create or activate can be followed
    by normal Pi file or agent-Bash tools in the same assistant tool batch.
 4. Use `action: "status"` if you need to verify the active route explicitly.
