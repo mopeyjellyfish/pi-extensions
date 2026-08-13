@@ -14,10 +14,10 @@ Repeated misses can leave many Chrome and Playwright daemon processes active.
 
 The extension watches Pi's `bash` tool calls that use `playwright-cli` or
 `npx --no-install playwright-cli`. It assigns one unique default Playwright
-session name to that Pi process. On
-`session_shutdown`, it uses `playwright-cli list --all --json` to find only
-that process's browser sessions, closes each session from its original
-workspace, and lists all sessions again to verify cleanup.
+session name to that Pi process. When the agent settles, it uses
+`playwright-cli list --all --json` to find only that process's browser sessions,
+closes each session from its original workspace, and lists all sessions again
+to verify cleanup.
 
 Explicit `-s` or `--session` names remain caller-owned and must be closed by
 the agent. The extension does not claim names that can collide with a user or
@@ -26,8 +26,9 @@ stop browsers owned by other Pi or user sessions. If targeted cleanup cannot be
 verified, Pi clearly warns that owned sessions remain and does not attempt
 global cleanup.
 
-Cleanup runs for quit, reload, resume, fork, and other Pi shutdown transitions.
-It does nothing when the Pi process did not use `playwright-cli`.
+Cleanup runs after each settled agent task. A failed settled cleanup is retried
+during quit, reload, resume, fork, and other Pi shutdown transitions. The
+extension does nothing when the Pi process did not use `playwright-cli`.
 
 ## Agent workflow
 

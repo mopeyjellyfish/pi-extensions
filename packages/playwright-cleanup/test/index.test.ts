@@ -73,7 +73,7 @@ describe("playwright cleanup", () => {
     expect(session).toMatch(/^pi-\d+-[0-9a-f]{8}$/u);
     expect(command).toContain("; playwright-cli open https://example.com");
 
-    await state.emit("session_shutdown", {});
+    await state.emit("agent_settled", {});
 
     expect(open).toEqual(new Set());
     expect(exec).toHaveBeenCalledWith(
@@ -88,6 +88,7 @@ describe("playwright cleanup", () => {
     );
     expect(state.notify).not.toHaveBeenCalled();
     const callCount = exec.mock.calls.length;
+    await state.emit("agent_settled", {});
     await state.emit("session_shutdown", {});
     expect(exec).toHaveBeenCalledTimes(callCount);
   });
@@ -234,6 +235,36 @@ describe("playwright cleanup", () => {
       expect.stringContaining("No global cleanup was attempted"),
       "warning",
     );
+  });
+
+  it("retries failed settled cleanup during shutdown", async () => {
+    expect.hasAssertions();
+    let session = "";
+    const exec = vi.fn((_command: string, arguments_: readonly string[]) =>
+      result(
+        JSON.stringify({
+          browsers: arguments_.includes("list")
+            ? [{ name: session, status: "open", workspace: "/repo/worktree" }]
+            : [],
+        }),
+      ),
+    );
+    const state = harness(exec);
+    const event = {
+      input: { command: "playwright-cli open" },
+      toolCallId: "browser-open",
+      toolName: "bash",
+    };
+
+    await state.emit("tool_call", event);
+    session = /PLAYWRIGHT_CLI_SESSION=([^;]+)/u.exec(event.input.command)?.[1] ?? "";
+    await state.emit("agent_settled", {});
+    await state.emit("session_shutdown", {});
+
+    expect(exec.mock.calls.filter(([, arguments_]) => arguments_.includes("close"))).toHaveLength(
+      2,
+    );
+    expect(state.notify).toHaveBeenCalledTimes(2);
   });
 
   it("warns when cleanup cannot verify that an owned session closed", async () => {
