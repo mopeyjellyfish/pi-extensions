@@ -53,6 +53,18 @@ function schema2(items: readonly Record<string, unknown>[]): string {
   return JSON.stringify({ items, schema: 2 });
 }
 
+function largeListDocument(): string {
+  return schema2([
+    worktreeItem(MAIN_PATH, { branch: "main", current: true, main: true }),
+    worktreeItem(FEATURE_PATH),
+    ...Array.from({ length: 105 }, (_, index) =>
+      worktreeItem(`/projects/example-extra-${String(index)}`, {
+        branch: `feature/extra-${String(index)}-${"x".repeat(1200)}`,
+      }),
+    ),
+  ]);
+}
+
 function worktreeItem(
   path: string,
   options: {
@@ -142,6 +154,89 @@ describe("WorktrunkClient", () => {
       2,
       ["--config-set", "list.json-schema=2", "list", "--format=json"],
       { cwd: MAIN_PATH, signal, timeout: 30_000 },
+    );
+  });
+
+  it("accepts delayed schema-2 output for more than 100 worktrees", async () => {
+    expect.hasAssertions();
+    const document = largeListDocument();
+    const signal = new AbortController().signal;
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({ code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" })
+      .mockImplementationOnce(async () => {
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 10));
+        return { code: 0, killed: false, stderr: "", stdout: document };
+      });
+    const client = new WorktrunkClient(run);
+
+    const list = await client.list(MAIN_PATH, signal);
+
+    expect(Buffer.byteLength(document)).toBeGreaterThan(140_000);
+    expect(list.worktrees).toHaveLength(107);
+    expect(list.worktrees[1]).toMatchObject({
+      branch: "feature/adapter",
+      main: false,
+      path: FEATURE_PATH,
+    });
+    expect(run).toHaveBeenNthCalledWith(
+      2,
+      ["--config-set", "list.json-schema=2", "list", "--format=json"],
+      { cwd: MAIN_PATH, signal, timeout: 30_000 },
+    );
+  });
+
+  it("keeps post-switch confirmation independent from stale caller cancellation", async () => {
+    expect.hasAssertions();
+    const controller = new AbortController();
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({ code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" })
+      .mockResolvedValueOnce({
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify({ path: FEATURE_PATH }),
+      })
+      .mockImplementationOnce(
+        async (
+          _arguments: readonly string[],
+          options: { readonly signal: AbortSignal | undefined },
+        ) => {
+          controller.abort();
+          await new Promise((resolveDelay) => setTimeout(resolveDelay, 10));
+          return {
+            code: 0,
+            killed: options.signal?.aborted === true,
+            stderr: "",
+            stdout: largeListDocument(),
+          };
+        },
+      );
+    const client = new WorktrunkClient(run);
+
+    await expect(client.activate("feature/adapter", MAIN_PATH, controller.signal)).resolves.toEqual(
+      {
+        mainPath: MAIN_PATH,
+        worktree: {
+          branch: "feature/adapter",
+          clean: true,
+          current: false,
+          head: "2222222222222222222222222222222222222222",
+          main: false,
+          path: FEATURE_PATH,
+        },
+      },
+    );
+    expect(run).toHaveBeenNthCalledWith(
+      2,
+      ["switch", "--no-cd", "--format=json", "feature/adapter"],
+      { cwd: MAIN_PATH, signal: controller.signal, timeout: 300_000 },
+    );
+    expect(run).toHaveBeenNthCalledWith(
+      3,
+      ["--config-set", "list.json-schema=2", "list", "--format=json"],
+      { cwd: MAIN_PATH, signal: undefined, timeout: 30_000 },
     );
   });
 
@@ -481,7 +576,7 @@ describe("WorktrunkClient", () => {
     expect(run).toHaveBeenNthCalledWith(
       3,
       ["--config-set", "list.json-schema=2", "list", "--format=json"],
-      { cwd: MAIN_PATH, signal, timeout: 30_000 },
+      { cwd: MAIN_PATH, signal: undefined, timeout: 30_000 },
     );
     expect(run.mock.calls.flat().join(" ")).not.toContain("--yes");
   });

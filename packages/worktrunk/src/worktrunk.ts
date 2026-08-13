@@ -354,7 +354,8 @@ export class WorktrunkClient {
       throw commandFailure("wt switch", result);
     }
     const path = parseSwitchPath(result.stdout);
-    const list = await this.list(cwd, signal);
+    // The mutation is complete; confirmation keeps its own bounded command timeout.
+    const list = await this.list(cwd, undefined);
     const current = list.worktrees.find((worktree) => worktree.path === path);
     if (current === undefined || current.main) {
       throw new WorktrunkError(
