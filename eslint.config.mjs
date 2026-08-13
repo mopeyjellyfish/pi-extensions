@@ -19,6 +19,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/dist/**",
       "**/.pi-subagents/**",
+      "**/.pi/subagents/**",
       "**/*.tgz",
     ],
   },

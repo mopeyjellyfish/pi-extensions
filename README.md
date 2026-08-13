@@ -15,7 +15,7 @@ its own README with setup and usage details.
 
 | Package                                                                          | What it does                                                                        |
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [`@mopeyjellyfish/pi-engineering`](packages/engineering/README.md)               | Guides bug diagnosis, domain language, and two-axis change review.                  |
+| [`@mopeyjellyfish/pi-engineering`](packages/engineering/README.md)               | Routes coding work and guides diagnosis, domain language, and change review.        |
 | [`@mopeyjellyfish/pi-feature-flow`](packages/feature-flow/README.md)             | Starts or resumes shaped features through one skill and `/shape` prompt.            |
 | [`@mopeyjellyfish/pi-git-conventions`](packages/git-conventions/README.md)       | Helps write Conventional Commits and safely rebase a branch onto its base.          |
 | [`@mopeyjellyfish/pi-github`](packages/github/README.md)                         | Guides authenticated GitHub CLI workflows for common repository operations.         |
@@ -78,7 +78,12 @@ Installing one package from `packages/` does not include those external resource
 
 When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
 `advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `qa`, `reviewer`,
-`scout`, and `worker` definitions. `planner`, `context-builder`, and `qa` are
+`scout`, and `worker` definitions. Together with the engineering package's
+natural `developing-changes` match and `/develop` prompt, these companions form
+the portable quality-first coding harness. `/develop` blocks with install
+instructions when either the Git aggregate agent set or `pi-subagents` is
+missing; it does not silently remove retained implementation or independent
+review. `planner`, `context-builder`, and `qa` are
 repository-owned roles; the other definitions remain external companion
 overrides. Parent agents and explicitly permitted fanout subagents can select
 `qa` through `pi-subagents`. Ordinary child roles remain non-orchestrating.
@@ -99,8 +104,9 @@ The aggregate uses Sol when accuracy matters and Luna when speed matters more:
 
 - `scout` uses `openai-codex/gpt-5.6-luna` at `low` for fast, bounded codebase
   exploration.
-- `qa` uses `openai-codex/gpt-5.6-luna` at `medium` to execute repeatable test
-  plans and validate fixes through the product's user surface.
+- `qa` uses `openai-codex/gpt-5.6-luna` at `medium` for bounded user-surface
+  testing and fix validation. One-shot QA returns evidence without repository
+  records; requested, reusable, or comparative QA keeps durable plans and runs.
 - `context-builder`, `researcher`, and `worker` use
   `openai-codex/gpt-5.6-sol` at `medium` for normal analysis and implementation.
 - `planner` and `reviewer` use Sol at `high` for multi-step decisions and
@@ -139,7 +145,9 @@ Before a launch, classify the task:
   changes, inventories, known test-output summaries, and narrow, repeatable,
   low-risk edits with focused deterministic checks.
 - Use `qa` for bounded user-surface testing of websites, CLIs, and other
-  software. It keeps reusable plans in `docs/qa/plans/` and comparable run
+  software. One-shot QA returns concise evidence and artifact paths without
+  adding `docs/qa/` files. When records are requested, reusable, or needed for
+  historical comparison, it keeps plans in `docs/qa/plans/` and comparable run
   evidence in `docs/qa/runs/`. Later runs reuse the applicable plans and latest
   compatible evidence instead of repeating unchanged discovery. It uses an
   existing Playwright setup or `playwright-cli` when available.
@@ -157,12 +165,19 @@ Before a launch, classify the task:
   starts a formal child review, use the Sol reviewer rather than a Luna quality
   gate.
 
-Start with one agent. Add a subagent only for a bounded specialist lane or when
+Start with one agent. Tiny direct edits stay with the parent only when they are
+sequential, low-risk, locally understandable, and cheap to validate. Noisy or
+multi-step implementation uses one fresh retained Sol writer; routine review,
+test, or QA defects return to that same writer before a fresh formal review.
+The parent keeps decisions, synthesis, final diff inspection, and final
+verification. Start another subagent only for a bounded specialist lane or when
 one agent is measurably struggling. Parallelize independent read-only work such
 as codebase exploration, separate failure hypotheses, and correctness,
 security, or test-gap review. Start with one child and use no more than three
 parallel children unless distinct evidence justifies more. Keep one writer per
-worktree. Use isolated worktrees for truly independent write lanes.
+worktree through an exclusive active writer lease and transfer it explicitly;
+the parent and retained writer never edit concurrently. Use isolated worktrees
+for truly independent write lanes.
 
 Use one Sol `high` reviewer as the formal quality gate. Additional speed-first
 lanes can use Luna only for bounded, mechanical, non-gating checks. These

@@ -34,7 +34,7 @@ Default responsibilities:
 - follow existing patterns in the codebase
 - verify the result with appropriate checks when possible
 - keep `progress.md` accurate when asked to maintain it
-- report back clearly with changes, validation, risks, and next steps
+- return only material deltas: outcome, changed files, changed contracts or facts, invalidated assumptions, commands and results, exact evidence paths, residual risks, and decisions required
 
 Working rules:
 
@@ -55,10 +55,9 @@ When running in a chain, expect instructions about:
 - where to maintain progress tracking
 - where to write output if a file target is provided
 
-Your final response should follow this shape:
-
-Implemented X.
-Changed files: Y.
-Validation: Z.
-Open risks/questions: R.
-Recommended next step: N.
+Your final response is a material-delta handoff. Include outcome, changed files,
+changed contracts or facts, invalidated assumptions, commands and exit results,
+exact artifact or evidence paths, residual risks, decisions required, and the
+next parent validation step. Do not paste raw logs, large diffs, or repeated
+task instructions; keep full operational output in the retained run or a named
+artifact.
