@@ -15,13 +15,34 @@ worktree lifecycle authority. The durable feature artifacts are
 pitch defines intent, the current `plan.md` defines slice membership, order, and
 check state, and Git provides durable history and resume evidence.
 
+## Check prerequisites at activation
+
+At activation, before brief questions, worktree actions, or research, confirm the
+full flow has the aggregate `question`, `worktree`, and `todo` tools as
+applicable; the `simple-english`, `planning-changes`, and `work` skills; the
+expected research and review agent roles; and the `subagent` tool supplied by
+`pi-subagents`. If a required companion is absent, stop and report:
+
+```text
+Blocked prerequisite: /shape requires the Git aggregate and pi-subagents for this flow.
+Install both, then retry:
+pi install npm:pi-subagents
+pi install git:github.com/mopeyjellyfish/pi-extensions
+```
+
+This package remains independently installable for resource discovery. It does
+not claim that standalone installation supplies these operational companions.
+
 ## Orchestrate specialists with one writer lease
 
 Keep one exclusive active writer lease for the worktree. During shaping, the
 controlling Shape agent owns the lease, remains the sole decision-maker, and
-keeps research and review specialists read-only. During a non-tiny slice, it
-transfers the lease explicitly to one retained writer and does not edit while
-that writer owns it. Never permit concurrent or ambiguous write ownership.
+keeps research and review specialists read-only. Shape holds the lease
+continuously through planning and while it invokes `work`. Work first selects
+the direct or retained route. For direct execution, the Shape parent continues
+holding the lease. For retained execution, work explicitly transfers it to the
+selected worker. Never permit a lease-free interval, concurrent writers, or
+ambiguous write ownership.
 
 Before the first delegation, call `subagent({ action: "list" })` once to discover
 the live agent inventory when the `subagent` tool is available. Use only roles
@@ -126,28 +147,23 @@ concise approve or revise options. This is the human's full-document review.
 Never use a summary or link in place of the document. Require explicit human
 approval. If the human requests changes, update and re-review material changes,
 then present the complete revised pitch again. If the interface cannot show the complete document, stop without
-accepting it. After approval, change only `status: draft` to `status: accepted`
-and create `plan.md`.
+accepting it. After approval, change only `status: draft` to `status: accepted`. Invoke
+`planning-changes` with the accepted pitch, worktree path, and current lease
+state to create or update `plan.md`.
 
 ## Plan vertical slices
 
-Create one `plan.md` from `templates/plan.md`. Order the smallest coherent set of
-vertical outcomes. Each slice should cross the boundaries needed for one
-observable result and name its relevant public seam, smallest useful test,
-implementation route, applicable checks, integrated user or operator path when
-one exists, and objective completion conditions. Use the `simple-english` skill
-in pragmatic mode to revise plan instructions as procedural text and supporting
-context as descriptive text. Across the pitch and plan, preserve required
+Use `planning-changes` for the plan method and existing template. Shape owns the
+durable `plan.md` state and ensures the complete plan receives independent
+read-only review for coverage, verticality, simplicity, and feasibility. The
+independently reviewed plan plus the accepted pitch lets Shape accept the
+current slice for work. No additional human plan approval is required. Fix
+ordinary planning findings before Shape accepts the plan and current slice.
+Pending slices may change as implementation teaches more. After the plan is
+correct, apply `simple-english` in pragmatic mode to plan instructions as
+procedural text and supporting context as descriptive text. Preserve required
 headings, YAML frontmatter, Markdown checkbox syntax, code, identifiers,
-commands, paths, links, and quoted text.
-
-Send the whole plan to one fresh read-only reviewer subagent for coverage,
-verticality, simplicity, and feasibility. Add up to two more reviewers only for
-separate material risks. Fix ordinary planning findings without a human
-plan-approval gate.
-
-Pending slices may be reordered, rewritten, split, merged, or deleted as
-implementation teaches more.
+commands, paths, links, and quotes exactly.
 
 ## Show rolling Shape progress in todo
 
@@ -193,42 +209,22 @@ instruction fails.
 
 ## Build or resume
 
-The first unchecked slice is always current or next. If Git is dirty, inspect
-its diff and test state and resume that slice; if Git is clean, start it. Read
-the accepted pitch, that slice, repository instructions, relevant sources,
-tests, and public contracts before editing.
+The first unchecked slice is current or next. Inspect Git and the accepted pitch
+and slice before continuing. After Shape accepts the reviewed plan and current
+slice, Shape invokes `work` with the accepted pitch and slice,
+worktree path, current lease state, integrated path for the user or operator,
+required Shape gates, and the material-change rule that intent changes return
+to Shape. `work`
+owns executor selection, implementation lease transfer, and its implementation
+method.
 
-A tiny slice may stay with the controlling parent only when it is sequential,
-low-risk, locally understandable, and cheap to validate. File count alone does
-not decide. For every non-tiny slice, create a self-contained task capsule,
-launch one retained Sol writer with `context: "fresh"`, and transfer the
-exclusive active writer lease to it. The writer owns all directed slice edits, including code, tests,
-documentation, checkbox updates, and blocked notes. The parent reads
-load-bearing sources, synthesizes findings, and verifies without editing while
-the writer holds the lease.
-
-Add the smallest behavior-focused test that can fail for the intended reason,
-implement the minimum behavior, then run focused tests and all applicable
-required checks. Exercise a real integrated user or operator path when the
-slice exposes one. Send the stable slice diff to one fresh read-only reviewer
-subagent. Add up to two more reviewers only for separate material risks. QA can
-add evidence but never replaces formal review. The parent synthesizes findings
-and retains the completed writer run ID. For a routine implementation defect,
-it continues that writer with
-`runs.run(key, { resume: "<run-id>", task: "follow-up" })` and uses the latest
-returned `runId` for any further repair. Start a fresh writer only when the
-retained context is unavailable, contradictory, repeatedly failing, or based on
-an invalidated contract. Re-run affected checks
-and re-review material fixes. A finding that changes intent, architecture,
-ownership, security, risk, or scope returns the lease to the parent for a
-decision.
-
-A blocked slice remains unchecked and records one short
+A decision-level finding returns the lease and decision to Shape. Shape verifies
+the returned work evidence and runs the slice's Shape-specific integrated path
+and gates. A blocked slice remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
-checkbox `[x]` only after implementation, appropriate tests, required checks,
-review, and applicable integrated QA pass. Then recompute the rolling todo from
-`plan.md`. If that update fails, keep the durable checkbox checked, report the
-gap, and retry later.
+checkbox `[x]` only after the returned evidence and Shape-specific gates pass,
+then recompute the rolling todo from `plan.md`. If that update fails, keep the
+durable checkbox checked, report the gap, and retry later.
 
 When repository instructions and explicit user authority permit a local commit,
 include the checkbox update with that slice's delivery changes. Never infer
@@ -242,12 +238,9 @@ writer and return the exclusive writer lease to the controlling parent. Before
 any other implementation, set the pitch to `status: draft`, update the full
 pitch and every affected plan slice, repeat independent pitch review, show the
 complete revised pitch, and obtain fresh human approval. After approval,
-restore `status: accepted` before planning or Build resumes. The changed
-contract invalidates the old writer context: create a new self-contained task
-capsule, launch one new Sol writer with `context: "fresh"`, and transfer the
-lease to that new writer.
-Do not resume the retained writer after a material change. Git preserves prior
-versions; do not create archive copies.
+restore `status: accepted` before planning or Build resumes. The changed contract invalidates the old implementation context. After
+reapproval and replanning, pass the `invalidated contract` state and the
+parent-held lease to `work`. Git preserves prior versions; do not create archive copies.
 
 ## Finish
 
