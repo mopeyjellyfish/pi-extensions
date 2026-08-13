@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { isAbsolute } from "node:path";
 
-import { isToolCallEventType, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import {
+  isToolCallEventType,
+  type ExtensionAPI,
+  type ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 
 interface BrowserEntry {
   readonly name: string;
@@ -124,18 +128,25 @@ export default function playwrightCleanupExtension(pi: ExtensionAPI): void {
     event.input.command = `export PLAYWRIGHT_CLI_SESSION=${defaultSession}; ${command}`;
   });
 
-  pi.on("session_shutdown", async (_event, ctx) => {
+  const cleanupOwned = async (ctx: ExtensionContext, retryOnShutdown: boolean): Promise<void> => {
     const pending = [...launchers.values()];
     launchers.clear();
-    const remaining = (await Promise.all(pending.map(async (state) => cleanup(pi, state)))).reduce(
-      (total, count) => total + count,
-      0,
+    const results = await Promise.all(
+      pending.map(async (state) => ({ remaining: await cleanup(pi, state), state })),
     );
+    const failed = results.filter(({ remaining }) => remaining > 0);
+    if (retryOnShutdown) {
+      for (const { state } of failed) launchers.set(state.launcher.key, state);
+    }
+    const remaining = failed.reduce((total, result) => total + result.remaining, 0);
     if (remaining > 0 && ctx.hasUI) {
       ctx.ui.notify(
         `Playwright cleanup could not close or verify ${String(remaining)} Pi-owned browser session(s). No global cleanup was attempted. Review the remaining sessions with playwright-cli list --all --json.`,
         "warning",
       );
     }
-  });
+  };
+
+  pi.on("agent_settled", async (_event, ctx) => cleanupOwned(ctx, true));
+  pi.on("session_shutdown", async (_event, ctx) => cleanupOwned(ctx, false));
 }
