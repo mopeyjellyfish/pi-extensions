@@ -95,7 +95,12 @@ describe("engineering resources", () => {
       /direct\s+execution:[\s\S]*new retained `worker` with `context: "fresh"`/iu,
     );
     expect(work).toContain("The controlling parent verifies the evidence");
-    expect(work).toMatch(/Only with explicit authority[^.]*parent applies/iu);
+    expect(work).toMatch(/retained execution[\s\S]*returns the exclusive writer lease/iu);
+    expect(work).toMatch(/Direct parent execution[^.]*no worker\s+lease to return/iu);
+    expect(work).toMatch(
+      /approved Shape plan slice[\s\S]*updates the plan checkbox[\s\S]*direct bounded request[^.]*without a plan edit/iu,
+    );
+    expect(work).toMatch(/Only\s+with explicit authority[^.]*parent applies/iu);
     expect(work).toMatch(/parent keeps final[\s\S]*verification\s+authority/iu);
   });
 
@@ -216,6 +221,33 @@ describe("engineering resources", () => {
     expect(
       piPromptTemplates.expandPromptTemplate("/diagnose login fails after refresh", templates),
     ).toContain("login fails after refresh");
+  });
+
+  it("documents the composed route and complete pinned attribution", async () => {
+    expect.hasAssertions();
+    const [readme, notice] = await Promise.all([read("README.md"), read("THIRD_PARTY_NOTICES.md")]);
+
+    expect(readme).toMatch(/\/develop -> Shape -> planning-changes -> implement/u);
+    expect(readme).toMatch(/`\/work`[^.]*compatibility\s+alias[^.]*not another method/iu);
+    expect(readme).toMatch(/independent[\s\S]*Git aggregate[\s\S]*pi-subagents/iu);
+    expect(readme).toMatch(/no\s+`engineering-practices` skill/iu);
+    expect(readme).toMatch(/selectively adapt[\s\S]*scaffolding was not\s+ported/iu);
+
+    expect(notice).toContain("8b78b531ab965735c5dc74f6f7a219e1e37326df");
+    expect(notice.match(/^- `skills\/.+\/SKILL\.md`, adapted from$/gmu)).toHaveLength(4);
+    for (const skill of [
+      "implement",
+      "test-driven-development",
+      "codebase-design",
+      "diagnosing-bugs",
+    ]) {
+      expect(notice).toContain(`skills/${skill}/SKILL.md`);
+    }
+    expect(notice).toContain("Copyright (c) 2026 Matt Pocock");
+    expect(notice).toContain(
+      "Permission is hereby granted, free of charge, to any person obtaining a copy of",
+    );
+    expect(notice).toContain('THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND');
   });
 
   it("declares only skills and prompts and packs their resources", async () => {

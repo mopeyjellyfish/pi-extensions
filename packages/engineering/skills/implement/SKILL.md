@@ -64,15 +64,18 @@ parent or Shape before more edits. QA never replaces formal review.
 
 ## Close and deliver
 
-After the gates pass, the retained worker reports evidence and residual risks,
-returns the exclusive writer lease, and stops. The worker never edits `plan.md`,
-commits, or pushes.
+After the gates pass, retained execution ends when the worker reports evidence
+and residual risks, returns the exclusive writer lease, and stops. The worker
+never edits `plan.md`, commits, or pushes. Direct parent execution has no worker
+lease to return.
 
-The controlling parent verifies the evidence, applies Shape's slice-closure gate,
-and updates the plan checkbox. Only with explicit authority, the parent applies
-`conventional-commit` to create one validated slice-scoped commit including the
-checkbox, pushes the current feature branch, then applies `github-cli` to verify
-the existing pull request and checks. Do not create one pull request per slice.
+The controlling parent verifies the evidence. For an approved Shape plan slice,
+the parent then applies Shape's slice-closure gate and updates the plan checkbox.
+A direct bounded request proceeds from verification without a plan edit. Only
+with explicit authority, the parent applies `conventional-commit`, pushes the
+current feature branch, then applies `github-cli` to verify the existing pull
+request and checks. A plan-slice commit includes its checkbox; a bounded-change
+commit contains only that change. Do not create one pull request per slice.
 
 If authority or a companion skill is absent, stop at the verified uncommitted
 state and report the blocked prerequisite. Repair post-push defects with a

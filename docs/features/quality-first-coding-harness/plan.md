@@ -103,7 +103,7 @@ security, cleanup, or review gap. The retained writer returns its lease and
 evidence before the parent checks this slice, creates one validated
 `feat(engineering)` commit, and pushes it to PR #52.
 
-## [ ] 008 — Add attribution and prove the composed delivery route
+## [x] 008 — Add attribution and prove the composed delivery route
 
 ### Outcome
 
