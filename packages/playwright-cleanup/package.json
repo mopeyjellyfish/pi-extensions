@@ -9,6 +9,7 @@
   },
   "files": [
     "src/",
+    "docs/",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -23,7 +24,9 @@
     "vitest": "4.1.10"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   },
   "pi": {
     "extensions": [
