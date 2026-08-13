@@ -190,13 +190,21 @@ describe("aggregate subagent resources", () => {
     expect(readme).toContain("/run advisor[model=anthropic/<opus-model-id>:high]");
     expect(readme).toContain("`pi --list-models` or Pi's `/model` selector");
     expect(readme).toContain("This configuration does not start the advisor automatically.");
-    expect(readme).toContain("natural `developing-changes` match and `/develop` prompt");
+    expect(readme).toMatch(
+      /Shape[\s\S]*`planning-changes`[\s\S]*`work`[\s\S]*`developing-changes`/u,
+    );
+    expect(readme).toMatch(/`\/develop` as the adaptive[\s\S]*`\/plan`[\s\S]*`\/work`/u);
+    expect(readme).toMatch(/Small\s+fixes skip Shape[^.]*same quality gate/u);
+    expect(readme).toMatch(/intended failing test[^.]*public\s+seam/u);
+    expect(readme).toMatch(/selects the direct or retained executor[^.]*diagnoses a bug/u);
+    expect(readme).toMatch(/formal review always uses fresh context/u);
+    expect(readme).toMatch(/QA[^.]*never replaces review/u);
     expect(readme).toMatch(/`\/develop` blocks[^.]*Git aggregate[^.]*`pi-subagents`/iu);
     expect(readme).toMatch(
       /Tiny direct edits[^.]*sequential[^.]*low-risk[^.]*locally understandable[^.]*cheap to validate/iu,
     );
     expect(readme).toMatch(
-      /fresh retained Sol writer[\s\S]*same writer[\s\S]*fresh formal review/iu,
+      /fresh retained Sol writer[\s\S]*same retained writer[\s\S]*formal review always uses fresh context/iu,
     );
     expect(readme).toMatch(/exclusive active writer lease/iu);
     expect(readme).toContain("`docs/qa/plans/`");
@@ -249,10 +257,10 @@ describe("aggregate subagent resources", () => {
       "oracle.md": "domain-modeling",
       "planner.md": "domain-modeling, writing-for-agents",
       "qa.md": "writing-for-agents",
-      "reviewer.md": "ponytail-review, reviewing-changes",
+      "reviewer.md": "ponytail-review, reviewing-changes, engineering-practices",
       "researcher.md": "writing-for-agents",
       "scout.md": undefined,
-      "worker.md": "ponytail, diagnosing-bugs",
+      "worker.md": "ponytail, diagnosing-bugs, test-driven-development, engineering-practices",
     } as const;
     expectAgentSkills(agents, expectedSkills);
 
@@ -315,16 +323,22 @@ describe("aggregate subagent resources", () => {
       /return only material deltas[^:]*: outcome[^.]*changed files[^.]*changed contracts or facts[^.]*invalidated assumptions[^.]*exact evidence paths[^.]*residual risks[^.]*decisions required/iu,
     );
     expect(worker).toMatch(/Do not paste raw logs/iu);
-    expect(worker).toContain("skills: ponytail, diagnosing-bugs");
+    expect(worker).toContain(
+      "skills: ponytail, diagnosing-bugs, test-driven-development, engineering-practices",
+    );
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",
     );
     expect(worker).toContain("Before any coding task, read and apply the `ponytail` skill.");
+    expect(worker).toMatch(
+      /read and apply `test-driven-development`[^.]*behavioral code[\s\S]*read and apply `engineering-practices`/iu,
+    );
     expect(worker).toContain(
       "do not run `ponytail-review` or `ponytail-audit` unless the task explicitly asks for it",
     );
-    expect(reviewer).toContain("skills: ponytail-review, reviewing-changes");
+    expect(reviewer).toContain("skills: ponytail-review, reviewing-changes, engineering-practices");
     expect(reviewer).toContain("read and apply `reviewing-changes`");
+    expect(reviewer).toMatch(/read and apply `engineering-practices`[\s\S]*concrete evidence/iu);
     expect(reviewer).toContain(
       "Read and apply the `ponytail-review` skill only when the task explicitly requests a simplicity or over-engineering review",
     );
