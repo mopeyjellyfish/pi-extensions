@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -11,25 +11,30 @@ const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 const read = (path: string) => readFile(join(PACKAGE_ROOT, path), "utf8");
 
 describe("engineering resources", () => {
-  it("composes /work with public-seam TDD and evidence-based engineering practices", async () => {
+  it("composes /implement and keeps /work only as its compatibility alias", async () => {
     expect.hasAssertions();
-    const [work, tdd, practices, prompt] = await Promise.all([
-      read("skills/work/SKILL.md"),
+    const [implement, tdd, practices, prompt, alias, skillDirectories] = await Promise.all([
+      read("skills/implement/SKILL.md"),
       read("skills/test-driven-development/SKILL.md"),
       read("skills/engineering-practices/SKILL.md"),
+      read("prompts/implement.md"),
       read("prompts/work.md"),
+      readdir(join(PACKAGE_ROOT, "skills")),
     ]);
 
-    expect(work).toMatch(
+    expect(skillDirectories).toContain("implement");
+    expect(skillDirectories).not.toContain("work");
+    expect(implement).toMatch(
       /approved slice[\s\S]*explicit bounded request[\s\S]*confirmed bug outcome/iu,
     );
-    expect(work).toMatch(
-      /repository instructions[\s\S]*Git state[\s\S]*public contracts[\s\S]*authority/iu,
-    );
-    expect(work).toMatch(/Git aggregate[\s\S]*pi-subagents[\s\S]*Blocked prerequisite/iu);
-    expect(work).toMatch(/parent only when[\s\S]*sequential[\s\S]*low-risk/iu);
-    expect(work).toMatch(/locally\s+understandable[\s\S]*cheap to validate/iu);
-    expect(work).toMatch(/`test-driven-development`[\s\S]*`engineering-practices`/iu);
+    expect(implement).toContain("repository instructions");
+    expect(implement).toContain("Git state");
+    expect(implement).toContain("public contracts");
+    expect(implement).toContain("delivery authority");
+    expect(implement).toMatch(/Git aggregate[\s\S]*pi-subagents[\s\S]*Blocked prerequisite/iu);
+    expect(implement).toMatch(/parent only when[\s\S]*sequential[\s\S]*low-risk/iu);
+    expect(implement).toMatch(/locally\s+understandable[\s\S]*cheap to validate/iu);
+    expect(implement).toMatch(/`test-driven-development`[\s\S]*`engineering-practices`/iu);
 
     expect(tdd).toMatch(
       /accepted\s+request[\s\S]*accepted pitch[\s\S]*accepted plan[\s\S]*seam approval/iu,
@@ -57,12 +62,13 @@ describe("engineering resources", () => {
       /concrete[\s\S]*(duplicated rule|shallow layer|broken public contract)/iu,
     );
 
-    expect(prompt).toContain("Use the `work` skill.");
+    expect(prompt).toContain("Use the `implement` skill.");
+    expect(alias).toContain("Use the `implement` skill.");
   });
 
   it("selects the bug executor before diagnosis and retains one writer through repair", async () => {
     expect.hasAssertions();
-    const work = await read("skills/work/SKILL.md");
+    const work = await read("skills/implement/SKILL.md");
 
     expect(work).toMatch(
       /select (?:the )?(?:direct|parent)[\s\S]*(?:retained|writer)[\s\S]*before[\s\S]*`diagnosing-bugs`/iu,
@@ -80,9 +86,13 @@ describe("engineering resources", () => {
     expect(work).toContain('runs.run(key, { resume: "<run-id>", task: "follow-up" })');
     expect(work).toMatch(/latest returned `runId`[\s\S]*routine/iu);
     expect(work).toMatch(/decision-level\s+finding[\s\S]*writer lease[\s\S]*parent/iu);
-    expect(work).toMatch(/`invalidated contract` state\s+is ineligible for direct execution/iu);
-    expect(work).toMatch(/launch one new retained `worker` with\s+`context: "fresh"`/iu);
-    expect(work).toMatch(/parent[\s\S]*final verification[\s\S]*delivery/iu);
+    expect(work).toContain("`invalidated contract` state is ineligible for");
+    expect(work).toMatch(
+      /direct\s+execution:[\s\S]*new retained `worker` with `context: "fresh"`/iu,
+    );
+    expect(work).toContain("The controlling parent verifies the evidence");
+    expect(work).toMatch(/Only with explicit authority[^.]*parent applies/iu);
+    expect(work).toMatch(/parent keeps final[\s\S]*verification\s+authority/iu);
   });
 
   it("ships the quality-first workflow, focused skills, and expandable prompts", async () => {
@@ -103,10 +113,10 @@ describe("engineering resources", () => {
     expect(developing).toMatch(/unresolved product intent[\s\S]*`shape`/iu);
     expect(developing).toMatch(/accepted non-trivial intent[\s\S]*`planning-changes`/iu);
     expect(developing).toMatch(
-      /accepted current slice[\s\S]*bounded small fix[\s\S]*bug or unexplained\s+regression[\s\S]*refactor[\s\S]*documentation[\s\S]*metadata[\s\S]*mechanical[\s\S]*`work`/iu,
+      /accepted current slice[\s\S]*bounded small fix[\s\S]*bug or unexplained\s+regression[\s\S]*refactor[\s\S]*documentation[\s\S]*metadata[\s\S]*mechanical[\s\S]*`implement`/iu,
     );
     expect(developing).toMatch(
-      /bug[\s\S]*`work`[\s\S]*selects the executor[\s\S]*before[\s\S]*`diagnosing-bugs`/iu,
+      /bug[\s\S]*`implement`[\s\S]*selects the executor[\s\S]*before[\s\S]*`diagnosing-bugs`/iu,
     );
     expect(developing).toMatch(
       /QA-only[\s\S]*fresh read-only `qa`[\s\S]*Luna\s+`medium`[\s\S]*one-shot[\s\S]*ephemeral/iu,
@@ -173,12 +183,14 @@ describe("engineering resources", () => {
     expect(piPromptTemplates.expandPromptTemplate("/develop", templates)).toContain(
       "Ask the user for the code change or QA outcome to deliver",
     );
-    expect(piPromptTemplates.expandPromptTemplate("/work", templates)).toContain(
-      "Ask for an approved slice, bounded request, or confirmed bug outcome",
-    );
-    expect(
-      piPromptTemplates.expandPromptTemplate("/work tighten retry limit", templates),
-    ).toContain("tighten retry limit");
+    for (const command of ["/implement", "/work"]) {
+      expect(piPromptTemplates.expandPromptTemplate(command, templates)).toContain(
+        "Ask for an approved slice, bounded request, or confirmed bug outcome",
+      );
+      expect(
+        piPromptTemplates.expandPromptTemplate(`${command} tighten retry limit`, templates),
+      ).toContain("tighten retry limit");
+    }
     expect(
       piPromptTemplates.expandPromptTemplate("/develop fix upload retries", templates),
     ).toContain("fix upload retries");
@@ -221,14 +233,16 @@ describe("engineering resources", () => {
         "skills/diagnosing-bugs/SKILL.md",
         "skills/domain-modeling/SKILL.md",
         "skills/reviewing-changes/SKILL.md",
-        "skills/work/SKILL.md",
+        "skills/implement/SKILL.md",
         "skills/test-driven-development/SKILL.md",
         "skills/engineering-practices/SKILL.md",
         "prompts/develop.md",
+        "prompts/implement.md",
         "prompts/work.md",
         "prompts/diagnose.md",
         "prompts/model-domain.md",
         "prompts/review-change.md",
+        "THIRD_PARTY_NOTICES.md",
       ]),
     );
   });

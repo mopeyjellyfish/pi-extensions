@@ -29,7 +29,7 @@ slices from explicit accepted intent or an accepted Shape pitch. Planning uses
 the existing plan template, inspects repository truth, and names each slice's
 observable outcome, public seam, focused validation, integrated path, checks,
 and objective done conditions. An accepted slice is handed to the aggregate's
-`work` skill; feature-flow does not copy its execution policy.
+`implement` skill; feature-flow does not copy its execution policy.
 
 Shaping uses three efficient human checkpoints:
 
@@ -51,7 +51,7 @@ Each research stage uses zero to three read-only specialists. Each required
 pitch, plan, or slice-diff review uses one to three. Shape uses fresh context,
 asynchronous launches, and only parallelizes independent topics. The
 controlling Shape parent remains the sole decision-maker and owns the exclusive
-writer lease while shaping. It passes the lease state to `work`, which owns any
+writer lease while shaping. It passes the lease state to `implement`, which owns any
 implementation transfer.
 
 If specialist research is unavailable, the controlling agent completes the
@@ -72,11 +72,11 @@ implementation. A material intent change stops the writer, returns the lease to
 the parent, changes the pitch to draft, updates the full pitch and affected
 plan, and repeats independent review and whole-document human approval. The
 changed contract invalidates the old implementation context, so Shape replans
-and invokes `work` with fresh context. Git preserves history.
+and invokes `implement` with fresh context. Git preserves history.
 
 `plan.md` is one ordered list of vertical slices. The first unchecked slice is
 current or next. Git state shows whether to start or resume it. Shape invokes
-`work` with the accepted pitch and slice, worktree path, lease state, integrated
+`implement` with the accepted pitch and slice, worktree path, lease state, integrated
 path, and material-change return rule. Shape checks a slice only after work
 evidence and Shape-specific gates pass.
 

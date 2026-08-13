@@ -79,10 +79,12 @@ Installing one package from `packages/` does not include those external resource
 When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
 `advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `qa`, `reviewer`,
 `scout`, and `worker` definitions. Together with the first-party Shape,
-`planning-changes`, `work`, and `developing-changes` skills, these companions
+`planning-changes`, `implement`, and `developing-changes` skills, these companions
 form the portable quality-first coding harness. Use `/develop` as the adaptive
-entry, `/plan` for accepted intent, and `/work` for an accepted slice or bounded
-change. The cohesive feature path is Shape to planning-changes to work. Small
+entry, `/plan` for accepted intent, and `/implement` for an accepted slice or bounded
+change. `/work` remains a compatibility alias for `/implement`; it is not a
+second method. The cohesive feature path is Shape to planning-changes to
+implement. Small
 fixes skip Shape but keep the same quality gate. `/develop` blocks with install
 instructions when either the Git aggregate agent set or `pi-subagents` is
 missing; it does not silently remove retained implementation or independent
@@ -177,7 +179,7 @@ requires concrete evidence about reuse, shared policy, cohesion, public
 contracts, volatile boundaries, interface depth, failures, and cleanup; it does
 not use principle names as findings.
 
-Noisy or multi-step implementation uses one fresh retained Sol writer. Work
+Noisy or multi-step implementation uses one fresh retained Sol writer. Implement
 selects the direct or retained executor before that executor diagnoses a bug.
 Routine review, test, or QA defects return to the same retained writer, while
 formal review always uses fresh context. QA is bounded public-surface evidence

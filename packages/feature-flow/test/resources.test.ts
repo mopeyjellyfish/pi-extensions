@@ -33,13 +33,13 @@ describe("feature-flow resources", () => {
 
     expect(skill).toMatch(/Worktrunk[\s\S]*only\s+worktree lifecycle authority/iu);
     expect(skill).toMatch(
-      /activation[\s\S]*before[^.]*brief[^.]*worktree[^.]*research[\s\S]*`question`[^.]*`worktree`[^.]*`todo`[\s\S]*`simple-english`[^.]*`planning-changes`[^.]*`work`[\s\S]*agent roles[^.]*`pi-subagents`/iu,
+      /activation[\s\S]*before[^.]*brief[^.]*worktree[^.]*research[\s\S]*`question`[^.]*`worktree`[^.]*`todo`[\s\S]*`simple-english`[^.]*`planning-changes`[^.]*`implement`[\s\S]*agent roles[^.]*`pi-subagents`/iu,
     );
     expect(skill).toMatch(
       /Blocked prerequisite: \/shape[\s\S]*pi install npm:pi-subagents[\s\S]*pi install git:github\.com\/mopeyjellyfish\/pi-extensions/iu,
     );
     expect(planning).toMatch(
-      /activation[\s\S]*before[^.]*repository inspection[^.]*planning[\s\S]*`work`[^.]*aggregate[^.]*`pi-subagents`/iu,
+      /activation[\s\S]*before[^.]*repository inspection[^.]*planning[\s\S]*`implement`[^.]*aggregate[^.]*`pi-subagents`/iu,
     );
     expect(skill).toMatch(
       /no usable brief[\s\S]*ask\s+the\s+human[\s\S]*before calling[^.]*`worktree` tool/iu,
@@ -70,19 +70,19 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/exclusive active writer lease/iu);
     expect(skill).toMatch(/controlling Shape agent[^.]*sole decision-maker/iu);
     expect(skill).toMatch(/accepted pitch[\s\S]*`planning-changes`/iu);
-    expect(skill).toMatch(/accepts[^.]*current slice[\s\S]*invokes `work`/iu);
+    expect(skill).toMatch(/accepts[^.]*current slice[\s\S]*invokes `implement`/iu);
     expect(skill).toMatch(
       /independently reviewed plan[^.]*accepted pitch[^.]*Shape accept[^.]*current slice[\s\S]*no additional human plan approval/iu,
     );
     expect(planning).toMatch(/return[^.]*complete plan[^.]*Shape[^.]*acceptance/iu);
     expect(planning).not.toMatch(
-      /planning[^.]*invoke `work`|When a slice is accepted, invoke `work`/iu,
+      /planning[^.]*invoke `implement`|When a slice is accepted, invoke `implement`/iu,
     );
     expect(skill).toMatch(
       /worktree path[\s\S]*lease state[\s\S]*integrated path[\s\S]*material-change/iu,
     );
     expect(skill).toMatch(
-      /holds the lease[\s\S]*continuously through planning[^.]*invokes `work`[\s\S]*direct[^.]*continues[\s\S]*holding the lease[\s\S]*retained[^.]*transfers/iu,
+      /holds the lease[\s\S]*continuously through planning[\s\S]*invokes\s+`implement`[\s\S]*direct[^.]*continues[\s\S]*holding the lease[\s\S]*retained[^.]*transfers/iu,
     );
     expect(skill).toMatch(/decision-level finding[\s\S]*lease[\s\S]*Shape/iu);
     expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
@@ -93,7 +93,7 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/observable outcome[\s\S]*public seam[\s\S]*red[\s\S]*green/iu);
     expect(planning).toMatch(/integrated path[\s\S]*required checks[\s\S]*objective done/iu);
     expect(planning).toMatch(/existing[^.]*plan template/iu);
-    expect(planning).toMatch(/complete plan[^.]*Shape[\s\S]*Shape[^.]*invokes `work`/iu);
+    expect(planning).toMatch(/complete plan[^.]*Shape[\s\S]*Shape[^.]*invokes `implement`/iu);
     expect(`${skill}\n${planning}`).not.toMatch(
       /direct parent|retained writer|Sol `(?:medium|high)`|formal review|routine repair|runs\.run/iu,
     );
@@ -107,7 +107,7 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
     expect(skill).toMatch(/first unchecked slice[\s\S]*Inspect Git[\s\S]*accepted pitch/iu);
     expect(skill).toMatch(
-      /returned work evidence[\s\S]*Shape-specific integrated path[\s\S]*gates/iu,
+      /returns its evidence[\s\S]*verifies the implementation evidence[\s\S]*Shape-specific integrated path[\s\S]*gates/iu,
     );
     expect(skill).toMatch(/`todo` tool[\s\S]*session[^.]*progress/iu);
     expect(skill).toContain("Shape <slug>: <checked>/<total> — <slice number> <outcome>");
@@ -145,15 +145,17 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/fresh human approval[\s\S]*status: accepted/iu);
     expect(skill).toMatch(/changed contract invalidates the old implementation context/iu);
     expect(skill).toMatch(
-      /reapproval and replanning, pass the `invalidated contract` state[^.]*to `work`/iu,
+      /reapproval and replanning, pass the `invalidated contract` state[^.]*to `implement`/iu,
     );
     expect(skill).not.toMatch(/feature-flow\.mjs|index\.json|sha-?256|banking|Feature-Slice/iu);
     expect(readme).toMatch(/aggregate\s+package[\s\S]*not a standalone/iu);
     expect(readme).toMatch(/research stage[^.]*zero to three[\s\S]*review[^.]*one to three/iu);
     expect(readme).toMatch(/controlling Shape parent[^.]*sole decision-maker/iu);
-    expect(readme).toMatch(/exclusive\s+writer lease[\s\S]*passes the lease state to `work`/iu);
+    expect(readme).toMatch(
+      /exclusive\s+writer lease[\s\S]*passes the lease state to `implement`/iu,
+    );
     expect(readme).toMatch(/material intent change[\s\S]*whole-document human approval/iu);
-    expect(readme).toMatch(/accepted slice[\s\S]*`work` skill[\s\S]*does not copy/iu);
+    expect(readme).toMatch(/accepted slice[\s\S]*`implement` skill[\s\S]*does not copy/iu);
     expect(readme).toContain("pi install npm:pi-subagents");
     expect(readme).toContain("pi install git:github.com/mopeyjellyfish/pi-extensions");
     expect(`${skill}\n${readme}`).not.toMatch(/shape\/(?:<slug>|\*)/u);
