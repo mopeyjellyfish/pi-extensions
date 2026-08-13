@@ -79,17 +79,35 @@ Installing one package from `packages/` does not include those external resource
 When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
 `advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `qa`, `reviewer`,
 `scout`, and `worker` definitions. Together with the first-party Shape,
-`planning-changes`, `implement`, and `developing-changes` skills, these companions
-form the portable quality-first coding harness. Use `/develop` as the adaptive
-entry, `/plan` for accepted intent, and `/implement` for an accepted slice or bounded
-change. `/work` remains a compatibility alias for `/implement`; it is not a
-second method. The cohesive feature path is Shape to planning-changes to
-implement. Small
-fixes skip Shape but keep the same quality gate. `/develop` blocks with install
-instructions when either the Git aggregate agent set or `pi-subagents` is
-missing; it does not silently remove retained implementation or independent
-review. `planner`, `context-builder`, and `qa` are
-repository-owned roles; the other definitions remain external companion
+`planning-changes`, `implement`, and `developing-changes` skills, these
+companions form the portable quality-first coding harness:
+
+```text
+/develop -> Shape -> planning-changes -> implement
+```
+
+Use `/develop` as the adaptive entry, `/plan` for accepted intent, and
+`/implement` for an accepted slice or bounded change. Small fixes skip Shape
+but keep the same quality gate. `/work` remains a compatibility alias for
+`/implement`; it is not a second method. Implement composes TDD or focused
+validation, regular focused and static checks, the final required suite,
+fixed-point Spec and Standards review, and same-writer routine repair. After
+retained execution, the writer returns its evidence and exclusive lease. The
+parent verifies every route. For an approved Shape plan slice, the parent also
+applies Shape's closure gate and updates the plan checkbox. A direct bounded
+request needs no worker lease return or plan edit. When authorized, the parent
+creates one Conventional Commit and pushes it to the existing pull request.
+
+The focused standalone methods cover public-seam TDD, codebase design,
+root-cause diagnosis, domain language, and change review. There is no
+`engineering-practices` skill. Each package remains independently installable,
+but operational delegation, retained writers, and independent review require
+the Git aggregate and a separate `pi-subagents` installation. `/develop` blocks
+with install instructions when either the Git aggregate or `pi-subagents` is
+missing; it does not
+silently remove retained implementation or independent review.
+`planner`, `context-builder`, and `qa` are repository-owned roles; the other
+definitions remain external companion
 overrides. Parent agents and explicitly permitted fanout subagents can select
 `qa` through `pi-subagents`. Ordinary child roles remain non-orchestrating.
 Read-only roles receive search, semantic query, and validation tools; writer

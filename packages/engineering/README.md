@@ -10,11 +10,12 @@ The skills use the nearest `CONTEXT.md` for repository language. This
 repository's root context file records its canonical terms. Review is
 read-only unless a caller explicitly authorizes edits.
 
-The focused implementation, TDD, codebase-design, and diagnosis methods adapt
-MIT-licensed guidance from
-[mattpocock/skills](https://github.com/mattpocock/skills). See
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the pinned source and
-license.
+The focused implementation, TDD, codebase-design, and diagnosis methods
+selectively adapt MIT-licensed guidance from
+[mattpocock/skills](https://github.com/mattpocock/skills) at a pinned commit.
+Issue-tracker, setup, router, report, interview, and similar scaffolding was not
+ported. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the adapted
+file list and complete license.
 
 ## Prompts
 
@@ -37,21 +38,34 @@ pi install git:github.com/mopeyjellyfish/pi-extensions
 ```
 
 Natural implementation, bug, validation, QA, and review requests can match
-`developing-changes`. `/develop` is a lean router across the first-party
-workflow: unresolved product intent goes to `shape`, accepted non-trivial
-intent goes to `planning-changes`, and accepted slices and bounded changes go
-to `implement`. `/implement` also owns bugs, refactors, documentation,
-metadata, and mechanical implementation. For a bug, Implement selects the
-executor before that executor applies `diagnosing-bugs`.
+`developing-changes`. The concise route is:
 
-The focused skills own their methods. Shape owns product intent. Planning owns
-vertical slices. Implement owns direct or retained execution, validation,
-review, repair, and parent-only authorized delivery. `test-driven-development`
-owns public-seam red and green behavior evidence. `codebase-design` owns deep
-modules, stable seams, and evidence-based responsibility. `diagnosing-bugs`
-owns the observable diagnosis loop. `reviewing-changes` owns formal review.
-`/develop` owns only route choice, user coordination, synthesis, final
-verification, and delivery authority.
+```text
+/develop -> Shape -> planning-changes -> implement
+```
+
+Unresolved product intent goes to Shape, accepted non-trivial intent goes to
+`planning-changes`, and accepted slices and bounded changes go to `implement`.
+Small fixes can enter `implement` directly. `/work` is only a compatibility
+alias for `/implement`; it is not another method.
+
+Implement composes TDD for behavioral work or focused validation for
+non-behavioral work, regular focused and static checks, the final required
+suite, and fixed-point Spec and Standards review. Routine findings from
+retained execution return to the same writer, which returns its evidence and
+exclusive lease when done. The parent verifies every route. For an approved
+Shape plan slice, the parent also applies Shape's closure gate and updates the
+plan checkbox. A direct bounded request needs no worker lease return or plan
+edit. With explicit authority, the parent then creates one Conventional Commit
+and pushes it to the existing pull request.
+
+The focused skills own their methods. Shape owns product intent and plan
+closure. Planning owns vertical slices. `test-driven-development` owns
+public-seam red and green evidence. `codebase-design` owns deep modules, stable
+seams, and evidence-based responsibility. `diagnosing-bugs` owns the observable
+root-cause loop. `domain-modeling` owns shared terms and concrete scenarios.
+`reviewing-changes` owns fixed-point Spec and Standards review. There is no
+`engineering-practices` skill.
 
 Sequential, low-risk, locally understandable work that is cheap to validate can
 stay in the parent through `/implement` and follows the same quality contract.
