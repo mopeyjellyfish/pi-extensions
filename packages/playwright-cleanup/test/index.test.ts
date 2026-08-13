@@ -227,7 +227,11 @@ describe("playwright cleanup", () => {
     await state.emit("session_shutdown", {});
 
     expect(state.notify).toHaveBeenCalledWith(
-      expect.stringContaining("could not verify 1 Pi-owned browser session"),
+      expect.stringContaining("could not close or verify 1 Pi-owned browser session"),
+      "warning",
+    );
+    expect(state.notify).toHaveBeenCalledWith(
+      expect.stringContaining("No global cleanup was attempted"),
       "warning",
     );
   });
@@ -255,7 +259,11 @@ describe("playwright cleanup", () => {
     await state.emit("session_shutdown", {});
 
     expect(state.notify).toHaveBeenCalledWith(
-      expect.stringContaining("could not verify 1 Pi-owned browser session"),
+      expect.stringContaining("could not close or verify 1 Pi-owned browser session"),
+      "warning",
+    );
+    expect(state.notify).toHaveBeenCalledWith(
+      expect.stringContaining("No global cleanup was attempted"),
       "warning",
     );
   });

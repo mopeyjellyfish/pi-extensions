@@ -287,7 +287,8 @@ describe("aggregate subagent resources", () => {
     expect(qa).toMatch(/return to that exact checkout or worktree[^.]*targeted cleanup/iu);
     expect(qa).toContain("playwright-cli list --all --json");
     expect(qa).toMatch(/Never rely on `close-all` from a sibling checkout/iu);
-    expect(qa).toMatch(/global `kill-all`[^.]*every Playwright CLI daemon/iu);
+    expect(qa).toMatch(/targeted cleanup fails[^.]*tell the user[^.]*owned sessions remain/iu);
+    expect(qa).toContain("Do not run `kill-all`.");
     expect(worker).toContain("skills: ponytail, diagnosing-bugs");
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",

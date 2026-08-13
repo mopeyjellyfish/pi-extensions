@@ -133,7 +133,7 @@ export default function playwrightCleanupExtension(pi: ExtensionAPI): void {
     );
     if (remaining > 0 && ctx.hasUI) {
       ctx.ui.notify(
-        `Playwright cleanup could not verify ${String(remaining)} Pi-owned browser session(s). Run playwright-cli list --all from their original workspace; use kill-all only when targeted close fails.`,
+        `Playwright cleanup could not close or verify ${String(remaining)} Pi-owned browser session(s). No global cleanup was attempted. Review the remaining sessions with playwright-cli list --all --json.`,
         "warning",
       );
     }
