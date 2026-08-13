@@ -10,6 +10,7 @@ export default {
     "!node_modules/**",
     "!coverage/**",
     "!.pi-subagents/**",
+    "!.pi/subagents/**",
     "!packages/*/CHANGELOG.md",
   ],
 };

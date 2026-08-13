@@ -34,11 +34,22 @@ describe("repository discovery", () => {
     const root = await mkdtemp(join(tmpdir(), "pi-repository-test-"));
     temporaryRoots.push(root);
     const realModule = join(root, "packages", "sample", "go", "go.mod");
-    const ignoredModule = join(root, "node_modules", "dependency", "go.mod");
-    await mkdir(join(realModule, ".."), { recursive: true });
-    await mkdir(join(ignoredModule, ".."), { recursive: true });
+    const ignoredModules = [
+      join(root, "node_modules", "dependency", "go.mod"),
+      join(root, ".pi-subagents", "runs", "go.mod"),
+      join(root, ".pi", "subagents", "runs", "go.mod"),
+    ];
+    await Promise.all(
+      [realModule, ...ignoredModules].map(async (path) =>
+        mkdir(join(path, ".."), { recursive: true }),
+      ),
+    );
     await writeFile(realModule, "module example.invalid/sample\n", "utf8");
-    await writeFile(ignoredModule, "module example.invalid/dependency\n", "utf8");
+    await Promise.all(
+      ignoredModules.map(async (path) =>
+        writeFile(path, "module example.invalid/ignored\n", "utf8"),
+      ),
+    );
 
     await expect(findGoModules(root)).resolves.toEqual([realModule]);
   });

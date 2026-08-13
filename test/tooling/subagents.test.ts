@@ -190,6 +190,15 @@ describe("aggregate subagent resources", () => {
     expect(readme).toContain("/run advisor[model=anthropic/<opus-model-id>:high]");
     expect(readme).toContain("`pi --list-models` or Pi's `/model` selector");
     expect(readme).toContain("This configuration does not start the advisor automatically.");
+    expect(readme).toContain("natural `developing-changes` match and `/develop` prompt");
+    expect(readme).toMatch(/`\/develop` blocks[^.]*Git aggregate[^.]*`pi-subagents`/iu);
+    expect(readme).toMatch(
+      /Tiny direct edits[^.]*sequential[^.]*low-risk[^.]*locally understandable[^.]*cheap to validate/iu,
+    );
+    expect(readme).toMatch(
+      /fresh retained Sol writer[\s\S]*same writer[\s\S]*fresh formal review/iu,
+    );
+    expect(readme).toMatch(/exclusive active writer lease/iu);
     expect(readme).toContain("`docs/qa/plans/`");
     expect(readme).toContain("`docs/qa/runs/`");
     expect(readme).toMatch(/latest\s+compatible evidence[^.]*unchanged discovery/iu);
@@ -284,7 +293,16 @@ describe("aggregate subagent resources", () => {
     expect(qa).toMatch(/Do not commit large generated traces, videos, or logs/iu);
     expect(qa).toMatch(/For websites[\s\S]*For CLIs[\s\S]*For other software/iu);
     expect(qa).toMatch(/severity.*reproduction.*expected behavior.*actual behavior.*evidence/iu);
-    expect(qa).toMatch(/maintain reusable test plans/iu);
+    expect(qa).toMatch(
+      /reusable plans[^.]*only when[^.]*caller requests[^.]*plan will recur[^.]*historical comparison/iu,
+    );
+    expect(qa).toMatch(/One-shot QA[^.]*creates no `docs\/qa\/` files/iu);
+    expect(qa).toMatch(
+      /For durable QA[\s\S]*`docs\/qa\/evidence\/[^`]+`[\s\S]*one-shot QA[\s\S]*temporary artifact[^.]*create no `docs\/qa\/` files/iu,
+    );
+    expect(qa).toMatch(/material-delta handoff/iu);
+    expect(qa).toMatch(/Do not paste raw logs/iu);
+    expect(qa).toMatch(/does not replace a fresh formal review/iu);
     expect(qa).toContain("Do not modify product or source files");
     expect(qa).toMatch(/rerun the exact failing scenario after a fix/iu);
     expect(qa).toContain("Use one owned browser session for the run.");
@@ -293,6 +311,10 @@ describe("aggregate subagent resources", () => {
     expect(qa).toMatch(/Never rely on `close-all` from a sibling checkout/iu);
     expect(qa).toMatch(/targeted cleanup fails[^.]*tell the user[^.]*owned session remains/iu);
     expect(qa).toContain("Do not run `kill-all`.");
+    expect(worker).toMatch(
+      /return only material deltas[^:]*: outcome[^.]*changed files[^.]*changed contracts or facts[^.]*invalidated assumptions[^.]*exact evidence paths[^.]*residual risks[^.]*decisions required/iu,
+    );
+    expect(worker).toMatch(/Do not paste raw logs/iu);
     expect(worker).toContain("skills: ponytail, diagnosing-bugs");
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",

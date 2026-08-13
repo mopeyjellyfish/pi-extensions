@@ -41,6 +41,7 @@ export async function findGoModules(root = repositoryRoot): Promise<string[]> {
     ignore: [
       "**/.git/**",
       "**/.pi-subagents/**",
+      "**/.pi/subagents/**",
       "**/node_modules/**",
       "**/coverage/**",
       "**/dist/**",
