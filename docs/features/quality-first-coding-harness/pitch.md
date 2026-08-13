@@ -6,227 +6,419 @@ status: accepted
 
 ## Executive summary
 
-The installed aggregate has strong specialist agents and narrow engineering skills. It does not give the parent agent one cross-project execution contract for ordinary implementation, fixes, debugging, and QA. This gap leaves efficient worker reuse and repair routing dependent on repository-local `AGENTS.md` instructions.
+The aggregate has strong specialist agents and focused engineering skills. It
+still lacks one cohesive path from unresolved intent to verified code. The
+first implementation added useful writer, repair, review, QA, and context
+boundaries. It also copied the execution contract into Shape and selected the
+bug executor too late.
 
-Add one `developing-changes` skill and a `/develop` prompt to `@mopeyjellyfish/pi-engineering`. `/develop` requires the Git aggregate and `pi-subagents` companion install. Missing companions block the workflow with an actionable prerequisite. The skill will select the smallest suitable route. Tiny sequential changes stay with the parent agent. Noisy or multi-step implementation goes to one retained writer subagent. Fresh review or QA findings return to that writer for routine repair. The parent agent keeps requirements, decisions, review synthesis, and final verification.
+Keep those fixes and make the workflow composable. Add first-party `plan` and
+`work` skills. Keep `developing-changes` as the adaptive entry and router.
+Shape owns product intent. Plan turns accepted intent into vertical slices.
+Work becomes the only implementation contract for planned slices, bugs, and
+small fixes.
 
-Update Shape, the shared worker, and QA contracts to use the same boundaries. Do not add a runtime router, model call, task graph, or custom compaction layer.
+Add focused `test-driven-development` and `engineering-practices` skills. Every
+behavioral code change must show one public-seam test fail for the intended
+reason before the minimum implementation makes it pass. Design guidance must
+use evidence, not DRY, SOLID, Clean Code, or deep-module slogans.
+
+Flywheel, Superpowers, BigPowers, and other workflow frameworks are excluded.
+The solution uses only this repository's packages and the existing
+`pi-subagents` companion.
 
 ## Problem
 
-The aggregate already supplies these components:
+The aggregate already supplies:
 
-- `scout`, `context-builder`, and `planner` for bounded context and planning;
-- `worker` for one implementation thread;
-- `qa` for repeatable user-surface validation;
-- `reviewer` for independent formal review;
-- `oracle` for difficult decisions;
-- Shape for feature delivery;
+- Shape for product shaping, worktree isolation, planning, and feature delivery;
 - `diagnosing-bugs` for evidence-led root-cause work;
-- Context Mode, FFF, LSP, Todo, and Worktrunk for efficient tools and isolation.
+- `reviewing-changes` for independent fixed-point review;
+- `domain-modeling` for shared language and concrete scenarios;
+- `worker`, `qa`, `reviewer`, `planner`, and other bounded agent roles;
+- Context Mode, FFF, LSP, Todo, and Worktrunk for tools and isolation.
 
-Repository-local guidance in `AGENTS.md` explains how to combine these components. That guidance affects this repository only. Other projects that install the aggregate receive the agents and skills, but they do not receive one portable parent-agent workflow for ordinary coding changes.
+The first harness slice fixed several real problems:
 
-The current contracts also have three specific gaps:
+- Shape can transfer one exclusive writer lease to a retained worker.
+- Routine repair resumes the same worker and uses its latest returned `runId`.
+- A material intent change invalidates the old writer context.
+- One-shot QA no longer creates durable repository records by default.
+- Worker and QA handoffs return material deltas instead of raw operational
+  output.
+- QA remains separate from formal review.
+- Delegated-agent artifacts are excluded from repository tooling.
 
-1. Shape keeps the controlling parent agent as the sole writer. Large slice implementation, test output, and routine repair can therefore remain in the expensive parent context.
-2. The QA agent requires durable `docs/qa/` plans and run reports for every assignment. This is useful for recurring QA, but it adds repository noise to one-shot validation.
-3. Worker handoffs report general changes and validation, but they do not explicitly return only material knowledge changes and evidence locations. Raw operational detail can flow back into the parent context.
+Four design gaps remain.
+
+1. Shape and `developing-changes` independently specify direct work, retained
+   work, review, and repair. The two contracts can drift.
+2. The bug route applies `diagnosing-bugs` through diagnosis and repair before
+   it selects the direct parent or retained writer. This can violate the writer
+   lease and repeat work.
+3. Shape asks for a small behavior-focused test, but the workflow does not prove
+   an intended red result before production code.
+4. The workflow names quality principles but does not turn them into observable
+   implementation and review evidence.
+
+Production resources, manifests, prompts, agent contracts, tests, and imports
+contain no Flywheel, Superpowers, or BigPowers integration. Feature documents
+can name them only to record this exclusion.
 
 ## Appetite
 
-This is a focused skill-and-agent-contract change.
+This remains a skill, prompt, agent-contract, documentation, and test change.
 
 Quality floors:
 
-- Keep a strong parent agent responsible for intent and final judgment.
+- Keep a strong parent responsible for intent and final judgment.
 - Keep one exclusive active writer lease for each worktree.
-- Require observable validation for non-trivial logic.
-- Keep fresh independent review for non-trivial changes.
-- Preserve human approval for external, destructive, costly, or scope-expanding actions.
-- Keep debugging evidence-led and root-cause focused.
-- Keep Shape's pitch approval, vertical slices, Worktrunk isolation, and delivery gates.
+- Use one canonical implementation contract for planned and unplanned work.
+- Require public-seam red and green evidence for every behavioral code change.
+- Require a focused validation for non-behavioral changes.
+- Keep fresh independent review for non-trivial implementation.
+- Preserve human approval for product intent and external, destructive, costly,
+  or scope-expanding actions.
+- Keep bug work evidence-led and root-cause focused.
+- Keep Shape's pitch approval and Worktrunk boundaries.
+- Keep each production package independently installable for its stated scope.
 
 Acceptable cuts:
 
-- Use existing `pi-subagents` APIs and agent definitions instead of runtime code.
-- Use deterministic resource and contract tests plus focused live acceptance. Do not build a hosted evaluation service.
-- Leave advanced tool search, custom compaction, and automatic task classification to later evidence.
+- Use Markdown skills and prompts instead of a runtime router.
+- Use deterministic contract tests and focused live acceptance instead of an
+  evaluation service.
+- Keep feature-flow and engineering independently publishable and installable.
+  Require the aggregate tools and `pi-subagents` companion when their workflows
+  run.
+- Apply TDD to behavioral code. Use existing-test and focused-validation gates
+  for pure refactors, documentation, metadata, and mechanical changes. Do not
+  manufacture meaningless tests.
 
-Stop or reshape the work if the skill requires a new production service, duplicates `pi-subagents`, weakens package independence, or cannot preserve the current review and approval gates.
+Stop or reshape the work if it requires another orchestration framework,
+duplicates `pi-subagents`, adds a production service, weakens package
+boundaries, or turns design principles into unconditional abstraction rules.
 
 ## Research and prior art
 
-OpenAI recommends lean prompts, one statement for each instruction, relevant tools only, and workload-specific evaluation. Its internal coding-agent sample found that leaner prompts improved measured evaluation scores while reducing tokens and cost, but OpenAI says to validate the result on representative tasks. See [OpenAI model guidance](https://developers.openai.com/api/docs/guides/latest-model).
+OpenAI recommends lean prompts, relevant tools only, and workload-specific
+evaluation. It warns that subagents add cost and are most useful for concrete,
+independent work or focused context. See
+[OpenAI model guidance](https://developers.openai.com/api/docs/guides/latest-model)
+and
+[OpenAI multi-agent guidance](https://developers.openai.com/api/docs/guides/responses-multi-agent).
 
-OpenAI recommends multi-agent work for concrete independent workstreams and focused context. It warns that subagents can increase token use and are less useful for one ordered reasoning chain. It recommends a default maximum of three concurrent subagents for most workloads. See [OpenAI multi-agent guidance](https://developers.openai.com/api/docs/guides/responses-multi-agent).
+Anthropic recommends selecting a small set of high-signal context, using
+bounded tools, and returning distilled subagent results. It also recommends
+realistic evaluations, trace inspection, incremental progress, and real
+end-to-end validation. See
+[Anthropic context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents),
+[Anthropic agent evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents),
+and
+[Anthropic long-running harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
 
-Anthropic defines context engineering as selecting the smallest set of high-signal tokens that increases success. It recommends just-in-time retrieval, bounded tools, compaction, structured notes, and subagents that return distilled summaries. See [Anthropic context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents).
+Matt Pocock's current TDD skill centers tests on confirmed public seams. It uses
+one failing test followed by the minimum passing implementation. It rejects
+horizontal test batches, internal mocks, implementation-coupled tests, and
+expected values derived from the implementation itself. See
+[the referenced TDD skill](https://github.com/mattpocock/skills/blob/main/skills/engineering/tdd/SKILL.md).
 
-Anthropic recommends evaluating the model and harness together with deterministic checks, model graders, and human review where each is useful. It recommends realistic tasks, trace inspection, and regression cases instead of trusting agent confidence. See [Anthropic agent evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents).
-
-Anthropic's long-running harness work uses incremental progress, Git and progress artifacts, one coherent feature at a time, and real end-to-end validation. It also states that the best boundary between one general agent and specialized agents remains workload-dependent. See [Anthropic long-running harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
-
-The repository already implements most of this prior art. The chosen direction adds the missing portable orchestration contract. It does not replace existing tools or add another workflow engine.
+DRY, SOLID, Clean Code, and John Ousterhout's deep-module guidance can conflict
+when used as slogans. For example, speculative interfaces can satisfy an
+abstract reading of dependency inversion while adding shallow indirection. The
+chosen direction asks for concrete evidence about shared policy, callers,
+public seams, volatility, and interface depth.
 
 ## Solution
 
-### Cross-project entry
+### First-party skill system
 
-Add `developing-changes` to `@mopeyjellyfish/pi-engineering`.
-
-Its description will match requests to implement, fix, debug, validate, or QA code. Add `/develop [change request]` as an explicit entry point. Keep `/shape` for a feature that needs shaping and human pitch approval. Keep `/diagnose` as the focused bug entry point.
-
-The package remains independently installable for its narrow skills. Its README must state that `/develop` additionally requires the Git aggregate agent set and `pi-subagents`. If either companion is unavailable, stop with the exact install prerequisite. Do not silently degrade a promised independent quality gate.
-
-The skill will route work by evidence and context shape:
+Use this repository's skills as one staged system:
 
 ```mermaid
 flowchart TD
-    A[Change request] --> B{Needs feature shaping?}
-    B -->|yes| C[Use Shape]
-    B -->|no| D{Bug or unexplained regression?}
-    D -->|yes| E[Apply diagnosing-bugs and establish the repair contract]
-    E --> H
-    D -->|no| F{QA-only request?}
-    F -->|yes| G[Run bounded QA]
-    F -->|no| H{Tiny, sequential, low-risk change?}
-    H -->|yes| I[Parent implements and validates]
-    H -->|no| J[Create task capsule]
-    J --> K[Fresh retained writer implements and validates]
-    K --> L[Fresh reviewer checks stable result; add QA when applicable]
-    L --> M{Routine implementation defect?}
-    M -->|yes| N[Resume same writer for repair]
-    N --> L
-    M -->|no| O{Decision or contract changed?}
-    O -->|yes| P[Parent decides or asks user]
-    O -->|no| Q[Parent verifies and reports]
+    A[Change request] --> B[develop routes]
+    B -->|Unresolved product intent| C[shape approves pitch]
+    C --> D[plan creates vertical slices]
+    B -->|Accepted non-trivial intent| D
+    D --> E[work executes one accepted slice]
+    B -->|Small accepted change| E
+    B -->|Bug or regression| F[work selects executor]
+    F --> G[diagnosing-bugs runs inside executor]
+    G --> E
+    B -->|QA only| H[qa validates public surface]
+    E --> I[TDD or focused non-behavioral validation]
+    I --> J[Fresh review for non-trivial work]
+    J -->|Routine defect| K[Resume same writer]
+    K --> J
+    J -->|Decision changed| L[Parent or user decides]
+    J -->|Accepted| M[Parent verifies]
 ```
 
-A tiny direct change must be sequential, low-risk, locally understandable, and cheap to validate. File count alone does not decide the route. Noisy discovery, long tests, repeated repair, broad context, or material risk moves work to a retained writer or a specialist.
+The skills have narrow responsibilities:
 
-### Parent and writer boundaries
+- `developing-changes` classifies and routes. It does not copy the work loop.
+- `shape` resolves product intent, owns Worktrunk and pitch approval, and hands
+  accepted intent to plan.
+- `plan` creates the smallest ordered vertical slices. It names public seams,
+  behavior, validation, and done conditions. It does not implement.
+- `work` executes one accepted slice or bounded change. It owns direct versus
+  retained execution, writer-lease transfer, model risk, TDD, validation,
+  review, and routine repair.
+- `diagnosing-bugs` runs inside the selected executor. Its reproduction or
+  regression check becomes the first red test.
+- `test-driven-development` defines only the public-seam red and green method.
+  It contains no routing or subagent policy.
+- `engineering-practices` defines evidence-based design constraints. It
+  contains no routing or subagent policy.
+- `reviewing-changes` and the reviewer apply a fresh fixed-point quality gate.
+- `qa` supplies public-surface evidence and does not replace review.
 
-The parent agent owns:
+Add `/plan` and `/work` prompts for explicit use. Keep `/shape`, `/develop`, and
+`/diagnose`. Natural skill matching remains available.
 
-- the user conversation and clarification;
-- scope, acceptance criteria, and authority;
-- product, architecture, security, and risk decisions;
-- task-capsule synthesis;
-- reviewer and QA finding synthesis;
-- final diff inspection and verification;
-- commit, push, pull-request, merge, release, and cleanup authority.
+### Package boundary
 
-One writer subagent owns:
+`@mopeyjellyfish/pi-feature-flow` owns Shape and plan.
+`@mopeyjellyfish/pi-engineering` owns develop, work, TDD, engineering
+practices, diagnosis, domain modeling, and review. Both packages remain
+independently publishable and installable Markdown-resource packages. They do
+not import another workspace or claim that installation alone supplies host
+tools.
 
-- implementation within the approved task capsule;
-- focused tests and static checks;
-- routine debugging and repair;
-- concise evidence and residual-risk reporting.
+The operational workflows require the Git aggregate tools and the separately
+installed `pi-subagents` companion. At activation, Shape, plan, develop, and
+work check the tools, skills, and agents that their next gate needs. If a
+required companion is unavailable, stop with actionable install guidance. A
+standalone package probe verifies resource discovery and this blocked behavior.
+It does not claim a complete standalone workflow. Do not copy a missing
+companion's contract into another skill.
 
-For substantial or noisy work, launch the writer with fresh context and a self-contained capsule. Continue that retained run for routine repairs. Do not start a new writer for each failed test. Start a fresh writer only when the old context is contradictory, repeatedly failing, unavailable, or based on an invalidated contract.
+### Canonical work contract
 
-### Review and QA boundaries
+Work accepts an approved slice, explicit bounded request, or confirmed bug
+outcome. It first checks repository instructions, current Git state, public
+contracts, and authority.
 
-Use a fresh formal reviewer for non-trivial implemented changes. QA evidence does not replace formal review.
+Work keeps execution in the parent only when the change is sequential,
+low-risk, locally understandable, and cheap to validate. Otherwise it creates a
+self-contained task capsule, launches one fresh retained worker, and transfers
+the exclusive writer lease.
 
-A one-shot QA request returns concise evidence and artifact paths through its result. It does not write `docs/qa/` by default. Require durable QA plans and run reports when the user requests them, when the test plan will recur, or when comparable historical evidence is part of the task.
+Use Sol `medium` for normal retained implementation. Use Sol `high` for
+security, data loss, concurrency, lifecycle, migration, public API, protocol,
+provider transport, cross-package architecture, nondeterministic behavior, and
+expensive or unclear validation. Luna is not the default implementation route.
 
-If QA or review finds a routine implementation defect, the parent synthesizes the finding and resumes the same writer. If evidence changes intent, architecture, ownership, security, risk, or scope, the writer stops and the parent decides or asks the user.
+For a bug, select the executor before applying `diagnosing-bugs`. The selected
+executor owns reproduction, caller and sibling tracing, root-cause repair, and
+the regression test. Do not diagnose and fix in the parent before assigning a
+retained writer.
 
-### Material-delta handoffs
+Use one fresh Sol `high` reviewer for every non-trivial implementation. Resume
+the latest retained writer `runId` for a routine implementation defect. Start a
+fresh writer only when retained context is unavailable, contradictory,
+repeatedly failing, or invalidated by a changed contract.
 
-Writer and QA handoffs must make the next decision easy. Return:
+A decision-level finding returns the writer lease to the parent. Shape then
+uses its full material-change gate when accepted feature intent changes.
 
-- outcome and changed files;
-- changed contracts or facts;
-- invalidated assumptions;
-- commands and checks with results;
-- exact artifact or evidence locations;
-- residual risks;
-- decisions required from the parent.
+### Test-driven development
 
-Do not paste raw logs, large diffs, or repeated task instructions into the parent context. Keep full operational output in the retained run or an artifact.
+Apply the TDD skill to every behavioral code change:
 
-### Shape integration
+1. Name one observable behavior and its public seam.
+2. Treat an explicit accepted request, accepted pitch, or accepted plan as seam
+   approval. Ask the user only when the seam is unresolved.
+3. Add the smallest behavior test at that seam.
+4. Run the test and confirm that it fails for the intended behavioral reason.
+5. Add only the production behavior needed to pass that test.
+6. Run the focused test and confirm green.
+7. Repeat vertically for the next behavior.
+8. Run the applicable integrated path and required checks before completion.
 
-Keep the controlling Shape agent as the parent and sole decision-maker. Use one exclusive active writer lease for the worktree. During shaping, the parent owns the lease and writes the pitch and plan. For a non-tiny slice, the parent transfers the lease to one retained writer. That writer owns all slice edits, including code, tests, documentation, checkbox updates, and blocked notes directed by the parent. The parent reads load-bearing sources, synthesizes reviews, and verifies without editing while the worker holds the lease. If intent changes materially, pause the worker and return the lease to the parent. Set the pitch to draft, update the pitch and affected plan, repeat independent pitch review, and present the complete revised pitch for human approval. Transfer the lease back only after the pitch is accepted again.
+Mock only real process, filesystem, time, randomness, network, provider, or UI
+boundaries when necessary. Do not mock owned modules or test private helpers.
+Use an independent expected value from the specification, a known literal, or a
+worked example.
 
-### Evaluation and evidence
+A pure refactor uses applicable existing tests or the smallest focused
+validation before and after the change. Add a missing public-seam behavior test
+when it provides material protection, not as mandatory ceremony.
+Documentation, metadata, generated-contract, and mechanical changes use the
+smallest focused validation that can detect the intended error.
 
-Add deterministic tests that verify:
+### Engineering practices
 
-- the new skill and prompt are packaged and discoverable;
-- the route contract distinguishes feature, bug, QA, tiny direct, and retained-writer work;
-- the parent remains the decision authority;
-- routine defects return to the same writer;
-- review stays fresh and independent;
-- one-shot QA does not require repository documentation;
-- material-delta handoffs and artifact paths are required;
-- Luna is not the default implementation route.
+The engineering-practices skill turns design principles into evidence:
 
-Run focused package tests, `npm run smoke:source`, and `npm run check`. Exercise the aggregate in a deterministic Pi session and verify the new skill and prompts load without conflict. Run the focused automated test before `/reload`, reload while Pi is idle, then exercise the changed resources and confirm the new behavior without duplicate registrations or stale state. Run five focused live scenarios: Shape, debug, one-shot QA, tiny direct work, and noisy or multi-step retained-writer work. Run `npm run smoke:source` after the reload loop. Record observed route, agent model, review behavior, context or token totals when available, and any quality failures. Treat lower cost or token use as an improvement only when the same acceptance checks pass.
+- Search for an existing repository helper, standard-library feature, native
+  platform feature, or installed dependency before adding code.
+- Extract duplication only when it represents the same current rule and its
+  copies must change together. Similar syntax is not enough.
+- Give a module one coherent policy or capability. Use callers and reasons to
+  change as evidence. Do not use file length as the test.
+- Preserve substitution through public-seam behavior tests. Do not add an
+  interface for one implementation or a speculative variant.
+- Add dependency injection only at a real volatile or external boundary.
+  Prefer an existing seam.
+- Prefer a small public interface that hides substantial behavior. Reject
+  forwarding-only layers and APIs that expose internal sequencing.
+- Use terms from the nearest `CONTEXT.md`. Keep validation, cancellation,
+  failures, cleanup, and trust boundaries explicit.
+- Report a principle violation only with a concrete duplicated rule, shallow
+  layer, broken public contract, unstable dependency, or unnecessary exported
+  concept.
+
+The worker applies these rules during implementation. The reviewer checks the
+same evidence after behavior is stable. Tool-enforced formatting, linting, and
+coverage remain tooling concerns, not review prose.
+
+### Preserve efficiency and bug fixes
+
+Keep these first-slice changes:
+
+- one exclusive writer lease and explicit lease transfer;
+- fresh initial writer context;
+- same-writer routine repair with the latest returned `runId`;
+- fresh writer context after a material intent change;
+- material-delta worker and QA handoffs;
+- one-shot QA without default `docs/qa/` records;
+- QA as evidence, not formal review;
+- current Playwright workspace-scoped targeted cleanup safeguards;
+- `.pi/subagents/` exclusions from repository tooling;
+- final parent diff inspection, verification, and delivery authority.
 
 ## Fixed decisions
 
-- The skill activates through natural task matching and `/develop`.
-- `/develop` requires the Git aggregate agent set and `pi-subagents`; missing companions block the workflow.
-- Routing is adaptive and quality-first.
-- Tiny sequential low-risk work can stay with the parent agent.
-- Noisy or multi-step implementation uses one retained writer.
-- The configured normal writer remains Sol `medium`; Luna is not the default implementation model.
-- Luna remains suitable for bounded discovery and repeatable low-risk QA.
-- One-shot QA stays ephemeral unless durable records are explicit or reusable.
-- Fresh formal review remains required for non-trivial implementation.
-- The parent agent retains all product, architecture, security, scope, synthesis, and final-verification authority.
-- Each worktree has one exclusive active writer lease. The parent and retained writer transfer that lease explicitly and never edit concurrently.
-- The feature branch is `feat/quality-first-coding-harness` from `origin/main` at `7fcade46d5b63b9687032393b18bf27b64dc085e`.
-- The user authorizes implementation, local commits, branch push, and opening a pull request for this feature.
-- Merge, release, deployment, publication, destructive cleanup, and worktree removal are not authorized.
+- All workflow skills are first-party resources in this repository.
+- Flywheel, Superpowers, BigPowers, and other workflow frameworks are excluded.
+- The staged route is develop to Shape or plan to work.
+- Feature-flow owns Shape and plan. Engineering owns develop, work, TDD, and
+  engineering practices.
+- `/develop` remains the adaptive entry. `/plan` and `/work` are explicit
+  entries.
+- Shape plans use the canonical work contract. Shape does not copy it.
+- The executor is selected before full bug diagnosis and repair.
+- Every behavioral code change requires intended red and green evidence at a
+  public seam.
+- Accepted intent counts as seam approval. Ask only when the seam is unresolved.
+- Pure refactors and non-behavioral changes use applicable existing tests or a
+  focused validation instead of a manufactured failing test.
+- Design rules require concrete evidence. Acronym-only findings are invalid.
+- Tiny sequential low-risk work can stay with the parent and follows the same
+  TDD and engineering-practices contract.
+- Non-trivial or noisy work uses one retained writer and fresh formal review.
+- The worker uses Sol `medium` normally and Sol `high` for repository-defined
+  high-risk work.
+- One-shot QA stays ephemeral unless records are requested, reusable, or needed
+  for historical comparison.
+- Each worktree has one exclusive active writer lease.
+- The parent retains product, architecture, security, scope, synthesis, final
+  verification, and delivery authority.
+- The branch is `feat/quality-first-coding-harness` against current
+  `origin/main`.
+- The user authorizes implementation, local commits, branch updates, and PR #52
+  updates for this feature.
+- Merge, release, deployment, publication, destructive cleanup, and worktree
+  removal are not authorized.
 
-Implementation details that remain open to agent judgment:
+Implementation details left to agent judgment:
 
-- exact skill section names and wording;
-- whether `/qa` is a separate prompt or a documented `/develop` route, provided QA is discoverable;
-- exact deterministic contract-test structure;
-- whether a tiny Shape slice stays in the parent or always uses the retained writer, provided the route remains explicit and testable.
+- exact internal headings and prompt wording;
+- whether plan uses a retained planner for a specific high-complexity request;
+- the minimum live probe needed to prove each composed route;
+- exact deterministic contract-test structure.
 
 ## Rabbit holes
 
-- **Automatic router extension:** Prompt interception or a router-model call adds latency, hidden policy, and a new failure mode. Use skill matching and explicit prompts.
-- **Another task graph:** `pi-subagents`, Shape, Todo, and missions already provide orchestration and durable state.
-- **Custom compaction:** Pi already has structured compaction, and Context Mode keeps large output out of the main context.
-- **Dynamic tool loader:** Pi supports deferred tools, but changing the active tool catalog can affect interoperability and prompt caching. Evaluate it separately if tool-schema cost becomes a measured problem.
-- **Agent swarm:** Start with one agent. Add independent read-only lanes only when a distinct evidence need justifies them.
-- **Universal cheap worker:** Cost is secondary to quality. Keep risk-based model selection.
-- **New QA service:** Reuse the existing QA agent and public test surfaces.
-- **Large evaluation platform:** Add focused contract tests and live acceptance first. Expand only when repeated harness changes need statistical comparison.
+- **External skill systems:** Do not copy or package Flywheel, Superpowers,
+  BigPowers, or another workflow framework.
+- **Runtime router:** Skill matching and explicit prompts are sufficient.
+- **Acronym linter:** DRY, SOLID, Clean Code, and deep modules need judgment and
+  evidence. Do not turn them into keyword scoring.
+- **Universal abstraction layer:** Do not add interfaces, factories, or
+  dependency injection without current variation or a volatile boundary.
+- **Test ceremony:** Do not create tautological tests or tests for Markdown
+  wording that a focused validator already checks.
+- **Another task graph:** Shape plans, Todo, Git, and `pi-subagents` already
+  provide state.
+- **Custom compaction:** Pi and Context Mode already provide bounded context
+  mechanisms.
+- **Agent swarm:** Start with one agent. Add read-only specialists only for a
+  distinct evidence need.
+- **Universal cheap worker:** Keep risk-based model selection.
+- **New QA or evaluation service:** Use existing QA and deterministic checks.
 
 ## No-gos
 
-- Do not add a new production runtime extension for routing.
-- Do not install or bundle another orchestration framework.
+- Do not add, copy, reference, package, or load Flywheel, Superpowers, or
+  BigPowers resources.
+- Do not add a production runtime extension for routing.
+- Do not duplicate the canonical work loop in Shape, plan, develop, or TDD.
+- Do not select a writer after the parent has already completed a non-trivial
+  bug repair.
+- Do not write production behavior before the intended red result.
+- Do not test private implementation details or mock owned collaborators.
+- Do not add speculative abstractions to satisfy a principle by name.
 - Do not make Luna the normal implementation model.
-- Do not permit simultaneous or ambiguous write ownership in one worktree.
-- Do not let a reviewer or QA agent silently make product or architecture decisions.
-- Do not let automatic closure mutate Git or GitHub state.
-- Do not require `docs/qa/` changes for one-shot QA.
-- Do not claim efficiency gains without equal-or-better acceptance evidence.
-- Do not weaken tests, review, security, accessibility, or approval boundaries to reduce tokens or cost.
+- Do not permit simultaneous or ambiguous write ownership.
+- Do not let QA replace formal review.
+- Do not require durable repository records for one-shot QA.
+- Do not weaken tests, security, accessibility, lifecycle cleanup, review, or
+  approval gates for speed.
 
 ## Acceptance criteria
 
-- **AC-001 — Portable workflow:** The full Git aggregate plus `pi-subagents` exposes a discoverable coding workflow for implementation, fixes, debugging, and QA through `@mopeyjellyfish/pi-engineering` resources.
-- **AC-002 — Explicit entry:** `/develop [change request]` loads the portable workflow without repository-local `AGENTS.md` guidance and reports an actionable blocked prerequisite when a required companion is absent.
-- **AC-003 — Adaptive route:** The workflow keeps tiny sequential low-risk changes direct and assigns noisy or multi-step implementation to one retained writer.
-- **AC-004 — Feature route:** Work that needs feature shaping routes to Shape, preserves pitch approval, Worktrunk isolation, vertical slices, and delivery gates, and uses one explicit active writer lease.
-- **AC-005 — Debug route:** Bug work preserves observable reproduction, shared-root-cause tracing, one durable regression check, the adaptive implementation route, and normal review and verification gates.
-- **AC-006 — QA route:** One-shot QA returns evidence without mandatory repository files. Recurring or explicitly documented QA keeps reusable plans and comparable run reports.
-- **AC-007 — Repair locality:** Routine review, test, or QA defects return to the same retained writer. Decision-level findings return to the parent agent.
-- **AC-008 — Independent quality gate:** Non-trivial implementation receives a fresh formal review, and QA does not replace that review.
-- **AC-009 — Material handoff:** Worker and QA results contain decision-relevant deltas, validation results, evidence paths, residual risks, and required decisions without raw-log dumps.
-- **AC-010 — Quality-first models:** Normal implementation uses the configured Sol worker. Faster models are limited to bounded work with deterministic checks.
-- **AC-011 — Lean composition:** The implementation reuses current agents, skills, prompts, artifacts, and `pi-subagents` controls without adding a routing runtime or duplicate task graph.
-- **AC-012 — Verified package:** Focused tests, `npm run smoke:source`, and `npm run check` pass from the final worktree.
-- **AC-013 — Live aggregate acceptance:** A deterministic Pi source session passes the focused test, reloads while idle, loads the new and changed resources without duplicate registrations or stale state, and demonstrates the five route classes before `npm run smoke:source`.
-- **AC-014 — Delivery:** The work is committed with a valid Conventional Commit, pushed, and opened as a pull request with checks and residual risks stated.
+- **AC-001 — First-party workflow:** Production resources, manifests, prompts,
+  agent contracts, tests, and imports use only this repository's Shape, plan,
+  develop, work, TDD, diagnosis, QA, and review contracts. They do not copy,
+  package, load, or integrate Flywheel, Superpowers, or BigPowers.
+- **AC-002 — Explicit entries:** `/shape`, `/plan`, `/develop`, `/work`, and
+  `/diagnose` load their focused first-party contracts.
+- **AC-003 — Cohesive route:** Develop routes unresolved product intent to
+  Shape, accepted non-trivial intent to plan, accepted slices and small fixes to
+  work, bugs to work with diagnosis, and QA-only requests to QA.
+- **AC-004 — Canonical work:** Shape and plan hand accepted slices to one work
+  contract. They do not copy direct, retained-writer, review, or repair policy.
+- **AC-005 — Package boundary:** Feature-flow and engineering remain
+  independently publishable and installable resource packages. Their
+  operational workflows check and report actionable aggregate and
+  `pi-subagents` prerequisites instead of claiming standalone execution.
+- **AC-006 — Correct bug ownership:** Work selects the direct parent or retained
+  writer before the selected executor applies diagnosis and repair.
+- **AC-007 — TDD evidence:** Every behavioral code change records a public-seam
+  test that failed for the intended reason before the minimum implementation
+  made it pass.
+- **AC-008 — Non-behavioral evidence:** Pure refactors use applicable existing
+  tests or focused validation before and after. Documentation, metadata, and
+  mechanical changes use a focused error-detecting validation.
+- **AC-009 — Practical design:** Worker and reviewer contracts apply
+  evidence-based reuse, DRY, cohesion, substitution, dependency, interface
+  depth, naming, failure, and cleanup rules without speculative abstractions.
+- **AC-010 — Adaptive execution:** Tiny sequential low-risk work remains direct.
+  Noisy, risky, or multi-step work uses one fresh retained writer.
+- **AC-011 — Risk profile:** Retained work uses Sol `medium` normally and Sol
+  `high` for the repository-defined high-risk classes.
+- **AC-012 — Repair locality:** Routine defects return to the latest retained
+  writer `runId`. Invalidated contracts launch a fresh writer.
+- **AC-013 — Independent quality gate:** Every non-trivial implementation gets a
+  fresh Sol `high` review. QA never replaces review.
+- **AC-014 — Efficient evidence:** Worker and QA handoffs contain material
+  deltas, checks, evidence paths, residual risks, and decisions without raw-log
+  dumps.
+- **AC-015 — Selective QA records:** One-shot QA creates no `docs/qa/` records.
+  Requested, recurring, or comparative QA can keep durable evidence.
+- **AC-016 — Preserved cleanup:** QA retains current workspace-scoped,
+  targeted Playwright cleanup and never uses global `kill-all` cleanup.
+- **AC-017 — Preserved Shape gates:** Shape keeps Worktrunk isolation, full
+  pitch approval, vertical plans, the worktree-wide lease invariant, and
+  material-change reapproval. Work owns implementation-worker selection and
+  lease transfer.
+- **AC-018 — Verified packages:** Focused tests, source and packed smoke tests,
+  `npm run check`, and package boundary checks pass from the final worktree.
+- **AC-019 — Live composition:** A deterministic Pi session reloads without
+  duplicate resources and demonstrates Shape to plan to work, direct small
+  work, retained bug work, routine retained repair, and one-shot QA.
+- **AC-020 — Delivery:** Valid Conventional Commits update the authorized branch
+  and PR #52 with checks, live evidence, and residual risks.

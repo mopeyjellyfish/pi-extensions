@@ -78,9 +78,12 @@ Installing one package from `packages/` does not include those external resource
 
 When `pi-subagents` is installed, the aggregate also supplies FFF/LSP-aware
 `advisor`, `context-builder`, `delegate`, `oracle`, `planner`, `qa`, `reviewer`,
-`scout`, and `worker` definitions. Together with the engineering package's
-natural `developing-changes` match and `/develop` prompt, these companions form
-the portable quality-first coding harness. `/develop` blocks with install
+`scout`, and `worker` definitions. Together with the first-party Shape,
+`planning-changes`, `work`, and `developing-changes` skills, these companions
+form the portable quality-first coding harness. Use `/develop` as the adaptive
+entry, `/plan` for accepted intent, and `/work` for an accepted slice or bounded
+change. The cohesive feature path is Shape to planning-changes to work. Small
+fixes skip Shape but keep the same quality gate. `/develop` blocks with install
 instructions when either the Git aggregate agent set or `pi-subagents` is
 missing; it does not silently remove retained implementation or independent
 review. `planner`, `context-builder`, and `qa` are
@@ -166,11 +169,20 @@ Before a launch, classify the task:
   gate.
 
 Start with one agent. Tiny direct edits stay with the parent only when they are
-sequential, low-risk, locally understandable, and cheap to validate. Noisy or
-multi-step implementation uses one fresh retained Sol writer; routine review,
-test, or QA defects return to that same writer before a fresh formal review.
-The parent keeps decisions, synthesis, final diff inspection, and final
-verification. Start another subagent only for a bounded specialist lane or when
+sequential, low-risk, locally understandable, and cheap to validate. Behavioral
+code must show an intended failing test and minimum passing implementation at a
+public seam. Refactors, documentation, metadata, and mechanical changes use
+focused evidence instead of manufactured tests. Practical engineering guidance
+requires concrete evidence about reuse, shared policy, cohesion, public
+contracts, volatile boundaries, interface depth, failures, and cleanup; it does
+not use principle names as findings.
+
+Noisy or multi-step implementation uses one fresh retained Sol writer. Work
+selects the direct or retained executor before that executor diagnoses a bug.
+Routine review, test, or QA defects return to the same retained writer, while
+formal review always uses fresh context. QA is bounded public-surface evidence
+and never replaces review. The parent keeps decisions, synthesis, final diff
+inspection, and final verification. Start another subagent only for a bounded specialist lane or when
 one agent is measurably struggling. Parallelize independent read-only work such
 as codebase exploration, separate failure hypotheses, and correctness,
 security, or test-gap review. Start with one child and use no more than three
