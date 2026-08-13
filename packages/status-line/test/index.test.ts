@@ -30,12 +30,17 @@ type FooterFactory = (
 
 interface Harness {
   readonly bus: Map<string, Set<(data: unknown) => void>>;
+  readonly commands: Map<string, (args: string, context: ExtensionContext) => Promise<void>>;
+  readonly entries: { customType: string; data: unknown }[];
   readonly events: Map<
     string,
     ((event: Record<string, unknown>, context: ExtensionContext) => unknown)[]
   >;
   editorFactory: EditorFactory | undefined;
   readonly editorValues: unknown[];
+  entryRenderer:
+    | ((entry: { data: unknown }, options: unknown, theme: typeof testTheme) => Component)
+    | undefined;
   readonly exec: ReturnType<typeof vi.fn>;
   footerFactory: FooterFactory | undefined;
   readonly footerValues: unknown[];
@@ -60,13 +65,18 @@ function createHarness(): Harness {
           : "# branch.oid 0123456789abcdef\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n",
       }),
   );
+  const commands = new Map<string, (args: string, context: ExtensionContext) => Promise<void>>();
   const editorValues: unknown[] = [];
+  const entries: { customType: string; data: unknown }[] = [];
   const footerValues: unknown[] = [];
   const renders = vi.fn<() => void>();
   const harness: Harness = {
     bus,
+    commands,
     editorFactory: undefined,
     editorValues,
+    entries,
+    entryRenderer: undefined,
     events,
     exec,
     footerFactory: undefined,
@@ -91,9 +101,30 @@ function createHarness(): Harness {
     on(name: string, handler: (event: Record<string, unknown>, ctx: ExtensionContext) => unknown) {
       events.set(name, [...(events.get(name) ?? []), handler]);
     },
+    appendEntry(customType: string, data: unknown) {
+      entries.push({ customType, data });
+    },
+    registerCommand(
+      name: string,
+      options: { handler(args: string, context: ExtensionContext): Promise<void> },
+    ) {
+      commands.set(name, (args, context) => options.handler(args, context));
+    },
+    registerEntryRenderer(
+      _customType: string,
+      renderer: (entry: { data: unknown }, options: unknown, theme: typeof testTheme) => Component,
+    ) {
+      harness.entryRenderer = renderer;
+    },
   } as unknown as ExtensionAPI;
   statusLineExtension(pi);
   return harness;
+}
+
+function codexToken(accountId: string): string {
+  return `x.${Buffer.from(
+    JSON.stringify({ "https://api.openai.com/auth": { chatgpt_account_id: accountId } }),
+  ).toString("base64url")}.x`;
 }
 
 function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionContext {
@@ -114,7 +145,10 @@ function context(harness: Harness, mode: "print" | "tui" = "tui"): ExtensionCont
       provider: "test",
       reasoning: true,
     },
-    modelRegistry: { isUsingOAuth: () => false },
+    modelRegistry: {
+      getApiKeyAndHeaders: vi.fn().mockResolvedValue({ error: "not configured", ok: false }),
+      isUsingOAuth: () => false,
+    },
     sessionManager: {
       getBranch: () => [
         {
@@ -575,12 +609,163 @@ describe("pi-status-line extension", () => {
     }
   });
 
-  it("does not install a terminal footer outside TUI mode", async () => {
+  it("refreshes Codex usage across lifecycle events and renders full /status details", async () => {
     expect.hasAssertions();
     const harness = createHarness();
-    await emitLifecycle(harness, "session_start", context(harness, "print"));
+    const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
+      Promise.resolve(
+        Response.json({
+          plan_type: "pro",
+          rate_limit: {
+            primary_window: {
+              limit_window_seconds: 18_000,
+              reset_at: 1_800_000_000,
+              used_percent: 75,
+            },
+          },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const base = context(harness);
+      const ctx = {
+        ...base,
+        model: {
+          ...base.model,
+          api: "openai-codex-responses",
+          provider: "openai-codex",
+        },
+        modelRegistry: {
+          getApiKeyAndHeaders: vi.fn().mockResolvedValue({
+            apiKey: codexToken("account-1"),
+            ok: true,
+          }),
+          isUsingOAuth: () => true,
+        },
+      } as unknown as ExtensionContext;
+      await emitLifecycle(harness, "session_start", ctx);
+      harness.footerFactory?.({ requestRender: harness.renders }, testTheme, footerData(new Map()));
+      const component = editor(harness);
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledOnce();
+        expect(component?.render(180).join(" ")).toContain("limit 25%");
+      });
+
+      await harness.commands.get("status")?.("", ctx);
+      const text = (harness.entries.at(-1)?.data as { text?: string }).text ?? "";
+      expect(text).toContain("Account: openai-codex (pro)");
+      expect(text).toContain("5 hour limit: [█████░░░░░░░░░░░░░░░] 25% left");
+      expect(text).toContain("resets 2027-01-15T08:00:00.000Z");
+      expect(text).toContain("Source: OpenAI Codex internal usage endpoint");
+
+      await emitLifecycle(harness, "model_select", ctx);
+      await emitLifecycle(harness, "agent_settled", ctx);
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledTimes(4);
+      });
+      await emitLifecycle(harness, "session_shutdown", ctx);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("uses observed provider headers in the status line and /status", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const base = context(harness);
+    const ctx = {
+      ...base,
+      model: { ...base.model, provider: "openai" },
+    } as ExtensionContext;
+    await emitLifecycle(harness, "session_start", ctx);
+    harness.footerFactory?.({ requestRender: harness.renders }, testTheme, footerData(new Map()));
+    const component = editor(harness);
+
+    await emitLifecycle(harness, "after_provider_response", ctx, {
+      headers: {
+        "x-ratelimit-limit-requests": "100",
+        "x-ratelimit-remaining-requests": "25",
+        "x-ratelimit-reset-requests": "20s",
+      },
+      status: 200,
+    });
+
+    expect(component?.render(180).join(" ")).toContain("limit 25%");
+    await harness.commands.get("status")?.("", ctx);
+    const text = (harness.entries.at(-1)?.data as { text?: string }).text ?? "";
+    expect(text).toContain("Account: openai");
+    expect(text).toContain("Requests: [█████░░░░░░░░░░░░░░░] 25% left");
+  });
+
+  it("registers /status and reports Pi and unavailable provider details", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    await emitLifecycle(harness, "session_start", ctx);
+
+    await harness.commands.get("status")?.("", ctx);
+
+    expect(harness.entries).toHaveLength(1);
+    expect(harness.entries[0]).toMatchObject({ customType: "mopeyjellyfish-pi-status" });
+    const text = (harness.entries[0]?.data as { text?: string }).text ?? "";
+    expect(text).toContain("Model: GPT-5.4 (test/gpt-5.4)");
+    expect(text).toContain("Thinking: high");
+    expect(text).toContain("Directory: /projects/example");
+    expect(text).toContain("Session: session-1");
+    expect(text).toContain("Context: 81.5% left (50,320 used / 272,000)");
+    expect(text).toContain(
+      "Account usage: unavailable — This provider does not expose reliable account usage",
+    );
+    expect(harness.entryRenderer?.({ data: null }, {}, testTheme).render(80)[0]?.trim()).toBe(
+      "Status unavailable",
+    );
+    expect(
+      harness
+        .entryRenderer?.({ data: { text: "Current status" } }, {}, testTheme)
+        .render(80)[0]
+        ?.trim(),
+    ).toBe("Current status");
+
+    await harness.commands.get("status")?.("", {
+      ...ctx,
+      getContextUsage: () => ({ contextWindow: 272_000, percent: null, tokens: null }),
+    });
+    expect((harness.entries.at(-1)?.data as { text?: string }).text).toContain(
+      "Context: ?% left (? used / 272,000)",
+    );
+  });
+
+  it("keeps /status useful without a model or context outside TUI mode", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const base = context(harness, "print");
+    const notify = vi.fn();
+    const ctx = {
+      ...base,
+      getContextUsage() {
+        return;
+      },
+      model: undefined,
+      sessionManager: {
+        ...base.sessionManager,
+        getSessionName() {
+          return;
+        },
+      },
+      hasUI: true,
+      ui: { ...base.ui, notify },
+    } as unknown as ExtensionContext;
+    await emitLifecycle(harness, "session_start", ctx);
+    await emitLifecycle(harness, "model_select", ctx);
+    await emitLifecycle(harness, "agent_settled", ctx);
+    await emitLifecycle(harness, "after_provider_response", ctx, { headers: {}, status: 200 });
+    await harness.commands.get("status")?.("", ctx);
+
     expect(harness.editorValues).toEqual([]);
     expect(harness.footerValues).toEqual([]);
     expect(harness.exec).not.toHaveBeenCalled();
+    expect(harness.entries).toEqual([]);
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining("Model: unavailable"), "info");
   });
 });
