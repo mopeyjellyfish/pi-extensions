@@ -191,9 +191,9 @@ describe("aggregate subagent resources", () => {
     expect(readme).toContain("`pi --list-models` or Pi's `/model` selector");
     expect(readme).toContain("This configuration does not start the advisor automatically.");
     expect(readme).toMatch(
-      /Shape[\s\S]*`planning-changes`[\s\S]*`work`[\s\S]*`developing-changes`/u,
+      /Shape[\s\S]*`planning-changes`[\s\S]*`implement`[\s\S]*`developing-changes`/u,
     );
-    expect(readme).toMatch(/`\/develop` as the adaptive[\s\S]*`\/plan`[\s\S]*`\/work`/u);
+    expect(readme).toMatch(/`\/develop` as the adaptive[\s\S]*`\/plan`[\s\S]*`\/implement`/u);
     expect(readme).toMatch(/Small\s+fixes skip Shape[^.]*same quality gate/u);
     expect(readme).toMatch(/intended failing test[^.]*public\s+seam/u);
     expect(readme).toMatch(/selects the direct or retained executor[^.]*diagnoses a bug/u);

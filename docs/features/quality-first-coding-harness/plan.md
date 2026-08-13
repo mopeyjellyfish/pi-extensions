@@ -1,275 +1,147 @@
-# Plan: Quality-first coding harness
+# Plan: Small composable engineering skills
 
-Resume by inspecting Git, then work the first unchecked slice. Reorder, rewrite,
-split, merge, or delete pending slices when implementation teaches something
-new.
+Resume by inspecting Git, then work the first unchecked slice. Each completed
+slice receives one validated Conventional Commit and updates the existing
+feature pull request when authority permits. Keep `pitch.md` accepted before
+implementation.
 
-When the `todo` tool is available, derive checked/total progress and the first
-unchecked slice from this plan. Reconcile one rolling
-`Shape quality-first-coding-harness:` item. Keep `plan.md` authoritative and
-preserve unrelated todos.
-
-## [x] 001 — Establish retained execution and efficient evidence boundaries
+## [x] 006 — Replace work with one small implement flow
 
 ### Outcome
 
-The aggregate has one exclusive writer lease, retained routine repair, fresh
-review, selective durable QA records, and material-delta handoffs.
+One `implement` skill composes an accepted slice through implementation,
+checks, review, repair, slice closure, Conventional Commit, and authorized push
+to the existing pull request. `/work` remains a compatibility prompt, not a
+second method.
 
 ### Pitch trace
 
-- [Preserve efficiency and bug fixes](pitch.md#preserve-efficiency-and-bug-fixes)
-- AC-012 through AC-017
+- [Small skill set](pitch.md#small-skill-set)
+- [Implement one slice](pitch.md#implement-one-slice)
+- AC-001 through AC-005
 
 ### Implementation
 
-Add the first `developing-changes` route and `/develop` prompt. Transfer a
-non-tiny Shape slice to one fresh retained writer. Resume the latest returned
-`runId` for routine repair. Invalidate retained context after a material intent
-change.
+Add `/implement` and `implement`. Change `/work`, Shape, planning, develop,
+README, and aggregate contracts to invoke `implement`. Remove the `work` skill.
+Keep direct or retained execution, executor-before-diagnosis, fresh retained
+context, Sol risk classes, latest-`runId` repair, fresh Sol `high` review, and
+return to Shape for slice closure.
 
-Make one-shot QA ephemeral by default. Keep durable records for requested,
-recurring, or comparative QA. Require material-delta worker and QA handoffs.
-Exclude `.pi/subagents/` artifacts from repository tooling.
+In this first adapted-code slice, add the complete packaged third-party notice,
+its `package.json#files` entry, and its packed-resource assertion. Name the
+pinned upstream source, copyright, complete MIT license, and adapted files.
+
+Add the minimum contract assertion first and confirm its intended failure.
+Implement the shortest flow that passes. Do not copy TDD, design, diagnosis,
+review, commit, or GitHub methods into `implement`; invoke their owning skills.
 
 ### Validation
 
-Focused package and aggregate contract tests passed. Standalone prerequisite,
-deterministic startup, idle reload, five route probes, source smoke, full
-checks, and fresh review passed before the first PR update. The branch was
-rebased onto current `origin/main`. Current main's Playwright cleanup safeguards
-were preserved.
+- Run the focused engineering, feature-flow, aggregate-agent, and prompt tests
+  after each contract change.
+- Probe `/implement` and `/work` resource expansion.
+- Run standalone prerequisite behavior for a route that needs companions.
+- Start the deterministic aggregate, run the focused test, perform one relevant
+  idle `/reload` route probe, and confirm no duplicate or stale resources.
+- Run fresh Sol `high` review from the slice fixed point.
+- Run `npm run check`, `git diff --check`, and artifact hygiene.
 
 ### Done when
 
-The preserved contracts remain covered after all corrective slices. The final
-diff contains no delegated-agent artifacts, QA cleanup regression, or weakened
-review gate.
+Only `implement` owns the slice flow. All preserved writer and review behaviors
+are covered. The notice ships with the first adapted material. The retained
+writer returns its lease and evidence before the parent checks this slice,
+creates one validated `feat(engineering)` commit, and pushes it to PR #52.
 
-## [x] 002 — Execute one small behavior through public-seam TDD
+## [ ] 007 — Strengthen focused methods and remove engineering-practices
 
 ### Outcome
 
-`/work` can execute one accepted, sequential, low-risk change in the parent. It
-proves one intended red result and the minimum green result at a public seam.
+TDD, codebase design, diagnosis, domain modeling, and review are small,
+independently useful methods. `engineering-practices` no longer duplicates them.
 
 ### Pitch trace
 
-- [Canonical work contract](pitch.md#canonical-work-contract)
-- [Test-driven development](pitch.md#test-driven-development)
-- [Engineering practices](pitch.md#engineering-practices)
-- AC-002, AC-004, and AC-007 through AC-010
+- [TDD method](pitch.md#tdd-method)
+- [Codebase design method](pitch.md#codebase-design-method)
+- AC-006 through AC-008
 
 ### Implementation
 
-In `packages/engineering/`, first add one failing resource-contract test for the
-public `/work` route and its required method skills. Confirm that it fails
-because the resources and composition are missing.
+Add the smallest failing contract assertions for good tests, stable seams,
+anti-patterns, deep modules, external boundaries, and testability. Extend
+`test-driven-development` with the useful upstream distinctions. Add
+`codebase-design`. Tighten `diagnosing-bugs` around feedback loop,
+minimization, hypotheses, instrumentation, regression, and the original
+scenario. Keep the concise local `domain-modeling` and `reviewing-changes`
+contracts unless evidence shows a missing method.
 
-Add the focused work skill, `/work` prompt, `test-driven-development` skill, and
-`engineering-practices` skill. Work owns the canonical implementation method.
-For a direct small change, it applies the same TDD and design evidence as a
-writer without delegation overhead.
-
-Keep TDD, design, and orchestration as separate skills. TDD defines public-seam
-red and green only. Engineering practices define evidence-based reuse, DRY,
-cohesion, substitution, dependency, interface depth, naming, failure, and
-cleanup rules. Work composes them.
+Remove `engineering-practices`. Remove it from worker and reviewer skill lists.
+Move its portable safeguards to focused owners: substitution and public behavior
+to TDD; responsibility, reuse, duplication, depth, seams, and external
+boundaries to codebase design; redaction to diagnosis; security, validation,
+cancellation, failure, cleanup, and trust checks to implement. Delete only
+rules that these focused owners, `ponytail`, or repository instructions already
+cover. Update the third-party notice's adapted-file list.
 
 ### Validation
 
-- Record the focused test's intended red failure before adding production
-  resources.
-- Run
-  `npm test -- --run packages/engineering/test/resources.test.ts`
-  and confirm green.
-- Probe the engineering package and confirm `/work` discovers its method skills
-  or reports the actionable companion prerequisite.
-- Send the stable slice diff to one fresh Sol `high` reviewer.
-- Run focused Markdown, formatting, and diff checks.
+- Run focused red and green contract tests.
+- Verify worker and reviewer load only the focused skills they use.
+- Compare method skill line counts and responsibilities before and after.
+- Start the deterministic aggregate, run the focused test, perform one relevant
+  idle `/reload` method probe, and confirm no duplicate or stale resources.
+- Run fresh Sol `high` review against the pinned upstream methods and accepted
+  pitch.
+- Run `npm run check`, `git diff --check`, and artifact hygiene.
 
 ### Done when
 
-The direct `/work` seam is packaged and documented. Its contract requires
-intended red and minimum green evidence for behavioral code. Pure refactors and
-non-behavioral changes use applicable tests or focused validation without
-manufactured failures.
+Each retained method has one clear job. No deleted rule leaves a behavior,
+security, cleanup, or review gap. The retained writer returns its lease and
+evidence before the parent checks this slice, creates one validated
+`feat(engineering)` commit, and pushes it to PR #52.
 
-## [x] 003 — Keep bug diagnosis and routine repair with one retained writer
+## [ ] 008 — Add attribution and prove the composed delivery route
 
 ### Outcome
 
-`/work` selects a retained writer before non-trivial bug diagnosis. A fresh
-review sends routine defects to the latest writer `runId` without a second
-implementation context.
+The package gives correct MIT attribution, documents what was adapted and
+skipped, and demonstrates one plan slice through the complete Pi delivery flow.
 
 ### Pitch trace
 
-- [Canonical work contract](pitch.md#canonical-work-contract)
-- [Preserve efficiency and bug fixes](pitch.md#preserve-efficiency-and-bug-fixes)
-- AC-006 and AC-010 through AC-014
+- [Package and attribution boundary](pitch.md#package-and-attribution-boundary)
+- AC-009 through AC-013
 
 ### Implementation
 
-Add one failing engineering contract test for bug route order. Confirm its
-intended failure. Extend work only enough to select direct or retained execution
-before applying `diagnosing-bugs`, then confirm that test is green. The selected
-executor owns reproduction, caller and sibling tracing, root-cause repair, and
-the regression test as the first red result.
+Verify and, if necessary, update the packaged third-party notice and adapted-
+file list. Update package and root docs with the small skill graph and
+compatibility notes. Update package tests and packed resource expectations.
 
-Next, add one failing aggregate-agent contract test for TDD and
-engineering-practices loading. Confirm its intended failure. Load TDD and
-engineering practices for the worker and engineering practices for the
-reviewer, then confirm that test is green.
-
-For non-trivial work, launch one fresh writer with the worktree lease. Apply Sol
-`medium` normally and Sol `high` for the repository-defined risk classes.
-
-Keep fresh Sol `high` review, latest-`runId` routine repair, material-decision
-escalation, material-delta handoffs, and final parent verification in the work
-contract. Do not copy these rules into develop, diagnosis, or TDD.
+Run deterministic aggregate startup and idle reload. Probe an accepted slice,
+a bounded direct change, retained bug work, routine same-writer repair, fixed-
+point review, slice closure, commit handoff, and existing-PR update contract.
+Do not create a real extra commit or remote mutation in a probe.
 
 ### Validation
 
-- Record the intended red failures for route order and agent skill loading.
-- Run
-  `npm test -- --run packages/engineering/test/resources.test.ts test/tooling/subagents.test.ts`
-  and confirm green.
-- Probe retained bug work. Confirm writer selection occurs before diagnosis,
-  the regression check is red before green, and a routine repair resumes the
-  latest writer run.
-- Send the stable slice diff to one fresh Sol `high` reviewer.
-- Run focused Markdown, formatting, and diff checks.
+- Run focused package and aggregate contract tests.
+- Run standalone engineering and feature-flow probes.
+- Run deterministic source aggregate load, idle `/reload`, and live route
+  probes with the validated `pi-subagents` version.
+- Run `npm run smoke:source`, packed smoke, and the full required check.
+- Run one final fresh Sol `high` review against the accepted pitch and full
+  fixed-point diff.
+- Inspect release, package, dependency, credential, session, and delegated-
+  agent artifact hygiene.
 
 ### Done when
 
-The parent does not complete a non-trivial bug repair before delegation. The
-retained writer owns diagnosis, TDD, repair, and focused checks. Fresh review
-and routine same-writer repair remain mandatory.
-
-## [x] 004 — Turn accepted Shape intent into plan and work
-
-### Outcome
-
-Shape hands an accepted pitch to first-party plan. Plan creates vertical slices
-and hands each accepted slice to the canonical work contract without copying
-execution policy.
-
-### Pitch trace
-
-- [First-party skill system](pitch.md#first-party-skill-system)
-- [Package boundary](pitch.md#package-boundary)
-- AC-001 through AC-005 and AC-017
-
-### Implementation
-
-In `packages/feature-flow/`, first add a failing contract test for the plan
-resource, `/plan` prompt, and Shape-to-plan-to-work composition. Confirm that it
-fails because these resources and handoffs are missing.
-
-Add one focused plan skill and `/plan` prompt. Plan creates the smallest ordered
-vertical slices with public seams, observable behavior, applicable validation,
-and objective done conditions. It does not implement or copy work policy.
-
-Reduce Shape's build section to feature-specific behavior. Shape owns
-Worktrunk, pitch approval, durable plan state, integrated feature paths, the
-worktree-wide lease invariant, and material-change reapproval. Work selects the
-implementation executor and transfers the lease. A material decision returns
-the lease to Shape before pitch revision.
-
-At activation, Shape and plan check the aggregate tools, skills, and agents that
-the next gate needs. Missing companions block with actionable install guidance.
-The package remains independently publishable and installable but does not
-claim standalone execution.
-
-### Validation
-
-- Record the focused test's intended red failure before adding production
-  resources.
-- Run
-  `npm test -- --run packages/feature-flow/test/resources.test.ts packages/engineering/test/resources.test.ts`
-  and confirm green.
-- Run the standalone feature-flow source probe. Confirm resource discovery and
-  actionable blocked behavior when companions are absent.
-- In the aggregate, probe Shape to plan to work. Confirm that work is the only
-  implementation policy owner.
-- Send the stable slice diff to one fresh Sol `high` reviewer.
-- Run focused Markdown, formatting, and diff checks.
-
-### Done when
-
-Shape, plan, and work have distinct responsibilities. Shape and plan contain no
-copy of direct-versus-retained selection, model risk, formal review, or routine
-repair policy.
-
-## [x] 005 — Route the complete first-party harness and update PR #52
-
-### Outcome
-
-`/develop` routes features, plans, small work, bugs, and QA through the complete
-first-party skill set. The aggregate reloads cleanly and PR #52 contains final
-evidence.
-
-### Pitch trace
-
-- [First-party skill system](pitch.md#first-party-skill-system)
-- [Preserve efficiency and bug fixes](pitch.md#preserve-efficiency-and-bug-fixes)
-- AC-001 through AC-020
-
-### Implementation
-
-Exercise each develop route as one red and green cycle. Add one assertion for
-one route, confirm its intended failure, make the minimum router change, and
-confirm green before adding the next route assertion. Cover Shape, plan, work,
-diagnosis inside work, and QA without copying their methods.
-
-After every route is green, update `/develop`, package READMEs, and the root README.
-Keep the aggregate and `pi-subagents` prerequisite. Preserve selective QA
-records, Playwright workspace-scoped targeted cleanup, material-delta handoffs,
-artifact exclusions, and QA's separation from formal review.
-
-Update tests to prove composition and preserved behavior. Do not assert repeated
-workflow prose. Production resources, manifests, prompts, agent contracts,
-tests, and imports must not copy, package, load, or integrate Flywheel,
-Superpowers, or BigPowers. Feature records can name those systems only to record
-the exclusion.
-
-### Validation
-
-- Record the route contract's intended red failure, then run
-  `npm test -- --run packages/engineering/test/resources.test.ts packages/feature-flow/test/resources.test.ts test/tooling/subagents.test.ts`
-  and confirm green.
-- Run one fresh Sol `high` fixed-point review against the accepted pitch and
-  full diff. Send routine findings to the latest retained writer. Re-review
-  material repairs.
-- Run standalone engineering and feature-flow probes for discovery and blocked
-  prerequisites.
-- Start the deterministic aggregate session with validated
-  `pi-subagents@0.43.0`. Run focused tests before an idle `/reload`.
-- After reload, exercise and record these routes in
-  `/tmp/quality-first-coding-harness-acceptance.md`:
-
-  | Route                 | Expected result                                                                         |
-  | --------------------- | --------------------------------------------------------------------------------------- |
-  | Shape to plan to work | Shape owns intent, plan creates slices, and work owns execution policy.                 |
-  | Accepted small work   | Parent-direct work applies public-seam red/green without delegation overhead.           |
-  | Retained bug work     | Work selects the writer before diagnosis. The regression check is the first red result. |
-  | Routine repair        | Fresh review returns a routine defect to the latest retained writer `runId`.            |
-  | One-shot QA           | Fresh Luna `medium` QA returns evidence without `docs/qa/` and does not replace review. |
-
-- Record route, model and effort, lease ownership and transfer, red and green
-  evidence, reviewer or QA behavior, checks, token data when available,
-  failures, and residual risks.
-- Run `npm run smoke:source`, then `VITEST_MAX_WORKERS=1 npm run check` if high
-  host load still causes unrelated parallel LSP timing failures. State the
-  bounded worker override in evidence.
-- Run `git diff --check` and inspect package, release, dependency, credential,
-  and artifact hygiene.
-- Validate package-scoped Conventional Commits. Update the authorized branch and
-  PR #52. Verify title, body, base, head, mergeability, and checks.
-
-### Done when
-
-The accepted pitch criteria hold. All first-slice fixes remain covered. Focused,
-live, smoke, full, and independent review gates pass. Valid Conventional
-Commits update the branch and PR #52 with final checks and residual risks.
+All acceptance criteria hold. The retained writer returns its lease and
+evidence before the parent checks this slice and creates one validated
+`feat(engineering)` or `docs(engineering)` commit. PR #52 has updated evidence,
+and every required GitHub check passes. A remote-check defect receives a
+separate corrective commit or slice. Pushed history is not rewritten.

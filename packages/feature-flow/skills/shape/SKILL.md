@@ -19,7 +19,7 @@ check state, and Git provides durable history and resume evidence.
 
 At activation, before brief questions, worktree actions, or research, confirm the
 full flow has the aggregate `question`, `worktree`, and `todo` tools as
-applicable; the `simple-english`, `planning-changes`, and `work` skills; the
+applicable; the `simple-english`, `planning-changes`, and `implement` skills; the
 expected research and review agent roles; and the `subagent` tool supplied by
 `pi-subagents`. If a required companion is absent, stop and report:
 
@@ -37,11 +37,10 @@ not claim that standalone installation supplies these operational companions.
 
 Keep one exclusive active writer lease for the worktree. During shaping, the
 controlling Shape agent owns the lease, remains the sole decision-maker, and
-keeps research and review specialists read-only. Shape holds the lease
-continuously through planning and while it invokes `work`. Work first selects
-the direct or retained route. For direct execution, the Shape parent continues
-holding the lease. For retained execution, work explicitly transfers it to the
-selected worker. Never permit a lease-free interval, concurrent writers, or
+keeps research and review specialists read-only. Shape holds the lease continuously through planning and while it invokes
+`implement`. Implement first selects the direct or retained route. For direct
+execution, the Shape parent continues holding the lease. For retained execution,
+Implement explicitly transfers it to the selected worker. Never permit a lease-free interval, concurrent writers, or
 ambiguous write ownership.
 
 Before the first delegation, call `subagent({ action: "list" })` once to discover
@@ -211,25 +210,28 @@ instruction fails.
 
 The first unchecked slice is current or next. Inspect Git and the accepted pitch
 and slice before continuing. After Shape accepts the reviewed plan and current
-slice, Shape invokes `work` with the accepted pitch and slice,
+slice, Shape invokes `implement` with the accepted pitch and slice,
 worktree path, current lease state, integrated path for the user or operator,
 required Shape gates, and the material-change rule that intent changes return
-to Shape. `work`
+to Shape. `implement`
 owns executor selection, implementation lease transfer, and its implementation
 method.
 
-A decision-level finding returns the lease and decision to Shape. Shape verifies
-the returned work evidence and runs the slice's Shape-specific integrated path
-and gates. A blocked slice remains unchecked and records one short
+A decision-level finding returns the lease and decision to Shape. After a retained
+worker returns its evidence and lease, Shape verifies the implementation evidence
+and runs the slice's Shape-specific integrated path and gates. A blocked slice
+remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
 checkbox `[x]` only after the returned evidence and Shape-specific gates pass,
 then recompute the rolling todo from `plan.md`. If that update fails, keep the
 durable checkbox checked, report the gap, and retry later.
 
-When repository instructions and explicit user authority permit a local commit,
-include the checkbox update with that slice's delivery changes. Never infer
-authority to commit, push, open a pull request, merge, publish, deploy, remove a
-worktree, or perform destructive cleanup.
+When repository instructions and explicit user authority permit delivery, the
+Shape parent updates the checkbox, returns to `implement`, and applies
+`conventional-commit` and `github-cli` for the authorized commit, branch push,
+and existing pull request checks. A worker never edits `plan.md`, commits, or
+pushes. Never infer authority to commit, push, open a pull request, merge,
+publish, deploy, remove a worktree, or perform destructive cleanup.
 
 ## Material change
 
@@ -240,7 +242,7 @@ pitch and every affected plan slice, repeat independent pitch review, show the
 complete revised pitch, and obtain fresh human approval. After approval,
 restore `status: accepted` before planning or Build resumes. The changed contract invalidates the old implementation context. After
 reapproval and replanning, pass the `invalidated contract` state and the
-parent-held lease to `work`. Git preserves prior versions; do not create archive copies.
+parent-held lease to `implement`. Git preserves prior versions; do not create archive copies.
 
 ## Finish
 

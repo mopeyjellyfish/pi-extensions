@@ -11,7 +11,7 @@ Accept explicit accepted intent or an accepted Shape pitch.
 
 ## Check prerequisites at activation
 
-At activation, before repository inspection or planning, confirm the `work`
+At activation, before repository inspection or planning, confirm the `implement`
 skill and the aggregate tools and agents needed by the plan gate are available,
 including the `subagent` tool and independent reviewer supplied through
 `pi-subagents`. If a required companion is missing, stop and report:
@@ -46,7 +46,7 @@ split, merged, or deleted as repository evidence teaches more. Do not implement
 or claim Git delivery authority.
 
 Return the complete plan to Shape for independent review and acceptance. Shape,
-not planning, accepts the reviewed plan and current slice, then invokes `work`.
+not planning, accepts the reviewed plan and current slice, then invokes `implement`.
 Include the accepted intent, worktree path, current writer-lease state,
 integrated path, required checks, and the rule that a material intent change
 returns to Shape. Planning does not implement, choose writers or models, define
