@@ -14,7 +14,7 @@ unrelated changes and confirm one exclusive active writer lease.
 
 ## Check prerequisites
 
-Confirm `test-driven-development` and `engineering-practices` are available.
+Confirm `test-driven-development` and `codebase-design` are available.
 Before delegation or review, also confirm the Git aggregate agents and
 `pi-subagents`. If one is missing, stop and report:
 

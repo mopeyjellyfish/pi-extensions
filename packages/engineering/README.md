@@ -2,15 +2,16 @@
 
 `@mopeyjellyfish/pi-engineering` is an independent, skill-and-prompt-only Pi
 package. It provides a quality-first coding workflow plus narrow guidance for
-public-seam TDD, evidence-based engineering practices, diagnosing bugs,
-modeling domain language, and reviewing changes. It has no extension, runtime
+public-seam TDD, codebase design, diagnosing bugs, modeling domain language,
+and reviewing changes. It has no extension, runtime
 dependency, or Pi peer dependency.
 
 The skills use the nearest `CONTEXT.md` for repository language. This
 repository's root context file records its canonical terms. Review is
 read-only unless a caller explicitly authorizes edits.
 
-The `implement` flow adapts MIT-licensed guidance from
+The focused implementation, TDD, codebase-design, and diagnosis methods adapt
+MIT-licensed guidance from
 [mattpocock/skills](https://github.com/mattpocock/skills). See
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the pinned source and
 license.
@@ -44,10 +45,11 @@ metadata, and mechanical implementation. For a bug, Implement selects the
 executor before that executor applies `diagnosing-bugs`.
 
 The focused skills own their methods. Shape owns product intent. Planning owns
-vertical slices. Implement owns direct or retained execution, TDD,
-implementation, validation, review, repair, and parent-only authorized delivery. `test-driven-development` owns public-seam red
-and green behavior evidence. `engineering-practices` owns practical,
-evidence-based design guidance. `reviewing-changes` owns formal review.
+vertical slices. Implement owns direct or retained execution, validation,
+review, repair, and parent-only authorized delivery. `test-driven-development`
+owns public-seam red and green behavior evidence. `codebase-design` owns deep
+modules, stable seams, and evidence-based responsibility. `diagnosing-bugs`
+owns the observable diagnosis loop. `reviewing-changes` owns formal review.
 `/develop` owns only route choice, user coordination, synthesis, final
 verification, and delivery authority.
 

@@ -13,16 +13,18 @@ const read = (path: string) => readFile(join(PACKAGE_ROOT, path), "utf8");
 describe("engineering resources", () => {
   it("composes /implement and keeps /work only as its compatibility alias", async () => {
     expect.hasAssertions();
-    const [implement, tdd, practices, prompt, alias, skillDirectories] = await Promise.all([
+    const [implement, tdd, design, prompt, alias, skillDirectories] = await Promise.all([
       read("skills/implement/SKILL.md"),
       read("skills/test-driven-development/SKILL.md"),
-      read("skills/engineering-practices/SKILL.md"),
+      read("skills/codebase-design/SKILL.md"),
       read("prompts/implement.md"),
       read("prompts/work.md"),
       readdir(join(PACKAGE_ROOT, "skills")),
     ]);
 
     expect(skillDirectories).toContain("implement");
+    expect(skillDirectories).toContain("codebase-design");
+    expect(skillDirectories).not.toContain("engineering-practices");
     expect(skillDirectories).not.toContain("work");
     expect(implement).toMatch(
       /approved slice[\s\S]*explicit bounded request[\s\S]*confirmed bug outcome/iu,
@@ -34,33 +36,35 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/Git aggregate[\s\S]*pi-subagents[\s\S]*Blocked prerequisite/iu);
     expect(implement).toMatch(/parent only when[\s\S]*sequential[\s\S]*low-risk/iu);
     expect(implement).toMatch(/locally\s+understandable[\s\S]*cheap to validate/iu);
-    expect(implement).toMatch(/`test-driven-development`[\s\S]*`engineering-practices`/iu);
+    expect(implement).toMatch(/`test-driven-development`[\s\S]*`codebase-design`/iu);
 
     expect(tdd).toMatch(
       /accepted\s+request[\s\S]*accepted pitch[\s\S]*accepted plan[\s\S]*seam approval/iu,
     );
+    expect(tdd).toMatch(/observable capability[\s\S]*public interface/iu);
+    expect(tdd).toMatch(/narrowest stable[\s\S]*approved seam/iu);
     expect(tdd).toMatch(/public seam[\s\S]*fails? for the intended[\s\S]*minimum[\s\S]*pass/iu);
-    expect(tdd).toMatch(/repeat[\s\S]*vertically/iu);
+    expect(tdd).toMatch(/refactor while green[\s\S]*vertically/iu);
     expect(tdd).toMatch(/independent\s+expected value/iu);
+    expect(tdd).toMatch(/mock-call-only[\s\S]*private helper[\s\S]*implementation\s+structure/iu);
+    expect(tdd).toMatch(/tautological[\s\S]*horizontal[\s\S]*imagined\s+behavior/iu);
     expect(tdd).toMatch(/process[\s\S]*filesystem[\s\S]*network[\s\S]*UI/iu);
     expect(tdd).toMatch(/pure refactor[\s\S]*existing tests[\s\S]*focused validation/iu);
     expect(tdd).toMatch(/documentation[\s\S]*metadata[\s\S]*mechanical[\s\S]*focused validation/iu);
 
-    expect(practices).toMatch(
-      /repository\s+helper[\s\S]*standard library[\s\S]*native\s+platform[\s\S]*installed dependency/iu,
+    expect(design).toMatch(/deep module[\s\S]*small stable interface/iu);
+    expect(design).toMatch(
+      /hide[\s\S]*sequencing[\s\S]*representation[\s\S]*defaults[\s\S]*recoverable complexity/iu,
     );
-    expect(practices).toMatch(/same current rule[\s\S]*change together/iu);
-    expect(practices).toMatch(/coherent policy or capability[\s\S]*reasons?\s+to change/iu);
-    expect(practices).toMatch(/substitution[\s\S]*public-seam behavior tests/iu);
-    expect(practices).toMatch(/dependency injection[\s\S]*volatile or external boundary/iu);
-    expect(practices).toMatch(/small public interface[\s\S]*hides substantial behavior/iu);
-    expect(practices).toMatch(/nearest `?CONTEXT\.md`?/iu);
-    expect(practices).toMatch(
-      /validation[\s\S]*cancellation[\s\S]*failures[\s\S]*cleanup[\s\S]*trust boundaries/iu,
+    expect(design).toMatch(/stable capability[\s\S]*not around every class or\s+function/iu);
+    expect(design).toMatch(/adapter[\s\S]*real volatile or external\s+boundary/iu);
+    expect(design).toMatch(
+      /repository[\s\S]*standard library[\s\S]*native platform[\s\S]*installed\s+dependenc/iu,
     );
-    expect(practices).toMatch(
-      /concrete[\s\S]*(duplicated rule|shallow layer|broken public contract)/iu,
-    );
+    expect(design).toMatch(/same current rule[\s\S]*change\s+together/iu);
+    expect(design).toMatch(/callers[\s\S]*reasons? to change[\s\S]*coherent\s+responsibility/iu);
+    expect(design).toMatch(/forwarding-only[\s\S]*speculative\s+interfaces/iu);
+    expect(design).toMatch(/testability friction[\s\S]*seam/iu);
 
     expect(prompt).toContain("Use the `implement` skill.");
     expect(alias).toContain("Use the `implement` skill.");
@@ -138,8 +142,14 @@ describe("engineering resources", () => {
     ]) {
       expect(developing).not.toContain(copiedPolicy);
     }
-    expect(bug).toMatch(/reproduce|observable feedback loop/iu);
+    expect(bug).toMatch(/redact[\s\S]*secret[\s\S]*<REDACTED>/iu);
+    expect(bug).toMatch(/tight[\s\S]*observable feedback loop/iu);
+    expect(bug).toMatch(/reproduce[\s\S]*minimi/iu);
+    expect(bug).toMatch(/competing[\s\S]*testable hypotheses/iu);
+    expect(bug).toMatch(/instrumentation[\s\S]*discriminates/iu);
     expect(bug).toMatch(/shared root cause/iu);
+    expect(bug).toMatch(/regression[\s\S]*fails before[\s\S]*passes after/iu);
+    expect(bug).toMatch(/original scenario[\s\S]*cleanup[\s\S]*uncertainty/iu);
     expect(bug).toMatch(/nondeterministic|unreproducible/iu);
     expect(domain).toMatch(/nearest `?CONTEXT\.md`?/iu);
     expect(domain).toMatch(/each concept one\s+term|one term per concept/iu);
@@ -229,13 +239,13 @@ describe("engineering resources", () => {
     expect(manifest.dependencies).toBeUndefined();
     expect(paths).toEqual(
       expect.arrayContaining([
+        "skills/codebase-design/SKILL.md",
         "skills/developing-changes/SKILL.md",
         "skills/diagnosing-bugs/SKILL.md",
         "skills/domain-modeling/SKILL.md",
         "skills/reviewing-changes/SKILL.md",
         "skills/implement/SKILL.md",
         "skills/test-driven-development/SKILL.md",
-        "skills/engineering-practices/SKILL.md",
         "prompts/develop.md",
         "prompts/implement.md",
         "prompts/work.md",

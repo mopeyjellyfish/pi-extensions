@@ -7,23 +7,27 @@ description: >-
 
 # Test-driven development
 
-Use this method for each behavioral code change:
+A good test describes one observable capability through a public interface and
+survives internal refactoring. Use the narrowest stable approved seam that still
+proves the behavior. An accepted request, accepted pitch, or accepted plan
+counts as seam approval; ask only when the seam is unresolved.
 
-1. Name one observable behavior and its public seam. An explicit accepted
-   request, accepted pitch, or accepted plan counts as seam approval; ask only
-   when the seam is unresolved.
-2. Add the smallest behavior test at that public seam. Use an independent
-   expected value from the specification, a known literal, or a worked example.
-3. Run that focused test and confirm it fails for the intended behavioral
-   reason, not because of setup or syntax.
-4. Add only the minimum production behavior needed to pass.
-5. Run the focused test and confirm it passes.
-6. Repeat vertically for the next behavior. Do not batch tests horizontally
-   before making the current behavior green.
-7. Run the applicable integrated path and required checks.
+For each vertical behavior:
 
-Mock only real process, filesystem, time, randomness, network, provider, or UI
-boundaries when necessary. Do not mock owned modules or test private helpers.
+1. Add the smallest behavior test with an independent expected value from
+   accepted intent, a known literal, or a worked example.
+2. Run it and confirm the public seam fails for the intended behavioral reason,
+   not because of setup or syntax.
+3. Add only the minimum production behavior needed to pass.
+4. Run the focused test, then refactor while green.
+5. Repeat vertically for the next behavior and finally run the integrated path
+   and required checks.
+
+Reject mock-call-only tests, tests of a private helper or implementation
+structure, tautological expected values, and horizontal batches of imagined
+behavior. Preserve substitution with the same public behavior tests. Mock only
+real process, filesystem, time, randomness, network, provider, or UI boundaries
+when necessary, not owned collaborators.
 
 A pure refactor uses applicable existing tests or the smallest focused
 validation before and after. Add a public-seam behavior test only when it gives

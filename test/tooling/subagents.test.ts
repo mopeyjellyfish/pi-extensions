@@ -257,10 +257,10 @@ describe("aggregate subagent resources", () => {
       "oracle.md": "domain-modeling",
       "planner.md": "domain-modeling, writing-for-agents",
       "qa.md": "writing-for-agents",
-      "reviewer.md": "ponytail-review, reviewing-changes, engineering-practices",
+      "reviewer.md": "ponytail-review, reviewing-changes, codebase-design",
       "researcher.md": "writing-for-agents",
       "scout.md": undefined,
-      "worker.md": "ponytail, diagnosing-bugs, test-driven-development, engineering-practices",
+      "worker.md": "ponytail, diagnosing-bugs, test-driven-development, codebase-design",
     } as const;
     expectAgentSkills(agents, expectedSkills);
 
@@ -324,21 +324,21 @@ describe("aggregate subagent resources", () => {
     );
     expect(worker).toMatch(/Do not paste raw logs/iu);
     expect(worker).toContain(
-      "skills: ponytail, diagnosing-bugs, test-driven-development, engineering-practices",
+      "skills: ponytail, diagnosing-bugs, test-driven-development, codebase-design",
     );
     expect(worker).toContain(
       "Apply `diagnosing-bugs` only when the assigned task is bug diagnosis or an unexplained regression",
     );
     expect(worker).toContain("Before any coding task, read and apply the `ponytail` skill.");
     expect(worker).toMatch(
-      /read and apply `test-driven-development`[^.]*behavioral code[\s\S]*read and apply `engineering-practices`/iu,
+      /read and apply `test-driven-development`[^.]*behavioral code[\s\S]*read and apply `codebase-design`/iu,
     );
     expect(worker).toContain(
       "do not run `ponytail-review` or `ponytail-audit` unless the task explicitly asks for it",
     );
-    expect(reviewer).toContain("skills: ponytail-review, reviewing-changes, engineering-practices");
+    expect(reviewer).toContain("skills: ponytail-review, reviewing-changes, codebase-design");
     expect(reviewer).toContain("read and apply `reviewing-changes`");
-    expect(reviewer).toMatch(/read and apply `engineering-practices`[\s\S]*concrete evidence/iu);
+    expect(reviewer).toMatch(/read and apply `codebase-design`[\s\S]*concrete evidence/iu);
     expect(reviewer).toContain(
       "Read and apply the `ponytail-review` skill only when the task explicitly requests a simplicity or over-engineering review",
     );
