@@ -323,6 +323,43 @@ describe("pi-worktrunk extension", () => {
     expect(userBashFailure).toBeInstanceOf(Error);
   });
 
+  it("keeps cancellation on the requested switch but not its post-mutation confirmation", async () => {
+    expect.hasAssertions();
+    const signal = new AbortController().signal;
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify({ path: ACTIVE_PATH }),
+      },
+      { code: 0, killed: false, stderr: "", stdout: worktreeList() },
+    ]);
+
+    await expect(
+      harness.tool.execute(
+        "activate",
+        { action: "activate", identifier: "feature/adapter" },
+        signal,
+        undefined,
+        context(harness),
+      ),
+    ).resolves.toMatchObject({ details: { action: "activate", activePath: ACTIVE_PATH } });
+    expect(harness.exec).toHaveBeenNthCalledWith(
+      2,
+      "wt",
+      ["switch", "--no-cd", "--format=json", "feature/adapter"],
+      { cwd: MAIN_PATH, signal, timeout: 300_000 },
+    );
+    expect(harness.exec).toHaveBeenNthCalledWith(
+      3,
+      "wt",
+      ["--config-set", "list.json-schema=2", "list", "--format=json"],
+      { cwd: MAIN_PATH, timeout: 30_000 },
+    );
+  });
+
   it("publishes path fallbacks for detached or unborn linked worktrees", async () => {
     expect.hasAssertions();
     const harness = createHarness([
