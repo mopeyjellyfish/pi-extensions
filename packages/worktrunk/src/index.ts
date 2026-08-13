@@ -37,7 +37,10 @@ export const WorktreeParameters = Type.Object(
       }),
     ),
     branch: Type.Optional(
-      Type.String({ description: "Branch name for action=create", maxLength: 4096 }),
+      Type.String({
+        description: "Branch name to create, or to attach when it already has a linked worktree",
+        maxLength: 4096,
+      }),
     ),
     confirm: Type.Optional(
       Type.Boolean({ description: "Set true only after the user approves a worktree removal" }),
@@ -431,7 +434,7 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
         const label = summary.worktree.branch ?? summary.worktree.path;
         const head = summary.worktree.head ?? "[unborn]";
         return toolResult(
-          `Created and activated ${label}.\nPath: ${summary.worktree.path}\nHEAD: ${head}`,
+          `${selection.existing === true ? "Attached to existing" : "Created and activated"} ${label}.\nPath: ${summary.worktree.path}\nHEAD: ${head}`,
           {
             action: "create",
             activePath: summary.worktree.path,

@@ -527,12 +527,98 @@ describe("WorktrunkClient", () => {
     }
   });
 
+  it("returns an already linked branch without trying to create it again", async () => {
+    expect.hasAssertions();
+    const signal = new AbortController().signal;
+    const run = runnerWith(
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: listDocument() },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify({ action: "existing", path: FEATURE_PATH }),
+      },
+      { code: 0, killed: false, stderr: "", stdout: listDocument() },
+    );
+    const client = new WorktrunkClient(run);
+
+    await expect(client.create("feature/adapter", undefined, MAIN_PATH, signal)).resolves.toEqual({
+      existing: true,
+      mainPath: MAIN_PATH,
+      worktree: {
+        branch: "feature/adapter",
+        clean: true,
+        current: false,
+        head: "2222222222222222222222222222222222222222",
+        main: false,
+        path: FEATURE_PATH,
+      },
+    });
+    expect(run).toHaveBeenCalledTimes(4);
+    expect(run).toHaveBeenNthCalledWith(
+      3,
+      ["switch", "--no-cd", "--format=json", "feature/adapter"],
+      { cwd: MAIN_PATH, signal, timeout: 300_000 },
+    );
+    expect(run.mock.calls.flat().join(" ")).not.toContain("--create");
+  });
+
+  it("fails closed if an existing-branch switch creates a replacement worktree", async () => {
+    expect.hasAssertions();
+    const client = new WorktrunkClient(
+      runnerWith(
+        { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+        { code: 0, killed: false, stderr: "", stdout: listDocument() },
+        {
+          code: 0,
+          killed: false,
+          stderr: "",
+          stdout: JSON.stringify({ action: "created", path: FEATURE_PATH }),
+        },
+      ),
+    );
+
+    await expect(client.create("feature/adapter", undefined, MAIN_PATH, undefined)).rejects.toThrow(
+      "expected existing worktree",
+    );
+  });
+
+  it("fails closed if an existing-branch switch resolves to a different branch", async () => {
+    expect.hasAssertions();
+    const switchedList = schema2([
+      worktreeItem(MAIN_PATH, { branch: "main", current: true, main: true }),
+      worktreeItem(FEATURE_PATH, { branch: "feature/other" }),
+    ]);
+    const client = new WorktrunkClient(
+      runnerWith(
+        { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+        { code: 0, killed: false, stderr: "", stdout: listDocument() },
+        {
+          code: 0,
+          killed: false,
+          stderr: "",
+          stdout: JSON.stringify({ action: "existing", path: FEATURE_PATH }),
+        },
+        { code: 0, killed: false, stderr: "", stdout: switchedList },
+      ),
+    );
+
+    await expect(client.create("feature/adapter", undefined, MAIN_PATH, undefined)).rejects.toThrow(
+      "not confirmed as a linked worktree",
+    );
+  });
+
   it("creates through Worktrunk and only exposes the path after a fresh list confirms it", async () => {
     expect.hasAssertions();
     const signal = new AbortController().signal;
+    const mainOnly = schema2([
+      worktreeItem(MAIN_PATH, { branch: "main", current: true, main: true }),
+    ]);
     const run = vi
       .fn()
       .mockResolvedValueOnce({ code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" })
+      .mockResolvedValueOnce({ code: 0, killed: false, stderr: "", stdout: mainOnly })
       .mockResolvedValueOnce({
         code: 0,
         killed: false,
@@ -561,7 +647,7 @@ describe("WorktrunkClient", () => {
       },
     });
     expect(run).toHaveBeenNthCalledWith(
-      2,
+      3,
       [
         "switch",
         "--create",
@@ -574,7 +660,7 @@ describe("WorktrunkClient", () => {
       { cwd: MAIN_PATH, signal, timeout: 300_000 },
     );
     expect(run).toHaveBeenNthCalledWith(
-      3,
+      4,
       ["--config-set", "list.json-schema=2", "list", "--format=json"],
       { cwd: MAIN_PATH, signal: undefined, timeout: 30_000 },
     );

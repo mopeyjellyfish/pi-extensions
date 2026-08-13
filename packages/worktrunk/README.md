@@ -20,9 +20,11 @@ remove linked worktrees. The tool is sequential: after a successful create or
 activate, later normal file or agent-Bash calls in the same tool batch route to
 the selected worktree.
 
-Activation accepts a branch name, Worktrunk's previous-worktree shortcut (`-`),
-or a PR/MR reference such as `pr:123`, `mr:123`, or a supported forge URL.
-Removal remains deliberately exact-branch-only. List output is capped at 20
+Create attaches to an existing linked worktree when its exact branch already
+exists. Otherwise, it creates the branch and worktree. Activation accepts a
+branch name, Worktrunk's previous-worktree shortcut (`-`), or a PR/MR reference
+such as `pr:123`, `mr:123`, or a supported forge URL. Removal remains
+deliberately exact-branch-only. List output is capped at 20
 worktrees; when it is truncated, use agent Bash to run
 `wt list --format=json` for the complete Worktrunk result.
 

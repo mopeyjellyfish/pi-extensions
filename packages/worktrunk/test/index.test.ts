@@ -102,6 +102,12 @@ function worktreeList(
   });
 }
 
+function mainWorktreeList(): string {
+  const parsed = JSON.parse(worktreeList()) as { items: Record<string, unknown>[] };
+  parsed.items = parsed.items.slice(0, 1);
+  return JSON.stringify(parsed);
+}
+
 function detachedWorktreeList(): string {
   const parsed = JSON.parse(worktreeList()) as { items: Record<string, unknown>[] };
   const feature = parsed.items[1];
@@ -360,6 +366,48 @@ describe("pi-worktrunk extension", () => {
     );
   });
 
+  it("activates an existing linked branch instead of trying to create it again", async () => {
+    expect.hasAssertions();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: worktreeList() },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify({ action: "existing", path: ACTIVE_PATH }),
+      },
+      { code: 0, killed: false, stderr: "", stdout: worktreeList() },
+    ]);
+    const abort = vi.fn();
+
+    const result = await harness.tool.execute(
+      "create-existing",
+      { action: "create", branch: "feature/adapter" },
+      undefined,
+      undefined,
+      context(harness, { abort }),
+    );
+
+    expect(result).toMatchObject({
+      content: [
+        {
+          text: "Attached to existing feature/adapter.\nPath: /projects/example-feature\nHEAD: 2222222222222222222222222222222222222222",
+        },
+      ],
+      details: { action: "create", activePath: ACTIVE_PATH },
+    });
+    expect(harness.exec).toHaveBeenCalledTimes(4);
+    expect(harness.exec).toHaveBeenNthCalledWith(
+      3,
+      "wt",
+      ["switch", "--no-cd", "--format=json", "feature/adapter"],
+      { cwd: MAIN_PATH, timeout: 300_000 },
+    );
+    expect(harness.exec.mock.calls.flat().join(" ")).not.toContain("--create");
+    expect(abort).not.toHaveBeenCalled();
+  });
+
   it("publishes path fallbacks for detached or unborn linked worktrees", async () => {
     expect.hasAssertions();
     const harness = createHarness([
@@ -394,6 +442,7 @@ describe("pi-worktrunk extension", () => {
     expect.hasAssertions();
     const harness = createHarness([
       { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: mainWorktreeList() },
       {
         code: 0,
         killed: false,
@@ -413,7 +462,7 @@ describe("pi-worktrunk extension", () => {
       ),
     ).resolves.toMatchObject({ details: { action: "create", activePath: ACTIVE_PATH } });
     expect(harness.exec).toHaveBeenNthCalledWith(
-      2,
+      3,
       "wt",
       ["switch", "--create", "--base", "-", "--no-cd", "--format=json", "feature/adapter"],
       { cwd: MAIN_PATH, timeout: 300_000 },
@@ -456,6 +505,7 @@ describe("pi-worktrunk extension", () => {
       { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
       { code: 0, killed: false, stderr: "", stdout: worktreeList() },
       { code: 0, killed: false, stderr: "", stdout: worktreeList() },
+      { code: 0, killed: false, stderr: "", stdout: mainWorktreeList() },
       {
         code: 0,
         killed: false,
@@ -526,13 +576,13 @@ describe("pi-worktrunk extension", () => {
     });
 
     expect(harness.exec).toHaveBeenNthCalledWith(
-      4,
+      5,
       "wt",
       ["switch", "--create", "--no-cd", "--format=json", "feature/adapter"],
       { cwd: MAIN_PATH, timeout: 300_000 },
     );
     expect(harness.exec).toHaveBeenNthCalledWith(
-      9,
+      10,
       "wt",
       [
         "--yes",
