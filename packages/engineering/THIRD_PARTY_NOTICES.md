@@ -6,9 +6,16 @@ Source: <https://github.com/mattpocock/skills>
 
 Pinned commit: `8b78b531ab965735c5dc74f6f7a219e1e37326df`
 
-Adapted file:
+Adapted files and pinned sources:
 
-- `skills/implement/SKILL.md`, adapted from `skills/engineering/implement/SKILL.md`
+- `skills/implement/SKILL.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/implement/SKILL.md>
+- `skills/test-driven-development/SKILL.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/tdd/SKILL.md>
+- `skills/codebase-design/SKILL.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/codebase-design/SKILL.md>
+- `skills/diagnosing-bugs/SKILL.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/diagnosing-bugs/SKILL.md>
 
 Copyright (c) 2026 Matt Pocock
 

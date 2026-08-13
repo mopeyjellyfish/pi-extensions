@@ -54,7 +54,7 @@ are covered. The notice ships with the first adapted material. The retained
 writer returns its lease and evidence before the parent checks this slice,
 creates one validated `feat(engineering)` commit, and pushes it to PR #52.
 
-## [ ] 007 — Strengthen focused methods and remove engineering-practices
+## [x] 007 — Strengthen focused methods and remove engineering-practices
 
 ### Outcome
 
