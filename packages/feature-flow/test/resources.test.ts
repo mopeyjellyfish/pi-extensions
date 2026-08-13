@@ -56,7 +56,15 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/returned run identifier[^.]*results block synthesis/iu);
     expect(skill).toMatch(/do not poll or\s+sleep/iu);
     expect(skill).toMatch(/do not modify project or source files/iu);
-    expect(skill).toMatch(/controlling Shape agent[^.]*sole writer/iu);
+    expect(skill).toMatch(/exclusive active writer lease/iu);
+    expect(skill).toMatch(/controlling Shape agent[^.]*sole decision-maker/iu);
+    expect(skill).toMatch(/non-tiny slice[\s\S]*one retained Sol writer with `context: "fresh"`/iu);
+    expect(skill).toMatch(
+      /parent reads[\s\S]*without editing while[\s\S]*writer holds the lease/iu,
+    );
+    expect(skill).toContain('runs.run(key, { resume: "<run-id>", task: "follow-up" })');
+    expect(skill).toMatch(/latest\s+returned `runId`[^.]*further repair/iu);
+    expect(skill).toMatch(/QA[^.]*never replaces formal review/iu);
     expect(skill).toMatch(/synthesize[^.]*before[^.]*decision[^.]*edit/iu);
     expect(skill).toMatch(
       /`subagent` tool[^.]*unavailable[\s\S]*research[^.]*record the gap[\s\S]*review[^.]*stop/iu,
@@ -95,11 +103,24 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(
       /never infer[^.]*commit[^.]*push[^.]*open a pull request[^.]*merge[^.]*publish[^.]*deploy[^.]*remove a\s+worktree[^.]*destructive cleanup/iu,
     );
+    expect(skill).toMatch(/material change[\s\S]*stop the\s+writer[\s\S]*status: draft/iu);
+    expect(skill).toMatch(
+      /full\s+pitch[\s\S]*every affected plan slice[\s\S]*independent pitch review[\s\S]*complete revised pitch[\s\S]*fresh human approval/iu,
+    );
     expect(skill).toMatch(/fresh human approval[\s\S]*status: accepted/iu);
+    expect(skill).toMatch(
+      /changed\s+contract invalidates the old writer context[\s\S]*new self-contained task\s+capsule[\s\S]*one new Sol writer with `context: "fresh"`/iu,
+    );
+    expect(skill).toMatch(/Do not resume the retained writer after a material change/iu);
     expect(skill).not.toMatch(/feature-flow\.mjs|index\.json|sha-?256|banking|Feature-Slice/iu);
     expect(readme).toMatch(/aggregate\s+package[\s\S]*not a standalone/iu);
     expect(readme).toMatch(/research stage[^.]*zero to three[\s\S]*review[^.]*one to three/iu);
-    expect(readme).toMatch(/controlling Shape agent[^.]*sole writer/iu);
+    expect(readme).toMatch(/controlling Shape parent[^.]*sole decision-maker/iu);
+    expect(readme).toMatch(/exclusive\s+writer lease[\s\S]*one\s+retained Sol writer/iu);
+    expect(readme).toMatch(/material intent change[\s\S]*whole-document human approval/iu);
+    expect(readme).toMatch(
+      /retained writer[^.]*routine repair[^.]*then a fresh\s+formal reviewer/iu,
+    );
     expect(readme).toContain("pi install npm:pi-subagents");
     expect(readme).toContain("pi install git:github.com/mopeyjellyfish/pi-extensions");
     expect(`${skill}\n${readme}`).not.toMatch(/shape\/(?:<slug>|\*)/u);

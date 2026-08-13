@@ -15,10 +15,13 @@ worktree lifecycle authority. The durable feature artifacts are
 pitch defines intent, the current `plan.md` defines slice membership, order, and
 check state, and Git provides durable history and resume evidence.
 
-## Orchestrate read-only specialists
+## Orchestrate specialists with one writer lease
 
-The controlling Shape agent is the sole writer for the active worktree. Keep
-all specialist subagents advisory.
+Keep one exclusive active writer lease for the worktree. During shaping, the
+controlling Shape agent owns the lease, remains the sole decision-maker, and
+keeps research and review specialists read-only. During a non-tiny slice, it
+transfers the lease explicitly to one retained writer and does not edit while
+that writer owns it. Never permit concurrent or ambiguous write ownership.
 
 Before the first delegation, call `subagent({ action: "list" })` once to discover
 the live agent inventory when the `subagent` tool is available. Use only roles
@@ -195,13 +198,30 @@ its diff and test state and resume that slice; if Git is clean, start it. Read
 the accepted pitch, that slice, repository instructions, relevant sources,
 tests, and public contracts before editing.
 
-The controlling Shape agent remains the sole writer. Add the smallest
-behavior-focused test that can fail for the intended reason, implement the
-minimum behavior, then run focused tests and all applicable required checks.
-Exercise a real integrated user or operator path when the slice exposes one.
-Send the completed slice diff to one fresh read-only reviewer subagent. Add up
-to two more reviewers only for separate material risks. Synthesize findings,
-fix blockers, and re-review material fixes.
+A tiny slice may stay with the controlling parent only when it is sequential,
+low-risk, locally understandable, and cheap to validate. File count alone does
+not decide. For every non-tiny slice, create a self-contained task capsule,
+launch one retained Sol writer with `context: "fresh"`, and transfer the
+exclusive active writer lease to it. The writer owns all directed slice edits, including code, tests,
+documentation, checkbox updates, and blocked notes. The parent reads
+load-bearing sources, synthesizes findings, and verifies without editing while
+the writer holds the lease.
+
+Add the smallest behavior-focused test that can fail for the intended reason,
+implement the minimum behavior, then run focused tests and all applicable
+required checks. Exercise a real integrated user or operator path when the
+slice exposes one. Send the stable slice diff to one fresh read-only reviewer
+subagent. Add up to two more reviewers only for separate material risks. QA can
+add evidence but never replaces formal review. The parent synthesizes findings
+and retains the completed writer run ID. For a routine implementation defect,
+it continues that writer with
+`runs.run(key, { resume: "<run-id>", task: "follow-up" })` and uses the latest
+returned `runId` for any further repair. Start a fresh writer only when the
+retained context is unavailable, contradictory, repeatedly failing, or based on
+an invalidated contract. Re-run affected checks
+and re-review material fixes. A finding that changes intent, architecture,
+ownership, security, risk, or scope returns the lease to the parent for a
+decision.
 
 A blocked slice remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
@@ -217,12 +237,17 @@ worktree, or perform destructive cleanup.
 
 ## Material change
 
-If implementation reveals a decision that changes accepted intent, stop. Set
-the pitch to `status: draft` before editing it, update the pitch and affected
-pending plan, repeat independent review, show the complete revised pitch, and
-obtain fresh human approval. After approval, restore `status: accepted` before
-planning or Build resumes. Git preserves prior versions; do not create archive
-copies.
+If implementation reveals a decision that changes accepted intent, stop the
+writer and return the exclusive writer lease to the controlling parent. Before
+any other implementation, set the pitch to `status: draft`, update the full
+pitch and every affected plan slice, repeat independent pitch review, show the
+complete revised pitch, and obtain fresh human approval. After approval,
+restore `status: accepted` before planning or Build resumes. The changed
+contract invalidates the old writer context: create a new self-contained task
+capsule, launch one new Sol writer with `context: "fresh"`, and transfer the
+lease to that new writer.
+Do not resume the retained writer after a material change. Git preserves prior
+versions; do not create archive copies.
 
 ## Finish
 
