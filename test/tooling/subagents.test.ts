@@ -90,6 +90,7 @@ describe("aggregate subagent resources", () => {
         "ls",
         "bash",
         "write",
+        "playwright_browser",
         "lsp_query",
         "lsp_validate",
         "intercom",
@@ -215,6 +216,9 @@ describe("aggregate subagent resources", () => {
     expect(repositoryGuidance).toContain("Let `advisor` inherit the parent model");
     expect(repositoryGuidance).toContain("Reserve Sol at `max` for `oracle` decisions.");
     expect(repositoryGuidance).not.toContain("Terra");
+    expect(agents.get("qa.md")).toContain("Use one owned browser session for the run.");
+    expect(agents.get("qa.md")).toContain("Do not route `playwright-cli` through Bash");
+    expect(agents.get("qa.md")).toContain("action=close");
 
     for (const name of agentFileNames) {
       const agent = agents.get(name) ?? "";
@@ -283,11 +287,11 @@ describe("aggregate subagent resources", () => {
     expect(qa).toMatch(/maintain reusable test plans/iu);
     expect(qa).toContain("Do not modify product or source files");
     expect(qa).toMatch(/rerun the exact failing scenario after a fix/iu);
-    expect(qa).toMatch(/Playwright CLI registries are workspace-scoped/iu);
-    expect(qa).toMatch(/return to that exact checkout or worktree[^.]*targeted cleanup/iu);
+    expect(qa).toContain("Use one owned browser session for the run.");
+    expect(qa).toMatch(/Do not route `playwright-cli` through Bash[^.]*durable ownership/iu);
     expect(qa).toContain("playwright-cli list --all --json");
     expect(qa).toMatch(/Never rely on `close-all` from a sibling checkout/iu);
-    expect(qa).toMatch(/targeted cleanup fails[^.]*tell the user[^.]*owned sessions remain/iu);
+    expect(qa).toMatch(/targeted cleanup fails[^.]*tell the user[^.]*owned session remains/iu);
     expect(qa).toContain("Do not run `kill-all`.");
     expect(worker).toContain("skills: ponytail, diagnosing-bugs");
     expect(worker).toContain(
