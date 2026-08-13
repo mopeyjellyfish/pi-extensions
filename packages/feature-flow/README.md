@@ -42,7 +42,9 @@ can use equivalent discovered roles.
 Each research stage uses zero to three read-only specialists. Each required
 pitch, plan, or slice-diff review uses one to three. Shape uses fresh context,
 asynchronous launches, and only parallelizes independent topics. The
-controlling Shape agent remains the sole writer and synthesizes all findings.
+controlling Shape parent remains the sole decision-maker and owns the exclusive
+writer lease while shaping. For a non-tiny slice, it transfers that lease to one
+retained Sol writer and does not edit concurrently.
 
 If specialist research is unavailable, the controlling agent completes the
 research and records the gap. If independent review is unavailable, Shape stops
@@ -58,11 +60,16 @@ docs/features/<slug>/
 
 `pitch.md` is the complete human- and agent-readable Shape Up contract. A
 separate read-only review and one whole-document human approval precede
-implementation. Material intent changes return it to draft and repeat that gate;
-Git preserves history.
+implementation. A material intent change stops the writer, returns the lease to
+the parent, changes the pitch to draft, updates the full pitch and affected
+plan, and repeats independent review and whole-document human approval. The
+changed contract invalidates the old writer context, so implementation resumes
+with a new task capsule and one fresh Sol writer. Git preserves history.
 
 `plan.md` is one ordered list of vertical slices. The first unchecked slice is
-current or next. Git state shows whether to start or resume it. A slice is
+current or next. Git state shows whether to start or resume it. A non-tiny slice
+uses one retained writer for implementation and routine repair, then a fresh
+formal reviewer. QA adds evidence but does not replace review. A slice is
 checked only after implementation, appropriate tests and required checks,
 independent review, and applicable integrated QA.
 
