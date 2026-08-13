@@ -1,9 +1,10 @@
 # pi-feature-flow
 
-`@mopeyjellyfish/pi-feature-flow` is a skill-only Pi package for shaping and
-delivering one feature in an isolated Worktrunk worktree. It ships one `shape`
-skill, the `/shape [feature brief]` prompt, and Markdown templates. It registers
-no extension, service, agent, or runtime dependency.
+`@mopeyjellyfish/pi-feature-flow` is a Markdown-resource Pi package for shaping
+one feature in an isolated Worktrunk worktree and turning accepted intent into a
+plan. It ships `shape` and `planning-changes`, the `/shape` and `/plan` prompts,
+and Shape templates. It registers no extension, service, agent, or runtime
+dependency.
 
 The workflow intentionally relies on the `question`, `worktree`, and `todo`
 tools and the `simple-english` skill supplied by this repository's aggregate
@@ -22,6 +23,13 @@ Run `/shape` without arguments to be asked for the feature brief. The skill does
 not call the `worktree` tool until that answer is specific enough to derive the
 `feat/<slug>` branch. To resume existing work, identify it in the request, for
 example `/shape resume resumable uploads`.
+
+Run `/plan <accepted intent>` to create or update the smallest ordered vertical
+slices from explicit accepted intent or an accepted Shape pitch. Planning uses
+the existing plan template, inspects repository truth, and names each slice's
+observable outcome, public seam, focused validation, integrated path, checks,
+and objective done conditions. An accepted slice is handed to the aggregate's
+`work` skill; feature-flow does not copy its execution policy.
 
 Shaping uses three efficient human checkpoints:
 
@@ -43,8 +51,8 @@ Each research stage uses zero to three read-only specialists. Each required
 pitch, plan, or slice-diff review uses one to three. Shape uses fresh context,
 asynchronous launches, and only parallelizes independent topics. The
 controlling Shape parent remains the sole decision-maker and owns the exclusive
-writer lease while shaping. For a non-tiny slice, it transfers that lease to one
-retained Sol writer and does not edit concurrently.
+writer lease while shaping. It passes the lease state to `work`, which owns any
+implementation transfer.
 
 If specialist research is unavailable, the controlling agent completes the
 research and records the gap. If independent review is unavailable, Shape stops
@@ -63,15 +71,14 @@ separate read-only review and one whole-document human approval precede
 implementation. A material intent change stops the writer, returns the lease to
 the parent, changes the pitch to draft, updates the full pitch and affected
 plan, and repeats independent review and whole-document human approval. The
-changed contract invalidates the old writer context, so implementation resumes
-with a new task capsule and one fresh Sol writer. Git preserves history.
+changed contract invalidates the old implementation context, so Shape replans
+and invokes `work` with fresh context. Git preserves history.
 
 `plan.md` is one ordered list of vertical slices. The first unchecked slice is
-current or next. Git state shows whether to start or resume it. A non-tiny slice
-uses one retained writer for implementation and routine repair, then a fresh
-formal reviewer. QA adds evidence but does not replace review. A slice is
-checked only after implementation, appropriate tests and required checks,
-independent review, and applicable integrated QA.
+current or next. Git state shows whether to start or resume it. Shape invokes
+`work` with the accepted pitch and slice, worktree path, lease state, integrated
+path, and material-change return rule. Shape checks a slice only after work
+evidence and Shape-specific gates pass.
 
 Shape uses one rolling session todo item as a best-effort display of `plan.md`
 progress and the first unchecked slice. Accurate text is available in todo

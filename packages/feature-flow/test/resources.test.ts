@@ -22,14 +22,25 @@ const PITCH_HEADINGS = [
 describe("feature-flow resources", () => {
   it("guides one Git-native Shape Up flow", async () => {
     expect.hasAssertions();
-    const [skill, pitch, plan, readme] = await Promise.all([
+    const [skill, planning, planPrompt, pitch, plan, readme] = await Promise.all([
       readFile(join(PACKAGE_ROOT, "skills", "shape", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "planning-changes", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "prompts", "plan.md"), "utf8"),
       readFile(join(PACKAGE_ROOT, "skills", "shape", "templates", "pitch.md"), "utf8"),
       readFile(join(PACKAGE_ROOT, "skills", "shape", "templates", "plan.md"), "utf8"),
       readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
     ]);
 
     expect(skill).toMatch(/Worktrunk[\s\S]*only\s+worktree lifecycle authority/iu);
+    expect(skill).toMatch(
+      /activation[\s\S]*before[^.]*brief[^.]*worktree[^.]*research[\s\S]*`question`[^.]*`worktree`[^.]*`todo`[\s\S]*`simple-english`[^.]*`planning-changes`[^.]*`work`[\s\S]*agent roles[^.]*`pi-subagents`/iu,
+    );
+    expect(skill).toMatch(
+      /Blocked prerequisite: \/shape[\s\S]*pi install npm:pi-subagents[\s\S]*pi install git:github\.com\/mopeyjellyfish\/pi-extensions/iu,
+    );
+    expect(planning).toMatch(
+      /activation[\s\S]*before[^.]*repository inspection[^.]*planning[\s\S]*`work`[^.]*aggregate[^.]*`pi-subagents`/iu,
+    );
     expect(skill).toMatch(
       /no usable brief[\s\S]*ask\s+the\s+human[\s\S]*before calling[^.]*`worktree` tool/iu,
     );
@@ -58,13 +69,35 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/do not modify project or source files/iu);
     expect(skill).toMatch(/exclusive active writer lease/iu);
     expect(skill).toMatch(/controlling Shape agent[^.]*sole decision-maker/iu);
-    expect(skill).toMatch(/non-tiny slice[\s\S]*one retained Sol writer with `context: "fresh"`/iu);
+    expect(skill).toMatch(/accepted pitch[\s\S]*`planning-changes`/iu);
+    expect(skill).toMatch(/accepts[^.]*current slice[\s\S]*invokes `work`/iu);
     expect(skill).toMatch(
-      /parent reads[\s\S]*without editing while[\s\S]*writer holds the lease/iu,
+      /independently reviewed plan[^.]*accepted pitch[^.]*Shape accept[^.]*current slice[\s\S]*no additional human plan approval/iu,
     );
-    expect(skill).toContain('runs.run(key, { resume: "<run-id>", task: "follow-up" })');
-    expect(skill).toMatch(/latest\s+returned `runId`[^.]*further repair/iu);
-    expect(skill).toMatch(/QA[^.]*never replaces formal review/iu);
+    expect(planning).toMatch(/return[^.]*complete plan[^.]*Shape[^.]*acceptance/iu);
+    expect(planning).not.toMatch(
+      /planning[^.]*invoke `work`|When a slice is accepted, invoke `work`/iu,
+    );
+    expect(skill).toMatch(
+      /worktree path[\s\S]*lease state[\s\S]*integrated path[\s\S]*material-change/iu,
+    );
+    expect(skill).toMatch(
+      /holds the lease[\s\S]*continuously through planning[^.]*invokes `work`[\s\S]*direct[^.]*continues[\s\S]*holding the lease[\s\S]*retained[^.]*transfers/iu,
+    );
+    expect(skill).toMatch(/decision-level finding[\s\S]*lease[\s\S]*Shape/iu);
+    expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
+    expect(planning).toMatch(
+      /repository instructions[\s\S]*Git[\s\S]*state[\s\S]*public contracts/iu,
+    );
+    expect(planning).toMatch(/smallest ordered[\s\S]*vertical slices/iu);
+    expect(planning).toMatch(/observable outcome[\s\S]*public seam[\s\S]*red[\s\S]*green/iu);
+    expect(planning).toMatch(/integrated path[\s\S]*required checks[\s\S]*objective done/iu);
+    expect(planning).toMatch(/existing[^.]*plan template/iu);
+    expect(planning).toMatch(/complete plan[^.]*Shape[\s\S]*Shape[^.]*invokes `work`/iu);
+    expect(`${skill}\n${planning}`).not.toMatch(
+      /direct parent|retained writer|Sol `(?:medium|high)`|formal review|routine repair|runs\.run/iu,
+    );
+    expect(planPrompt).toContain("Use the `planning-changes` skill.");
     expect(skill).toMatch(/synthesize[^.]*before[^.]*decision[^.]*edit/iu);
     expect(skill).toMatch(
       /`subagent` tool[^.]*unavailable[\s\S]*research[^.]*record the gap[\s\S]*review[^.]*stop/iu,
@@ -72,8 +105,10 @@ describe("feature-flow resources", () => {
     expect(skill).toMatch(/child fails[^.]*status[\s\S]*retry once[^.]*narrower task/iu);
     expect(skill).toMatch(/inform the human[\s\S]*questions[\s\S]*pitch/iu);
     expect(skill).toMatch(/complete pitch[\s\S]*read-only review[\s\S]*human approval/iu);
-    expect(skill).toMatch(/first unchecked slice[\s\S]*dirty[\s\S]*Git/iu);
-    expect(skill).toMatch(/tests[\s\S]*required checks[\s\S]*read-only review/iu);
+    expect(skill).toMatch(/first unchecked slice[\s\S]*Inspect Git[\s\S]*accepted pitch/iu);
+    expect(skill).toMatch(
+      /returned work evidence[\s\S]*Shape-specific integrated path[\s\S]*gates/iu,
+    );
     expect(skill).toMatch(/`todo` tool[\s\S]*session[^.]*progress/iu);
     expect(skill).toContain("Shape <slug>: <checked>/<total> — <slice number> <outcome>");
     expect(skill).toMatch(/derive[^.]*checked[^.]*total[\s\S]*first unchecked slice/iu);
@@ -108,19 +143,17 @@ describe("feature-flow resources", () => {
       /full\s+pitch[\s\S]*every affected plan slice[\s\S]*independent pitch review[\s\S]*complete revised pitch[\s\S]*fresh human approval/iu,
     );
     expect(skill).toMatch(/fresh human approval[\s\S]*status: accepted/iu);
+    expect(skill).toMatch(/changed contract invalidates the old implementation context/iu);
     expect(skill).toMatch(
-      /changed\s+contract invalidates the old writer context[\s\S]*new self-contained task\s+capsule[\s\S]*one new Sol writer with `context: "fresh"`/iu,
+      /reapproval and replanning, pass the `invalidated contract` state[^.]*to `work`/iu,
     );
-    expect(skill).toMatch(/Do not resume the retained writer after a material change/iu);
     expect(skill).not.toMatch(/feature-flow\.mjs|index\.json|sha-?256|banking|Feature-Slice/iu);
     expect(readme).toMatch(/aggregate\s+package[\s\S]*not a standalone/iu);
     expect(readme).toMatch(/research stage[^.]*zero to three[\s\S]*review[^.]*one to three/iu);
     expect(readme).toMatch(/controlling Shape parent[^.]*sole decision-maker/iu);
-    expect(readme).toMatch(/exclusive\s+writer lease[\s\S]*one\s+retained Sol writer/iu);
+    expect(readme).toMatch(/exclusive\s+writer lease[\s\S]*passes the lease state to `work`/iu);
     expect(readme).toMatch(/material intent change[\s\S]*whole-document human approval/iu);
-    expect(readme).toMatch(
-      /retained writer[^.]*routine repair[^.]*then a fresh\s+formal reviewer/iu,
-    );
+    expect(readme).toMatch(/accepted slice[\s\S]*`work` skill[\s\S]*does not copy/iu);
     expect(readme).toContain("pi install npm:pi-subagents");
     expect(readme).toContain("pi install git:github.com/mopeyjellyfish/pi-extensions");
     expect(`${skill}\n${readme}`).not.toMatch(/shape\/(?:<slug>|\*)/u);
@@ -138,9 +171,12 @@ describe("feature-flow resources", () => {
     expect(readme).toMatch(/best-effort[^.]*plan\.md/iu);
   });
 
-  it("expands one /shape prompt with or without a brief", async () => {
+  it("expands the /shape and /plan prompts", async () => {
     expect.hasAssertions();
-    const prompt = await readFile(join(PACKAGE_ROOT, "prompts", "shape.md"), "utf8");
+    const [prompt, planPrompt] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "prompts", "shape.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "prompts", "plan.md"), "utf8"),
+    ]);
     const piPromptTemplates = (await import(
       pathToFileURL(
         join(
@@ -178,13 +214,22 @@ describe("feature-flow resources", () => {
     expect(
       piPromptTemplates.expandPromptTemplate("/shape add resumable uploads", templates),
     ).toContain("add resumable uploads");
+    expect(planPrompt).toContain(
+      "${ARGUMENTS:-Ask for explicit accepted intent or an accepted Shape pitch.}",
+    );
+    expect(piPromptTemplates.expandPromptTemplate("/plan", templates)).toContain(
+      "Ask for explicit accepted intent or an accepted Shape pitch.",
+    );
+    expect(
+      piPromptTemplates.expandPromptTemplate("/plan accepted upload pitch", templates),
+    ).toContain("accepted upload pitch");
   });
 
-  it("packs only the skill, prompt, and two templates", async () => {
+  it("packs the Shape and planning skills, prompts, and templates", async () => {
     expect.hasAssertions();
     const packageManifest = JSON.parse(
       await readFile(join(PACKAGE_ROOT, "package.json"), "utf8"),
-    ) as { files: string[]; pi: { skills: string[]; prompts: string[] } };
+    ) as { description: string; files: string[]; pi: { skills: string[]; prompts: string[] } };
     const rootManifest = JSON.parse(
       await readFile(join(REPOSITORY_ROOT, "package.json"), "utf8"),
     ) as { pi: { skills: string[]; prompts: string[] } };
@@ -196,16 +241,21 @@ describe("feature-flow resources", () => {
     ) as { files: { path: string }[] }[];
     const packedPaths = packed[0]?.files.map(({ path }) => path) ?? [];
 
+    expect(packageManifest.description).toBe(
+      "First-party Shape and planning skills for feature delivery with Pi.",
+    );
     expect(packageManifest.pi).toEqual({ skills: ["./skills"], prompts: ["./prompts"] });
     expect(packageManifest.files).not.toContain("scripts/feature-flow.mjs");
     expect(rootManifest.pi.skills).toContain("./packages/*/skills");
     expect(rootManifest.pi.prompts).toEqual(["./packages/*/prompts"]);
-    expect(await readdir(join(PACKAGE_ROOT, "skills"))).toEqual(["shape"]);
-    expect(await readdir(join(PACKAGE_ROOT, "prompts"))).toEqual(["shape.md"]);
+    expect(await readdir(join(PACKAGE_ROOT, "skills"))).toEqual(["planning-changes", "shape"]);
+    expect(await readdir(join(PACKAGE_ROOT, "prompts"))).toEqual(["plan.md", "shape.md"]);
     expect(packedPaths).toEqual(
       expect.arrayContaining([
         "README.md",
+        "prompts/plan.md",
         "prompts/shape.md",
+        "skills/planning-changes/SKILL.md",
         "skills/shape/SKILL.md",
         "skills/shape/templates/pitch.md",
         "skills/shape/templates/plan.md",
