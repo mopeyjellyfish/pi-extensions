@@ -21,9 +21,10 @@ workspace, and lists all sessions again to verify cleanup.
 
 Explicit `-s` or `--session` names remain caller-owned and must be closed by
 the agent. The extension does not claim names that can collide with a user or
-another Pi process. It also does not call `kill-all` because that global command
-can stop browsers owned by other Pi or user sessions. If targeted cleanup
-cannot be verified, Pi shows a warning with manual recovery guidance.
+another Pi process. It never calls `kill-all` because that global command can
+stop browsers owned by other Pi or user sessions. If targeted cleanup cannot be
+verified, Pi clearly warns that owned sessions remain and does not attempt
+global cleanup.
 
 Cleanup runs for quit, reload, resume, fork, and other Pi shutdown transitions.
 It does nothing when the Pi process did not use `playwright-cli`.
@@ -39,9 +40,8 @@ playwright-cli close
 playwright-cli list --all --json
 ```
 
-Do not change to the main checkout before cleanup. Use `kill-all` only when the
-verified, targeted close fails and you accept that it stops every Playwright
-CLI daemon on the machine.
+Do not change to the main checkout before cleanup. If targeted cleanup fails,
+stop and tell the user which owned sessions remain. Do not run `kill-all`.
 
 ## Installation
 
