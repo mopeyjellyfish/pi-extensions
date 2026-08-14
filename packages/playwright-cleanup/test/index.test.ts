@@ -190,14 +190,17 @@ describe("playwright cleanup", () => {
       expect.objectContaining({ cwd: "/repo/worktree-a" }),
     );
 
+    const timers = vi.spyOn(globalThis, "setTimeout");
     await state.emit("agent_settled");
     expect(runtime.exec).toHaveBeenCalledWith(
       "playwright-cli",
       ["--json", `-s=${session}`, "close"],
       expect.objectContaining({ cwd: "/repo/worktree-a" }),
     );
+    expect(timers.mock.calls.some(([, milliseconds]) => milliseconds === 2000)).toBe(false);
     expect(runtime.processes.size).toBe(1);
     expect(state.notify).not.toHaveBeenCalled();
+    timers.mockRestore();
   });
 
   it("serializes concurrent opens so only one daemon is created", async () => {
@@ -235,9 +238,27 @@ describe("playwright cleanup", () => {
       toolCallId: "ctx",
       toolName: "ctx_execute",
     });
+    const packageBash = await state.emit("tool_call", {
+      input: { command: "npx @playwright/cli open https://example.com" },
+      toolCallId: "package-bash",
+      toolName: "bash",
+    });
+    const packageContext = await state.emit("tool_call", {
+      input: { code: "npm exec @playwright/cli -- open", language: "shell" },
+      toolCallId: "package-context",
+      toolName: "ctx_execute",
+    });
+    const unrelated = await state.emit("tool_call", {
+      input: { path: "README.md" },
+      toolCallId: "unrelated",
+      toolName: "read",
+    });
 
     expect(bash).toEqual(expect.objectContaining({ block: true }));
     expect(context).toEqual(expect.objectContaining({ block: true }));
+    expect(packageBash).toEqual(expect.objectContaining({ block: true }));
+    expect(packageContext).toEqual(expect.objectContaining({ block: true }));
+    expect(unrelated).toBeUndefined();
     expect(state.tool().promptSnippet).toContain("Pi-owned Playwright CLI browser");
     expect(state.tool().promptGuidelines).toEqual(
       expect.arrayContaining([

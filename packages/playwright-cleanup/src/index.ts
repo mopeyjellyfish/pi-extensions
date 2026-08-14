@@ -18,8 +18,8 @@ const WORKTREE_ROUTE_EVENT = "mopeyjellyfish:pi-worktrunk:route:v1";
 const LEASE_VERSION = 1;
 const PROCESS_TIMEOUT = 5000;
 const CLOSE_WAIT = 2000;
-const MAX_LEASES = 1000;
 const BLOCKED_CONTEXT_TOOLS = new Set(["ctx_batch_execute", "ctx_execute", "ctx_execute_file"]);
+const PLAYWRIGHT_CLI_PATTERN = /\bplaywright-cli\b|@playwright\/cli\b/u;
 const BLOCKED_RUN_COMMANDS = new Set([
   "attach",
   "close",
@@ -309,7 +309,7 @@ async function readLeases(directory: string): Promise<BrowserLease[]> {
   } catch {
     directoryFiles = [];
   }
-  const files = directoryFiles.filter((file) => file.endsWith(".json")).slice(0, MAX_LEASES);
+  const files = directoryFiles.filter((file) => file.endsWith(".json"));
   const leases: BrowserLease[] = [];
   for (const file of files) {
     try {
@@ -503,13 +503,18 @@ export default function playwrightCleanupExtension(
       // Exact owned-process cleanup below is independent of registry/socket health.
     }
 
-    await delay(CLOSE_WAIT);
     let processes = await listProcesses(pi);
     if (processes === undefined) return false;
     const discovered = await discoverRecordedTree(tracked, processes);
     if (discovered === undefined) return false;
     tracked = discovered;
     let remaining = currentMatches(tracked.processes, processes);
+    if (remaining.length > 0) {
+      await delay(CLOSE_WAIT);
+      processes = await listProcesses(pi);
+      if (processes === undefined) return false;
+      remaining = currentMatches(remaining, processes);
+    }
     if (remaining.length > 0) {
       signalProcesses(remaining, "SIGTERM");
       await delay(CLOSE_WAIT);
@@ -738,7 +743,7 @@ export default function playwrightCleanupExtension(
   });
 
   pi.on("tool_call", (event) => {
-    if (isToolCallEventType("bash", event) && /\bplaywright-cli\b/u.test(event.input.command)) {
+    if (isToolCallEventType("bash", event) && PLAYWRIGHT_CLI_PATTERN.test(event.input.command)) {
       return {
         block: true,
         reason:
@@ -747,7 +752,7 @@ export default function playwrightCleanupExtension(
     }
     if (
       BLOCKED_CONTEXT_TOOLS.has(event.toolName) &&
-      /\bplaywright-cli\b/u.test(JSON.stringify(event.input))
+      PLAYWRIGHT_CLI_PATTERN.test(JSON.stringify(event.input))
     ) {
       return {
         block: true,

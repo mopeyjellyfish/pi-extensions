@@ -13,10 +13,15 @@ socket and registry record for a live daemon. A missing record makes
 
 ## Behavior
 
-The extension registers `playwright_browser`. The tool:
+The extension registers `playwright_browser`. Any number of agents can use the
+tool concurrently. Each active agent gets one managed browser tree, reuses it,
+and closes it when that agent settles. The extension does not impose a global or
+per-worktree browser limit.
+
+The tool:
 
 - creates one collision-resistant session name for the current Pi session;
-- reuses one browser and serializes all commands;
+- reuses one browser tree per agent and serializes that agent's commands;
 - records the session name, opening workspace, daemon PID, owner Pi session ID,
   owner process identity, and owned process tree in a user-private lease;
 - closes by exact session name from the opening workspace;
@@ -28,9 +33,11 @@ The extension registers `playwright_browser`. The tool:
   crash;
 - leaves a lease unchanged while its recorded Pi owner process is still alive.
 
-The extension blocks direct `playwright-cli` calls through Pi Bash and
-context-mode execution tools. Those paths cannot provide durable ownership.
-It never runs `kill-all` or `close-all` during normal cleanup.
+The extension blocks direct `playwright-cli` and `@playwright/cli` calls through
+Pi Bash and context-mode execution tools. Those paths cannot provide durable
+ownership. Arbitrary shell indirection cannot be owned reliably, so agents must
+use `playwright_browser`. The extension never runs `kill-all` or `close-all`
+during normal cleanup.
 
 ## Agent workflow
 
