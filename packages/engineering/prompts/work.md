@@ -1,8 +1,0 @@
----
-description: Compatibility alias for /implement
-argument-hint: "[approved slice, bounded request, or confirmed bug outcome]"
----
-
-<!-- markdownlint-disable MD041 -->
-
-Use the `implement` skill. ${ARGUMENTS:-Ask for an approved slice, bounded request, or confirmed bug outcome.}
