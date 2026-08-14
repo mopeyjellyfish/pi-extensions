@@ -648,7 +648,7 @@ describe("playwright cleanup", () => {
     kill.mockRestore();
   });
 
-  it("reports startup process-inspection failure without claiming ownership", async () => {
+  it("stays quiet when process inspection fails without stale leases", async () => {
     expect.hasAssertions();
     const leases = await mkdtemp(join(tmpdir(), "pi-playwright-test-"));
     const exec = vi.fn(() => result("", 1));
@@ -656,10 +656,7 @@ describe("playwright cleanup", () => {
 
     await state.emit("session_start");
 
-    expect(state.notify).toHaveBeenCalledWith(
-      expect.stringContaining("could not inspect processes"),
-      "warning",
-    );
+    expect(state.notify).not.toHaveBeenCalled();
     await expect(
       state.tool().execute("open", { action: "open" }, undefined, undefined, state.ctx),
     ).rejects.toThrow("process identity was not established");
@@ -669,9 +666,9 @@ describe("playwright cleanup", () => {
     expect.hasAssertions();
     const leases = await mkdtemp(join(tmpdir(), "pi-playwright-test-"));
     const runtime = fakeRuntime();
-    let processLists = 0;
+    let processInspectionFails = true;
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
-      if (command === "ps" && processLists++ < 2) return result("not a process table");
+      if (command === "ps" && processInspectionFails) return result("not a process table");
       if (command === "ps") return result(processOutput(runtime.processes));
       if (command === "playwright-cli" && arguments_.includes("open")) {
         return result("not-json");
@@ -681,15 +678,21 @@ describe("playwright cleanup", () => {
     const state = harness(runtime.exec, leases);
 
     await state.emit("session_start");
-    expect(state.notify).toHaveBeenCalledWith(
-      expect.stringContaining("could not inspect processes"),
-      "warning",
-    );
+    expect(state.notify).not.toHaveBeenCalled();
+    processInspectionFails = false;
     await state.emit("session_start");
     await expect(
       state.tool().execute("open", { action: "open" }, undefined, undefined, state.ctx),
     ).rejects.toThrow("not-json");
     expect(await readdir(leases)).toHaveLength(1);
+
+    state.notify.mockClear();
+    processInspectionFails = true;
+    await state.emit("session_start");
+    expect(state.notify).toHaveBeenCalledWith(
+      expect.stringContaining("could not inspect processes"),
+      "warning",
+    );
   });
 
   it("uses stderr and a bounded fallback when Playwright returns no stdout", async () => {
