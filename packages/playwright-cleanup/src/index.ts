@@ -540,6 +540,8 @@ export default function playwrightCleanupExtension(
   };
 
   const recoverLeases = async (ctx: ExtensionContext): Promise<void> => {
+    const leases = await readLeases(leaseDirectory);
+    if (leases.length === 0) return;
     const processes = await listProcesses(pi);
     if (processes === undefined) {
       notify(
@@ -549,7 +551,7 @@ export default function playwrightCleanupExtension(
       return;
     }
     let failed = 0;
-    for (const lease of await readLeases(leaseDirectory)) {
+    for (const lease of leases) {
       const owner = processes.find((candidate) => candidate.pid === lease.ownerProcess.pid);
       const ownerIsCurrentProcess = lease.ownerProcess.pid === process.pid;
       if (owner !== undefined && sameProcess(owner, lease.ownerProcess) && !ownerIsCurrentProcess) {
