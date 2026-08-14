@@ -146,9 +146,8 @@ Delete `engineering-practices`. Move its portable safeguards to focused owners:
 - reuse and minimum-code guidance moves to `codebase-design` for standalone use
   and remains reinforced by the aggregate worker's `ponytail` skill.
 
-Replace the `work` skill with `implement`. Add `/implement`. Keep `/work` only as
-a compatibility prompt that invokes `implement`; do not keep a second work
-method.
+Replace the `work` skill and `/work` prompt with `implement` and `/implement`.
+Do not keep an alias or a second implementation method.
 
 ### Implement one slice
 
@@ -255,8 +254,8 @@ the README so it no longer claims that all guidance is original.
 ## Fixed decisions
 
 - Extend `feat/quality-first-coding-harness` and PR #52.
-- Keep useful local public names. Replace `work` with `implement`, but retain
-  `/work` as a compatibility prompt.
+- Keep useful local public names when they improve the flow. Replace `work` and
+  `/work` with `implement` and `/implement`. Breaking changes are permitted.
 - Selectively port high-value methods. Do not mirror the upstream suite.
 - One completed plan slice normally produces one Conventional Commit on the
   current feature branch. A remote-check repair uses a separate corrective
@@ -306,8 +305,9 @@ the README so it no longer claims that all guidance is original.
 
 - **AC-001 — Small composition:** The package has one `implement` orchestrator
   and focused TDD, design, diagnosis, domain, and review method skills.
-- **AC-002 — No duplicate work method:** The `work` skill is removed. `/work`
-  remains only as an alias prompt for `implement`.
+- **AC-002 — One implementation entry:** The `work` skill and `/work` prompt are
+  removed. `implement` and `/implement` are the only implementation method and
+  command.
 - **AC-003 — Slice flow:** One accepted slice follows TDD or focused validation,
   frequent focused checks, final checks, fixed-point review, same-writer repair,
   slice closure, Conventional Commit, and authorized push to the existing PR.

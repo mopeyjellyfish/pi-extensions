@@ -11,8 +11,8 @@ implementation.
 
 One `implement` skill composes an accepted slice through implementation,
 checks, review, repair, slice closure, Conventional Commit, and authorized push
-to the existing pull request. `/work` remains a compatibility prompt, not a
-second method.
+to the existing pull request. Slice 009 removes the temporary `/work` prompt
+after the user approved the breaking change.
 
 ### Pitch trace
 
@@ -40,7 +40,7 @@ review, commit, or GitHub methods into `implement`; invoke their owning skills.
 
 - Run the focused engineering, feature-flow, aggregate-agent, and prompt tests
   after each contract change.
-- Probe `/implement` and `/work` resource expansion.
+- Probe `/implement` resource expansion.
 - Run standalone prerequisite behavior for a route that needs companions.
 - Start the deterministic aggregate, run the focused test, perform one relevant
   idle `/reload` route probe, and confirm no duplicate or stale resources.
@@ -118,8 +118,8 @@ skipped, and demonstrates one plan slice through the complete Pi delivery flow.
 ### Implementation
 
 Verify and, if necessary, update the packaged third-party notice and adapted-
-file list. Update package and root docs with the small skill graph and
-compatibility notes. Update package tests and packed resource expectations.
+file list. Update package and root docs with the small skill graph and command boundary.
+Update package tests and packed resource expectations.
 
 Run deterministic aggregate startup and idle reload. Probe an accepted slice,
 a bounded direct change, retained bug work, routine same-writer repair, fixed-
@@ -145,3 +145,37 @@ evidence before the parent checks this slice and creates one validated
 `feat(engineering)` or `docs(engineering)` commit. PR #52 has updated evidence,
 and every required GitHub check passes. A remote-check defect receives a
 separate corrective commit or slice. Pushed history is not rewritten.
+
+## [x] 009 — Remove the work alias and diagram the only flow
+
+### Outcome
+
+`/implement` is the only implementation command. Package documentation and PR
+52 show the quality-first flow as a Mermaid diagram.
+
+### Pitch trace
+
+- [Small skill set](pitch.md#small-skill-set)
+- [Fixed decisions](pitch.md#fixed-decisions)
+- AC-002 and AC-012
+
+### Implementation
+
+Delete `prompts/work.md`. Remove alias assertions, packed-resource expectations,
+and compatibility language. Add one Mermaid flowchart to the engineering README
+and PR #52. Keep `implement` as the only execution owner.
+
+### Validation
+
+- Record the focused resource-test failure before deleting the prompt.
+- Run focused engineering tests and confirm `/work` is absent from loaded and
+  packed resources.
+- Run Markdown, package, source smoke, and the full required check.
+- Run fresh Sol `high` review from `f403805`.
+
+### Done when
+
+No shipped engineering resource or current documentation advertises `/work`.
+The Mermaid diagram shows routing, implementation methods, checks, review,
+repair, closure, commit, and existing-PR update. PR #52 has the same flow and
+all required checks pass.

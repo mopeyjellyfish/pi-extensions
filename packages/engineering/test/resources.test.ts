@@ -11,14 +11,13 @@ const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 const read = (path: string) => readFile(join(PACKAGE_ROOT, path), "utf8");
 
 describe("engineering resources", () => {
-  it("composes /implement and keeps /work only as its compatibility alias", async () => {
+  it("composes /implement as the only implementation command", async () => {
     expect.hasAssertions();
-    const [implement, tdd, design, prompt, alias, skillDirectories] = await Promise.all([
+    const [implement, tdd, design, prompt, skillDirectories] = await Promise.all([
       read("skills/implement/SKILL.md"),
       read("skills/test-driven-development/SKILL.md"),
       read("skills/codebase-design/SKILL.md"),
       read("prompts/implement.md"),
-      read("prompts/work.md"),
       readdir(join(PACKAGE_ROOT, "skills")),
     ]);
 
@@ -67,7 +66,6 @@ describe("engineering resources", () => {
     expect(design).toMatch(/testability friction[\s\S]*seam/iu);
 
     expect(prompt).toContain("Use the `implement` skill.");
-    expect(alias).toContain("Use the `implement` skill.");
   });
 
   it("selects the bug executor before diagnosis and retains one writer through repair", async () => {
@@ -198,14 +196,13 @@ describe("engineering resources", () => {
     expect(piPromptTemplates.expandPromptTemplate("/develop", templates)).toContain(
       "Ask the user for the code change or QA outcome to deliver",
     );
-    for (const command of ["/implement", "/work"]) {
-      expect(piPromptTemplates.expandPromptTemplate(command, templates)).toContain(
-        "Ask for an approved slice, bounded request, or confirmed bug outcome",
-      );
-      expect(
-        piPromptTemplates.expandPromptTemplate(`${command} tighten retry limit`, templates),
-      ).toContain("tighten retry limit");
-    }
+    expect(templates.map(({ name }) => name)).not.toContain("work");
+    expect(piPromptTemplates.expandPromptTemplate("/implement", templates)).toContain(
+      "Ask for an approved slice, bounded request, or confirmed bug outcome",
+    );
+    expect(
+      piPromptTemplates.expandPromptTemplate("/implement tighten retry limit", templates),
+    ).toContain("tighten retry limit");
     expect(
       piPromptTemplates.expandPromptTemplate("/develop fix upload retries", templates),
     ).toContain("fix upload retries");
@@ -227,8 +224,9 @@ describe("engineering resources", () => {
     expect.hasAssertions();
     const [readme, notice] = await Promise.all([read("README.md"), read("THIRD_PARTY_NOTICES.md")]);
 
-    expect(readme).toMatch(/\/develop -> Shape -> planning-changes -> implement/u);
-    expect(readme).toMatch(/`\/work`[^.]*compatibility\s+alias[^.]*not another method/iu);
+    expect(readme).toMatch(/```mermaid[\s\S]*flowchart[\s\S]*\/develop[\s\S]*implement/iu);
+    expect(readme).toContain("Develop -->|Accepted non-trivial intent| Plan");
+    expect(readme).not.toContain("/work");
     expect(readme).toMatch(/independent[\s\S]*Git aggregate[\s\S]*pi-subagents/iu);
     expect(readme).toMatch(/no\s+`engineering-practices` skill/iu);
     expect(readme).toMatch(/selectively adapt[\s\S]*scaffolding was not\s+ported/iu);
@@ -280,7 +278,6 @@ describe("engineering resources", () => {
         "skills/test-driven-development/SKILL.md",
         "prompts/develop.md",
         "prompts/implement.md",
-        "prompts/work.md",
         "prompts/diagnose.md",
         "prompts/model-domain.md",
         "prompts/review-change.md",

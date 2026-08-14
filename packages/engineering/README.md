@@ -21,7 +21,6 @@ file list and complete license.
 
 - `/develop [change request]`
 - `/implement [approved slice, bounded request, or confirmed bug outcome]`
-- `/work [approved slice, bounded request, or confirmed bug outcome]` (alias)
 - `/diagnose [bug report]`
 - `/model-domain [domain or change]`
 - `/review-change [fixed point or change]`
@@ -38,16 +37,38 @@ pi install git:github.com/mopeyjellyfish/pi-extensions
 ```
 
 Natural implementation, bug, validation, QA, and review requests can match
-`developing-changes`. The concise route is:
+`developing-changes`. This flow uses `/implement` as the only implementation
+command:
 
-```text
-/develop -> Shape -> planning-changes -> implement
+```mermaid
+flowchart TD
+    Request[Engineering request] --> Develop["/develop"]
+    Develop -->|Unresolved intent| Shape[Shape]
+    Shape --> Plan[planning-changes]
+    Develop -->|Accepted non-trivial intent| Plan
+    Develop -->|Accepted slice or bounded change| Implement["/implement"]
+    Plan --> Implement
+    Implement --> Method{Change type}
+    Method -->|Behavior| TDD[TDD]
+    Method -->|Bug| Diagnose[diagnosing-bugs]
+    Method -->|Refactor or documentation| Validate[Focused validation]
+    TDD --> Checks[Focused and static checks]
+    Diagnose --> Checks
+    Validate --> Checks
+    Checks --> Suite[Final required suite]
+    Suite --> Review[Spec and Standards review]
+    Review -->|Routine finding| Repair[Same-writer repair]
+    Repair --> Checks
+    Review -->|Accepted| Closure{Approved Shape slice?}
+    Closure -->|Yes| Close[Parent closes slice]
+    Closure -->|No| Commit[Conventional Commit if authorized]
+    Close --> Commit
+    Commit --> PR[Update existing pull request]
 ```
 
-Unresolved product intent goes to Shape, accepted non-trivial intent goes to
-`planning-changes`, and accepted slices and bounded changes go to `implement`.
-Small fixes can enter `implement` directly. `/work` is only a compatibility
-alias for `/implement`; it is not another method.
+Unresolved product intent goes to Shape. Accepted non-trivial intent goes to
+`planning-changes`. Accepted slices and bounded changes go to `implement`.
+Small fixes can enter `implement` directly.
 
 Implement composes TDD for behavioral work or focused validation for
 non-behavioral work, regular focused and static checks, the final required
