@@ -26,6 +26,7 @@ It loads only:
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `conventional-commit` and `git-rebase-base` for safe Git delivery and stacked pull requests;
 - `github-cli` for repository-aware pull request, review, Actions, issue, and release workflows;
+- pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension, skills, and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - `/implement` for direct implementation and verification.
@@ -36,13 +37,18 @@ The lifecycle is intentionally serial and parent-led:
 request -> accepted pitch -> ordered plan -> implement -> verification
 ```
 
-Large tasks do not automatically become subagent tasks. Use one host-provided
-child only for a bounded independent lane whose extra context and token cost are
-worth it. Keep one writer, and let the parent inspect the diff and verify all
-evidence. This follows OpenAI's current
+Large tasks do not automatically become subagent tasks. Start with one bundled
+`pi-subagents` child for a bounded independent lane whose extra context and token
+cost are worth it. Add another only for distinct independent work, use no more
+than three in parallel unless the evidence justifies it, and keep one writer per
+worktree. Let the parent inspect the diff and verify all evidence. This follows OpenAI's current
 [Codex subagent guidance](https://developers.openai.com/codex/agent-configuration/subagents),
 which recommends care with parallel writes and notes that comparable subagent
 runs use more tokens.
+
+The aggregate uses the upstream `pi-subagents` defaults and does not create or
+modify its user configuration. Optional overrides remain in the upstream
+`~/.pi/agent/extensions/subagent/config.json` file.
 
 Update or remove the profile with:
 
@@ -98,12 +104,15 @@ configuration and remove these remaining baseline overrides when present:
 - the `context-mode` server in `~/.pi/agent/mcp.json`;
 - `~/.pi/agent/extensions/rtk.ts`, while retaining the RTK binary if explicit
   use is still useful;
-- the `subagents` settings block in `~/.pi/agent/settings.json` after removing
-  `pi-subagents`.
+- `~/.pi/agent/extensions/subagent/config.json` when upstream `pi-subagents`
+  defaults are intended;
+- the `subagents` settings block in `~/.pi/agent/settings.json` when model,
+  agent, extension, builtin, and watchdog overrides are no longer intended.
 
-Do not add context-mode, pi-subagents, RTK, FFF, or Ponytail as root
-dependencies without repeatable task-level evidence. A host-managed integration
-that is inactive outside its host, such as Herdr's agent-state bridge, can
+The root profile pins `pi-subagents` because its Pi 0.84 lifecycle, process
+cleanup, worktree recovery, and model support were selected explicitly. Do not
+add context-mode, RTK, FFF, or Ponytail as root dependencies without repeatable
+task-level evidence. A host-managed integration that is inactive outside its host, such as Herdr's agent-state bridge, can
 remain outside the profile because its installer owns its lifecycle. This
 repository does not edit user-level Pi settings.
 

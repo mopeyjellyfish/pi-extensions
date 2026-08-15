@@ -32,9 +32,9 @@ The manifest validator requires:
 - Pi host packages only in `peerDependencies`.
 
 The private root package is a curated profile, not a completeness aggregate. Its
-exact resources are validated separately and may select only a small subset of
-production packages. Adding a production package does not add it to the root
-profile. Every package must still pass its own source, packed-install, resource,
+exact resources and pinned external dependencies are validated separately and
+may select only a small subset of production packages. Adding a production
+package does not add it to the root profile. Every package must still pass its own source, packed-install, resource,
 and release checks. `npm pack` must include each declared resource, package
 manifest, README, changelog, and license.
 
