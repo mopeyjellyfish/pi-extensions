@@ -73,10 +73,34 @@ OpenAI's [GPT-5.6 guidance](https://developers.openai.com/api/docs/guides/latest
 also recommends comparing representative workloads when choosing model and
 reasoning settings.
 
-For an existing setup, use `pi list` and remove globally loaded context-mode,
-FFF, automatic RTK rewriting, custom agent overlays, or other broad tooling
-before comparing the baseline. Add them back individually only when a measured
-task needs them. This repository does not edit user-level Pi settings.
+### Consolidate an existing user installation
+
+After this profile update is available on the default branch, make it the only
+user-installed Pi package:
+
+```sh
+pi update --extension git:github.com/mopeyjellyfish/pi-extensions
+pi remove npm:context-mode
+pi remove npm:pi-subagents
+pi list --no-approve
+```
+
+The final list should contain only
+`git:github.com/mopeyjellyfish/pi-extensions`. Pi's package commands do not
+remove resources installed outside that package list. Inspect the standard user
+configuration and remove these remaining baseline overrides when present:
+
+- the `context-mode` server in `~/.pi/agent/mcp.json`;
+- `~/.pi/agent/extensions/rtk.ts`, while retaining the RTK binary if explicit
+  use is still useful;
+- the `subagents` settings block in `~/.pi/agent/settings.json` after removing
+  `pi-subagents`.
+
+Do not add context-mode, pi-subagents, RTK, FFF, or Ponytail as root
+dependencies without repeatable task-level evidence. A host-managed integration
+that is inactive outside its host, such as Herdr's agent-state bridge, can
+remain outside the profile because its installer owns its lifecycle. This
+repository does not edit user-level Pi settings.
 
 ## Optional packages
 

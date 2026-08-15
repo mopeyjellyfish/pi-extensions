@@ -45,6 +45,7 @@ packages must stay available without being coupled to the default session.
 | R5  | Direct execution is the default; delegation is optional, bounded, and uses host-provided roles rather than repository overrides.                                 | Lifecycle skill contract tests.                                                                  |
 | R6  | Documentation explains the minimal default, optional package installation, native compaction posture, and migration away from global context/rewriting defaults. | README and architecture/package documentation review.                                            |
 | R7  | The root profile remains deterministic when loaded with the pinned Pi source-development command.                                                                | `npm run smoke:source` and manual reload acceptance when an interactive Pi session is available. |
+| R8  | The maintainer migration identifies every remaining user-level Pi resource and the single-package target state.                                                  | README migration commands, configuration paths, and expected `pi list` output.                   |
 
 ## Scope
 
@@ -58,6 +59,8 @@ packages must stay available without being coupled to the default session.
   preserving independent package validation.
 - Simplify the Shape, planning, and implement skills and their package docs.
 - Update repository documentation for the new install and compaction posture.
+- Document the one-time maintainer cleanup for separately installed
+  context-mode, pi-subagents, RTK rewriting, and stale subagent settings.
 
 ### Out of scope
 
@@ -108,6 +111,9 @@ packages must stay available without being coupled to the default session.
    cases, not baseline requirements.
 7. No compatibility shim preserves the old aggregate. Users who want another
    package install it explicitly.
+8. The maintained user environment has one Pi package entry: this Git profile.
+   Host-owned integrations such as Herdr remain outside it when their own
+   installer manages an inert, host-gated bridge.
 
 ## Implementation units
 
@@ -221,7 +227,7 @@ definitions.
 
 **Goal:** Make installation and operating guidance match the lean profile.
 
-**Requirements:** R3, R6, R7
+**Requirements:** R3, R6, R7, R8
 
 **Dependencies:** Units 1 and 2
 
@@ -241,8 +247,10 @@ definitions.
 
 1. Lead with the minimal Git profile and list optional packages by need.
 2. Explain that native tools and native compaction are the baseline.
-3. Document migration: remove global context-mode and RTK auto-rewrite from the
-   baseline, then add them back only after a measured task-specific benefit.
+3. Document migration: update the Git profile; remove the separate context-mode
+   and pi-subagents packages, context-mode MCP entry, RTK auto-rewrite, and
+   stale subagent settings; then add a capability back only after a measured
+   task-specific benefit.
 4. Update live-development instructions so `-e .` means the curated profile and
    `-e packages/<name>` means one optional package.
 5. Reconcile terminology and remove stale FFF/custom-agent guidance.
@@ -268,6 +276,9 @@ Git install
 Optional need
   -> install one independent package
      -> LSP, Worktrunk, todo, status, web search, or another focused capability
+
+Host-owned integration
+  -> remains outside the profile when its installer owns an inert host-gated bridge
 ```
 
 No production package API changes. The main compatibility change is deliberate:
@@ -313,6 +324,11 @@ a Git install no longer loads every package or the custom subagent definitions.
   the direct parent lifecycle.
 - Unit 3 used the documentation/configuration TDD exception. `npm run check`
   passed after the final documentation and contract edits.
+- The follow-up user-install inventory found two separately installed packages
+  (`context-mode` and `pi-subagents`), one context-mode MCP entry, one loose RTK
+  rewrite extension, stale subagent overrides, and a Herdr-owned state bridge.
+  The README now gives the exact single-package target and treats Herdr as the
+  host-managed exception.
 - `npm run security:check` passed after activating the `.gvmrc` toolchain.
 - Manual interactive `/reload` acceptance remains a maintainer follow-up; the
   deterministic source and installed-profile Pi smoke tests passed.
