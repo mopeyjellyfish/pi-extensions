@@ -1,12 +1,21 @@
 # Plan: {{feature}}
 
-Resume by inspecting Git, then work the first unchecked slice. Reorder, rewrite,
-split, merge, or delete pending slices when implementation teaches something
-new.
+Resume by inspecting Git, then work the first unchecked sequential slice. The
+map covers the complete accepted scope. Reorder, rewrite, split, merge, or delete
+pending slices only when new information changes the plan.
 
 When the `todo` tool is available, derive checked/total progress and the first
 unchecked slice from this plan. Reconcile one rolling `Shape <slug>:` item. Keep
 `plan.md` authoritative and preserve unrelated todos.
+
+## Delivery map
+
+Use `first`, `after NNN`, or `parallel-safe with NNN`. Parallel delivery requires
+human request, isolated worktrees, and one writer for each worktree.
+
+| Slice | Outcome                     | Delivery | Unknowns |
+| ----- | --------------------------- | -------- | -------- |
+| 001   | Observable vertical outcome | first    | None     |
 
 ## [ ] 001 — Observable vertical outcome
 
@@ -25,8 +34,8 @@ and production change. Avoid speculative task inventories.
 
 ### Validation
 
-List only applicable focused tests, required checks, independent review, and a
-real user or operator path when one exists.
+List only applicable focused tests, required checks, any requested independent
+review, and a real user or operator path when one exists.
 
 ### Done when
 
