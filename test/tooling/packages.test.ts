@@ -18,11 +18,19 @@ import { repositoryRoot, toPosixPath } from "../../scripts/lib/repository.ts";
 
 const temporaryRoots: string[] = [];
 const ROOT_PROFILE = {
-  extensions: ["./packages/question/src/index.ts", "./packages/status-line/src/index.ts"],
+  extensions: [
+    "./packages/question/src/index.ts",
+    "./packages/status-line/src/index.ts",
+    "./packages/web-search/src/index.ts",
+    "./packages/worktrunk/src/index.ts",
+  ],
   skills: [
     "./packages/feature-flow/skills/shape",
     "./packages/feature-flow/skills/planning-changes",
     "./packages/engineering/skills/implement",
+    "./packages/git-conventions/skills",
+    "./packages/github/skills",
+    "./packages/worktrunk/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
