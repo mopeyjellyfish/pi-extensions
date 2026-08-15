@@ -9,6 +9,7 @@ const config = {
       ignoreDependencies: [
         "@earendil-works/pi-ai",
         "@earendil-works/pi-tui",
+        "pi-claude-bridge",
         "pi-subagents",
         "typebox",
       ],

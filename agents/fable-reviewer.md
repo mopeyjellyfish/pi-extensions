@@ -1,7 +1,7 @@
 ---
 name: fable-reviewer
 description: Reviews completed work with Claude Fable 5 at high effort
-model: anthropic/claude-fable-5
+model: claude-bridge/claude-fable-5
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

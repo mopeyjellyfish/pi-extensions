@@ -24,6 +24,7 @@ const ROOT_PROFILE = {
     "./packages/todo/src/index.ts",
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
+    "./node_modules/pi-claude-bridge/src/index.ts",
     "./node_modules/pi-subagents/index.ts",
   ],
   skills: [
@@ -42,7 +43,10 @@ const ROOT_PROFILE = {
   ],
   subagents: { agents: ["./agents"] },
 } as const;
-const ROOT_DEPENDENCIES = { "pi-subagents": "0.50.0" } as const;
+const ROOT_DEPENDENCIES = {
+  "pi-claude-bridge": "0.7.0",
+  "pi-subagents": "0.50.0",
+} as const;
 
 afterEach(async () => {
   await Promise.all(
@@ -141,7 +145,7 @@ describe("package contracts", () => {
     expect(worker).toMatch(/thinking: medium/iu);
     expect(worker).toMatch(/defaultContext: fresh/iu);
     expect(worker).toMatch(/acceptanceRole: writer/iu);
-    expect(reviewer).toMatch(/model: anthropic\/claude-fable-5/iu);
+    expect(reviewer).toMatch(/model: claude-bridge\/claude-fable-5/iu);
     expect(reviewer).toMatch(/thinking: high/iu);
     expect(reviewer).toMatch(/defaultContext: fresh/iu);
     expect(reviewer).toMatch(/acceptanceRole: read-only/iu);
@@ -171,9 +175,14 @@ describe("package contracts", () => {
     expect.hasAssertions();
     const readme = await readFile(join(repositoryRoot, "README.md"), "utf8");
 
-    expect(readme).toContain('"defaultProvider": "anthropic"');
+    expect(readme).toContain('"defaultProvider": "claude-bridge"');
     expect(readme).toContain('"defaultModel": "claude-fable-5"');
     expect(readme).toContain('"defaultThinkingLevel": "medium"');
+    expect(readme).toContain('"askClaude": {');
+    expect(readme).toContain('"enabled": true');
+    expect(readme).toContain('"defaultMode": "read"');
+    expect(readme).toContain('"defaultIsolated": true');
+    expect(readme).toContain('"allowFullMode": false');
     expect(readme).toMatch(/Shape[\s\S]*Plan[\s\S]*Fable 5[\s\S]*medium/iu);
     expect(readme).toMatch(/Work[\s\S]*GPT-5\.6 Sol[\s\S]*medium/iu);
     expect(readme).toMatch(/Review[\s\S]*Fable 5[\s\S]*high/iu);
