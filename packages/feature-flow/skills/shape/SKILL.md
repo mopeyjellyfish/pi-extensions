@@ -18,65 +18,44 @@ check state, and Git provides durable history and resume evidence.
 ## Check prerequisites at activation
 
 At activation, before brief questions, worktree actions, or research, confirm the
-full flow has the aggregate `question`, `worktree`, and `todo` tools as
-applicable; the `simple-english`, `planning-changes`, and `implement` skills; the
-expected research and review agent roles; and the `subagent` tool supplied by
-`pi-subagents`. If a required companion is absent, stop and report:
+flow has the aggregate `question`, `worktree`, and `todo` tools as applicable and
+the `simple-english`, `planning-changes`, and `implement` skills. The default
+path does not require `pi-subagents` or any specialist role. If a required
+companion is absent, stop and report:
 
 ```text
-Blocked prerequisite: /shape requires the Git aggregate and pi-subagents for this flow.
-Install both, then retry:
-pi install npm:pi-subagents
+Blocked prerequisite: /shape requires the Git aggregate for this flow.
+Install it, then retry:
 pi install git:github.com/mopeyjellyfish/pi-extensions
 ```
 
 This package remains independently installable for resource discovery. It does
 not claim that standalone installation supplies these operational companions.
 
-## Orchestrate specialists with one writer lease
+## Keep one writer and delegate only for depth
 
 Keep one exclusive active writer lease for the worktree. During shaping, the
-controlling Shape agent owns the lease, remains the sole decision-maker, and
-keeps research and review specialists read-only. Shape holds the lease continuously through planning and while it invokes
-`implement`. Implement first selects the direct or retained route. For direct
-execution, the Shape parent continues holding the lease. For retained execution,
-Implement explicitly transfers it to the selected worker. Never permit a lease-free interval, concurrent writers, or
-ambiguous write ownership.
+controlling Shape agent owns the lease and remains the sole decision-maker.
+Shape holds the lease through planning and while it invokes `implement`.
+Implement retains a fresh worker for each approved Shape slice and transfers the
+lease to that worker. Never permit concurrent writers in one worktree or
+ambiguous ownership.
 
-Before the first delegation, call `subagent({ action: "list" })` once to discover
-the live agent inventory when the `subagent` tool is available. Use only roles
-from that inventory. Prefer `scout` for local context, `researcher` for material
-external evidence, `context-builder` for a broad handoff, and `reviewer` for
-independent review. Use an equivalent discovered role when a preferred role is
-absent. Never invent a role.
+Do not delegate research or review by default. If the human selects a deepening
+or independent-review option, call `subagent({ action: "list" })` once and use
+only a suitable role from the live inventory. Use Luna `low` for an optional
+local scout, Sol `medium` for material external research, and Sol `high` only for
+an explicitly requested independent review. Start one fresh, asynchronous,
+read-only specialist. Add another only when the human requests a separate
+material angle. Every task must include the exact brief or artifact, request
+evidence and decision implications, and say: `Do not modify project or source
+files.`
 
-For each research stage, use zero to three specialists. Add a specialist only
-for a distinct angle that uncertainty, scope, or risk makes useful. Stop when
-the evidence is sufficient. For each required review, use one to three
-specialists. Start with one reviewer. Add another only for a separate material
-risk. Parallelize only independent topics.
-
-Run every advisory assignment with fresh context and asynchronous execution.
-Give the child the exact brief, artifact, diff, or question. Require evidence,
-source links or file references, gaps, and decision implications. Every task
-must say: `Do not modify project or source files.` Require the child to escalate
-human-owned product, scope, architecture, and safety decisions.
-
-Continue useful local inspection or preparation while children run. Wait on the
-returned run identifier only when the results block synthesis. Do not poll or
-sleep. Synthesize specialist evidence before any decision or edit. Keep raw
-child output ephemeral unless its size or a real handoff need justifies a saved
-artifact.
-
-If the `subagent` tool or a suitable research role is unavailable, do the
-research in the controlling agent and record the gap. If the `subagent` tool or
-a suitable independent reviewer is unavailable, stop at the affected pitch,
-plan, or slice gate. Never replace required independent review with self-review.
-
-If a child fails, inspect its status and available output. Retry once with a
-narrower task when the missing evidence is material. Continue without that
-angle only when the remaining evidence is sufficient and the failed angle is
-not a required independent review.
+Continue direct inspection while an optional specialist runs. Wait only when
+its result blocks the selected option. Do not poll or sleep. Synthesize its
+evidence before changing the pitch. If optional review is unavailable, report
+that the option is unavailable. It does not block the default path, revision,
+deepening by direct inspection, approval, or planning.
 
 ## Establish the brief, then route
 
@@ -112,110 +91,123 @@ before that route is active. Do not inspect candidate artifacts or replace the
 
 ## Shape and approve the pitch
 
-Research the confirmed brief and initial answers before creating `pitch.md`.
-Whether the brief is specific or broad, start with direct inspection of
-load-bearing repository sources. Use a local-context specialist when a separate
-code-path, test, history, or risk angle can reduce uncertainty. Use an external
-research specialist when current primary documentation, standards,
-compatibility, or prior art is material. Use a broad context builder only when
-it prevents substantial rediscovery. For a broad feature, investigate relevant
-product and technical options, failure boundaries, and unknowns. Scale the work
-to uncertainty rather than researching for ceremony.
+The default path is grouped questions, direct inspection, a complete draft,
+human feedback and approval, then the plan. Do not add a routine specialist or
+review wait.
 
-Synthesize source-backed implications instead of retaining raw research output.
-Use them to inform the human, then run a second questioning pass with the
-`question` tool. Present findings, a recommendation, and meaningful tradeoffs.
-Ask one to four unresolved questions in one call when possible. Resolve the
-solution, fixed decisions, rabbit holes, no-gos, and measurable acceptance
-criteria. If an answer exposes a material unknown, do targeted research and ask
-one more grouped follow-up only when needed.
+After worktree routing, inspect the load-bearing repository sources directly.
+Research only unknowns that can change the product decision, solution boundary,
+or acceptance criteria. Use current primary sources when an external contract
+is material. Synthesize decision implications instead of retaining a research
+diary.
 
-After these answers give the full picture, create `pitch.md` from
-`templates/pitch.md`. Keep the complete pitch useful to humans and agents: cite
-material primary sources, embed exact normative contracts, use Mermaid when it
-clarifies a flow, and include cross-functional boundaries only when material.
-After the content is correct, use the `simple-english` skill in pragmatic mode
-to revise the pitch narrative as descriptive text.
+Run one evidence-led grouped follow-up with the `question` tool. Present the
+repository findings, recommendation, and tradeoffs. Ask only unresolved
+questions that can change scope, solution, fixed decisions, rabbit holes,
+no-gos, or measurable acceptance criteria. Ask one more grouped follow-up only
+when a new material unknown blocks an effective pitch.
 
-Before implementation, send the complete pitch to one fresh read-only reviewer
-subagent for value, feasibility, simplicity, contradictions, and missing
-decisions. Add up to two more reviewers only for separate material risks. Fix
-material findings and repeat review when the fix warrants it. Then call the
-`question` tool and use its document field to attach the complete pitch with
-concise approve or revise options. This is the human's full-document review.
-Never use a summary or link in place of the document. Require explicit human
-approval. If the human requests changes, update and re-review material changes,
-then present the complete revised pitch again. If the interface cannot show the complete document, stop without
-accepting it. After approval, change only `status: draft` to `status: accepted`. Invoke
-`planning-changes` with the accepted pitch, worktree path, and current lease
-state to create or update `plan.md`.
+Create `pitch.md` from `templates/pitch.md`. Make the complete pitch useful to
+humans and agents. Cite material primary sources, preserve exact normative
+contracts, and include flows or cross-functional boundaries only when they
+clarify a decision. Use the `simple-english` skill in pragmatic mode to revise
+the narrative as descriptive text.
+
+Before showing the pitch, check it against the brief, human answers, and
+repository evidence for value, feasibility, simplicity, contradictions,
+unresolved decisions, and measurable acceptance criteria. Then call the
+`question` tool with the complete pitch in its document field and these four
+actions:
+
+1. **Approve and plan** — accept the pitch and create the plan now.
+2. **Revise** — apply the human's feedback and show the complete pitch again.
+3. **Deepen** — investigate one named uncertainty, update the pitch, and show it again.
+4. **Independent review** — ask one fresh read-only reviewer to assess the pitch.
+
+This call seeks human feedback before approval. Never use a summary or link in
+place of the complete document. If the human selects **Deepen**, prefer targeted
+direct inspection and ask a grouped follow-up only when needed. If the human
+selects **Independent review**, resolve material findings once and return the
+complete revised pitch to the human. Do not repeat review unless the human asks.
+Recommend an optional step when a concrete high-impact uncertainty remains, but
+do not start it without the human's choice.
+
+Require explicit human approval. If the interface cannot show the complete
+document, stop without accepting it. After approval, change only `status: draft`
+to `status: accepted`. Invoke `planning-changes` immediately with the accepted
+pitch, worktree path, and current lease state.
 
 ## Plan vertical slices
 
-Use `planning-changes` for the plan method and existing template. Shape owns the
-durable `plan.md` state and ensures the complete plan receives independent
-read-only review for coverage, verticality, simplicity, and feasibility. The
-independently reviewed plan plus the accepted pitch lets Shape accept the
-current slice for work. No additional human plan approval is required. Fix
-ordinary planning findings before Shape accepts the plan and current slice.
-Pending slices may change as implementation teaches more. After the plan is
-correct, apply `simple-english` in pragmatic mode to plan instructions as
-procedural text and supporting context as descriptive text. Preserve required
-headings, YAML frontmatter, Markdown checkbox syntax, code, identifiers,
-commands, paths, links, and quotes exactly.
+Use `planning-changes` and the existing template. Shape owns `plan.md`. Require a
+complete delivery map before implementation. The map lists every accepted
+vertical slice, its sequential or parallel-safe delivery relation, and material
+unknowns with the slice that resolves them.
 
-## Show rolling Shape progress in todo
+Check the complete plan once against the accepted pitch for coverage,
+verticality, simplicity, feasibility, validation, and objective done conditions.
+The plan does not require independent review or additional human approval. If
+the human requests plan review, use one fresh read-only reviewer after the plan
+exists. Otherwise, accept the plan and current slice when the check passes.
 
-Treat the `todo` tool as a best-effort session progress display when it is
-available. `plan.md` remains authoritative. Track Shape with one rolling item,
-not one item per slice or workflow task:
+Pending slices may change as implementation teaches more. Apply
+`simple-english` in pragmatic mode to plan instructions as procedural text and
+supporting context as descriptive text. Preserve required headings, YAML
+frontmatter, Markdown checkbox syntax, code, identifiers, commands, paths,
+links, and quotes exactly.
+
+## Show progress without blocking work
+
+Use the `todo` tool only as a best-effort progress signal. `plan.md` remains
+authoritative. Keep one rolling item:
 
 ```text
 Shape <slug>: <checked>/<total> — <slice number> <outcome>
 ```
 
-After plan creation, plan changes, resume, slice completion, and before finish,
-derive `checked`, `total`, and the first unchecked slice from the current plan.
-Use `<total>/<total> — complete` when all slices are checked. Append the suffix
-`· blocked: <reason>` with a preceding space from a current
-`> Blocked: … Next: …` note, and remove the blocked suffix when work resumes.
+After plan creation and each slice completion, list todos once. Add the rolling
+item when absent or update the single matching item. Preserve unrelated todos.
+If another todo is active, keep the Shape item pending. When all slices are
+checked, use `Shape <slug>: <total>/<total> — complete` and set it to
+`completed`.
 
-Todo text is limited to 300 characters. Preserve the fixed progress and
-current-slice prefix `Shape <slug>: <checked>/<total> — <slice number>`. Truncate
-only trailing outcome and blocked detail with an ellipsis. If the fixed prefix
-cannot fit, report the gap and continue from `plan.md` without a todo mutation.
-
-Before any mutation, list all todos and count items with the exact
-`Shape <slug>:` prefix:
-
-- If there is no prefix match, add the rolling item as `pending`, then update it
-  to the required status.
-- If there is one match, update its text and status atomically when possible.
-- If there is more than one match, make no todo mutation and report the
-  collision.
-
-With open slices and no unrelated todo `in_progress`, set the rolling item
-`in_progress`. If an unrelated todo is active, keep the rolling item `pending`,
-leave the unrelated item unchanged, and report the conflict. If the post-add
-status update or another todo mutation fails, stop that reconciliation pass,
-report the exact gap, continue from `plan.md` and Git, and retry later.
-
-Guarantee accurate rolling text in todo state, tool output, and `/todos`. Treat
-widget and status line visibility as opportunistic because they are bounded and
-can prefer unrelated work. Never weaken an approval, test, review, validation,
-or delivery gate because the `todo` tool is unavailable or the best-effort
-instruction fails.
+If a prefix collision or todo call fails, report it once and continue from
+`plan.md`. Do not retry during the same milestone. Never let progress display
+work delay implementation or weaken an approval, test, validation, or delivery
+check.
 
 ## Build or resume
 
-The first unchecked slice is current or next. Inspect Git and the accepted pitch
-and slice before continuing. After Shape accepts the reviewed plan and current
-slice, Shape invokes `implement` with the accepted pitch and slice,
-worktree path, current lease state, integrated path for the user or operator,
-required Shape gates, and the material-change rule that intent changes return
-to Shape. `implement`
-owns executor selection, implementation lease transfer, and its implementation
-method.
+The first unchecked sequential slice is current or next. Inspect Git and the
+accepted pitch and slice before continuing. Parallel-safe labels are planning
+information and do not start parallel work. If the human requests parallel-safe
+slices, use one isolated worktree and one exclusive writer lease for each slice.
+State the integration order before launch. Never parallelize overlapping slices
+or slices with an unresolved ordering unknown.
+
+After Shape accepts the plan and current slice, Shape invokes `implement` with
+the accepted pitch and slice, worktree path, current lease state, integrated path
+for the user or operator, required Shape checks, and the material-change rule
+that intent changes return to Shape. `implement` owns the fresh worker,
+implementation lease transfer, and its implementation method.
+
+When a worker sends a supervisor request, Shape classifies the decision. The
+parent answers a routine engineering choice from the accepted pitch, plan, and
+repository evidence. Do not interrupt the human for repository facts or a
+reversible implementation detail.
+
+Escalate a human-owned product, scope, architecture, safety, privacy, cost, or
+authority decision. Use the `question` tool to show the worker's recommendation,
+meaningful options, and tradeoffs. After the human answers, reply to the waiting
+child through `subagent_supervisor`:
+
+```text
+subagent_supervisor({ action: "reply", replyTo: "<request-id>", message: "<decision>" })
+```
+
+Use this path for `need_decision` and structured `interview_request` messages.
+Never guess while the child waits. If the answer changes accepted intent, use
+the material-change flow before implementation continues.
 
 A decision-level finding returns the lease and decision to Shape. After a retained
 worker returns its evidence and lease, Shape verifies the implementation evidence
@@ -223,8 +215,8 @@ and runs the slice's Shape-specific integrated path and gates. A blocked slice
 remains unchecked and records one short
 `> Blocked: … Next: …` note. Remove the note when work resumes. Mark the slice
 checkbox `[x]` only after the returned evidence and Shape-specific gates pass,
-then recompute the rolling todo from `plan.md`. If that update fails, keep the
-durable checkbox checked, report the gap, and retry later.
+then attempt one rolling todo update. If that update fails, keep the durable
+checkbox checked and continue without retrying at this milestone.
 
 When repository instructions and explicit user authority permit delivery, the
 Shape parent updates the checkbox, returns to `implement`, and applies
@@ -238,16 +230,23 @@ publish, deploy, remove a worktree, or perform destructive cleanup.
 If implementation reveals a decision that changes accepted intent, stop the
 writer and return the exclusive writer lease to the controlling parent. Before
 any other implementation, set the pitch to `status: draft`, update the full
-pitch and every affected plan slice, repeat independent pitch review, show the
-complete revised pitch, and obtain fresh human approval. After approval,
-restore `status: accepted` before planning or Build resumes. The changed contract invalidates the old implementation context. After
+pitch and every affected plan slice, show the complete revised pitch, and obtain
+fresh human approval. Offer the same optional deepening and independent-review
+actions. After approval, restore `status: accepted` before planning or Build
+resumes. The changed contract invalidates the old implementation context. After
 reapproval and replanning, pass the `invalidated contract` state and the
 parent-held lease to `implement`. Git preserves prior versions; do not create archive copies.
 
 ## Finish
 
-When every slice is checked, run a final todo reconciliation. After a successful
-reconciliation, the rolling item reads
-`Shape <slug>: <total>/<total> — complete` and is `completed`. Report local
-completion and remaining separately authorized actions. Do not turn local
+Do not review individual slices. When every slice is checked, run the plan-wide
+integrated path and required test, lint, type, and static checks. Report the
+feature as ready for human pull request review. Run one final review of the
+complete feature diff only when the human requests it or repository instructions
+require it. Use one fresh Sol `high` reviewer and one repair pass. Do not review
+the repair again unless the human asks.
+
+Run a final todo reconciliation. After a successful reconciliation, the rolling
+item reads `Shape <slug>: <total>/<total> — complete` and is `completed`. Report
+local completion and remaining separately authorized actions. Do not turn local
 completion into remote delivery or cleanup authority.
