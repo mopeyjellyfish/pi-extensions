@@ -2,13 +2,22 @@
 
 ## Package boundaries
 
-The root package is private and exists only for shared development tooling and aggregate source loading, including the repository-wide Git install documented in the root README. It may deliberately include an external Pi package for that aggregate install, but must declare the package as a production dependency and reference its resources explicitly. Each directory under `packages/` is an independent npm package with its own Pi manifest, runtime dependencies, documentation, tests, and optional native helper.
+The root package is private and provides the small repository-wide Git profile
+documented in the root README. It selects a deliberate subset of local package
+resources and has no production dependencies. Each directory under `packages/`
+is an independent npm package with its own Pi manifest, runtime dependencies,
+documentation, tests, and optional native helper.
 
 A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.
 
 ## Runtime model
 
-Pi loads extension TypeScript, Agent Skills, and prompt templates directly. Extension packages therefore publish reviewed TypeScript source rather than a generated build directory, while Markdown-only skill or prompt packages publish their resources without fake extension scaffolding. Package manifests identify resources under `pi.extensions`, `pi.skills`, and `pi.prompts`; the root aggregate globs must resolve to exactly the same production resources.
+Pi loads extension TypeScript, Agent Skills, and prompt templates directly.
+Extension packages therefore publish reviewed TypeScript source rather than a
+generated build directory, while Markdown-only skill or prompt packages publish
+their resources without fake extension scaffolding. Package manifests identify
+resources under `pi.extensions`, `pi.skills`, and `pi.prompts`. The private root
+profile uses explicit paths so its active surface stays auditable.
 
 Extension factories perform registration and bounded initialization only. Long-lived processes, sockets, watchers, and timers start from `session_start` or from the command or tool that needs them. Every session-scoped resource has idempotent cleanup in `session_shutdown`.
 
@@ -45,7 +54,7 @@ Once registered, package changelogs are generator-owned release artifacts. Relea
 
 ## Verification layers
 
-1. Manifest validation checks package structure, release metadata, dependency placement, Pi extensions/skills/prompts, aggregate coverage, and npm pack contents.
+1. Manifest validation checks package structure, release metadata, dependency placement, Pi extensions/skills/prompts, the exact root profile, and npm pack contents.
 2. Unit and integration tests exercise extension logic and skill contracts deterministically.
 3. Source smoke tests load each package with the real Pi CLI.
 4. Packed smoke tests install the exact npm artifact with production dependencies and repeat Pi loading.

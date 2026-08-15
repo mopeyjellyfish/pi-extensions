@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
@@ -9,7 +9,7 @@ import {
   findForbiddenPackedPaths,
   loadFixturePackage,
   validatePackage,
-  validateRootAggregate,
+  validateRootProfile,
   resolvePackageSkills,
   type PackageDescriptor,
 } from "../../scripts/lib/packages.ts";
@@ -17,6 +17,19 @@ import { validateReleaseConfiguration } from "../../scripts/lib/releases.ts";
 import { repositoryRoot, toPosixPath } from "../../scripts/lib/repository.ts";
 
 const temporaryRoots: string[] = [];
+const ROOT_PROFILE = {
+  extensions: ["./packages/question/src/index.ts"],
+  skills: [
+    "./packages/feature-flow/skills/shape",
+    "./packages/feature-flow/skills/planning-changes",
+    "./packages/engineering/skills/implement",
+  ],
+  prompts: [
+    "./packages/feature-flow/prompts/shape.md",
+    "./packages/feature-flow/prompts/plan.md",
+    "./packages/engineering/prompts/implement.md",
+  ],
+} as const;
 
 afterEach(async () => {
   await Promise.all(
@@ -45,142 +58,11 @@ async function rootWithRuntime(node: string, nodeTypes: string): Promise<string>
       workspaces: ["packages/*"],
       engines: { node },
       devDependencies: { "@types/node": nodeTypes },
-      pi: { extensions: ["./packages/*/src/index.ts"] },
+      pi: ROOT_PROFILE,
     }),
     "utf8",
   );
   return root;
-}
-
-async function rootWithDependencyExtension(includeDependency: boolean): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pi-bundled-extension-test-"));
-  temporaryRoots.push(root);
-  const extensionRoot = join(root, "node_modules", "@example", "pi-extension");
-  await mkdir(join(root, "packages"), { recursive: true });
-  await mkdir(join(extensionRoot, "src"), { recursive: true });
-  await mkdir(join(extensionRoot, "skills", "example"), { recursive: true });
-  await writeFile(join(extensionRoot, "src", "index.ts"), "export default () => {};\n", "utf8");
-  await writeFile(
-    join(extensionRoot, "skills", "example", "SKILL.md"),
-    "---\nname: example\ndescription: Example skill.\n---\n\n# Example\n",
-    "utf8",
-  );
-  await writeFile(
-    join(extensionRoot, "package.json"),
-    JSON.stringify({
-      name: "@example/pi-extension",
-      version: "1.0.0",
-      pi: { extensions: ["./src/index.ts"], skills: ["./skills"] },
-    }),
-    "utf8",
-  );
-  await writeFile(
-    join(root, "package.json"),
-    JSON.stringify({
-      private: true,
-      workspaces: ["packages/*"],
-      engines: { node: ">=22.20.0" },
-      dependencies: includeDependency ? { "@example/pi-extension": "1.0.0" } : {},
-      devDependencies: { "@types/node": "22.20.0" },
-      pi: {
-        extensions: [
-          "./packages/*/src/index.ts",
-          "./node_modules/@example/pi-extension/src/index.ts",
-        ],
-        skills: ["./node_modules/@example/pi-extension/skills"],
-      },
-    }),
-    "utf8",
-  );
-  return root;
-}
-
-async function rootWithSkillAggregate(includeSkills: boolean): Promise<{
-  readonly descriptor: PackageDescriptor;
-  readonly root: string;
-}> {
-  const root = await mkdtemp(join(tmpdir(), "pi-skill-aggregate-test-"));
-  temporaryRoots.push(root);
-  const packageRoot = join(root, "packages", "skills");
-  await mkdir(join(packageRoot, "skills", "example"), { recursive: true });
-  await writeFile(
-    join(packageRoot, "skills", "example", "SKILL.md"),
-    "---\nname: example\ndescription: Example skill.\n---\n\n# Example\n",
-    "utf8",
-  );
-  await writeFile(
-    join(root, "package.json"),
-    JSON.stringify({
-      private: true,
-      workspaces: ["packages/*"],
-      engines: { node: ">=22.20.0" },
-      devDependencies: { "@types/node": "22.20.0" },
-      pi: {
-        extensions: ["./packages/*/src/index.ts"],
-        ...(includeSkills ? { skills: ["./packages/*/skills"] } : {}),
-      },
-    }),
-    "utf8",
-  );
-  return {
-    descriptor: {
-      kind: "production",
-      manifest: { pi: { skills: ["./skills"] } },
-      root: packageRoot,
-    },
-    root,
-  };
-}
-
-async function promptOnlyPackage(includeRootPrompts: boolean): Promise<{
-  readonly descriptor: PackageDescriptor;
-  readonly root: string;
-}> {
-  const root = await mkdtemp(join(repositoryRoot, ".tmp", "pi-prompt-root-"));
-  temporaryRoots.push(root);
-  const packageRoot = join(root, "packages", "prompts");
-  await mkdir(join(packageRoot, "prompts"), { recursive: true });
-  await mkdir(join(packageRoot, "test"));
-  const manifest = {
-    name: "@mopeyjellyfish/pi-prompt-probe",
-    version: "0.0.0",
-    description: "A production prompt-only package fixture.",
-    license: "MIT",
-    type: "module",
-    engines: { node: ">=22.20.0" },
-    files: ["prompts/", "README.md", "CHANGELOG.md", "LICENSE"],
-    keywords: ["pi-package"],
-    pi: { prompts: ["./prompts"] },
-    repository: {
-      type: "git",
-      url: "git+https://github.com/mopeyjellyfish/pi-extensions.git",
-      directory: toPosixPath(relative(repositoryRoot, packageRoot)),
-    },
-    scripts: { test: "vitest run" },
-  };
-  await Promise.all([
-    writeFile(join(packageRoot, "package.json"), JSON.stringify(manifest), "utf8"),
-    writeFile(join(packageRoot, "README.md"), "# Prompt package\n", "utf8"),
-    writeFile(join(packageRoot, "CHANGELOG.md"), "# Changelog\n", "utf8"),
-    writeFile(join(packageRoot, "LICENSE"), "MIT\n", "utf8"),
-    writeFile(join(packageRoot, "prompts", "shape.md"), "Resume the feature.\n", "utf8"),
-    writeFile(join(packageRoot, "test", "prompts.test.ts"), "export {};\n", "utf8"),
-    writeFile(
-      join(root, "package.json"),
-      JSON.stringify({
-        private: true,
-        workspaces: ["packages/*"],
-        engines: { node: ">=22.20.0" },
-        devDependencies: { "@types/node": "22.20.0" },
-        pi: {
-          extensions: ["./packages/*/src/index.ts"],
-          ...(includeRootPrompts ? { prompts: ["./packages/*/prompts"] } : {}),
-        },
-      }),
-      "utf8",
-    ),
-  ]);
-  return { descriptor: { kind: "production", manifest, root: packageRoot }, root };
 }
 
 async function skillOnlyPackage(): Promise<PackageDescriptor> {
@@ -223,6 +105,37 @@ async function skillOnlyPackage(): Promise<PackageDescriptor> {
 }
 
 describe("package contracts", () => {
+  it("keeps the private root profile minimal", async () => {
+    expect.hasAssertions();
+    const manifest = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8")) as {
+      readonly dependencies?: unknown;
+      readonly pi?: Record<string, unknown>;
+    };
+
+    expect(manifest.pi).toEqual(ROOT_PROFILE);
+    expect(manifest.dependencies).toBeUndefined();
+  });
+
+  it("rejects a missing or additional root profile resource", async () => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.20.0", "22.20.0");
+    const manifestPath = join(root, "package.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest["pi"] = {
+      ...ROOT_PROFILE,
+      extensions: [...ROOT_PROFILE.extensions, "./packages/lsp/src/index.ts"],
+      prompts: ROOT_PROFILE.prompts.slice(1),
+    };
+    await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
+
+    await expect(validateRootProfile(root)).resolves.toEqual(
+      expect.arrayContaining([
+        `Root pi.extensions must equal ${JSON.stringify(ROOT_PROFILE.extensions)}.`,
+        `Root pi.prompts must equal ${JSON.stringify(ROOT_PROFILE.prompts)}.`,
+      ]),
+    );
+  });
+
   it("accepts the private lifecycle fixture", async () => {
     expect.hasAssertions();
     await expect(validatePackage(await loadFixturePackage())).resolves.toEqual([]);
@@ -231,43 +144,6 @@ describe("package contracts", () => {
   it("accepts a production skill-only package without extension scaffolding", async () => {
     expect.hasAssertions();
     await expect(validatePackage(await skillOnlyPackage())).resolves.toEqual([]);
-  });
-
-  it("validates package prompts and requires the root prompt aggregate", async () => {
-    expect.hasAssertions();
-    const valid = await promptOnlyPackage(true);
-    await expect(validatePackage(valid.descriptor)).resolves.toEqual([]);
-    await expect(validateRootAggregate([valid.descriptor], valid.root)).resolves.toEqual([]);
-
-    const missing = await promptOnlyPackage(false);
-    await expect(validateRootAggregate([missing.descriptor], missing.root)).resolves.toContainEqual(
-      "Root pi.prompts must contain the aggregate prompt glob.",
-    );
-  });
-
-  it("requires the root Pi package to aggregate production skills", async () => {
-    expect.hasAssertions();
-    const missing = await rootWithSkillAggregate(false);
-    await expect(validateRootAggregate([missing.descriptor], missing.root)).resolves.toContainEqual(
-      "Root pi.skills must contain the aggregate skill glob.",
-    );
-    const aggregated = await rootWithSkillAggregate(true);
-    await expect(validateRootAggregate([aggregated.descriptor], aggregated.root)).resolves.toEqual(
-      [],
-    );
-  });
-
-  it("allows Pi package dependency resources in the root aggregate", async () => {
-    expect.hasAssertions();
-    const valid = await rootWithDependencyExtension(true);
-    await expect(validateRootAggregate([], valid)).resolves.toEqual([]);
-    const missingDependency = await rootWithDependencyExtension(false);
-    await expect(validateRootAggregate([], missingDependency)).resolves.toEqual(
-      expect.arrayContaining([
-        "Root aggregate includes unmanaged entrypoint node_modules/@example/pi-extension/src/index.ts.",
-        "Root skill aggregate includes unmanaged skill node_modules/@example/pi-extension/skills/example/SKILL.md.",
-      ]),
-    );
   });
 
   it("discovers and validates every installable Pi package and skill", async () => {
@@ -305,7 +181,7 @@ describe("package contracts", () => {
       throw new Error("GitHub package was not discovered.");
     }
     await expect(resolvePackageSkills(github)).resolves.toHaveLength(1);
-    await expect(validateRootAggregate(packages)).resolves.toEqual([]);
+    await expect(validateRootProfile()).resolves.toEqual([]);
     await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);
   });
 
@@ -361,7 +237,7 @@ describe("package contracts", () => {
   it("keeps root engines and Node types on the minimum runtime line", async () => {
     expect.hasAssertions();
     const root = await rootWithRuntime(">=22.19.0", "22.19.21");
-    const errors = await validateRootAggregate([], root);
+    const errors = await validateRootProfile(root);
     expect(errors).toEqual(
       expect.arrayContaining([
         "Root engines.node must be >=22.20.0.",
@@ -377,7 +253,7 @@ describe("package contracts", () => {
   ])("validates Node types line %s", async (nodeTypes, valid) => {
     expect.hasAssertions();
     const root = await rootWithRuntime(">=22.20.0", nodeTypes);
-    const errors = await validateRootAggregate([], root);
+    const errors = await validateRootProfile(root);
     const typeErrors = errors.filter((error) => error.includes("@types/node"));
     expect(typeErrors).toEqual(
       valid ? [] : ["Root @types/node must remain on the 22.20.x minimum-runtime line."],

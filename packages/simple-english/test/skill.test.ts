@@ -29,16 +29,4 @@ describe("simple-english skill", () => {
     expect(useCases).toContain("## Commit messages and PR descriptions");
     expect(checklist).toContain("## Mechanical checks");
   });
-
-  it("applies Simple English to feature pitches and plans without changing contracts", async () => {
-    expect.hasAssertions();
-    const shape = await readFile(
-      join(import.meta.dirname, "..", "..", "feature-flow", "skills", "shape", "SKILL.md"),
-      "utf8",
-    );
-
-    expect(shape).toContain("`simple-english` skill");
-    expect(shape).toMatch(/pitch[\s\S]*descriptive[\s\S]*plan[\s\S]*procedural/iu);
-    expect(shape).toMatch(/preserve[\s\S]*headings[\s\S]*frontmatter[\s\S]*checkbox/iu);
-  });
 });

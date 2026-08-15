@@ -1,21 +1,7 @@
 # Plan: {{feature}}
 
-Resume by inspecting Git, then work the first unchecked sequential slice. The
-map covers the complete accepted scope. Reorder, rewrite, split, merge, or delete
-pending slices only when new information changes the plan.
-
-When the `todo` tool is available, derive checked/total progress and the first
-unchecked slice from this plan. Reconcile one rolling `Shape <slug>:` item. Keep
-`plan.md` authoritative and preserve unrelated todos.
-
-## Delivery map
-
-Use `first`, `after NNN`, or `parallel-safe with NNN`. Parallel delivery requires
-human request, isolated worktrees, and one writer for each worktree.
-
-| Slice | Outcome                     | Delivery | Unknowns |
-| ----- | --------------------------- | -------- | -------- |
-| 001   | Observable vertical outcome | first    | None     |
+Work the first unchecked slice. Keep slices serial unless the accepted plan
+explicitly proves that an independent lane is worth its extra coordination.
 
 ## [ ] 001 — Observable vertical outcome
 
@@ -23,21 +9,24 @@ human request, isolated worktrees, and one writer for each worktree.
 
 State one user- or operator-visible result.
 
-### Pitch trace
+### Requirement trace
 
 Link the relevant pitch headings and acceptance criteria.
 
 ### Implementation
 
-Name the public seam, relevant files or contracts, and the smallest useful test
-and production change. Avoid speculative task inventories.
+Name the public seam, likely files, and smallest production change.
 
-### Validation
+### Test posture
 
-List only applicable focused tests, required checks, any requested independent
-review, and a real user or operator path when one exists.
+State the focused test, expected red signal, and expected green signal. Use a
+focused before-and-after check for documentation, metadata, or mechanical work.
+
+### Verification
+
+List the integrated path and applicable repository-required checks.
 
 ### Done when
 
-State objective completion conditions. Mark this slice `[x]` only after they
-hold. Add a short `> Blocked: … Next: …` note only while the slice is blocked.
+State objective completion conditions. Mark the slice `[x]` only after they
+hold.

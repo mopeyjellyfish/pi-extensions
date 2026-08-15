@@ -8,7 +8,7 @@ import {
   resolvePackagePrompts,
   resolvePackageSkills,
   validatePackage,
-  validateRootAggregate,
+  validateRootProfile,
   type PackageDescriptor,
 } from "./lib/packages.ts";
 import { describeFailure, npmInvocation, runCommand } from "./lib/process.ts";
@@ -92,7 +92,7 @@ async function main(): Promise<void> {
   const fixture = await loadFixturePackage();
   const descriptors = [...packages, fixture];
   const errors = [
-    ...(await validateRootAggregate(packages)),
+    ...(await validateRootProfile()),
     ...(await validateReleaseConfiguration(packages)),
   ];
   for (const descriptor of descriptors) {
@@ -106,7 +106,7 @@ async function main(): Promise<void> {
     throw new Error(`Package validation failed:\n- ${errors.join("\n- ")}`);
   }
   console.log(
-    `Validated ${String(packages.length)} production package(s), release metadata, the root aggregate, and the private fixture.`,
+    `Validated ${String(packages.length)} production package(s), release metadata, the root profile, and the private fixture.`,
   );
 }
 
