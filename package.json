@@ -16,7 +16,8 @@
       "./packages/question/src/index.ts",
       "./packages/status-line/src/index.ts",
       "./packages/web-search/src/index.ts",
-      "./packages/worktrunk/src/index.ts"
+      "./packages/worktrunk/src/index.ts",
+      "./node_modules/pi-subagents/index.ts"
     ],
     "skills": [
       "./packages/feature-flow/skills/shape",
@@ -24,12 +25,14 @@
       "./packages/engineering/skills/implement",
       "./packages/git-conventions/skills",
       "./packages/github/skills",
-      "./packages/worktrunk/skills"
+      "./packages/worktrunk/skills",
+      "./node_modules/pi-subagents/skills"
     ],
     "prompts": [
       "./packages/feature-flow/prompts/shape.md",
       "./packages/feature-flow/prompts/plan.md",
-      "./packages/engineering/prompts/implement.md"
+      "./packages/engineering/prompts/implement.md",
+      "./node_modules/pi-subagents/prompts"
     ]
   },
   "scripts": {
@@ -94,6 +97,9 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",
     "vitest": "4.1.10"
+  },
+  "dependencies": {
+    "pi-subagents": "0.50.0"
   },
   "overrides": {
     "cosmiconfig": {

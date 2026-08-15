@@ -448,6 +448,7 @@ const ROOT_PROFILE: PackageResources = {
     "./packages/status-line/src/index.ts",
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
+    "./node_modules/pi-subagents/index.ts",
   ],
   skills: [
     "./packages/feature-flow/skills/shape",
@@ -456,13 +457,16 @@ const ROOT_PROFILE: PackageResources = {
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
+    "./node_modules/pi-subagents/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
     "./packages/feature-flow/prompts/plan.md",
     "./packages/engineering/prompts/implement.md",
+    "./node_modules/pi-subagents/prompts",
   ],
 };
+const ROOT_DEPENDENCIES = { "pi-subagents": "0.50.0" };
 
 function validateRootManifest(value: Record<string, unknown>, errors: string[]): void {
   if (value["private"] !== true) {
@@ -486,8 +490,9 @@ function validateRootManifest(value: Record<string, unknown>, errors: string[]):
   ) {
     errors.push("Root pi may contain only extensions, skills, and prompts.");
   }
-  if (Object.keys(stringRecord(value["dependencies"]) ?? {}).length > 0) {
-    errors.push("Root package.json must not declare production dependencies.");
+  const dependencies = stringRecord(value["dependencies"]) ?? {};
+  if (JSON.stringify(dependencies) !== JSON.stringify(ROOT_DEPENDENCIES)) {
+    errors.push(`Root dependencies must equal ${JSON.stringify(ROOT_DEPENDENCIES)}.`);
   }
 }
 

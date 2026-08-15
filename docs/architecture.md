@@ -4,8 +4,8 @@
 
 The root package is private and provides the small repository-wide Git profile
 documented in the root README. It selects a deliberate subset of local package
-resources and has no production dependencies. Each directory under `packages/`
-is an independent npm package with its own Pi manifest, runtime dependencies,
+resources and pins `pi-subagents` as its only external production dependency.
+Each directory under `packages/` is an independent npm package with its own Pi manifest, runtime dependencies,
 documentation, tests, and optional native helper.
 
 A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.

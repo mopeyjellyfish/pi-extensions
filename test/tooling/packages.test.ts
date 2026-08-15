@@ -23,6 +23,7 @@ const ROOT_PROFILE = {
     "./packages/status-line/src/index.ts",
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
+    "./node_modules/pi-subagents/index.ts",
   ],
   skills: [
     "./packages/feature-flow/skills/shape",
@@ -31,13 +32,16 @@ const ROOT_PROFILE = {
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
+    "./node_modules/pi-subagents/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
     "./packages/feature-flow/prompts/plan.md",
     "./packages/engineering/prompts/implement.md",
+    "./node_modules/pi-subagents/prompts",
   ],
 } as const;
+const ROOT_DEPENDENCIES = { "pi-subagents": "0.50.0" } as const;
 
 afterEach(async () => {
   await Promise.all(
@@ -65,6 +69,7 @@ async function rootWithRuntime(node: string, nodeTypes: string): Promise<string>
       private: true,
       workspaces: ["packages/*"],
       engines: { node },
+      dependencies: ROOT_DEPENDENCIES,
       devDependencies: { "@types/node": nodeTypes },
       pi: ROOT_PROFILE,
     }),
@@ -113,7 +118,7 @@ async function skillOnlyPackage(): Promise<PackageDescriptor> {
 }
 
 describe("package contracts", () => {
-  it("keeps the private root profile minimal", async () => {
+  it("keeps the private root profile curated", async () => {
     expect.hasAssertions();
     const manifest = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8")) as {
       readonly dependencies?: unknown;
@@ -121,7 +126,7 @@ describe("package contracts", () => {
     };
 
     expect(manifest.pi).toEqual(ROOT_PROFILE);
-    expect(manifest.dependencies).toBeUndefined();
+    expect(manifest.dependencies).toEqual(ROOT_DEPENDENCIES);
   });
 
   it("rejects a missing or additional root profile resource", async () => {
@@ -141,6 +146,19 @@ describe("package contracts", () => {
         `Root pi.extensions must equal ${JSON.stringify(ROOT_PROFILE.extensions)}.`,
         `Root pi.prompts must equal ${JSON.stringify(ROOT_PROFILE.prompts)}.`,
       ]),
+    );
+  });
+
+  it("rejects an unpinned or additional root production dependency", async () => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.20.0", "22.20.0");
+    const manifestPath = join(root, "package.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest["dependencies"] = { "pi-subagents": "^0.50.0", unexpected: "1.0.0" };
+    await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
+
+    await expect(validateRootProfile(root)).resolves.toContainEqual(
+      `Root dependencies must equal ${JSON.stringify(ROOT_DEPENDENCIES)}.`,
     );
   });
 
