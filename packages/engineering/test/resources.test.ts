@@ -32,8 +32,9 @@ describe("engineering resources", () => {
     expect(implement).toContain("Git state");
     expect(implement).toContain("public contracts");
     expect(implement).toContain("delivery authority");
-    expect(implement).toMatch(/Git aggregate[\s\S]*pi-subagents[\s\S]*Blocked prerequisite/iu);
-    expect(implement).toMatch(/parent only when[\s\S]*sequential[\s\S]*low-risk/iu);
+    expect(implement).toMatch(/Direct\s+parent execution[^.]*no agent package/iu);
+    expect(implement).toMatch(/retained execution or requested[\s\S]*`pi-subagents`/iu);
+    expect(implement).toMatch(/direct parent execution only[\s\S]*sequential[\s\S]*low-risk/iu);
     expect(implement).toMatch(/locally\s+understandable[\s\S]*cheap to validate/iu);
     expect(implement).toMatch(/`test-driven-development`[\s\S]*`codebase-design`/iu);
 
@@ -68,38 +69,68 @@ describe("engineering resources", () => {
     expect(prompt).toContain("Use the `implement` skill.");
   });
 
-  it("selects the bug executor before diagnosis and retains one writer through repair", async () => {
+  it("selects the bug executor before diagnosis and retains one writer when needed", async () => {
     expect.hasAssertions();
     const work = await read("skills/implement/SKILL.md");
 
-    expect(work).toMatch(
-      /select (?:the )?(?:direct|parent)[\s\S]*(?:retained|writer)[\s\S]*before[\s\S]*`diagnosing-bugs`/iu,
-    );
+    expect(work).toMatch(/Select\s+the executor before[^.]*`diagnosing-bugs`/iu);
     expect(work).toMatch(
       /selected executor[\s\S]*reproduction[\s\S]*caller[\s\S]*sibling[\s\S]*root-cause repair[\s\S]*regression test[\s\S]*first red/iu,
     );
     expect(work).toMatch(
-      /one retained `worker` with `context: "fresh"`[\s\S]*exclusive (?:active )?writer lease/iu,
+      /one retained `worker`\s+with\s+`context: "fresh"`[\s\S]*exclusive (?:active )?writer lease/iu,
     );
+    expect(work).toMatch(/approved Shape slice[\s\S]*worker[\s\S]*fresh[\s\S]*Sol\s+`medium`/iu);
     expect(work).toMatch(
-      /Sol `medium`[\s\S]*Sol `high`[\s\S]*security[\s\S]*data loss[\s\S]*concurrency[\s\S]*lifecycle[\s\S]*migration[\s\S]*public API[\s\S]*protocol[\s\S]*provider transport[\s\S]*cross-package[\s\S]*nondeterministic[\s\S]*expensive or unclear validation/iu,
+      /worker verifies[^.]*accepted slice[\s\S]*done conditions[\s\S]*tests[\s\S]*lint[\s\S]*integrated path/iu,
     );
-    expect(work).toMatch(/fresh Sol `high` reviewer/iu);
+    expect(work).toMatch(/direct parent execution[^.]*bounded non-Shape request/iu);
+    expect(work).toMatch(
+      /Sol\s+`medium`[\s\S]*Sol\s+`high`[\s\S]*security[\s\S]*data loss[\s\S]*concurrency[\s\S]*lifecycle[\s\S]*migration[\s\S]*public API[\s\S]*protocol[\s\S]*provider transport[\s\S]*cross-package[\s\S]*nondeterministic[\s\S]*expensive or unclear\s+validation/iu,
+    );
+    expect(work).toMatch(/Do not launch code review by default/iu);
+    expect(work).toMatch(
+      /one fresh Sol `high` reviewer[^.]*user requests[^.]*repository instructions/iu,
+    );
     expect(work).toContain('runs.run(key, { resume: "<run-id>", task: "follow-up" })');
-    expect(work).toMatch(/latest returned `runId`[\s\S]*routine/iu);
-    expect(work).toMatch(/decision-level\s+finding[\s\S]*writer lease[\s\S]*parent/iu);
-    expect(work).toContain("`invalidated contract` state is ineligible for");
-    expect(work).toMatch(
-      /direct\s+execution:[\s\S]*new retained `worker` with `context: "fresh"`/iu,
-    );
+    expect(work).toMatch(/latest returned `runId`[^.]*once for repair/iu);
+    expect(work).toMatch(/decision-level findings[^.]*parent or Shape/iu);
+    expect(work).toMatch(/`invalidated contract` state[^.]*new fresh worker/iu);
     expect(work).toContain("The controlling parent verifies the evidence");
-    expect(work).toMatch(/retained execution[\s\S]*returns the exclusive writer lease/iu);
+    expect(work).toMatch(/retained\s+execution[\s\S]*returns the\s+exclusive writer lease/iu);
     expect(work).toMatch(/Direct parent execution[^.]*no worker\s+lease to return/iu);
     expect(work).toMatch(
       /approved Shape plan slice[\s\S]*updates the plan checkbox[\s\S]*direct bounded request[^.]*without a plan edit/iu,
     );
     expect(work).toMatch(/Only\s+with explicit authority[^.]*parent applies/iu);
     expect(work).toMatch(/parent keeps final[\s\S]*verification\s+authority/iu);
+  });
+
+  it("uses verification signals and leaves code review to an explicit gate", async () => {
+    expect.hasAssertions();
+    const [implement, developing, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("skills/developing-changes/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(implement).toMatch(
+      /signal progress[\s\S]*focused tests[\s\S]*(?:lint|static checks)[\s\S]*required suite/iu,
+    );
+    expect(implement).toMatch(/do not launch code review by default/iu);
+    expect(implement).toMatch(/do not set[^.]*`turnBudget`[^.]*`toolBudget`[^.]*worker/iu);
+    expect(implement).toMatch(/30-minute[^.]*runtime deadline/iu);
+    expect(implement).toMatch(
+      /interactive parent[\s\S]*completion wake[\s\S]*do not block[^.]*`subagent_wait`/iu,
+    );
+    expect(implement).toMatch(
+      /wait[^.]*aborted[^.]*does not mean[^.]*child failed[\s\S]*inspect[^.]*lifecycle[^.]*once/iu,
+    );
+    expect(implement).toMatch(/user requests it[^.]*repository instructions require it/iu);
+    expect(developing).toMatch(
+      /check route-specific agent and tool\s+prerequisites only after choosing the route/iu,
+    );
+    expect(readme).toMatch(/human\s+reviews the pull request[^.]*requests one final code review/iu);
   });
 
   it("ships the quality-first workflow, focused skills, and expandable prompts", async () => {
@@ -115,8 +146,10 @@ describe("engineering resources", () => {
       read("prompts/review-change.md"),
     ]);
 
-    expect(developing).toMatch(/Git aggregate[\s\S]*pi-subagents/iu);
-    expect(developing).toMatch(/Blocked prerequisite[\s\S]*pi install npm:pi-subagents/iu);
+    expect(developing).toMatch(/route-specific agent and tool[\s\S]*after choosing the route/iu);
+    expect(developing).toMatch(
+      /Direct Shape[^.]*planning[^.]*parent[\s\S]*do not require `pi-subagents`/iu,
+    );
     expect(developing).toMatch(/unresolved product intent[\s\S]*`shape`/iu);
     expect(developing).toMatch(/accepted non-trivial intent[\s\S]*`planning-changes`/iu);
     expect(developing).toMatch(
@@ -128,7 +161,7 @@ describe("engineering resources", () => {
     expect(developing).toMatch(
       /QA-only[\s\S]*fresh read-only `qa`[\s\S]*Luna\s+`medium`[\s\S]*one-shot[\s\S]*ephemeral/iu,
     );
-    expect(developing).toMatch(/QA never[^.]*formal\s+review/iu);
+    expect(developing).toMatch(/QA does not create a code\s+review gate/iu);
     expect(developing).toMatch(/review-only[\s\S]*fresh `reviewer`[\s\S]*`reviewing-changes`/iu);
     expect(developing).toMatch(
       /parent[\s\S]*route choice[\s\S]*final verification[\s\S]*delivery/iu,
@@ -160,6 +193,9 @@ describe("engineering resources", () => {
     expect(review).toMatch(/spec|intent/iu);
     expect(review).toMatch(/engineering standards/iu);
     expect(review).toMatch(/make no\s+edits|no edits/iu);
+    expect(review).toMatch(/one reviewer[^.]*both axes[^.]*single pass/iu);
+    expect(review).toMatch(/do not fan out[^.]*human requests/iu);
+    expect(review).toMatch(/do not rerun[^.]*tests or lint[^.]*current evidence/iu);
     expect(develop).toContain("Use the `developing-changes` skill.");
     expect(diagnose).toContain("Use the `diagnosing-bugs` skill.");
     expect(model).toContain("Use the `domain-modeling` skill.");
