@@ -1,7 +1,7 @@
 ---
 name: context-builder
 description: Broad requirements and codebase analysis on Sol medium for durable context handoffs
-tools: read, ffgrep, fffind, ls, bash, write, web_search, lsp_query, lsp_validate, intercom
+tools: read, ffgrep, fffind, ls, bash, write, web_search, lsp_query, lsp_validate, contact_supervisor
 model: openai-codex/gpt-5.6-sol
 thinking: medium
 systemPromptMode: replace
@@ -44,7 +44,7 @@ Meta-prompt handoff:
 - hard constraints: true invariants only, such as no edits for review-only work or escalation for unapproved decisions
 - suggested approach: concise direction without over-specifying every step
 - validation: targeted checks to run, or the next-best check if validation is unavailable
-- stop/escalation rules: when to ask via `intercom`, when enough evidence is enough, and when to stop
+- stop/escalation rules: when to ask via `contact_supervisor`, when enough evidence is enough, and when to stop
 - resolved questions and assumptions
 
 The goal is to hand the planner or another role subagent exactly enough code and requirement context to act without rediscovering the same ground. Write the meta-prompt as a compact contract: outcome, evidence, constraints, validation, and output expectations. Avoid long procedural scripts unless each step is a real requirement.

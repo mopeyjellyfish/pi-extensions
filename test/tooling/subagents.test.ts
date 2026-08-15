@@ -41,7 +41,7 @@ describe("aggregate subagent resources", () => {
         "bash",
         "lsp_query",
         "lsp_validate",
-        "intercom",
+        "contact_supervisor",
       ],
       "context-builder.md": [
         "read",
@@ -53,7 +53,7 @@ describe("aggregate subagent resources", () => {
         "web_search",
         "lsp_query",
         "lsp_validate",
-        "intercom",
+        "contact_supervisor",
       ],
       "delegate.md": [
         "read",
@@ -80,9 +80,17 @@ describe("aggregate subagent resources", () => {
         "bash",
         "lsp_query",
         "lsp_validate",
-        "intercom",
+        "contact_supervisor",
       ],
-      "planner.md": ["read", "ffgrep", "fffind", "ls", "lsp_query", "lsp_validate", "intercom"],
+      "planner.md": [
+        "read",
+        "ffgrep",
+        "fffind",
+        "ls",
+        "lsp_query",
+        "lsp_validate",
+        "contact_supervisor",
+      ],
       "qa.md": [
         "read",
         "ffgrep",
@@ -93,7 +101,7 @@ describe("aggregate subagent resources", () => {
         "playwright_browser",
         "lsp_query",
         "lsp_validate",
-        "intercom",
+        "contact_supervisor",
       ],
       "reviewer.md": [
         "read",
@@ -110,9 +118,9 @@ describe("aggregate subagent resources", () => {
         "lsp_create_file",
         "lsp_delete_file",
         "lsp_rename_file",
-        "intercom",
+        "contact_supervisor",
       ],
-      "researcher.md": ["read", "write", "web_search", "intercom"],
+      "researcher.md": ["read", "write", "web_search", "contact_supervisor"],
       "scout.md": [
         "read",
         "ffgrep",
@@ -122,7 +130,7 @@ describe("aggregate subagent resources", () => {
         "write",
         "lsp_query",
         "lsp_validate",
-        "intercom",
+        "contact_supervisor",
       ],
       "worker.md": [
         "read",
@@ -177,7 +185,7 @@ describe("aggregate subagent resources", () => {
     expect(readme).toMatch(
       /require FFF's\s+`tools-and-ui` \(default\) or `tools-only` mode; FFF's\s+`override` mode[\s\S]*not compatible/iu,
     );
-    expect(readme).toContain("validated with `pi-subagents` 0.43.0");
+    expect(readme).toContain("validated with `pi-subagents` 0.50.0");
     expect(readme).toMatch(/Historical feature records[^.]*version used/iu);
     expect(readme).toContain("`planner`, `context-builder`, and `qa` are");
     expect(readme).toContain("Parent agents and explicitly permitted fanout subagents can select");
@@ -248,6 +256,7 @@ describe("aggregate subagent resources", () => {
       expect(frontmatterField(agent, "model")).toBe(expectedExecutionProfiles[name].model);
       expect(frontmatterField(agent, "thinking")).toBe(expectedExecutionProfiles[name].thinking);
       expect(frontmatterField(agent, "inheritSkills")).toBe("false");
+      expect(agent).not.toMatch(/\bintercom\b/u);
     }
 
     const expectedSkills = {
