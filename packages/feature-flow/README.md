@@ -10,10 +10,12 @@ The default lifecycle stays in the direct parent:
 request -> accepted pitch -> ordered plan -> implement
 ```
 
-Shape uses the `question` tool for material human decisions, writes a complete
-draft pitch, and requires explicit approval. Planning turns accepted intent into
-serial vertical slices with test and verification signals. It does not add
-routine delegation or concurrency machinery.
+Shape uses the `question` tool for material human decisions and presents the
+complete pitch for approval, revision, deepening, or independent review.
+Planning turns accepted intent into explicit vertical slices with execution
+mode, dependencies, TDD red and green signals, and verification. It presents
+the whole plan for the same feedback loop and requires explicit approval before
+implementation. `parallel-ready` records eligibility; it does not start work.
 
 Install the package from a repository checkout:
 
