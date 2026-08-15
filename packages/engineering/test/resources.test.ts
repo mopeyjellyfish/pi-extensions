@@ -23,9 +23,11 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/test-driven-development|red-green-refactor/iu);
     expect(implement).toMatch(/focused tests[\s\S]*required completion checks/iu);
     expect(implement).toMatch(/optional delegation[\s\S]*bounded independent lane/iu);
-    expect(implement).toMatch(/host-provided role/iu);
+    expect(implement).toMatch(/host-provided\s+role/iu);
     expect(implement).toMatch(/parent[\s\S]*synthesi[sz]e[\s\S]*verif/iu);
     expect(implement).toMatch(/do not delegate merely because[^.]*large/iu);
+    expect(implement).toMatch(/complete work evidence[\s\S]*document/iu);
+    expect(implement).toMatch(/Review[\s\S]*Revise[\s\S]*Deepen verification[\s\S]*Pause/iu);
     expect(readme).toMatch(/default[\s\S]*direct parent[\s\S]*optional delegation/iu);
 
     for (const resource of [implement, readme]) {

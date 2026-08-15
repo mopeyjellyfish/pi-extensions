@@ -32,15 +32,38 @@ cleanup, and user-visible documentation where applicable.
 ## Optional delegation
 
 Do not delegate merely because a task is large. Optional delegation is for one
-bounded independent lane that can return evidence without sharing write
-ownership. Use a host-provided role rather than a repository-specific agent
-overlay. Keep one writer. The parent must synthesize the result, inspect every
-change, and verify the evidence before accepting it.
+bounded independent lane. A `parallel-ready` plan slice may use a host-provided
+role as its worker only when the human requests parallel work, the dependencies
+are clear, and that worker has an isolated worktree and sole write ownership
+there. Keep overlapping slices serial. The parent must integrate in plan order,
+synthesize the result, inspect every change, and verify the evidence before
+accepting it.
+
+## Show main progress
+
+When the `todo` tool is available and the work has multiple material steps, use
+one compact parent-owned list and keep one item in progress. Update it at real
+milestones and after failures. The accepted plan remains authoritative; do not
+turn the todo list into a subagent task graph.
 
 ## Finish
 
 Update an accepted plan checkbox only after its completion conditions hold.
-Report changed files, the red and green evidence or explicit test exception,
-focused and required check results, residual risks, and any separately
-authorized delivery action. Do not infer authority to commit, push, merge,
-publish, deploy, or delete resources.
+Build complete work evidence containing changed files, the red and green
+evidence or explicit test exception, focused and required check results,
+residual risks, and any separately authorized delivery action. Show that
+complete work evidence in the `question` tool's document field with these
+actions:
+
+1. **Review** — run one fresh independent read-only review of the completed
+   diff, address material findings, reverify, and show the evidence again.
+2. **Revise** — apply the human's feedback, reverify, and show the evidence
+   again.
+3. **Deepen verification** — add one requested proof or investigate one named
+   uncertainty, then show the evidence again.
+4. **Pause** — leave the verified work and durable artifacts unchanged for
+   later continuation.
+
+If the tool or document field is unavailable, show the complete evidence in
+conversation and ask the same four-way question. Do not infer authority to
+commit, push, merge, publish, deploy, or delete resources.
