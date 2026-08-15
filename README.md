@@ -30,17 +30,37 @@ It loads only:
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
-- `/implement` for direct implementation and verification.
+- `/implement` for model-routed implementation and verification.
 
-The lifecycle is intentionally serial and parent-led:
+The lifecycle is intentionally serial and parent-led, with these execution
+profiles:
 
-```text
-request -> accepted pitch -> accepted vertical plan -> implement -> review or pause
+| Stage          | Model       | Thinking | Context                                  |
+| -------------- | ----------- | -------- | ---------------------------------------- |
+| Shape and Plan | Fable 5     | medium   | parent session                           |
+| Work           | GPT-5.6 Sol | medium   | fresh child for each accepted slice      |
+| Review         | Fable 5     | high     | fresh read-only child when review starts |
+
+Set the parent model in `~/.pi/agent/settings.json` so `/shape` and `/plan` use
+Fable at medium effort:
+
+```json
+{
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-fable-5",
+  "defaultThinkingLevel": "medium"
+}
 ```
 
-Large tasks do not automatically become subagent tasks. Start with one bundled
-`pi-subagents` child for a bounded independent lane whose extra context and token
-cost are worth it. Add another only for distinct independent work, use no more
+Merge these keys with settings you intentionally keep. The installed
+`sol-worker` and `fable-reviewer` profiles pin their own child models and
+thinking levels, with no fallback model. Both child stages start with fresh
+context. Both providers must already be signed in to Pi. The Git package does
+not edit user settings.
+
+Large tasks do not automatically become parallel subagent tasks. The root
+profile starts one foreground `sol-worker` for each accepted slice. Add another
+only for distinct `parallel-ready` work that the human approves, use no more
 than three in parallel unless the evidence justifies it, and keep one writer per
 worktree. Let the parent inspect the diff and verify all evidence. This follows OpenAI's current
 [Codex subagent guidance](https://developers.openai.com/codex/agent-configuration/subagents),
@@ -48,8 +68,9 @@ which recommends care with parallel writes and notes that comparable subagent
 runs use more tokens.
 
 The aggregate does not load the broad bundled `pi-subagents` orchestration skill.
-The focused Shape, planning, and implement skills own the lifecycle. The
-extension and its explicit prompt templates remain available.
+The focused Shape, planning, and implement skills own the lifecycle. The root
+package also installs the two narrow model-routed agents. The extension and its
+explicit prompt templates remain available.
 
 Use this conservative user configuration in
 `~/.pi/agent/extensions/subagent/config.json`:

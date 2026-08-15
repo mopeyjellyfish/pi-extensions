@@ -42,6 +42,10 @@ interface PackageResources {
   readonly skills: readonly string[];
 }
 
+interface RootProfile extends PackageResources {
+  readonly subagents: { readonly agents: readonly string[] };
+}
+
 function packageResources(manifest: Record<string, unknown>): PackageResources {
   const pi = manifest["pi"];
   return {
@@ -442,7 +446,7 @@ function validateRootRuntime(value: Record<string, unknown>, errors: string[]): 
   }
 }
 
-const ROOT_PROFILE: PackageResources = {
+const ROOT_PROFILE: RootProfile = {
   extensions: [
     "./packages/question/src/index.ts",
     "./packages/status-line/src/index.ts",
@@ -465,8 +469,21 @@ const ROOT_PROFILE: PackageResources = {
     "./packages/engineering/prompts/implement.md",
     "./node_modules/pi-subagents/prompts",
   ],
+  subagents: { agents: ["./agents"] },
 };
 const ROOT_DEPENDENCIES = { "pi-subagents": "0.50.0" };
+
+function validateRootSubagents(pi: Record<string, unknown>, errors: string[]): void {
+  const subagents = pi["subagents"];
+  if (
+    !isRecord(subagents) ||
+    JSON.stringify(stringArray(subagents["agents"]) ?? []) !==
+      JSON.stringify(ROOT_PROFILE.subagents.agents) ||
+    Object.keys(subagents).some((key) => key !== "agents")
+  ) {
+    errors.push(`Root pi.subagents must equal ${JSON.stringify(ROOT_PROFILE.subagents)}.`);
+  }
+}
 
 function validateRootManifest(value: Record<string, unknown>, errors: string[]): void {
   if (value["private"] !== true) {
@@ -484,11 +501,14 @@ function validateRootManifest(value: Record<string, unknown>, errors: string[]):
     }
   }
   const pi = value["pi"];
+  if (isRecord(pi)) {
+    validateRootSubagents(pi, errors);
+  }
   if (
     !isRecord(pi) ||
-    Object.keys(pi).some((key) => !["extensions", "skills", "prompts"].includes(key))
+    Object.keys(pi).some((key) => !["extensions", "skills", "prompts", "subagents"].includes(key))
   ) {
-    errors.push("Root pi may contain only extensions, skills, and prompts.");
+    errors.push("Root pi may contain only extensions, skills, prompts, and subagents.");
   }
   const dependencies = stringRecord(value["dependencies"]) ?? {};
   if (JSON.stringify(dependencies) !== JSON.stringify(ROOT_DEPENDENCIES)) {
