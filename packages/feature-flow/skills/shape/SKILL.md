@@ -32,10 +32,23 @@ Create `docs/features/<slug>/pitch.md` from `templates/pitch.md` with
 `status: draft`. Keep research only when it changes a decision. Prefer the
 smallest solution that meets the acceptance criteria.
 
-Show the complete pitch to the human. Ask for explicit human approval or
-revision. Do not infer approval from silence or from approval of a summary.
+Show the complete pitch in the `question` tool's document field with these
+actions:
 
-After approval, change the pitch to `status: accepted` and invoke
+1. **Approve and plan** — accept the pitch and create the plan.
+2. **Revise** — apply the human's feedback and show the complete pitch again.
+3. **Deepen** — investigate one named uncertainty, update the pitch, and show it
+   again.
+4. **Independent review** — use one fresh read-only reviewer, resolve material
+   findings, and show the complete pitch again.
+
+If the tool or its document field is unavailable, show the complete pitch in
+conversation and ask the same four-way question. Never use a summary or link in
+place of the full document. Do not infer approval from silence or from approval
+of a summary.
+
+Only **Approve and plan** is explicit human approval. After approval, change the
+pitch to `status: accepted` and invoke
 `planning-changes` with the accepted pitch. If implementation later changes
 accepted intent, return here, mark the pitch draft, revise it, and obtain fresh
 approval before replanning.

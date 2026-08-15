@@ -1,3 +1,7 @@
+---
+status: draft
+---
+
 # Plan: {{feature}}
 
 Work the first unchecked slice. Keep slices serial unless the accepted plan
@@ -17,10 +21,22 @@ Link the relevant pitch headings and acceptance criteria.
 
 Name the public seam, likely files, and smallest production change.
 
+### Execution mode
+
+Use `serial` or `parallel-ready`. List dependencies. Use `parallel-ready` only
+when the slice can run in an isolated worktree without shared writes.
+
 ### Test posture
 
-State the focused test, expected red signal, and expected green signal. Use a
-focused before-and-after check for documentation, metadata, or mechanical work.
+Use `tdd`, `characterization`, or `no-new-tests` with a reason.
+
+### Red signal
+
+State the focused failing test or before-state proof.
+
+### Green signal
+
+State the focused passing test or after-state proof.
 
 ### Verification
 

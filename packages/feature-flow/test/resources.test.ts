@@ -23,15 +23,24 @@ describe("feature-flow resources", () => {
     expect(shape).toMatch(/direct parent[^.]*default executor/iu);
     expect(shape).toMatch(/`question` tool/iu);
     expect(shape).toMatch(/pitch\.md[\s\S]*status: draft/iu);
+    expect(shape).toMatch(/complete pitch[\s\S]*document/iu);
+    expect(shape).toMatch(/Approve and plan[\s\S]*Revise[\s\S]*Deepen[\s\S]*Independent review/iu);
     expect(shape).toMatch(/explicit human approval[\s\S]*`planning-changes`/iu);
     expect(shape).toMatch(/appetite[\s\S]*boundaries[\s\S]*risks[\s\S]*acceptance criteria/iu);
     expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
     expect(planning).toMatch(/smallest ordered[\s\S]*vertical slices/iu);
     expect(planning).toMatch(/serial by default/iu);
-    expect(planning).toMatch(/test posture[\s\S]*verification/iu);
+    expect(planning).toMatch(/execution mode[\s\S]*serial[\s\S]*parallel-ready/iu);
+    expect(planning).toMatch(/test posture[\s\S]*red signal[\s\S]*green signal/iu);
+    expect(planning).toMatch(
+      /Approve and implement[\s\S]*Revise[\s\S]*Deepen[\s\S]*Independent review/iu,
+    );
+    expect(planning).toMatch(/whole plan[\s\S]*explicit human approval/iu);
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
+    expect(plan).toMatch(/^---\nstatus: draft\n---/u);
     expect(plan).toMatch(/## \[ \] 001 — Observable vertical outcome/u);
-    expect(plan).toMatch(/Test posture[\s\S]*Verification/iu);
+    expect(plan).toMatch(/Execution mode[\s\S]*serial.*parallel-ready/iu);
+    expect(plan).toMatch(/Test posture[\s\S]*Red signal[\s\S]*Green signal/iu);
     expect(readme).toMatch(/direct parent[\s\S]*pitch[\s\S]*plan/iu);
 
     for (const resource of [shape, planning, plan, readme]) {
