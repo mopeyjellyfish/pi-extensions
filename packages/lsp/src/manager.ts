@@ -756,7 +756,7 @@ export class LspManager implements LspService {
         throw new Error(`LSP query file exceeds ${String(MAX_SYNC_FILE_BYTES)} bytes.`);
       }
       const route = await this.#clientForFile(absolutePath, signal);
-      if (route === undefined) throw new Error(`No installed LSP server is available for ${path}.`);
+      if (route === undefined) throw await this.#missingServerError(absolutePath);
       const synchronization = await route.client.syncDocument(absolutePath, route.languageId, text);
       return callback(route, text, pathToFileURL(absolutePath).href, synchronization);
     });
@@ -1134,7 +1134,7 @@ export class LspManager implements LspService {
       throw new Error("LSP semantic file creation requires an existing parent directory.");
     const operationSignal = combinedSignal(this.#session.signal, signal);
     const route = await this.#clientForFile(absolutePath, operationSignal);
-    if (route === undefined) throw new Error(`No installed LSP server is available for ${path}.`);
+    if (route === undefined) throw await this.#missingServerError(absolutePath);
     if (!route.client.supportsWillCreateFiles(absolutePath)) {
       throw new Error(`${route.client.name} does not support workspace/willCreateFiles.`);
     }
@@ -1377,15 +1377,7 @@ export class LspManager implements LspService {
     }
     const operationSignal = combinedSignal(this.#session.signal, signal);
     const resolved = await this.#clientForFile(oldAbsolute, operationSignal);
-    if (resolved === undefined) {
-      const definitions = this.#definitions.filter((definition) =>
-        matches(definition, oldAbsolute),
-      );
-      const hints = definitions.map((definition) => definition.installHint).join(" ");
-      throw new Error(
-        `No installed LSP server is available for ${oldPath}.${hints ? ` ${hints}` : ""}`,
-      );
-    }
+    if (resolved === undefined) throw await this.#missingServerError(oldAbsolute);
     const { destination, intermediatePath } = await this.#prepareRenameDestination(
       resolved,
       oldAbsolute,
@@ -1827,6 +1819,20 @@ export class LspManager implements LspService {
     await Promise.allSettled([...clients].map((client) => client.shutdown()));
     this.#clients.clear();
     this.#starting.clear();
+  }
+
+  async #missingServerError(path: string): Promise<Error> {
+    const definitions = this.#definitions.filter((definition) => matches(definition, path));
+    if (definitions.length === 0) return new Error(`No LSP server is configured for ${path}.`);
+    const hints = new Set<string>();
+    for (const definition of definitions) {
+      const root = await findWorkspaceRoot(path, definition.rootMarkers, this.#cwd);
+      if (this.#unavailable.has(JSON.stringify([definition.id, root]))) {
+        hints.add(definition.installHint);
+      }
+    }
+    if (hints.size === 0) return new Error(`No running LSP server is available for ${path}.`);
+    return new Error(`No installed LSP server is available for ${path}. ${[...hints].join(" ")}`);
   }
 
   async #isTrustedPath(path: string): Promise<boolean> {

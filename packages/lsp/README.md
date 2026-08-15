@@ -35,6 +35,9 @@ npm install --global typescript typescript-language-server
 pipx install basedpyright
 go install golang.org/x/tools/gopls@latest
 rustup component add rust-analyzer
+go install github.com/sqls-server/sqls@latest
+# PostgreSQL-specific fallback:
+npm install --global @postgres-language-server/cli
 ```
 
 ## Built-in server discovery
@@ -47,6 +50,7 @@ retaining their correct LSP language IDs.
 | -------------------------------- | ------------------------------------------------------------------------ |
 | TypeScript, JavaScript, TSX, JSX | `typescript-language-server --stdio`                                     |
 | Python                           | `basedpyright-langserver --stdio`, `pyright-langserver --stdio`, `pylsp` |
+| SQL                              | `sqls`, `postgres-language-server lsp-proxy`, `postgrestools lsp-proxy`  |
 | Go                               | `gopls`                                                                  |
 | Rust                             | `rust-analyzer`                                                          |
 | C and C++                        | `clangd`                                                                 |
@@ -69,8 +73,12 @@ retaining their correct LSP language IDs.
 | Terraform                        | `terraform-ls serve`                                                     |
 
 Servers are started lazily per detected workspace root and reused for the
-session. Missing or failed servers are not retried on every write. Run `/lsp`
-to see servers that are running, unavailable, or failed.
+session. Missing or failed servers are not retried on every write. An explicit
+LSP operation for a supported file reports the applicable install command when
+no checked executable is installed. Unsupported file extensions are reported
+separately and do not trigger server installation. Run `/lsp` to see servers
+that are running, unavailable, or failed, including the same install guidance
+for unavailable servers.
 
 In TUI mode, the footer shows a compact `󰒋` icon while LSP is healthy or has
 not yet needed a server. It expands only for actionable states such as
