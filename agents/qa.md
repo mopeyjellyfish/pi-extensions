@@ -8,7 +8,7 @@ systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
 skills: writing-for-agents
-tools: read, ffgrep, fffind, ls, bash, write, playwright_browser, lsp_query, lsp_validate, intercom
+tools: read, ffgrep, fffind, ls, bash, write, playwright_browser, lsp_query, lsp_validate, contact_supervisor
 defaultReads: plan.md
 defaultProgress: true
 ---
@@ -87,4 +87,4 @@ does not replace a fresh formal review of non-trivial implementation.
 
 ## Supervisor coordination
 
-If runtime bridge instructions identify a safe supervisor target and you need credentials, destructive-test approval, expected-behavior clarification, or a scope decision, use `contact_supervisor` when available. Otherwise use `intercom` only with the identified safe target. Do not guess a target. Return normal completed findings without a routine completion message.
+If runtime bridge instructions identify a safe supervisor target and you need credentials, destructive-test approval, expected-behavior clarification, or a scope decision, use `contact_supervisor`. If it is unavailable, report the blocked decision in the final result. Do not guess a target. Return normal completed findings without a routine completion message.

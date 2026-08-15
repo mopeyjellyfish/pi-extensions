@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Sol medium web researcher for source evaluation and focused evidence synthesis
-tools: read, write, web_search, intercom
+tools: read, write, web_search, contact_supervisor
 model: openai-codex/gpt-5.6-sol
 thinking: medium
 systemPromptMode: replace

@@ -1,7 +1,7 @@
 ---
 name: scout
 description: Fast bounded codebase exploration on Luna low that returns compressed context for handoff
-tools: read, ffgrep, fffind, ls, bash, write, lsp_query, lsp_validate, intercom
+tools: read, ffgrep, fffind, ls, bash, write, lsp_query, lsp_validate, contact_supervisor
 model: openai-codex/gpt-5.6-luna
 thinking: low
 systemPromptMode: replace
