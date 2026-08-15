@@ -21,6 +21,7 @@ It loads only:
 
 - Pi's native tools and native compaction;
 - the [`question`](packages/question/README.md) extension;
+- the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - `/implement` for direct implementation and verification.
@@ -57,9 +58,9 @@ session.
 
 Pi already provides file, search, shell, editing, session, and compaction
 behavior. Skills are discovered progressively. The baseline therefore keeps
-native behavior and adds only the missing structured question and lifecycle
-contracts. Accepted `pitch.md` and `plan.md` files are durable anchors when a
-long session compacts.
+native behavior and adds only the missing structured question, terminal status,
+and lifecycle contracts. Accepted `pitch.md` and `plan.md` files are durable
+anchors when a long session compacts.
 
 Treat every extra extension as a measured addition:
 
@@ -118,7 +119,7 @@ when the task needs its capability.
 | [`pi-productivity`](packages/productivity/README.md)             | Clearer agent instructions.                                                       |
 | [`pi-question`](packages/question/README.md)                     | Structured questions without the root profile.                                    |
 | [`pi-simple-english`](packages/simple-english/README.md)         | Pragmatic ASD-STE100 writing guidance.                                            |
-| [`pi-status-line`](packages/status-line/README.md)               | Worktree and task status in the terminal.                                         |
+| [`pi-status-line`](packages/status-line/README.md)               | Powerlevel10k-style status without the root profile.                              |
 | [`pi-todo`](packages/todo/README.md)                             | A small session task list.                                                        |
 | [`pi-web-search`](packages/web-search/README.md)                 | Provider-backed web research.                                                     |
 | [`pi-worktrunk`](packages/worktrunk/README.md)                   | Worktrunk worktree selection and tool routing.                                    |

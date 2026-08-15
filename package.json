@@ -13,7 +13,8 @@
   ],
   "pi": {
     "extensions": [
-      "./packages/question/src/index.ts"
+      "./packages/question/src/index.ts",
+      "./packages/status-line/src/index.ts"
     ],
     "skills": [
       "./packages/feature-flow/skills/shape",

@@ -443,7 +443,7 @@ function validateRootRuntime(value: Record<string, unknown>, errors: string[]): 
 }
 
 const ROOT_PROFILE: PackageResources = {
-  extensions: ["./packages/question/src/index.ts"],
+  extensions: ["./packages/question/src/index.ts", "./packages/status-line/src/index.ts"],
   skills: [
     "./packages/feature-flow/skills/shape",
     "./packages/feature-flow/skills/planning-changes",
