@@ -243,6 +243,7 @@ async function installRootProfile(tempRoot: string): Promise<string> {
     copyFile(join(repositoryRoot, ".npmrc"), join(installRoot, ".npmrc")),
     copyFile(join(repositoryRoot, "package.json"), join(installRoot, "package.json")),
     copyFile(join(repositoryRoot, "package-lock.json"), join(installRoot, "package-lock.json")),
+    cp(join(repositoryRoot, "agents"), join(installRoot, "agents"), { recursive: true }),
     cp(join(repositoryRoot, "packages"), join(installRoot, "packages"), { recursive: true }),
   ]);
   const npmEnvironment = isolatedNpmEnvironment(npmHome);

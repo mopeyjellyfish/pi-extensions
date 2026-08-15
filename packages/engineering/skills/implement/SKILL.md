@@ -7,11 +7,19 @@ description: >-
 
 # Implement
 
-Use the direct parent as the default executor. Accept one approved slice,
-bounded request, or confirmed bug outcome. Read repository instructions, Git
-state, accepted intent, relevant public contracts, and the nearest tests.
-Preserve unrelated changes and identify the required completion checks before
-editing.
+Accept one approved slice, bounded request, or confirmed bug outcome. Read
+repository instructions, Git state, accepted intent, relevant public contracts,
+and the nearest tests. Preserve unrelated changes and identify the required
+completion checks before editing.
+
+When the root profile's `sol-worker` agent is available, keep the parent as the
+coordinator and run one slice through that agent. Use the `subagent` tool with a
+fresh context and a foreground workflow (`async: false`) so progress remains
+visible. Give the child the accepted pitch and plan paths, exact slice, current
+worktree, completion conditions, and required checks. Do not silently override
+the agent's configured model or thinking effort. If `sol-worker` is unavailable,
+use the direct parent as the executor so this skill remains independently
+installable.
 
 ## Deliver the change
 
@@ -29,15 +37,14 @@ the required completion checks from repository instructions. Inspect the final
 diff for scope, package boundaries, test quality, security, cancellation,
 cleanup, and user-visible documentation where applicable.
 
-## Optional delegation
+## Parallel-ready slices
 
-Do not delegate merely because a task is large. Optional delegation is for one
-bounded independent lane. A `parallel-ready` plan slice may use a host-provided
-role as its worker only when the human requests parallel work, the dependencies
-are clear, and that worker has an isolated worktree and sole write ownership
-there. Keep overlapping slices serial. The parent must integrate in plan order,
-synthesize the result, inspect every change, and verify the evidence before
-accepting it.
+Do not add workers merely because a task is large. A `parallel-ready` plan slice
+may use another `sol-worker` only when the human requests parallel work, the
+dependencies are clear, and every worker has an isolated worktree and sole
+write ownership there. Keep overlapping slices serial. The parent must
+integrate in plan order, synthesize the result, inspect every change, and verify
+the evidence before accepting it.
 
 ## Show main progress
 
@@ -55,8 +62,13 @@ residual risks, and any separately authorized delivery action. Show that
 complete work evidence in the `question` tool's document field with these
 actions:
 
-1. **Review** — run one fresh independent read-only review of the completed
-   diff, address material findings, reverify, and show the evidence again.
+1. **Review** — when `fable-reviewer` is available, run it once with fresh
+   context as the independent read-only review. Give its task the current
+   worktree, base ref and diff scope, accepted pitch and plan paths, the complete
+   diff or a read-accessible diff artifact, changed files, and verification
+   evidence. Address material findings through `sol-worker`, reverify, and show
+   the evidence again. If the profile is unavailable, use one fresh read-only
+   reviewer.
 2. **Revise** — apply the human's feedback, reverify, and show the evidence
    again.
 3. **Deepen verification** — add one requested proof or investigate one named

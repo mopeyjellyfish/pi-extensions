@@ -10,7 +10,7 @@ const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 const read = (path: string) => readFile(join(PACKAGE_ROOT, path), "utf8");
 
 describe("engineering resources", () => {
-  it("implements accepted work directly with bounded optional delegation", async () => {
+  it("routes root-profile work and review through fresh model-specific agents", async () => {
     expect.hasAssertions();
     const [implement, readme] = await Promise.all([
       read("skills/implement/SKILL.md"),
@@ -18,20 +18,25 @@ describe("engineering resources", () => {
     ]);
 
     expect(implement).toMatch(/approved slice[\s\S]*bounded request[\s\S]*confirmed bug outcome/iu);
-    expect(implement).toMatch(/direct parent[^.]*default executor/iu);
+    expect(implement).toMatch(/sol-worker[\s\S]*fresh[\s\S]*foreground/iu);
+    expect(implement).toMatch(/fable-reviewer[\s\S]*fresh[\s\S]*read-only/iu);
+    expect(implement).toMatch(
+      /fable-reviewer[\s\S]*worktree[\s\S]*base\s+ref[\s\S]*pitch[\s\S]*plan[\s\S]*diff[\s\S]*verification\s+evidence/iu,
+    );
+    expect(implement).toMatch(/unavailable[\s\S]*direct parent/iu);
     expect(implement).toMatch(/repository instructions[\s\S]*Git\s+state[\s\S]*public contracts/iu);
     expect(implement).toMatch(/test-driven-development|red-green-refactor/iu);
     expect(implement).toMatch(/focused tests[\s\S]*required completion checks/iu);
-    expect(implement).toMatch(/optional delegation[\s\S]*bounded independent lane/iu);
-    expect(implement).toMatch(/host-provided\s+role/iu);
+    expect(implement).toMatch(/parallel-ready/iu);
+    expect(implement).toMatch(/isolated worktree[\s\S]*sole\s+write ownership/iu);
     expect(implement).toMatch(/parent[\s\S]*synthesi[sz]e[\s\S]*verif/iu);
-    expect(implement).toMatch(/do not delegate merely because[^.]*large/iu);
+    expect(implement).toMatch(/do not add workers merely because[^.]*large/iu);
     expect(implement).toMatch(/complete work evidence[\s\S]*document/iu);
     expect(implement).toMatch(/Review[\s\S]*Revise[\s\S]*Deepen verification[\s\S]*Pause/iu);
-    expect(readme).toMatch(/default[\s\S]*direct parent[\s\S]*optional delegation/iu);
+    expect(readme).toMatch(/sol-worker[\s\S]*Fable[\s\S]*direct parent/iu);
 
     for (const resource of [implement, readme]) {
-      expect(resource).not.toMatch(/pi-subagents|runs\.run|runs\.all|writer lease|FFF|lsp_query/iu);
+      expect(resource).not.toMatch(/runs\.all|writer lease|FFF|lsp_query/iu);
     }
   });
 

@@ -40,6 +40,7 @@ const ROOT_PROFILE = {
     "./packages/engineering/prompts/implement.md",
     "./node_modules/pi-subagents/prompts",
   ],
+  subagents: { agents: ["./agents"] },
 } as const;
 const ROOT_DEPENDENCIES = { "pi-subagents": "0.50.0" } as const;
 
@@ -129,6 +130,23 @@ describe("package contracts", () => {
     expect(manifest.dependencies).toEqual(ROOT_DEPENDENCIES);
   });
 
+  it("ships fresh model-routed work and review agents", async () => {
+    expect.hasAssertions();
+    const [worker, reviewer] = await Promise.all([
+      readFile(join(repositoryRoot, "agents", "sol-worker.md"), "utf8"),
+      readFile(join(repositoryRoot, "agents", "fable-reviewer.md"), "utf8"),
+    ]);
+
+    expect(worker).toMatch(/model: openai-codex\/gpt-5\.6-sol/iu);
+    expect(worker).toMatch(/thinking: medium/iu);
+    expect(worker).toMatch(/defaultContext: fresh/iu);
+    expect(worker).toMatch(/acceptanceRole: writer/iu);
+    expect(reviewer).toMatch(/model: anthropic\/claude-fable-5/iu);
+    expect(reviewer).toMatch(/thinking: high/iu);
+    expect(reviewer).toMatch(/defaultContext: fresh/iu);
+    expect(reviewer).toMatch(/acceptanceRole: read-only/iu);
+  });
+
   it("documents the conservative subagent profile and its evaluation gate", async () => {
     expect.hasAssertions();
     const [readme, evaluation] = await Promise.all([
@@ -147,6 +165,19 @@ describe("package contracts", () => {
     expect(evaluation).toMatch(/candidate/iu);
     expect(evaluation).toMatch(/total model tokens/iu);
     expect(evaluation).toMatch(/deferred tool|compaction/iu);
+  });
+
+  it("documents the parent and child model stages", async () => {
+    expect.hasAssertions();
+    const readme = await readFile(join(repositoryRoot, "README.md"), "utf8");
+
+    expect(readme).toContain('"defaultProvider": "anthropic"');
+    expect(readme).toContain('"defaultModel": "claude-fable-5"');
+    expect(readme).toContain('"defaultThinkingLevel": "medium"');
+    expect(readme).toMatch(/Shape[\s\S]*Plan[\s\S]*Fable 5[\s\S]*medium/iu);
+    expect(readme).toMatch(/Work[\s\S]*GPT-5\.6 Sol[\s\S]*medium/iu);
+    expect(readme).toMatch(/Review[\s\S]*Fable 5[\s\S]*high/iu);
+    expect(readme).toMatch(/fresh\s+context/iu);
   });
 
   it("rejects a missing or additional root profile resource", async () => {

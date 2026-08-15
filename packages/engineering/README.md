@@ -4,15 +4,19 @@
 provides `implement` plus optional focused skills for TDD, design, diagnosis,
 domain language, and review. It has no extension or runtime dependency.
 
-The root profile loads only `implement`. Its default path uses the direct parent:
+The root profile loads only `implement`. It uses the installed `sol-worker`
+profile for execution and the installed Fable reviewer for the optional final
+review:
 
 ```text
-accepted slice -> focused change -> focused tests -> required checks -> evidence -> review or pause
+Fable plan -> fresh Sol worker -> parent verification -> fresh Fable review or pause
 ```
 
-Optional delegation is limited to one bounded independent lane with a
-host-provided role. The parent stays responsible for writing, synthesis, final
-diff inspection, and verification.
+Both provider handoffs start with fresh context. The parent supplies durable
+pitch and plan paths plus the exact slice instead of copying the conversation.
+The parent stays responsible for synthesis, final diff inspection, and
+verification. An independent installation without the root agent profiles uses
+the direct parent.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the
