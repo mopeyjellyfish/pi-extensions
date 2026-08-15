@@ -65,11 +65,11 @@ automatic project loading would register the same tools, commands, and skills
 twice. Do not add an automatic project package entry for the working copy.
 
 The private root manifest is a curated default profile. It loads the question,
-status-line, web-search, and Worktrunk extensions; the Shape, planning, and
-implement lifecycle; the Git, GitHub, and Worktrunk skills; and the pinned
-`pi-subagents` extension, skills, and prompts through explicit paths. Other
-production packages remain independently loadable. Pi reevaluates the root
-manifest during `/reload`.
+status-line, todo, web-search, and Worktrunk extensions; the Shape, planning,
+and implement lifecycle; the Git, GitHub, and Worktrunk skills; and the pinned
+`pi-subagents` extension and prompts through explicit paths. Its bundled
+orchestration skill is intentionally excluded. Other production packages remain
+independently loadable. Pi reevaluates the root manifest during `/reload`.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash
