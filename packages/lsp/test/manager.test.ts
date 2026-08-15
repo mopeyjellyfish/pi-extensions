@@ -212,7 +212,7 @@ describe("LspManager semantic rename", () => {
     await writeFile(unsupportedFile, "text\n");
     await expect(
       manager.query({ operation: "documentSymbols", path: unsupportedFile }),
-    ).rejects.toThrow("No installed LSP server");
+    ).rejects.toThrow("No LSP server is configured");
     const outside = join(tmpdir(), `pi-lsp-query-outside-${String(Date.now())}.ts`);
     await writeFile(outside, "text\n");
     await expect(manager.query({ operation: "documentSymbols", path: outside })).rejects.toThrow(
@@ -746,7 +746,7 @@ describe("LspManager semantic rename", () => {
     await mkdir(directoryTarget);
     await expect(manager.deleteFile(directoryTarget)).rejects.toThrow("files only");
     await expect(manager.createFile(join(root, "unknown.ext"), "new\n")).rejects.toThrow(
-      "No installed LSP server",
+      "No LSP server is configured",
     );
     const outsideCreate = join(tmpdir(), `pi-lsp-create-outside-${String(Date.now())}.ts`);
     const outsideDelete = join(tmpdir(), `pi-lsp-delete-outside-${String(Date.now())}.ts`);
@@ -1361,7 +1361,53 @@ describe("LspManager semantic rename", () => {
     await expect(failed.warmFile(file)).rejects.toThrow("initialize failed");
     await expect(failed.warmFile(file)).resolves.toBeUndefined();
     expect(failed.status()).toMatchObject([{ state: "failed" }]);
+    await expect(failed.query({ operation: "documentSymbols", path: file })).rejects.toThrow(
+      "No running LSP server",
+    );
     await failed.shutdown();
+  });
+
+  it("adds the applicable install hint to every missing-server operation", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-install-hint-"));
+    const file = join(root, "example.ts");
+    const createTarget = join(root, "created.ts");
+    await writeFile(file, "const value = 1;\n");
+    const manager = new LspManager({
+      cwd: root,
+      definitions: [{ ...fakeDefinition(), commands: [] }],
+      env: { PATH: "" },
+      trusted: true,
+    });
+
+    const missingServer = "No installed LSP server is available";
+    const installHint = "install fake";
+    const operations: readonly (() => Promise<unknown>)[] = [
+      () => manager.query({ operation: "documentSymbols", path: file }),
+      () => manager.validate({ paths: [file], scope: "document", severity: "error" }),
+      () => manager.codeAction({ kind: "quickfix", mode: "list", path: file }),
+      () =>
+        manager.renameSymbol({
+          column: 7,
+          dryRun: true,
+          line: 1,
+          newName: "renamed",
+          path: file,
+        }),
+      () => manager.createFile(createTarget, "new\n"),
+      () => manager.deleteFile(file),
+      () => manager.renameFile(file, join(root, "renamed.ts")),
+    ];
+    for (const operation of operations) {
+      await expect(operation()).rejects.toThrow(new RegExp(`${missingServer}.*${installHint}`));
+    }
+
+    const unsupported = join(root, "notes.unknown");
+    await writeFile(unsupported, "text\n");
+    await expect(
+      manager.query({ operation: "documentSymbols", path: unsupported }),
+    ).rejects.toThrow("No LSP server is configured");
+    await manager.shutdown();
   });
 
   it("never routes outside the trusted root or through an escaping symlink", async () => {
@@ -1461,7 +1507,7 @@ describe("LspManager semantic rename", () => {
     await expect(manager.diagnoseMutation(unsupported, "clean\n", undefined)).resolves.toEqual([]);
     await expect(manager.renameFile(file, file)).rejects.toThrow("identical");
     await expect(manager.renameFile(unsupported, join(root, "renamed.unknown"))).rejects.toThrow(
-      `No installed LSP server is available for ${unsupported}.`,
+      `No LSP server is configured for ${unsupported}.`,
     );
     await writeFile(file, "x".repeat(2 * 1024 * 1024 + 1));
     await manager.warmFile(file);

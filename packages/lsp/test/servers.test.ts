@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -50,6 +50,39 @@ describe("server registry", () => {
     );
     expect(languageKey("Dockerfile")).toBe("Dockerfile");
     expect(findServerDefinitions("unknown.xyz")).toEqual([]);
+  });
+
+  it("routes SQL through generic sqls before PostgreSQL-specific fallbacks", async () => {
+    expect.hasAssertions();
+    const definition = findServerDefinitions("schema.sql")[0];
+    expect(definition).toMatchObject({
+      commands: [
+        { args: [], command: "sqls" },
+        { args: ["lsp-proxy"], command: "postgres-language-server" },
+        { args: ["lsp-proxy"], command: "postgrestools" },
+      ],
+      extensions: [".sql"],
+      id: "sql",
+      languageIds: { ".sql": "sql" },
+    });
+    if (definition === undefined) throw new Error("SQL definition missing.");
+
+    const root = await mkdtemp(join(tmpdir(), "pi-lsp-sql-command-"));
+    for (const executable of ["sqls", "postgres-language-server", "postgrestools"]) {
+      const path = join(root, executable);
+      await writeFile(path, "#!/bin/sh\n");
+      await chmod(path, 0o755);
+    }
+    await expect(
+      resolveServerCommand(definition, root, false, { PATH: root }),
+    ).resolves.toMatchObject({ args: [], command: join(root, "sqls") });
+    await rm(join(root, "sqls"));
+    await expect(
+      resolveServerCommand(definition, root, false, { PATH: root }),
+    ).resolves.toMatchObject({
+      args: ["lsp-proxy"],
+      command: join(root, "postgres-language-server"),
+    });
   });
 
   it("selects the nearest root marker", async () => {

@@ -78,6 +78,20 @@ export const DEFAULT_SERVER_DEFINITIONS: readonly ServerDefinition[] = [
     rootMarkers: ["pyrightconfig.json", "pyproject.toml", "setup.py", "requirements.txt"],
   },
   {
+    commands: [
+      command("sqls"),
+      command("postgres-language-server", "lsp-proxy"),
+      command("postgrestools", "lsp-proxy"),
+    ],
+    extensions: [".sql"],
+    id: "sql",
+    installHint:
+      "Install generic SQL support with: go install github.com/sqls-server/sqls@latest. PostgreSQL fallback: npm install --global @postgres-language-server/cli.",
+    languageIds: languages([[".sql", "sql"]]),
+    name: "SQL Language Server",
+    rootMarkers: ["postgres-language-server.jsonc", ".git"],
+  },
+  {
     commands: [command("gopls")],
     extensions: [".go"],
     id: "go",
