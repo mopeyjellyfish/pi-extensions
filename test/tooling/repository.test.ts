@@ -17,7 +17,7 @@ afterEach(async () => {
 });
 
 describe("repository discovery", () => {
-  it("does not auto-load the aggregate alongside a globally installed copy", async () => {
+  it("does not auto-load the profile alongside a globally installed copy", async () => {
     expect.hasAssertions();
     await expect(access(join(repositoryRoot, ".pi", "settings.json"))).rejects.toMatchObject({
       code: "ENOENT",

@@ -13,22 +13,18 @@
   ],
   "pi": {
     "extensions": [
-      "./packages/*/src/index.ts",
-      "./node_modules/@dietrichgebert/ponytail/pi-extension/index.js",
-      "./node_modules/@ff-labs/pi-fff/src/index.ts"
+      "./packages/question/src/index.ts"
     ],
     "skills": [
-      "./packages/*/skills",
-      "./node_modules/@dietrichgebert/ponytail/skills"
+      "./packages/feature-flow/skills/shape",
+      "./packages/feature-flow/skills/planning-changes",
+      "./packages/engineering/skills/implement"
     ],
     "prompts": [
-      "./packages/*/prompts"
-    ],
-    "subagents": {
-      "agents": [
-        "./agents"
-      ]
-    }
+      "./packages/feature-flow/prompts/shape.md",
+      "./packages/feature-flow/prompts/plan.md",
+      "./packages/engineering/prompts/implement.md"
+    ]
   },
   "scripts": {
     "check": "npm run format:check && npm run lint && npm run markdownlint && npm run knip && npm run typecheck && npm run test:coverage && npm run packages:check && npm run smoke && npm run go:check",
@@ -92,10 +88,6 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",
     "vitest": "4.1.10"
-  },
-  "dependencies": {
-    "@dietrichgebert/ponytail": "4.8.4",
-    "@ff-labs/pi-fff": "0.9.6"
   },
   "overrides": {
     "cosmiconfig": {

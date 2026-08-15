@@ -7,10 +7,12 @@ description: >-
 
 # Test-driven development
 
-A good test describes one observable capability through a public interface and
-survives internal refactoring. Use the narrowest stable approved seam that still
-proves the behavior. An accepted request, accepted pitch, or accepted plan
-counts as seam approval; ask only when the seam is unresolved.
+A good test is falsifiable: it describes one observable capability through a
+public interface, uses an independent expected value, and would fail for a
+plausible wrong implementation. It survives internal refactoring. Use the narrowest stable
+approved seam that still proves the behavior. An accepted request, accepted
+pitch, or accepted plan counts as seam approval; ask only when the seam is
+unresolved.
 
 For each vertical behavior:
 

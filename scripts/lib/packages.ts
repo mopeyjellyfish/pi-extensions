@@ -442,7 +442,21 @@ function validateRootRuntime(value: Record<string, unknown>, errors: string[]): 
   }
 }
 
-function validateRootManifest(value: Record<string, unknown>, errors: string[]): PackageResources {
+const ROOT_PROFILE: PackageResources = {
+  extensions: ["./packages/question/src/index.ts"],
+  skills: [
+    "./packages/feature-flow/skills/shape",
+    "./packages/feature-flow/skills/planning-changes",
+    "./packages/engineering/skills/implement",
+  ],
+  prompts: [
+    "./packages/feature-flow/prompts/shape.md",
+    "./packages/feature-flow/prompts/plan.md",
+    "./packages/engineering/prompts/implement.md",
+  ],
+};
+
+function validateRootManifest(value: Record<string, unknown>, errors: string[]): void {
   if (value["private"] !== true) {
     errors.push("Root package.json must remain private.");
   }
@@ -452,188 +466,29 @@ function validateRootManifest(value: Record<string, unknown>, errors: string[]):
     errors.push('Root workspaces must be exactly ["packages/*"].');
   }
   const resources = packageResources(value);
-  if (resources.extensions.length === 0) {
-    errors.push("Root pi.extensions must contain the aggregate extension glob.");
-  }
-  return resources;
-}
-
-async function collectAggregateEntrypoints(
-  root: string,
-  patterns: readonly string[],
-): Promise<Set<string>> {
-  const entrypoints = new Set<string>();
-  for (const pattern of patterns) {
-    const matches = await glob(pattern, { absolute: true, cwd: root, nodir: true });
-    for (const match of matches) {
-      entrypoints.add(toPosixPath(resolve(match)));
+  for (const key of ["extensions", "skills", "prompts"] as const) {
+    if (JSON.stringify(resources[key]) !== JSON.stringify(ROOT_PROFILE[key])) {
+      errors.push(`Root pi.${key} must equal ${JSON.stringify(ROOT_PROFILE[key])}.`);
     }
   }
-  return entrypoints;
-}
-
-async function collectPackageEntrypoints(
-  packages: readonly PackageDescriptor[],
-): Promise<Set<string>> {
-  const entrypoints = new Set<string>();
-  for (const descriptor of packages) {
-    for (const entrypoint of await resolvePackageEntrypoints(descriptor)) {
-      entrypoints.add(entrypoint);
-    }
+  const pi = value["pi"];
+  if (
+    !isRecord(pi) ||
+    Object.keys(pi).some((key) => !["extensions", "skills", "prompts"].includes(key))
+  ) {
+    errors.push("Root pi may contain only extensions, skills, and prompts.");
   }
-  return entrypoints;
-}
-
-async function collectRootDependencyResources(
-  root: string,
-  manifest: Record<string, unknown>,
-  errors: string[],
-): Promise<{
-  readonly entrypoints: Set<string>;
-  readonly prompts: Set<string>;
-  readonly skills: Set<string>;
-}> {
-  const entrypoints = new Set<string>();
-  const prompts = new Set<string>();
-  const skills = new Set<string>();
-  const dependencies = stringRecord(manifest["dependencies"]);
-  for (const dependency of Object.keys(dependencies ?? {})) {
-    const dependencyRoot = join(root, "node_modules", dependency);
-    const manifestPath = join(dependencyRoot, "package.json");
-    if (!pathExists(manifestPath)) {
-      errors.push(`Root dependency ${dependency} must be installed.`);
-      continue;
-    }
-    const value = await readJsonFile(manifestPath);
-    if (!isRecord(value)) {
-      errors.push(`Root dependency ${dependency} package.json must contain an object.`);
-      continue;
-    }
-    const resources = packageResources(value);
-    if (resources.extensions.length > 0) {
-      for (const entrypoint of await resolveExtensionPatterns(
-        dependencyRoot,
-        resources.extensions,
-      )) {
-        entrypoints.add(entrypoint);
-      }
-    }
-    if (resources.prompts.length > 0) {
-      for (const prompt of await resolvePromptPatterns(dependencyRoot, resources.prompts)) {
-        prompts.add(prompt);
-      }
-    }
-    if (resources.skills.length > 0) {
-      for (const skill of await resolveSkillPatterns(dependencyRoot, resources.skills)) {
-        skills.add(skill);
-      }
-    }
+  if (Object.keys(stringRecord(value["dependencies"]) ?? {}).length > 0) {
+    errors.push("Root package.json must not declare production dependencies.");
   }
-  return { entrypoints, prompts, skills };
 }
 
-async function collectPackagePrompts(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
-  const prompts = new Set<string>();
-  for (const descriptor of packages) {
-    for (const prompt of await resolvePackagePrompts(descriptor)) {
-      prompts.add(prompt);
-    }
-  }
-  return prompts;
-}
-
-async function collectPackageSkills(packages: readonly PackageDescriptor[]): Promise<Set<string>> {
-  const skills = new Set<string>();
-  for (const descriptor of packages) {
-    for (const skill of await resolvePackageSkills(descriptor)) {
-      skills.add(skill);
-    }
-  }
-  return skills;
-}
-
-function compareAggregateEntrypoints(
-  root: string,
-  aggregate: ReadonlySet<string>,
-  packages: ReadonlySet<string>,
-): string[] {
-  const errors = [...packages]
-    .filter((path) => !aggregate.has(path))
-    .map((path) => `Root aggregate does not include ${toPosixPath(relative(root, path))}.`);
-  errors.push(
-    ...[...aggregate]
-      .filter((path) => !packages.has(path))
-      .map(
-        (path) =>
-          `Root aggregate includes unmanaged entrypoint ${toPosixPath(relative(root, path))}.`,
-      ),
-  );
-  return errors;
-}
-
-export async function validateRootAggregate(
-  packages: readonly PackageDescriptor[],
-  root = repositoryRoot,
-): Promise<string[]> {
+export async function validateRootProfile(root = repositoryRoot): Promise<string[]> {
   const value = await readJsonFile(join(root, "package.json"));
   if (!isRecord(value)) {
     return ["Root package.json must contain a JSON object."];
   }
   const errors: string[] = [];
-  const resources = validateRootManifest(value, errors);
-  if (resources.extensions.length === 0) {
-    return errors;
-  }
-  const aggregate = await collectAggregateEntrypoints(root, resources.extensions);
-  const packageEntrypoints = await collectPackageEntrypoints(packages);
-  const dependencyResources = await collectRootDependencyResources(root, value, errors);
-  for (const entrypoint of dependencyResources.entrypoints) {
-    packageEntrypoints.add(entrypoint);
-  }
-  errors.push(...compareAggregateEntrypoints(root, aggregate, packageEntrypoints));
-  const packagePrompts = await collectPackagePrompts(packages);
-  for (const prompt of dependencyResources.prompts) {
-    packagePrompts.add(prompt);
-  }
-  if (packagePrompts.size > 0 && resources.prompts.length === 0) {
-    errors.push("Root pi.prompts must contain the aggregate prompt glob.");
-  } else if (resources.prompts.length > 0) {
-    const aggregatePrompts = new Set(await resolvePromptPatterns(root, resources.prompts));
-    errors.push(
-      ...[...packagePrompts]
-        .filter((path) => !aggregatePrompts.has(path))
-        .map(
-          (path) => `Root prompt aggregate does not include ${toPosixPath(relative(root, path))}.`,
-        ),
-      ...[...aggregatePrompts]
-        .filter((path) => !packagePrompts.has(path))
-        .map(
-          (path) =>
-            `Root prompt aggregate includes unmanaged prompt ${toPosixPath(relative(root, path))}.`,
-        ),
-    );
-  }
-  const packageSkills = await collectPackageSkills(packages);
-  for (const skill of dependencyResources.skills) {
-    packageSkills.add(skill);
-  }
-  if (packageSkills.size > 0 && resources.skills.length === 0) {
-    errors.push("Root pi.skills must contain the aggregate skill glob.");
-  } else if (resources.skills.length > 0) {
-    const aggregateSkills = new Set(await resolveSkillPatterns(root, resources.skills));
-    errors.push(
-      ...[...packageSkills]
-        .filter((path) => !aggregateSkills.has(path))
-        .map(
-          (path) => `Root skill aggregate does not include ${toPosixPath(relative(root, path))}.`,
-        ),
-      ...[...aggregateSkills]
-        .filter((path) => !packageSkills.has(path))
-        .map(
-          (path) =>
-            `Root skill aggregate includes unmanaged skill ${toPosixPath(relative(root, path))}.`,
-        ),
-    );
-  }
+  validateRootManifest(value, errors);
   return errors;
 }

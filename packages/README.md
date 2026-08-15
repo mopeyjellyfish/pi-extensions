@@ -31,7 +31,12 @@ The manifest validator requires:
 - no dependency duplicated across dependency sections;
 - Pi host packages only in `peerDependencies`.
 
-The root aggregate must resolve to every package extension, skill, and prompt with no unmanaged resources. The standard aggregate globs cover `src/index.ts`, `skills/`, and `prompts/`; a package that deliberately declares another resource layout must add matching root `pi` patterns in the same change. An external Pi package included by the private root Git aggregate must be declared in `dependencies`, and the root `pi` manifest must reference its resources under `node_modules/`. The private root may also publish source-controlled agent definitions through `pi.subagents.agents` when aggregate behavior needs to specialize an installed subagent package; these definitions remain root-only and must have focused tests. `npm pack` must include each declared resource, package manifest, README, changelog, and license.
+The private root package is a curated profile, not a completeness aggregate. Its
+exact resources are validated separately and may select only a small subset of
+production packages. Adding a production package does not add it to the root
+profile. Every package must still pass its own source, packed-install, resource,
+and release checks. `npm pack` must include each declared resource, package
+manifest, README, changelog, and license.
 
 ## Releases
 

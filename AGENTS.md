@@ -12,47 +12,17 @@ Human-facing plans, handoffs, reviews, documentation, and status summaries use p
 
 ## Subagent execution profiles
 
-Start with one agent. Add a child only for a bounded specialist lane or when one
-agent is measurably struggling. Parallelize independent read-only exploration,
-failure hypotheses, and review angles. Start with one child and use no more than
-three parallel children unless distinct evidence justifies more. Keep one
-writer per worktree. Use isolated worktrees for independent write lanes.
+Start with the parent. Add one host-provided child only for a bounded independent
+lane or when the parent is measurably struggling. Prefer Sol for planning,
+implementation, research, and review. Use Luna only for fast, mechanical,
+repeatable work where speed matters more than accuracy. Do not repeat a failed
+Luna attempt; promote it to Sol.
 
-Use the configured profiles by task shape:
-
-- Use Luna at `low` for fast, bounded scout work.
-- Use Luna at `medium` for the `qa` agent when it executes a clear, bounded,
-  repeatable test plan. QA evidence does not replace a formal Sol review.
-- Use Sol at `medium` for context building, source research, and normal worker
-  tasks.
-- Use Sol at `high` for planning and every formal child review.
-- Reserve Sol at `max` for `oracle` decisions.
-- Let `advisor` inherit the parent model and thinking effort by default. Use an
-  explicit complementary model when the decision needs a second perspective.
-
-Use Luna only when speed matters more than accuracy. Suitable work includes
-targeted discovery, mechanical documentation or metadata changes, inventories,
-known test-output summaries, and narrow, repeatable, low-risk edits with focused
-deterministic checks. Use `model: "openai-codex/gpt-5.6-luna:medium"` for a
-speed-first worker run. Do not increase Luna reasoning to handle complexity.
-Promote the run to Sol instead.
-
-Use `model: "openai-codex/gpt-5.6-sol:high"` for a worker when the task includes
-security or data-loss risks, concurrency or lifecycle work, migrations, public
-APIs, protocols, provider transports, cross-package architecture,
-nondeterministic failures, or expensive or unclear validation. Escalate a
-failed Luna run to Sol at `medium`, or to `high` when these risks apply. Do not
-repeat the same Luna attempt.
-
-For a trivial edit, the parent can verify the result directly instead of
-starting a child review. Every formal review uses one Sol `high` reviewer as the
-quality gate. Extra speed-first lanes can use Luna only for bounded, mechanical,
-non-gating checks. They do not replace the Sol reviewer.
-
-Each child task must state its goal, scope, authority, evidence, success
-criteria, validation, and output. The parent must synthesize
-child results, verify evidence, inspect the final diff, and run applicable
-checks.
+Keep one writer per worktree. Every child task states its goal, scope, authority,
+required evidence, success criteria, validation, and output. The parent
+synthesizes results, verifies evidence, inspects the final diff, and runs the
+applicable checks. Do not depend on repository-owned agent names or tool
+allowlists.
 
 ## Start with repository truth
 
@@ -62,7 +32,7 @@ current checkout is shared or dirty.
 
 Read the nearest sources of truth for the change:
 
-- `package.json` for supported commands and the private root Pi aggregate;
+- `package.json` for supported commands and the private root Pi profile;
 - `packages/README.md` for the installable-package contract;
 - `docs/architecture.md` for runtime, dependency, release, and verification
   boundaries;
@@ -90,14 +60,14 @@ when dependency metadata changes.
 ## Live Pi development
 
 The repository deliberately does not commit a `.pi/settings.json` that loads
-`..`. A developer may already have the Git aggregate installed globally, and
+`..`. A developer may already have the Git profile installed globally, and
 automatic project loading would register the same tools, commands, and skills
 twice. Do not add an automatic project package entry for the working copy.
 
-The private root manifest aggregates every production extension matching
-`packages/*/src/index.ts` and every package skill directory. No separate
-hot-reload marker is needed for a package that follows that contract; Pi
-reevaluates the root manifest globs during `/reload`.
+The private root manifest is a curated default profile. It loads the question
+extension and the Shape, planning, and implement lifecycle through explicit
+paths. Other production packages remain independently loadable. Pi reevaluates
+the root manifest during `/reload`.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash
@@ -106,7 +76,7 @@ linked worktree, start a new Pi process inside that worktree, either by entering
 it first or by using Worktrunk's `--execute` option.
 
 After `npm ci --ignore-scripts`, use the repository's pinned Pi and suppress
-ambient globally or project-installed resources for a deterministic aggregate
+ambient globally or project-installed resources for a deterministic profile
 development session:
 
 ```sh
@@ -125,7 +95,7 @@ same tools, commands, or skills.
 
 Review and accept the project-trust prompt only after inspecting the worktree.
 When Pi is idle, use `/reload` after editing TypeScript, skills, package
-manifests, or root aggregate patterns. Restart Pi instead after changing
+manifests, or root profile paths. Restart Pi instead after changing
 dependencies or startup-only CLI flags. A reload is a full lifecycle
 transition:
 

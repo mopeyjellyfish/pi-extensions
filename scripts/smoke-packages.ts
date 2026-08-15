@@ -25,7 +25,7 @@ import { isRecord, repositoryRoot } from "./lib/repository.ts";
 const piModulePath = fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"));
 const piCliPath = resolve(dirname(piModulePath), "cli.js");
 const RPC_REQUEST_ID = "pi-extension-smoke";
-const ROOT_AGGREGATE_INSTALL_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 120_000;
+const ROOT_PROFILE_INSTALL_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 120_000;
 
 interface PackResult {
   readonly filename: string;
@@ -226,15 +226,15 @@ async function smokePath(
   }
 }
 
-async function loadRootAggregate(root: string): Promise<PackageDescriptor> {
+async function loadRootProfile(root: string): Promise<PackageDescriptor> {
   const value = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as unknown;
   if (!isRecord(value)) {
-    throw new Error("Root aggregate package.json must contain an object.");
+    throw new Error("Root profile package.json must contain an object.");
   }
   return { kind: "production", manifest: value, root };
 }
 
-async function installRootAggregate(tempRoot: string): Promise<string> {
+async function installRootProfile(tempRoot: string): Promise<string> {
   const installRoot = join(tempRoot, "install");
   const npmHome = join(tempRoot, "npm-home");
   await mkdir(installRoot, { recursive: true });
@@ -253,18 +253,10 @@ async function installRootAggregate(tempRoot: string): Promise<string> {
   const installed = await runCommand(installInvocation.command, installInvocation.arguments, {
     cwd: installRoot,
     env: npmEnvironment,
-    timeoutMs: ROOT_AGGREGATE_INSTALL_TIMEOUT_MS,
+    timeoutMs: ROOT_PROFILE_INSTALL_TIMEOUT_MS,
   });
   if (installed.code !== 0) {
-    throw new Error(describeFailure("npm install root aggregate", installed));
-  }
-  for (const dependency of ["@dietrichgebert/ponytail", "@ff-labs/pi-fff"]) {
-    const externalManifest = JSON.parse(
-      await readFile(join(installRoot, "node_modules", dependency, "package.json"), "utf8"),
-    ) as unknown;
-    if (!isRecord(externalManifest) || externalManifest["name"] !== dependency) {
-      throw new Error(`The installed root aggregate did not contain ${dependency}.`);
-    }
+    throw new Error(describeFailure("npm install root profile", installed));
   }
   return installRoot;
 }
@@ -333,24 +325,24 @@ async function main(): Promise<void> {
         `Smoke-tested ${packageName} ${sourceOnly ? "from source" : packedOnly ? "from its package" : "from source and package"}.`,
       );
     }
-    const rootAggregate = await loadRootAggregate(repositoryRoot);
+    const rootProfile = await loadRootProfile(repositoryRoot);
     if (!packedOnly) {
-      await smokePath(rootAggregate, repositoryRoot, "root-aggregate-source", tempRoot);
+      await smokePath(rootProfile, repositoryRoot, "root-profile-source", tempRoot);
     }
     if (!sourceOnly) {
-      const installedRoot = await installRootAggregate(join(tempRoot, "root-aggregate"));
+      const installedRoot = await installRootProfile(join(tempRoot, "root-profile"));
       await smokePath(
-        await loadRootAggregate(installedRoot),
+        await loadRootProfile(installedRoot),
         installedRoot,
-        "root-aggregate-installed",
+        "root-profile-installed",
         tempRoot,
       );
     }
     console.log(
-      `Smoke-tested the private root aggregate ${sourceOnly ? "from source" : packedOnly ? "from an isolated production install" : "from source and an isolated production install"}.`,
+      `Smoke-tested the private root profile ${sourceOnly ? "from source" : packedOnly ? "from an isolated production install" : "from source and an isolated production install"}.`,
     );
     console.log(
-      `Pi smoke tests passed for ${String(descriptors.length)} package(s) and the private root aggregate.`,
+      `Pi smoke tests passed for ${String(descriptors.length)} package(s) and the private root profile.`,
     );
   } finally {
     await rm(tempRoot, { force: true, recursive: true });
