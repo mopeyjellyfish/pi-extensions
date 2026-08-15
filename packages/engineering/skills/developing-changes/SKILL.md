@@ -11,16 +11,12 @@ Route the request. Do not copy or perform the selected skill's execution
 method.
 
 At activation, confirm that the Git aggregate supplies the `shape`,
-`planning-changes`, and `implement` skills and the `worker`, `qa`, and `reviewer`
-agents. Also confirm that the `subagent` tool from `pi-subagents` is available.
-If a prerequisite is missing, stop and report:
-
-```text
-Blocked prerequisite: /develop requires the Git aggregate and pi-subagents.
-Install both, then retry:
-pi install npm:pi-subagents
-pi install git:github.com/mopeyjellyfish/pi-extensions
-```
+`planning-changes`, and `implement` skills. Check route-specific agent and tool
+prerequisites only after choosing the route. Direct Shape, planning, and parent
+implementation paths do not require `pi-subagents`. QA, retained execution, and
+requested independent review require the matching agent and the `subagent` tool.
+If a selected route is unavailable, stop only that route and report its missing
+companion.
 
 The parent owns the user conversation, scope and authority, route choice,
 synthesis, final diff inspection, final verification, and delivery authority.
@@ -40,12 +36,12 @@ Work one route at a time:
      executor applies `diagnosing-bugs`.
 4. For QA-only work, launch a fresh read-only `qa` with the configured Luna
    `medium` profile. One-shot QA is ephemeral unless the user requests a
-   record or the work is recurring or comparative. QA never replaces formal
-   review.
+   record or the work is recurring or comparative. QA does not create a code
+   review gate.
 5. For review-only work, use a fresh `reviewer` agent and
    `reviewing-changes` when the current repository contract requires formal
    review. Otherwise follow the user's bounded review request.
 
 The selected skill or agent owns its method, including execution selection,
-models, diagnosis, testing, implementation, review, repair, and evidence
-format. Develop only routes and synthesizes the result.
+models, diagnosis, testing, implementation, requested review, repair, and
+evidence format. Develop only routes and synthesizes the result.
