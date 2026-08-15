@@ -116,7 +116,7 @@ roles also receive safe LSP mutation tools. The strict tool lists require FFF's
 different tool names and is not compatible with these definitions. The
 `researcher` remains web-only and uses the aggregate's provider-native
 `web_search` tool instead of the separate `pi-web-access` tool set. The custom
-overrides are validated with `pi-subagents` 0.43.0; compare its `agents/`
+overrides are validated with `pi-subagents` 0.50.0; compare its `agents/`
 directory when adopting a newer version. Historical feature records keep the
 version used when their acceptance work ran.
 

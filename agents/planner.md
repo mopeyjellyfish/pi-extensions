@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Sol high planner for nontrivial, multi-step implementation decisions
-tools: read, ffgrep, fffind, ls, lsp_query, lsp_validate, intercom
+tools: read, ffgrep, fffind, ls, lsp_query, lsp_validate, contact_supervisor
 model: openai-codex/gpt-5.6-sol
 thinking: high
 acceptanceRole: read-only

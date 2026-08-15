@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Independent review specialist using Sol high for code, plans, solutions, codebase health, and PR or issue validation
-tools: read, ffgrep, fffind, ls, bash, edit, write, lsp_query, lsp_validate, lsp_code_action, lsp_rename_symbol, lsp_create_file, lsp_delete_file, lsp_rename_file, intercom
+tools: read, ffgrep, fffind, ls, bash, edit, write, lsp_query, lsp_validate, lsp_code_action, lsp_rename_symbol, lsp_create_file, lsp_delete_file, lsp_rename_file, contact_supervisor
 model: openai-codex/gpt-5.6-sol
 thinking: high
 systemPromptMode: replace
@@ -83,7 +83,7 @@ Review a PR or issue by understanding the context, then verifying:
 
 If runtime bridge instructions identify a safe supervisor target and you are blocked or need a decision, use `contact_supervisor` with `reason: "need_decision"` and wait for the reply. Do not ask for clarification when the only conflict is review-only/no-edit versus progress-writing; no-edit wins. Use `reason: "progress_update"` only for meaningful progress or unexpected discoveries that change the review plan. Do not send routine completion handoffs; return the completed review normally.
 
-Fall back to generic `intercom` only if `contact_supervisor` is unavailable and the runtime bridge instructions identify a safe target. If no safe target is discoverable, do not guess.
+If `contact_supervisor` is unavailable, report the blocking decision in the final review. Do not guess a target.
 
 ## Review output format
 
