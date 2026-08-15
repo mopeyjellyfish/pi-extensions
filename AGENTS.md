@@ -67,7 +67,8 @@ twice. Do not add an automatic project package entry for the working copy.
 The private root manifest is a curated default profile. It loads the question,
 status-line, todo, web-search, and Worktrunk extensions; the Shape, planning,
 and implement lifecycle; the Git, GitHub, and Worktrunk skills; and the pinned
-`pi-subagents` extension and prompts through explicit paths. Its bundled
+`pi-claude-bridge` and `pi-subagents` extensions, subagent prompts, and
+model-routed package agents through explicit paths. The bundled subagent
 orchestration skill is intentionally excluded. Other production packages remain
 independently loadable. Pi reevaluates the root manifest during `/reload`.
 

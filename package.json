@@ -18,6 +18,7 @@
       "./packages/todo/src/index.ts",
       "./packages/web-search/src/index.ts",
       "./packages/worktrunk/src/index.ts",
+      "./node_modules/pi-claude-bridge/src/index.ts",
       "./node_modules/pi-subagents/index.ts"
     ],
     "skills": [
@@ -104,6 +105,7 @@
     "vitest": "4.1.10"
   },
   "dependencies": {
+    "pi-claude-bridge": "0.7.0",
     "pi-subagents": "0.50.0"
   },
   "overrides": {

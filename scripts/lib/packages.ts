@@ -453,6 +453,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/todo/src/index.ts",
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
+    "./node_modules/pi-claude-bridge/src/index.ts",
     "./node_modules/pi-subagents/index.ts",
   ],
   skills: [
@@ -471,7 +472,10 @@ const ROOT_PROFILE: RootProfile = {
   ],
   subagents: { agents: ["./agents"] },
 };
-const ROOT_DEPENDENCIES = { "pi-subagents": "0.50.0" };
+const ROOT_DEPENDENCIES = {
+  "pi-claude-bridge": "0.7.0",
+  "pi-subagents": "0.50.0",
+};
 
 function validateRootSubagents(pi: Record<string, unknown>, errors: string[]): void {
   const subagents = pi["subagents"];

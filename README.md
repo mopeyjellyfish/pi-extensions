@@ -27,6 +27,7 @@ It loads only:
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `conventional-commit` and `git-rebase-base` for safe Git delivery and stacked pull requests;
 - `github-cli` for repository-aware pull request, review, Actions, issue, and release workflows;
+- pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
@@ -46,17 +47,35 @@ Fable at medium effort:
 
 ```json
 {
-  "defaultProvider": "anthropic",
+  "defaultProvider": "claude-bridge",
   "defaultModel": "claude-fable-5",
   "defaultThinkingLevel": "medium"
 }
 ```
 
-Merge these keys with settings you intentionally keep. The installed
-`sol-worker` and `fable-reviewer` profiles pin their own child models and
-thinking levels, with no fallback model. Both child stages start with fresh
-context. Both providers must already be signed in to Pi. The Git package does
-not edit user settings.
+Merge these keys with settings you intentionally keep. Configure the bridge in
+`~/.pi/agent/claude-bridge.json`:
+
+```json
+{
+  "askClaude": {
+    "enabled": true,
+    "defaultMode": "read",
+    "defaultIsolated": true,
+    "allowFullMode": false
+  }
+}
+```
+
+This exposes AskClaude for non-bridge parent models, including Sol sessions. It
+is unavailable while the active parent itself uses `claude-bridge`, which
+prevents circular Claude delegation. Read-only isolated calls keep it a review
+and second-opinion tool; enable full mode deliberately only if it proves useful.
+
+The installed `sol-worker` and `fable-reviewer` profiles pin their own child
+models and thinking levels, with no fallback model. Both child stages start with
+fresh context. Claude Code and OpenAI Codex must already be signed in. The Git
+package does not edit user settings or bridge configuration.
 
 Large tasks do not automatically become parallel subagent tasks. The root
 profile starts one foreground `sol-worker` for each accepted slice. Add another
@@ -140,6 +159,7 @@ user-installed Pi package:
 ```sh
 pi update --extension git:github.com/mopeyjellyfish/pi-extensions
 pi remove npm:context-mode
+pi remove npm:pi-claude-bridge
 pi remove npm:pi-subagents
 pi list --no-approve
 ```
@@ -157,12 +177,13 @@ configuration and remove these remaining baseline overrides when present:
 - the `subagents` settings block in `~/.pi/agent/settings.json` when model,
   agent, extension, builtin, and watchdog overrides are no longer intended.
 
-The root profile pins `pi-subagents` because its Pi 0.84 lifecycle, process
-cleanup, worktree recovery, and model support were selected explicitly. Do not
-add context-mode, RTK, FFF, or Ponytail as root dependencies without repeatable
-task-level evidence. A host-managed integration that is inactive outside its host, such as Herdr's agent-state bridge, can
-remain outside the profile because its installer owns its lifecycle. This
-repository does not edit user-level Pi settings.
+The root profile pins `pi-claude-bridge` and `pi-subagents` because their Pi
+0.84 lifecycle, process cleanup, worktree recovery, and model support were
+selected explicitly. Do not add context-mode, RTK, FFF, or Ponytail as root
+dependencies without repeatable task-level evidence. A host-managed integration
+that is inactive outside its host, such as Herdr's agent-state bridge, can remain
+outside the profile because its installer owns its lifecycle. This repository
+does not edit user-level Pi settings.
 
 ## Optional packages
 
