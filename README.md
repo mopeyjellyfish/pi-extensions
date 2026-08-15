@@ -22,6 +22,10 @@ It loads only:
 - Pi's native tools and native compaction;
 - the [`question`](packages/question/README.md) extension;
 - the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
+- the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
+- the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
+- `conventional-commit` and `git-rebase-base` for safe Git delivery and stacked pull requests;
+- `github-cli` for repository-aware pull request, review, Actions, issue, and release workflows;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - `/implement` for direct implementation and verification.
@@ -58,9 +62,9 @@ session.
 
 Pi already provides file, search, shell, editing, session, and compaction
 behavior. Skills are discovered progressively. The baseline therefore keeps
-native behavior and adds only the missing structured question, terminal status,
-and lifecycle contracts. Accepted `pitch.md` and `plan.md` files are durable
-anchors when a long session compacts.
+native behavior and adds the missing structured question, terminal status, web
+research, worktree routing, delivery guidance, and lifecycle contracts. Accepted
+`pitch.md` and `plan.md` files are durable anchors when a long session compacts.
 
 Treat every extra extension as a measured addition:
 
@@ -112,8 +116,8 @@ when the task needs its capability.
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | [`pi-engineering`](packages/engineering/README.md)               | Focused TDD, diagnosis, design, domain, or review skills beyond `implement`.      |
 | [`pi-feature-flow`](packages/feature-flow/README.md)             | Shape and planning without the root profile.                                      |
-| [`pi-git-conventions`](packages/git-conventions/README.md)       | Conventional Commits or safe rebasing.                                            |
-| [`pi-github`](packages/github/README.md)                         | Guided GitHub CLI workflows.                                                      |
+| [`pi-git-conventions`](packages/git-conventions/README.md)       | Git delivery skills without the root profile.                                     |
+| [`pi-github`](packages/github/README.md)                         | GitHub CLI workflows without the root profile.                                    |
 | [`pi-lsp`](packages/lsp/README.md)                               | Semantic navigation, diagnostics, or refactoring for a supported language server. |
 | [`pi-playwright-cleanup`](packages/playwright-cleanup/README.md) | Ownership and cleanup of browser sessions.                                        |
 | [`pi-productivity`](packages/productivity/README.md)             | Clearer agent instructions.                                                       |
@@ -121,11 +125,14 @@ when the task needs its capability.
 | [`pi-simple-english`](packages/simple-english/README.md)         | Pragmatic ASD-STE100 writing guidance.                                            |
 | [`pi-status-line`](packages/status-line/README.md)               | Powerlevel10k-style status without the root profile.                              |
 | [`pi-todo`](packages/todo/README.md)                             | A small session task list.                                                        |
-| [`pi-web-search`](packages/web-search/README.md)                 | Provider-backed web research.                                                     |
-| [`pi-worktrunk`](packages/worktrunk/README.md)                   | Worktrunk worktree selection and tool routing.                                    |
+| [`pi-web-search`](packages/web-search/README.md)                 | Provider-backed web research without the root profile.                            |
+| [`pi-worktrunk`](packages/worktrunk/README.md)                   | Worktree routing without the root profile.                                        |
 
-The Worktrunk package needs [Worktrunk](https://worktrunk.dev) installed
-separately. It is not an official Worktrunk integration.
+The enabled Worktrunk resources need [Worktrunk](https://worktrunk.dev)
+installed separately. The GitHub workflow skill needs an authenticated
+[GitHub CLI](https://cli.github.com/), and stacked pull requests additionally
+need the optional `github/gh-stack` CLI extension. The Pi package does not
+install these external tools.
 
 To install one package from a checkout:
 
