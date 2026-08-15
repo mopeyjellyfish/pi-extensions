@@ -15,6 +15,7 @@
     "extensions": [
       "./packages/question/src/index.ts",
       "./packages/status-line/src/index.ts",
+      "./packages/todo/src/index.ts",
       "./packages/web-search/src/index.ts",
       "./packages/worktrunk/src/index.ts",
       "./node_modules/pi-subagents/index.ts"
@@ -25,8 +26,7 @@
       "./packages/engineering/skills/implement",
       "./packages/git-conventions/skills",
       "./packages/github/skills",
-      "./packages/worktrunk/skills",
-      "./node_modules/pi-subagents/skills"
+      "./packages/worktrunk/skills"
     ],
     "prompts": [
       "./packages/feature-flow/prompts/shape.md",

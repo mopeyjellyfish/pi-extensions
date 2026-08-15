@@ -21,6 +21,7 @@ const ROOT_PROFILE = {
   extensions: [
     "./packages/question/src/index.ts",
     "./packages/status-line/src/index.ts",
+    "./packages/todo/src/index.ts",
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
     "./node_modules/pi-subagents/index.ts",
@@ -32,7 +33,6 @@ const ROOT_PROFILE = {
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
-    "./node_modules/pi-subagents/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -127,6 +127,26 @@ describe("package contracts", () => {
 
     expect(manifest.pi).toEqual(ROOT_PROFILE);
     expect(manifest.dependencies).toEqual(ROOT_DEPENDENCIES);
+  });
+
+  it("documents the conservative subagent profile and its evaluation gate", async () => {
+    expect.hasAssertions();
+    const [readme, evaluation] = await Promise.all([
+      readFile(join(repositoryRoot, "README.md"), "utf8"),
+      readFile(join(repositoryRoot, "docs", "evaluations", "pi-profile-ab.md"), "utf8"),
+    ]);
+
+    expect(readme).toContain('"toolDescriptionMode": "compact"');
+    expect(readme).toContain('"asyncByDefault": false');
+    expect(readme).toContain('"maxSubagentDepth": 1');
+    expect(readme).toContain('"maxTasks": 3');
+    expect(readme).toContain('"concurrency": 2');
+    expect(readme).toContain('"scheduledRuns": {');
+    expect(readme).toContain('"enabled": false');
+    expect(evaluation).toMatch(/baseline/iu);
+    expect(evaluation).toMatch(/candidate/iu);
+    expect(evaluation).toMatch(/total model tokens/iu);
+    expect(evaluation).toMatch(/deferred tool|compaction/iu);
   });
 
   it("rejects a missing or additional root profile resource", async () => {

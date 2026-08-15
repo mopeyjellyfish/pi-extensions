@@ -446,6 +446,7 @@ const ROOT_PROFILE: PackageResources = {
   extensions: [
     "./packages/question/src/index.ts",
     "./packages/status-line/src/index.ts",
+    "./packages/todo/src/index.ts",
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
     "./node_modules/pi-subagents/index.ts",
@@ -457,7 +458,6 @@ const ROOT_PROFILE: PackageResources = {
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
-    "./node_modules/pi-subagents/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",

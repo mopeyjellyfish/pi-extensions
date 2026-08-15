@@ -22,11 +22,12 @@ It loads only:
 - Pi's native tools and native compaction;
 - the [`question`](packages/question/README.md) extension;
 - the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
+- the [`todo`](packages/todo/README.md) extension for parent progress visibility;
 - the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `conventional-commit` and `git-rebase-base` for safe Git delivery and stacked pull requests;
 - `github-cli` for repository-aware pull request, review, Actions, issue, and release workflows;
-- pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension, skills, and prompt templates;
+- pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - `/implement` for direct implementation and verification.
@@ -34,7 +35,7 @@ It loads only:
 The lifecycle is intentionally serial and parent-led:
 
 ```text
-request -> accepted pitch -> ordered plan -> implement -> verification
+request -> accepted pitch -> accepted vertical plan -> implement -> review or pause
 ```
 
 Large tasks do not automatically become subagent tasks. Start with one bundled
@@ -46,9 +47,31 @@ worktree. Let the parent inspect the diff and verify all evidence. This follows 
 which recommends care with parallel writes and notes that comparable subagent
 runs use more tokens.
 
-The aggregate uses the upstream `pi-subagents` defaults and does not create or
-modify its user configuration. Optional overrides remain in the upstream
-`~/.pi/agent/extensions/subagent/config.json` file.
+The aggregate does not load the broad bundled `pi-subagents` orchestration skill.
+The focused Shape, planning, and implement skills own the lifecycle. The
+extension and its explicit prompt templates remain available.
+
+Use this conservative user configuration in
+`~/.pi/agent/extensions/subagent/config.json`:
+
+```json
+{
+  "toolDescriptionMode": "compact",
+  "asyncByDefault": false,
+  "maxSubagentDepth": 1,
+  "parallel": {
+    "maxTasks": 3,
+    "concurrency": 2
+  },
+  "scheduledRuns": {
+    "enabled": false
+  }
+}
+```
+
+Merge these keys with any settings you intentionally keep. The Git package does
+not overwrite user configuration during installation. Restart Pi after changing
+this file.
 
 Update or remove the profile with:
 
@@ -80,6 +103,10 @@ Treat every extra extension as a measured addition:
    tokens, not only rewritten command output.
 4. Remove the extension when the benefit is not repeatable.
 
+Use the small [Pi profile A/B evaluation](docs/evaluations/pi-profile-ab.md)
+before adding deferred-tool loading, custom compaction, or another always-on
+extension.
+
 OpenAI's [GPT-5.6 guidance](https://developers.openai.com/api/docs/guides/latest-model)
 also recommends comparing representative workloads when choosing model and
 reasoning settings.
@@ -104,8 +131,8 @@ configuration and remove these remaining baseline overrides when present:
 - the `context-mode` server in `~/.pi/agent/mcp.json`;
 - `~/.pi/agent/extensions/rtk.ts`, while retaining the RTK binary if explicit
   use is still useful;
-- `~/.pi/agent/extensions/subagent/config.json` when upstream `pi-subagents`
-  defaults are intended;
+- unrelated keys in `~/.pi/agent/extensions/subagent/config.json`; retain the
+  conservative profile above unless a measured task needs different behavior;
 - the `subagents` settings block in `~/.pi/agent/settings.json` when model,
   agent, extension, builtin, and watchdog overrides are no longer intended.
 
