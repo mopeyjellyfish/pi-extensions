@@ -85,7 +85,7 @@ actions:
    Return material findings to `worker`, reverify, and repeat the review
    boundary as needed. Do not route fixes to Sol without the separate approved
    Sol question. If `reviewer` is unavailable, the direct parent performs the
-   review.
+   review with the `code-review` skill.
 2. **Revise** — apply the human's feedback, reverify, and show the evidence
    again.
 3. **Deepen verification** — add one requested proof or investigate one named

@@ -303,7 +303,8 @@ describe("package contracts", () => {
       readFile(join(agentsRoot, "reviewer.md"), "utf8"),
       readFile(join(agentsRoot, "git.md"), "utf8"),
     ]);
-    expect(reviewer).toMatch(/Pi additions[\s\S]*do not spawn[\s\S]*issue-tracker setup/iu);
+    expect(reviewer).toMatch(/`code-review` method[\s\S]*do not spawn[\s\S]*issue-tracker setup/iu);
+    expect(reviewer).toMatch(/Pitch and plan[\s\S]*Standards/iu);
     expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
   });
 

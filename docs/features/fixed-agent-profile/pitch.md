@@ -44,7 +44,7 @@ Quality floors:
 - Use Luna for cheap bounded support, Terra for normal code and Git work, and Opus for independent review.
 - Never consume Sol through an automatic child route.
 - Preserve package independence and packed-install behavior.
-- Preserve upstream MIT attribution and hash-check material promised as verbatim.
+- Preserve upstream MIT attribution and existing debugging attribution.
 - Keep Git pushes bounded and recoverable.
 
 If the pinned Pi, `pi-subagents`, or `pi-claude-bridge` contract cannot load one of the exact selected models or private skill paths, stop and reshape rather than silently substitute another model.
@@ -55,10 +55,10 @@ The pinned `pi-subagents` 0.50.0 contract supports explicit agent `model`, `thin
 
 The pinned `pi-claude-bridge` 0.7.0 registry exposes `claude-bridge/claude-opus-5` and maps it to Claude Code's one-million-context Opus 5 model. AskClaude is available only while the active parent uses a non-bridge provider. A Sol parent can call AskClaude; a Fable parent cannot recursively call the Claude bridge. The profile must document this instead of promising AskClaude in every parent session.
 
-The requested upstream Engineering sources are currently pinned by upstream `main` commit `068b6e0c62393147daf03530149cdce209c93da8`:
+The requested upstream Engineering sources use the pinned commits recorded in the Engineering third-party notice:
 
-- [`code-review`](https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/code-review/SKILL.md) supplies a fixed-point, Spec-and-Standards review and a concrete smell baseline.
-- [`codebase-design`](https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/codebase-design/SKILL.md) supplies consistent deep-module vocabulary and design checks.
+- [`code-review`](https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/code-review/SKILL.md) supplies the basis for a fixed-point review against accepted pitch and plan and repository Standards, plus a concrete smell baseline.
+- [`codebase-design`](https://github.com/mattpocock/skills/blob/ee8bae40062cd6b435073368ed0c540f48c35862/skills/engineering/codebase-design/SKILL.md) supplies consistent deep-module vocabulary and design checks.
 - [`improve-codebase-architecture`](https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/improve-codebase-architecture/SKILL.md) supplies a hot-spot-led architecture scan and ranked deepening opportunities.
 - [`resolving-merge-conflicts`](https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/resolving-merge-conflicts/SKILL.md) supplies intent-preserving conflict resolution and post-resolution checks.
 
@@ -95,12 +95,12 @@ Use AskClaude as an optional read-only second opinion when the selected parent i
 
 ### One code-review skill
 
-Rename the maintained review method from `reviewing-changes` to `code-review`; remove the old skill and update `/review-change` and all references. Keep the pinned upstream `code-review/SKILL.md` text hash-verbatim as the first section of this one skill, followed by a clearly delimited Pi addition.
+Rename the maintained review method from `reviewing-changes` to `code-review`; remove the old skill and update `/review-change` and all references. Adapt the pinned upstream method into one Pi-native flow. The later review-integration decision supersedes the original source-preservation approach so the method can use accepted pitch and plan terminology directly and load applicable language references without contradictory upstream fanout instructions.
 
-The Pi addition resolves the upstream assumptions for this profile:
+The integrated method resolves the upstream assumptions for this profile:
 
-- one Opus Reviewer performs both Spec and Standards axes in one read-only pass because an ordinary child is not an orchestrator;
-- accepted pitch, plan, request, issue, or user-supplied intent can be the Spec source without external issue-tracker setup;
+- one Opus Reviewer performs both Pitch and plan and Standards axes in one read-only pass because an ordinary child is not an orchestrator;
+- accepted pitch and plan are the primary intent sources, with a bounded request, confirmed bug outcome, issue, or user-supplied intent used only when no formal pitch and plan exist;
 - repository instructions and nearest engineering contracts are the Standards sources;
 - the final result is severity-ranked for action while retaining an explicit axis on each finding;
 - correctness, regression, security, performance, edge cases, falsifiable tests, architecture, and maintainability are required review areas;
@@ -108,7 +108,7 @@ The Pi addition resolves the upstream assumptions for this profile:
 - every material finding names its file, location, evidence, consequence, axis, and confidence;
 - no finding authorizes edits.
 
-Contract tests pin the verbatim prefix hash and verify the Pi addition. There is only one `code-review` skill and one review command to maintain.
+Contract tests pin the integrated axes, fixed-diff method, risk areas, applicable language references, and attribution. There is only one `code-review` skill and one review command to maintain.
 
 ### Codebase design and architecture improvement
 
@@ -172,7 +172,7 @@ Strengthen root `AGENTS.md` so repository authors and delegated agents know that
 - Exact six-agent visibility requires the documented `disableBuiltins: true` setting; installation does not mutate user settings.
 - QA and Utility have no edit or write tools. QA may run Bash and Playwright.
 - Git may push the current non-default task branch. A post-rebase force update must use `--force-with-lease`; default/protected branches, tags, other remotes, and unleased force pushes require explicit approval.
-- Keep one `code-review` skill. Its upstream prefix is verbatim and hash-checked; Pi additions make it compatible with one Opus Reviewer.
+- Keep one integrated `code-review` skill adapted from the pinned source. It uses Pitch and plan plus Standards in one Opus Reviewer pass and loads only applicable language references.
 - `/improve` reports architecture candidates and hands a selected candidate to Shape; it does not implement directly.
 - Engineering and Productivity resources are included in the root profile and remain independently installable packages.
 - Upstream material is pinned to commit `068b6e0c62393147daf03530149cdce209c93da8` and attributed under MIT.
@@ -215,12 +215,12 @@ Strengthen root `AGENTS.md` so repository authors and delegated agents know that
 - **AC-006 — Cross-provider use:** Normal implementation uses OpenAI Terra/Luna while formal review uses Claude Opus; documentation accurately explains Fable/Sol parent choice and AskClaude's non-bridge-only availability.
 - **AC-007 — Exact catalog setup:** Root documentation gives a tested `disableBuiltins: true` configuration and does not claim installation can mutate user settings.
 - **AC-008 — Agent skills:** Each child receives only named private skills and tools needed for its role; it does not depend on all target repositories having this monorepo's catalog.
-- **AC-009 — One review skill:** `reviewing-changes` is removed, `code-review` is the only review method, its upstream prefix matches the pinned hash, and its Pi addition produces actionable single-reviewer findings across both axes and all required risk areas.
+- **AC-009 — One review skill:** `reviewing-changes` is removed, `code-review` is the only review method, and its integrated Pitch-and-plan and Standards flow produces actionable single-reviewer findings across applicable language references and all required risk areas.
 - **AC-010 — Design in delivery:** Worker, planning, and Reviewer apply the expanded `codebase-design` vocabulary where module shape changes, without turning it into a speculative abstraction checklist.
 - **AC-011 — Improve command:** `/improve` discovers and ranks evidence-backed architecture opportunities, asks the human to select one, and routes the choice to Shape without editing production code.
 - **AC-012 — Git conflict support:** The Git agent can resolve and verify in-progress merge or rebase conflicts using the installed commit, rebase, conflict, GitHub, and Worktrunk skills.
 - **AC-013 — Safe push:** Git can push a current non-default task branch and can use verified `--force-with-lease` after rebase, while forbidden destinations and unleased force remain approval-gated.
 - **AC-014 — Root resources:** The recommended root install exposes complete Engineering and Productivity skills and prompts while both packages still pass independent packed-install checks.
 - **AC-015 — Repository neutrality:** Root `AGENTS.md` explicitly prohibits production resources that assume this monorepo, its paths, its package names, or its locally available skills and extensions.
-- **AC-016 — Attribution:** Every copied or adapted upstream resource is listed with its pinned commit and complete MIT notice, and verbatim promises have deterministic hash tests.
+- **AC-016 — Attribution:** Every copied or adapted upstream resource is listed with its pinned commit and complete MIT notice; existing debugging source preservation remains tested.
 - **AC-017 — Verification:** Focused agent/resource contract tests, package tests, source and packed smoke tests, and `npm run check` pass against the final worktree.

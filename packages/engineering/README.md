@@ -49,8 +49,17 @@ architecture-deepening opportunities. It asks the human to select a candidate,
 then hands the selection to Shape and planning; it does not edit production
 code.
 
+`code-review` evaluates the accepted pitch and plan plus repository Standards.
+It loads only the applicable TypeScript, React, Go, or SQL guide from its
+`references/` directory; target-repository standards always win. `codebase-design`
+includes the complete adapted deep-module method, its dependency-deepening and
+alternative-interface references, and explicit testability guidance. Its
+alternative-interface flow keeps architecture judgment in the parent and
+prevents ordinary child agents from orchestrating fanout.
+
 The focused implementation, TDD, `codebase-design`, `code-review`, debugging, and
 architecture-discovery methods use MIT-licensed guidance from [mattpocock/skills](https://github.com/mattpocock/skills)
 at the commits recorded in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-The debugging and `code-review` skills preserve their upstream sources verbatim
-before their documented Pi-specific additions.
+The debugging skill preserves its pinned upstream source before its documented
+Pi-specific additions. `codebase-design` and `code-review` adapt their pinned
+sources into the local design and review flows.

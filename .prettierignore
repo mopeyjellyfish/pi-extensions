@@ -9,8 +9,5 @@ package-lock.json
 # Release Please owns package changelog formatting.
 packages/*/CHANGELOG.md
 
-# This skill keeps a hash-checked upstream prefix byte-for-byte.
-packages/engineering/skills/code-review/SKILL.md
-
 # The feature-flow helper owns canonical ledger formatting.
 docs/features/*/index.json

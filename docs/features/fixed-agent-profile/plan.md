@@ -10,7 +10,7 @@ Work the first unchecked slice. Keep all slices serial in the accepted Shape wor
 
 ### Outcome
 
-An independent Engineering install exposes one `code-review` skill and one expanded `codebase-design` skill. Review covers the accepted Spec and repository Standards from a fixed diff, and implementation and review share precise deep-module vocabulary.
+An independent Engineering install exposes one `code-review` skill and one expanded `codebase-design` skill. Review covers the accepted pitch and plan plus repository Standards from a fixed diff, and implementation and review share precise deep-module vocabulary.
 
 ### Requirement trace
 
@@ -20,11 +20,11 @@ An independent Engineering install exposes one `code-review` skill and one expan
 
 ### Implementation
 
-Use `packages/engineering/test/resources.test.ts` as the public resource contract. Add failing assertions for the `code-review` name, removal of `reviewing-changes`, the pinned verbatim prefix hash, the Pi single-reviewer addition, required review risk areas, and the expanded design vocabulary.
+Use `packages/engineering/test/resources.test.ts` as the public resource contract. Add failing assertions for the `code-review` name, removal of `reviewing-changes`, the integrated single-reviewer axes, applicable language references, required review risk areas, and the expanded design vocabulary.
 
-Replace `packages/engineering/skills/reviewing-changes/` with `skills/code-review/`. Copy the complete upstream `code-review/SKILL.md` at commit `068b6e0c62393147daf03530149cdce209c93da8` as the hash-checked prefix, then append the accepted Pi addition. Update `developing-changes`, `/review-change`, Engineering documentation, packed-resource expectations, and all active references. Do not leave a second review skill or command.
+Replace `packages/engineering/skills/reviewing-changes/` with `skills/code-review/`. Adapt the pinned upstream `code-review/SKILL.md` at commit `068b6e0c62393147daf03530149cdce209c93da8` into the accepted Pi-native Pitch-and-plan and Standards flow. This follow-up integration supersedes the original source-preservation approach. Update `developing-changes`, `/review-change`, Engineering documentation, packed-resource expectations, and all active references. Do not leave a second review skill or command.
 
-Expand `skills/codebase-design/SKILL.md` with the useful current upstream glossary, depth, seam, adapter, leverage, locality, deletion, and test-surface guidance. Preserve the local evidence rules against speculative seams, forwarding-only layers, and syntax-only deduplication. Update `THIRD_PARTY_NOTICES.md` with exact pinned sources and adapted or verbatim status.
+Adapt `skills/codebase-design/SKILL.md` with the useful current upstream glossary, depth, seam, adapter, leverage, locality, deletion, and test-surface guidance. Integrate the local evidence rules against speculative seams, forwarding-only layers, and syntax-only deduplication. Adapt its deepening and alternative-interface references to the profile. Update `THIRD_PARTY_NOTICES.md` with exact pinned sources and adapted status.
 
 ### Execution mode
 
@@ -36,15 +36,15 @@ Expand `skills/codebase-design/SKILL.md` with the useful current upstream glossa
 
 ### Test posture
 
-`tdd` — add resource, hash, reference, and packed-artifact assertions before replacing the skills.
+`tdd` — add resource, integration, language-reference, design-content, and packed-artifact assertions before replacing the skills.
 
 ### Red signal
 
-The focused Engineering test fails because `code-review` is absent, `reviewing-changes` is still packed and referenced, the upstream hash is unavailable, and the expanded design terms are missing.
+The focused Engineering test fails because `code-review` and its language references are absent, `reviewing-changes` is still packed and referenced, the adapted design resources and safeguards are unavailable, and the expanded design terms are missing.
 
 ### Green signal
 
-The focused test finds one `code-review` skill with the exact upstream prefix and compatible Pi addition, no `reviewing-changes` resource or live reference, the expanded design contract, and synchronized notice and packed contents.
+The focused test finds one integrated `code-review` skill with Pitch and plan plus Standards axes and applicable language references, no `reviewing-changes` resource or live reference, the complete adapted design contract, and synchronized notice and packed contents.
 
 ### Verification
 
@@ -55,7 +55,7 @@ The focused test finds one `code-review` skill with the exact upstream prefix an
 
 ### Done when
 
-The Engineering package independently ships exactly one review method, its verbatim promise is hash-proved, its Pi override is unambiguous, codebase design contains the accepted vocabulary and safeguards, and attribution matches every changed resource.
+The Engineering package independently ships exactly one integrated review method, codebase design contains the complete adapted vocabulary, testability guidance, references, and local safeguards, and attribution matches every changed resource.
 
 ## [x] 002 — Add the safe `/improve` architecture-discovery flow
 

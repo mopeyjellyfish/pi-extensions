@@ -28,6 +28,7 @@ describe("engineering resources", () => {
     expect(implement).toMatch(
       /`reviewer`[\s\S]*worktree[\s\S]*fixed[- ]point[\s\S]*intent[\s\S]*diff[\s\S]*evidence/iu,
     );
+    expect(implement).toMatch(/reviewer[^.]*unavailable[\s\S]*direct parent[^.]*`code-review`/iu);
     expect(implement).toMatch(
       /question[\s\S]*evidence[\s\S]*expected benefit[\s\S]*bounded Sol task[\s\S]*explicit approval/iu,
     );
@@ -88,6 +89,12 @@ describe("engineering resources", () => {
         "skills/diagnosing-bugs/SKILL.md",
         "skills/diagnosing-bugs/scripts/hitl-loop.template.sh",
         "skills/code-review/SKILL.md",
+        "skills/code-review/references/go.md",
+        "skills/code-review/references/react.md",
+        "skills/code-review/references/sql.md",
+        "skills/code-review/references/typescript.md",
+        "skills/codebase-design/DEEPENING.md",
+        "skills/codebase-design/DESIGN-IT-TWICE.md",
         "prompts/debug.md",
         "prompts/implement.md",
         "prompts/review-change.md",
@@ -102,7 +109,7 @@ describe("engineering resources", () => {
     );
   });
 
-  it("ships one hash-checked code review method and an evidence-based design vocabulary", async () => {
+  it("ships one integrated code review method and an evidence-based design vocabulary", async () => {
     expect.hasAssertions();
     const [skill, design, prompt, developing, notice, readme, skillDirectories] = await Promise.all(
       [
@@ -115,29 +122,19 @@ describe("engineering resources", () => {
         readdir(join(PACKAGE_ROOT, "skills"), { withFileTypes: true }),
       ],
     );
-    const separator = "\n## Pi review additions\n";
-    const separatorIndex = skill.indexOf(separator);
 
-    expect(separatorIndex).toBeGreaterThan(0);
-    expect(createHash("sha256").update(skill.slice(0, separatorIndex)).digest("hex")).toBe(
-      "4e8eeefbf3bd32ec2c911ed6c7db103866ce11fedc98b1f8e358d2e1cada3895",
+    expect(skill).toMatch(/Pitch and plan[\s\S]*Standards[\s\S]*one read-only pass/iu);
+    expect(skill).toMatch(/Do not spawn subagents[\s\S]*issue-tracker setup/iu);
+    expect(skill).toMatch(/one read-only reviewer[\s\S]*direct parent/iu);
+    expect(skill).not.toMatch(/\bSpec\b/u);
+    expect(skill).toMatch(
+      /accepted pitch[\s\S]*accepted plan[\s\S]*bounded request[\s\S]*issue[\s\S]*user-supplied intent/iu,
     );
-    expect(skill.slice(separatorIndex)).toMatch(
-      /override[\s\S]*parallel-subagent[\s\S]*issue-tracker setup/iu,
+    expect(skill).toMatch(
+      /correctness[\s\S]*regression[\s\S]*security[\s\S]*performance[\s\S]*edge\s+cases[\s\S]*falsifiable\s+tests[\s\S]*architecture[\s\S]*maintainability/iu,
     );
-    expect(skill.slice(separatorIndex)).toMatch(/one Opus Reviewer[\s\S]*one read-only pass/iu);
-    expect(skill.slice(separatorIndex)).toMatch(/root profile[\s\S]*Opus Reviewer/iu);
-    expect(skill.slice(separatorIndex)).toMatch(
-      /without that profile[\s\S]*one read-only reviewer[\s\S]*direct parent/iu,
-    );
-    expect(skill.slice(separatorIndex)).toMatch(
-      /pitch, plan, request, issue, or user-supplied intent/iu,
-    );
-    expect(skill.slice(separatorIndex)).toMatch(
-      /correctness[\s\S]*regression[\s\S]*security[\s\S]*performance[\s\S]*edge cases[\s\S]*falsifiable\s+tests[\s\S]*architecture[\s\S]*maintainability/iu,
-    );
-    expect(skill.slice(separatorIndex)).toMatch(
-      /file[\s\S]*location[\s\S]*evidence[\s\S]*consequence[\s\S]*axis[\s\S]*confidence/iu,
+    expect(skill).toMatch(
+      /file and location[\s\S]*cited requirement[\s\S]*concrete consequence[\s\S]*confidence/iu,
     );
     expect(
       skillDirectories.filter((entry) => entry.isDirectory()).map(({ name }) => name),
@@ -147,10 +144,10 @@ describe("engineering resources", () => {
     expect(developing).toMatch(/`code-review`/iu);
     expect(readme).toMatch(/`code-review`/iu);
     expect(notice).toMatch(
-      /skills\/code-review\/SKILL\.md[\s\S]*068b6e0c62393147daf03530149cdce209c93da8[\s\S]*verbatim/iu,
+      /skills\/code-review\/SKILL\.md[\s\S]*068b6e0c62393147daf03530149cdce209c93da8[\s\S]*adapted/iu,
     );
     expect(notice).toMatch(
-      /skills\/codebase-design\/SKILL\.md[\s\S]*adapted[\s\S]*068b6e0c62393147daf03530149cdce209c93da8/iu,
+      /skills\/codebase-design\/SKILL\.md[\s\S]*ee8bae40062cd6b435073368ed0c540f48c35862[\s\S]*adapted/iu,
     );
 
     for (const term of [
@@ -170,8 +167,84 @@ describe("engineering resources", () => {
     expect(design).toMatch(
       /one adapter[\s\S]*hypothetical seam[\s\S]*two adapters[\s\S]*real one/iu,
     );
-    expect(design).toMatch(
-      /speculative seams[\s\S]*forwarding-only layers[\s\S]*syntax-only\s+deduplication/iu,
+  });
+
+  it("reviews pitch and plan intent with applicable language references", async () => {
+    expect.hasAssertions();
+    const [skill, typescript, react, go, sql, prompt] = await Promise.all([
+      read("skills/code-review/SKILL.md"),
+      read("skills/code-review/references/typescript.md"),
+      read("skills/code-review/references/react.md"),
+      read("skills/code-review/references/go.md"),
+      read("skills/code-review/references/sql.md"),
+      read("prompts/review-change.md"),
+    ]);
+    expect(skill).toMatch(/accepted pitch[\s\S]*accepted plan[\s\S]*primary intent/iu);
+    expect(skill).toMatch(/missing pitch or plan[\s\S]*state[^.]*unavailable evidence/iu);
+    expect(skill).toMatch(/changed languages[\s\S]*frameworks[\s\S]*load only[^.]*references/iu);
+    expect(skill).toMatch(/Repository instructions[\s\S]*always override general guidance/iu);
+    expect(skill).not.toMatch(/\bSpec\b/u);
+    expect(prompt).toMatch(/accepted pitch and plan/iu);
+
+    for (const reference of [typescript, react, go, sql]) {
+      expect(reference).toMatch(/review evidence/iu);
+      expect(reference).toMatch(/repository[^.]*standards[^.]*override/iu);
+      expect(reference).toMatch(/do not report[^.]*tooling/iu);
+    }
+    expect(typescript).toMatch(/strict[\s\S]*unknown[\s\S]*discriminated union/iu);
+    expect(react).toMatch(/render purity[\s\S]*Hooks[\s\S]*effect cleanup[\s\S]*accessibility/iu);
+    expect(go).toMatch(/error[\s\S]*context[\s\S]*goroutine[\s\S]*race/iu);
+    expect(sql).toMatch(/NULL[\s\S]*cardinality[\s\S]*transaction[\s\S]*query plan/iu);
+  });
+
+  it("keeps the adapted design method, references, and local safeguards", async () => {
+    expect.hasAssertions();
+    const [skill, deepening, designItTwice, notice] = await Promise.all([
+      read("skills/codebase-design/SKILL.md"),
+      read("skills/codebase-design/DEEPENING.md"),
+      read("skills/codebase-design/DESIGN-IT-TWICE.md"),
+      read("THIRD_PARTY_NOTICES.md"),
+    ]);
+
+    for (const term of [
+      "Module",
+      "Interface",
+      "Implementation",
+      "Depth",
+      "Seam",
+      "Adapter",
+      "Leverage",
+      "Locality",
+    ]) {
+      expect(skill).toContain(term);
+    }
+    expect(skill).toMatch(
+      /Glossary[\s\S]*Module[\s\S]*Locality[\s\S]*Deep vs shallow[\s\S]*Deep module[\s\S]*Shallow module[\s\S]*Principles/iu,
+    );
+    expect(skill).toMatch(
+      /Designing for testability[\s\S]*Accept dependencies, don't create them[\s\S]*Return results, don't produce side effects[\s\S]*Small surface area/iu,
+    );
+    expect(skill).toMatch(
+      /Relationships[\s\S]*Rejected framings[\s\S]*DEEPENING\.md[\s\S]*DESIGN-IT-TWICE\.md/iu,
+    );
+    expect(skill).toMatch(
+      /repository evidence[\s\S]*speculative seams[\s\S]*forwarding-only layers[\s\S]*syntax-only deduplication/iu,
+    );
+    expect(deepening).toMatch(
+      /Dependency categories[\s\S]*In-process[\s\S]*Local-substitutable[\s\S]*Remote but owned[\s\S]*True external/iu,
+    );
+    expect(deepening).toMatch(/replace, don't layer[\s\S]*interface is the test surface/iu);
+    expect(designItTwice).toMatch(
+      /ordinary child[^.]*not an orchestrator[\s\S]*selected parent[^.]*architecture judgment/iu,
+    );
+    expect(designItTwice).toMatch(
+      /genuinely different[\s\S]*constraints[\s\S]*Interface[\s\S]*Usage example[\s\S]*Trade-offs/iu,
+    );
+    expect(designItTwice).toMatch(
+      /Present and compare[\s\S]*depth[\s\S]*locality[\s\S]*seam placement[\s\S]*recommendation/iu,
+    );
+    expect(notice).toMatch(
+      /ee8bae40062cd6b435073368ed0c540f48c35862[\s\S]*SKILL\.md[\s\S]*adapted[\s\S]*DEEPENING\.md[\s\S]*adapted[\s\S]*DESIGN-IT-TWICE\.md[\s\S]*adapted/iu,
     );
   });
 
