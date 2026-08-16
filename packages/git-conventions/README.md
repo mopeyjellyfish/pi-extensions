@@ -6,9 +6,9 @@ replace Git, Worktrunk, repository hooks, or project-specific instructions.
 
 ## Skills
 
-- `conventional-commit` inspects the complete worktree, plans safe atomic
-  Conventional Commit splits, and publishes approved review units through
-  `gh stack` when requested.
+- `commit` inspects the complete worktree, plans safe atomic Conventional Commit
+  splits and local branch topology, stages explicit paths or hunks, and validates
+  each committed unit. A later delivery workflow owns remote publication.
 - `git-rebase-base` fetches `origin` and rebases the current branch onto an
   explicit or safely resolved `origin/<base>` without publishing it.
 - `resolving-merge-conflicts` recovers both intents in an in-progress merge or
@@ -20,11 +20,6 @@ The conflict method may publish only the current non-default, non-protected
 branch to `origin`. After a rebase, it first verifies the expected remote state
 and uses `--force-with-lease`; it never uses plain force, pushes tags, or pushes
 to another remote, a default branch, or a protected branch.
-
-Stacked pull request support uses the optional `github/gh-stack` GitHub CLI
-extension. The skill checks for it and does not install it automatically. It
-also verifies adjacent branch ancestry and generated pull request metadata
-before a stack is ready for review.
 
 Git does not record a branch's original base as authoritative metadata. Supply
 the base explicitly when the repository or an open pull request does not make

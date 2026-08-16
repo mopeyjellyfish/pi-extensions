@@ -27,7 +27,7 @@ It loads only:
 - the [`todo`](packages/todo/README.md) extension for parent progress visibility;
 - the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
-- `conventional-commit` and `git-rebase-base` for safe Git delivery and stacked pull requests;
+- `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
 - `github-cli` for repository-aware pull request, review, Actions, issue, and release workflows;
 - pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;

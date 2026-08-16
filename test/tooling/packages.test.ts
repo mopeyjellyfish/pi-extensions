@@ -240,14 +240,14 @@ describe("package contracts", () => {
           "contact_supervisor",
         ],
         skills: [
-          "conventional-commit",
+          "commit",
           "git-rebase-base",
           "resolving-merge-conflicts",
           "github-cli",
           "pi-worktrunk",
         ],
         skillPaths: [
-          "../packages/git-conventions/skills/conventional-commit",
+          "../packages/git-conventions/skills/commit",
           "../packages/git-conventions/skills/git-rebase-base",
           "../packages/git-conventions/skills/resolving-merge-conflicts",
           "../packages/github/skills/github-cli",

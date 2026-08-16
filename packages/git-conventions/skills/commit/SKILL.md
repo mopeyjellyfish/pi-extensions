@@ -1,9 +1,9 @@
 ---
-name: conventional-commit
-description: Create, split, validate, and optionally make repository-aware atomic Conventional Commits and stacked pull requests, and suggest matching valid branch names. Use when naming branches, drafting or checking commit format, splitting changes into logical commits or reviewable pull requests, managing a gh stack, or committing work after the user requests it.
+name: commit
+description: Create, split, and validate repository-aware atomic Conventional Commits, and suggest matching valid branch names. Use when naming branches, drafting or checking commit format, splitting changes into logical commits, or committing an approved unit.
 ---
 
-# Conventional Commit
+# Commit
 
 Build the message from repository truth and the exact logical unit being
 committed. Treat message generation and `git commit` as separate decisions.
@@ -51,13 +51,13 @@ commits.
 1. Require an empty Git index with
    `git diff --cached --quiet --ita-visible-in-index`. This also detects
    intent-to-add entries. If any change is staged or partially staged, preserve
-   it and stop. Ask the user to finish that
-   unit or change the index explicitly. Never reset or unstage pre-existing work.
+   it and stop. Ask the user to finish that unit or change the index explicitly.
+   Never reset or unstage pre-existing work.
 2. Inventory every changed path and the relevant hunks. Group changes by one
    observable outcome, package boundary, or inseparable dependency. Keep source,
    its focused tests, and its necessary documentation in the same unit. Let the
-   source behavior supply the headline when tests, documentation, or configuration
-   support that behavior.
+   source behavior supply the headline when tests, documentation, or
+   configuration support that behavior.
 3. Exclude each lockfile from semantic grouping. Attach it to the unit that owns
    its manifest change. If several changed manifests share a shared lockfile,
    keep those dependency metadata changes in one unit. Split them only when the
@@ -76,136 +76,66 @@ If units overlap or an unresolved dependency cycle exists, stop before staging.
 Revise, combine, or remove units, then obtain approval for the complete plan.
 Do not write a partial stack from an invalid plan.
 
-## Publish reviewable changes with `gh stack`
+## Plan local commit topology
 
-Use this workflow around staging and committing when the user wants the approved
-units as stacked pull requests. Keep one new logical unit on each branch so
-that each pull request diff contains one unit. Order branches from the trunk
-outward. Each branch must start from the branch directly below it.
+When approved units use separate branches, keep one logical unit on each branch.
+Order branches from the trunk outward. Each branch must start from the branch
+directly below it. This is local commit topology only; a later delivery workflow
+owns remote publication and review metadata.
 
-1. Confirm the trunk, bottom-to-top branch order, and clean branch state. Run
-   `gh stack --version` to confirm that the GitHub CLI extension is available.
-   If it is missing, explain `gh extension install github/gh-stack`, but do not
-   install it without authorization.
-2. Add each target branch to the approved unit plan. Commit authority does not
-   authorize branch creation, pushes, or pull request creation.
-3. When one checkout owns the branches, create only the bottom branch before its
-   unit is staged:
-
-   ```sh
-   gh stack init --base "$trunk" "$bottom"
-   ```
-
-   After each successful commit, create and activate the next child branch
-   before staging its unit:
+1. Add each target branch to the approved unit plan. Commit authority does not
+   authorize branch creation, renaming, remote changes, or delivery actions.
+   Require separate explicit authority for every named branch creation.
+2. Before each staging step, confirm that the index is empty and `HEAD` is the
+   approved parent commit. Do not commit all units on one branch and create empty
+   upper branches afterward.
+3. When one checkout owns the branches and the named child branch has explicit
+   creation authority, require a clean worktree and create it from its approved
+   lower branch:
 
    ```sh
-   gh stack add "$next"
+   git switch -c "$next" "$lower"
    ```
 
-   Run `gh stack add` only with an empty index. Do not use its `--all`,
-   `--update`, or `--message` flags because they bypass this skill's staging,
-   validation, and commit authority gates.
+   Validate `$next` first. Never use `-C`, overwrite an existing branch, or
+   create a child from an unverified commit.
 
 4. When Worktrunk owns the worktrees, create and activate the bottom worktree
    from the trunk before its unit is implemented or transferred. After each
    successful commit, create and activate the next Worktrunk worktree from the
-   branch directly below it before its unit is implemented or transferred. A
-   new worktree does not inherit dirty changes from another worktree. If mixed
+   branch directly below it before its unit is implemented or transferred. A new
+   worktree does not inherit dirty changes from another worktree. If mixed
    changes already exist elsewhere, preserve that source worktree and stop until
    the user approves an explicit path or hunk transfer and its verification.
    Never recreate changes from memory or assume that activation transfers them.
-   Keep Worktrunk responsible for local branches and use `gh stack link` only
-   for the GitHub stack relationship.
-5. Before each staging step, confirm that the index is empty and `HEAD` is the
-   approved parent commit. Do not commit all units on one branch and create empty
-   upper branches afterward.
-6. Before any remote action, verify every adjacent pair, including the trunk and
-   bottom branch. Set `lower` and `upper` to each real pair in turn and run:
+   Keep Worktrunk responsible for local branches.
+5. Before handing off the completed topology, verify every adjacent pair,
+   including the trunk and bottom branch. Set `lower` and `upper` to each real
+   pair in turn and run:
 
    ```sh
    git merge-base --is-ancestor "$lower" "$upper"
    test "$(git rev-list --count "$lower..$upper")" -eq 1
    ```
 
-   Stop if either command fails. A matching branch name or pull request base is
-   not proof of ancestry or of one unique commit per review unit.
-
-After every branch has one validated unit, publish the stack with separate
-remote authorization:
-
-- For local `gh stack` tracking, inspect and submit it:
-
-  ```sh
-  gh stack view --json
-  gh stack submit --auto
-  ```
-
-  `gh stack submit` pushes every included branch, creates or updates pull
-  requests, and updates their base branches.
-
-- For Worktrunk or another external worktree manager, link the branch chain
-  directly:
-
-  ```sh
-  gh stack link --base main feat/foundation feat/service feat/client
-  ```
-
-  Replace these names with the approved trunk and every real branch in
-  bottom-to-top order. Branch arguments can push branches and create pull
-  requests automatically.
-
-- For existing pull requests, pass PR URLs in bottom-to-top order to avoid
-  numeric ambiguity between a pull request number and a stack number. To append
-  a new top branch, use `gh stack link "$stack_number" "$new_top"`.
-
-`gh stack submit --auto` and branch-based linking can generate pull request
-metadata. Generated metadata is not approved metadata. Include each exact title
-and body in the remote plan, then inspect every created or updated pull request:
-
-```sh
-gh pr view "$pr_number" --json number,title,body,isDraft,baseRefName,headRefName
-```
-
-Validate the actual title with the repository's Conventional Commit validator.
-Confirm that the body states the outcome, checks, and material risks. If either
-field differs from the approved plan, stop before marking the pull request ready.
-With explicit authority to correct the remote metadata, run:
-
-```sh
-gh pr edit "$pr_number" --title "$approved_title" --body-file "$approved_body_file"
-gh pr view "$pr_number" --json number,title,body,isDraft,baseRefName,headRefName
-```
-
-The `--open` flag asks `gh stack link` or `gh stack submit` to mark the pull
-requests they process ready for review. An already-linked member can be skipped
-and remain a draft, so verify each pull request's status. When the user approves
-the status change, use:
-
-```sh
-gh pr ready "$pr_number"
-```
-
-`gh pr ready` also requires explicit authority to change draft status. Record
-the returned stack number, then verify that each pull request remains in that
-stack and uses the branch directly below it as its base. Never edit a stacked
-pull request's base branch independently. Update it through `gh stack submit` or
-`gh stack link`.
-
-Never run `gh stack merge` without a separate explicit request. Never run
-`gh stack unstack` without a separate explicit request.
+   Stop if either command fails. A matching branch name is not proof of ancestry
+   or of one unique commit per unit.
 
 ## Stage one approved unit
 
 Immediately before staging, run
 `git diff --cached --quiet --ita-visible-in-index` again. If the index is not
-empty, preserve it and stop. Stage only explicit paths or approved hunks
-from the next unit. Never run `git add -A`. Never run `git add .`. Do not stage a path outside that
-unit. Do not change the working-tree content to manufacture a split.
+empty, preserve it and stop. Stage only explicit paths or approved hunks from
+the next unit. Never run `git add -A`. Never run `git add .`. Do not stage a
+path outside that unit. Do not change the working-tree content to manufacture a
+split.
 
 Show `git diff --cached --stat` and `git diff --cached`. Confirm that the staged
 diff matches only the approved unit before message drafting. Obtain explicit
-commit authority for this unit even when the user approved the split plan.
+commit authority for this unit even when the user approved the split plan. An
+explicit accepted workflow-stage authority is commit authority for its named
+approved unit. For ad hoc work, commit only when the user explicitly requests
+the commit for that unit.
 
 ## Draft the message
 
@@ -240,9 +170,11 @@ obvious.
    repository-provided commit validation against the proposed message.
 3. Run `git write-tree` again. If validation changes the staged tree, report the
    mismatch and stop before commit.
-4. Run normal `git commit` only when the user explicitly requests the commit
-   for this unit. Do not use `git commit-tree`. Do not bypass repository hooks
-   or commit signing.
+4. Run normal `git commit` only with the applicable authority from the staging
+   gate: explicit accepted workflow-stage authority for its named approved unit,
+   or an ad hoc user request that explicitly requests the commit for this unit.
+   Do not use `git commit-tree`. Do not bypass repository hooks or commit
+   signing.
 5. Compare `git rev-parse HEAD^{tree}` with the validated staged tree. A hook or
    external process can change the index before `git commit` acquires its lock.
    If the trees differ, report the commit hash and mismatch, then stop.
@@ -255,9 +187,9 @@ obvious.
 
 For an approved single-branch split, confirm that the index is empty after each
 successful commit, then repeat staging, validation, and explicit authorization
-for the next unit. For a stacked split, return to the branch workflow and move
-to the next child branch before staging. Stop on the first failure. Do not
-silently skip or reorder a unit.
+for the next unit. For a multi-branch split, move to the next child branch
+before staging. Stop on the first failure. Do not silently skip or reorder a
+unit.
 
-Never push, force-push, tag, merge, or open a pull request unless the user
-separately requests that action.
+Never push, force-push, perform other remote changes, create tags, merge, or
+perform delivery actions.

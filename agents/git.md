@@ -7,13 +7,13 @@ systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
 skills:
-  - conventional-commit
+  - commit
   - git-rebase-base
   - resolving-merge-conflicts
   - github-cli
   - pi-worktrunk
 skillPath:
-  - ../packages/git-conventions/skills/conventional-commit
+  - ../packages/git-conventions/skills/commit
   - ../packages/git-conventions/skills/git-rebase-base
   - ../packages/git-conventions/skills/resolving-merge-conflicts
   - ../packages/github/skills/github-cli
