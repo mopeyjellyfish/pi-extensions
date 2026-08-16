@@ -143,15 +143,17 @@ These local requirements apply whenever this skill runs in Pi.
 
 ### Worktree boundary
 
-Before Phase 1, call the `worktree` tool to check the active route. Debug only in
-a dedicated worktree: create and activate one when no suitable linked worktree is
-active. Use that worktree for every file read, edit, and command in this
-workflow. Do not debug from the main checkout or an unlinked checkout, and do
-not alter unrelated user changes.
+Before Phase 1, call the `worktree` tool to check the active route. Before
+writing temporary instrumentation, tests, or fixes, verify that the session is
+rooted in, or Pi is routed to, an isolated linked worktree for this task. Debug
+only in a dedicated worktree: create and activate one when no suitable linked
+worktree is active. Use that worktree for every file read, edit, and command in
+this workflow. Never write in the main-branch checkout or an unlinked checkout,
+and do not alter unrelated user changes.
 
-If the `worktree` tool is unavailable, stop before debugging and tell the user
-that this workflow requires an isolated worktree. Do not substitute a manually
-created directory or silently continue in the current checkout.
+If the `worktree` tool is unavailable, stop before writing or debugging and tell
+the user that this workflow requires an isolated worktree. Do not substitute a
+manually created directory or silently continue in the current checkout.
 
 ### Structured intake
 

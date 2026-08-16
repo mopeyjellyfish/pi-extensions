@@ -7,6 +7,13 @@ description: >-
 
 # Test-driven development
 
+Before any repository write, verify that the session is rooted in, or Pi is
+routed to, an isolated linked worktree for this task. Never add tests or
+production behavior in the main-branch checkout. Use the available worktree
+lifecycle tool to create or activate the task worktree when needed. If safe
+worktree tooling is unavailable, stop before writing and ask the human to
+provide an isolated worktree.
+
 A good test is falsifiable: it describes one observable capability through a
 public interface, uses an independent expected value, and would fail for a
 plausible wrong implementation. It survives internal refactoring. Use the narrowest stable

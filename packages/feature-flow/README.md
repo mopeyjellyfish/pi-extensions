@@ -7,8 +7,14 @@ dependency.
 The default lifecycle stays in the direct parent:
 
 ```text
-request -> accepted pitch -> ordered plan -> implement
+read-only discovery -> isolated task worktree -> accepted pitch -> ordered plan -> implement
 ```
+
+Shape creates or selects an isolated linked worktree before it writes the first
+artifact. Planning and serial implementation reuse that task worktree. The
+skills never write artifacts in the main-branch checkout; when safe worktree
+tooling is unavailable, they stop before writing and ask the human to provide
+one.
 
 Shape uses the `question` tool for material human decisions and presents the
 complete pitch for approval, revision, deepening, or independent review.

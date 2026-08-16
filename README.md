@@ -36,8 +36,13 @@ It loads only:
 - `/implement` for model-routed implementation and verification;
 - `/debug` for an isolated, evidence-driven debugging loop.
 
-The lifecycle is intentionally serial and parent-led, with these execution
-profiles:
+The lifecycle is intentionally serial and parent-led. Read-only discovery may
+start in the initial checkout, but Shape creates or selects an isolated linked
+task worktree before the first repository write. Planning and serial
+implementation reuse it, and no lifecycle stage writes in the main-branch
+checkout.
+
+The profile uses these execution profiles:
 
 | Stage          | Model         | Thinking | Context                                      |
 | -------------- | ------------- | -------- | -------------------------------------------- |

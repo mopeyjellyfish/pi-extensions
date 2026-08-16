@@ -10,6 +10,13 @@ description: >-
 Accept explicit accepted intent or an accepted Shape pitch. Read repository
 instructions, Git state, relevant public contracts, and the nearest tests.
 
+Before writing or updating any repository file, verify that the session is
+rooted in, or Pi is routed to, an isolated linked worktree for this task. Reuse
+the Shape worktree when one exists. Otherwise, use the available worktree
+lifecycle tool to create and activate a short task branch. Never write a plan in
+the main-branch checkout. If no safe worktree tool is available, stop before
+the first write and ask the human to start or select an isolated worktree.
+
 Create or update `docs/features/<slug>/plan.md` from
 `../shape/templates/plan.md` with `status: draft`. Plan serial by default. Use
 the smallest ordered vertical slices that each produce an observable user or

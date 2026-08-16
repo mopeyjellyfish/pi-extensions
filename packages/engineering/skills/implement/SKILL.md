@@ -12,6 +12,15 @@ repository instructions, Git state, accepted intent, relevant public contracts,
 and the nearest tests. Preserve unrelated changes and identify the required
 completion checks before editing.
 
+Before any edit, verify that the session is rooted in, or Pi is routed to, an
+isolated linked worktree for this task. Reuse the same task worktree that holds
+the accepted pitch and plan. For a plan-less request, use the available
+worktree lifecycle tool to create and activate a short task branch. Never edit
+the main-branch checkout. If no safe worktree tool is available, stop before
+the first edit and ask the human to start or select an isolated worktree. Do
+not create a nested worktree when the session is already inside the correct
+linked worktree.
+
 When the root profile's worker agents are available, keep the parent as the
 coordinator and run one slice through one worker. Route by the accepted plan's
 difficulty: use `terra-worker` for `standard` slices and `sol-worker` for
