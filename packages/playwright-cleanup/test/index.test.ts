@@ -5,9 +5,15 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import playwrightCleanupExtension from "../src/index.ts";
+import playwrightCleanupExtension, { resolvePlaywrightCli } from "../src/index.ts";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+
+const PLAYWRIGHT_CLI = resolvePlaywrightCli();
+
+function isPlaywrightCli(command: string): boolean {
+  return command === PLAYWRIGHT_CLI || command === "playwright-cli";
+}
 
 type Handler = (event: Record<string, unknown>, ctx: ExtensionContext) => unknown;
 
@@ -108,7 +114,7 @@ function fakeRuntime() {
   const exec = vi.fn(
     (command: string, arguments_: readonly string[], options: { readonly cwd?: string }) => {
       if (command === "ps") return result(processOutput(processes));
-      if (command !== "playwright-cli") return result("", 1);
+      if (!isPlaywrightCli(command)) return result("", 1);
       const session = arguments_.find((argument) => argument.startsWith("-s="))?.slice(3) ?? "";
       if (arguments_.includes("open")) {
         const daemonPid = ++nextPid;
@@ -147,6 +153,13 @@ function commandHash(command: string): string {
 }
 
 describe("playwright cleanup", () => {
+  it("resolves the root profile's pinned Playwright CLI", () => {
+    expect.hasAssertions();
+    expect(PLAYWRIGHT_CLI).toBe(
+      join(process.cwd(), "node_modules", "@playwright", "cli", "playwright-cli.js"),
+    );
+  });
+
   it("uses one Pi-session-owned browser and closes it from the opening worktree", async () => {
     expect.hasAssertions();
     const leases = await mkdtemp(join(tmpdir(), "pi-playwright-test-"));
@@ -170,6 +183,10 @@ describe("playwright cleanup", () => {
     const openResult = (await opened) as { details: { sessionName: string } };
     const session = openResult.details.sessionName;
     expect(session).toMatch(/^pi-[a-zA-Z0-9]+-[0-9a-f]{12}$/u);
+    const persistedLease = JSON.parse(await readFile(join(leases, `${session}.json`), "utf8")) as {
+      launcher: string;
+    };
+    expect(persistedLease.launcher).toBe("playwright-cli");
 
     const reused = await state
       .tool()
@@ -185,7 +202,7 @@ describe("playwright cleanup", () => {
       runtime.exec.mock.calls.filter(([, arguments_]) => arguments_.includes("open")),
     ).toHaveLength(1);
     expect(runtime.exec).toHaveBeenCalledWith(
-      "playwright-cli",
+      PLAYWRIGHT_CLI,
       ["--json", `-s=${session}`, "goto", "https://example.com/cart"],
       expect.objectContaining({ cwd: "/repo/worktree-a" }),
     );
@@ -193,7 +210,7 @@ describe("playwright cleanup", () => {
     const timers = vi.spyOn(globalThis, "setTimeout");
     await state.emit("agent_settled");
     expect(runtime.exec).toHaveBeenCalledWith(
-      "playwright-cli",
+      PLAYWRIGHT_CLI,
       ["--json", `-s=${session}`, "close"],
       expect.objectContaining({ cwd: "/repo/worktree-a" }),
     );
@@ -346,7 +363,7 @@ describe("playwright cleanup", () => {
     const runtime = fakeRuntime();
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
       if (command === "ps") return result(processOutput(runtime.processes));
-      if (command === "playwright-cli" && arguments_.includes("open")) {
+      if (isPlaywrightCli(command) && arguments_.includes("open")) {
         runtime.processes.set(30_000, {
           command: `/playwright/cliDaemon.js ${arguments_.find((argument) => argument.startsWith("-s="))?.slice(3) ?? ""}`,
           pid: 30_000,
@@ -355,7 +372,7 @@ describe("playwright cleanup", () => {
         });
         return result(JSON.stringify({ pid: 30_000 }));
       }
-      if (command === "playwright-cli" && arguments_.includes("close")) {
+      if (isPlaywrightCli(command) && arguments_.includes("close")) {
         return result(JSON.stringify({ status: "not-open" }));
       }
       return result(JSON.stringify({ ok: true }));
@@ -420,7 +437,7 @@ describe("playwright cleanup", () => {
       state.ctx,
     );
     expect(runtime.exec).toHaveBeenCalledWith(
-      "playwright-cli",
+      PLAYWRIGHT_CLI,
       expect.arrayContaining([
         "--headed",
         "--browser=firefox",
@@ -486,7 +503,7 @@ describe("playwright cleanup", () => {
     };
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
       if (command === "ps") return result("", 1);
-      if (command === "playwright-cli" && arguments_.includes("close")) {
+      if (isPlaywrightCli(command) && arguments_.includes("close")) {
         return result(JSON.stringify({ status: "not-open" }));
       }
       return result();
@@ -524,7 +541,7 @@ describe("playwright cleanup", () => {
     const runtime = fakeRuntime();
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
       if (command === "ps") return result(processOutput(runtime.processes));
-      if (command === "playwright-cli" && arguments_.includes("open")) {
+      if (isPlaywrightCli(command) && arguments_.includes("open")) {
         const session = arguments_.find((argument) => argument.startsWith("-s="))?.slice(3) ?? "";
         runtime.processes.set(40_000, {
           command: `/playwright/cliDaemon.js ${session}`,
@@ -534,7 +551,7 @@ describe("playwright cleanup", () => {
         });
         return result("provider returned invalid JSON", 1);
       }
-      if (command === "playwright-cli" && arguments_.includes("close")) {
+      if (isPlaywrightCli(command) && arguments_.includes("close")) {
         return result(JSON.stringify({ status: "not-open" }));
       }
       return result(JSON.stringify({ ok: true }));
@@ -565,7 +582,7 @@ describe("playwright cleanup", () => {
     const runtime = fakeRuntime();
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
       if (command === "ps") return result(processOutput(runtime.processes));
-      if (command === "playwright-cli" && arguments_.includes("open")) {
+      if (isPlaywrightCli(command) && arguments_.includes("open")) {
         const session = arguments_.find((argument) => argument.startsWith("-s="))?.slice(3) ?? "";
         runtime.processes.set(50_000, {
           command: `/playwright/cliDaemon.js ${session}`,
@@ -575,7 +592,7 @@ describe("playwright cleanup", () => {
         });
         return result(JSON.stringify({ pid: 50_000 }));
       }
-      if (command === "playwright-cli" && arguments_.includes("close")) {
+      if (isPlaywrightCli(command) && arguments_.includes("close")) {
         return result(JSON.stringify({ status: "not-open" }));
       }
       return result(JSON.stringify({ ok: true }));
@@ -630,7 +647,7 @@ describe("playwright cleanup", () => {
         if (!table.includes(replacement.startedAt)) throw new Error("replacement identity missing");
         return result(table);
       }
-      if (command === "playwright-cli" && arguments_.includes("close")) {
+      if (isPlaywrightCli(command) && arguments_.includes("close")) {
         return result(JSON.stringify({ status: "not-open" }));
       }
       return result(JSON.stringify({ ok: true }));
@@ -641,7 +658,7 @@ describe("playwright cleanup", () => {
     expect(kill.mock.calls.filter(([pid]) => pid === daemon.pid)).toEqual([]);
     expect(
       runtime.exec.mock.calls.some(
-        ([command, arguments_]) => command === "playwright-cli" && arguments_.includes("close"),
+        ([command, arguments_]) => command === PLAYWRIGHT_CLI && arguments_.includes("close"),
       ),
     ).toBe(false);
     expect(runtime.processes.has(daemon.pid)).toBe(true);
@@ -670,7 +687,7 @@ describe("playwright cleanup", () => {
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
       if (command === "ps" && processInspectionFails) return result("not a process table");
       if (command === "ps") return result(processOutput(runtime.processes));
-      if (command === "playwright-cli" && arguments_.includes("open")) {
+      if (isPlaywrightCli(command) && arguments_.includes("open")) {
         return result("not-json");
       }
       return result(JSON.stringify({ status: "closed" }));
@@ -704,7 +721,7 @@ describe("playwright cleanup", () => {
     await state.tool().execute("open", { action: "open" }, undefined, undefined, state.ctx);
     runtime.exec.mockImplementation((command: string, arguments_: readonly string[]) => {
       if (command === "ps") return result(processOutput(runtime.processes));
-      if (command === "playwright-cli" && arguments_.includes("empty")) return result();
+      if (isPlaywrightCli(command) && arguments_.includes("empty")) return result();
       return { ...result("", 1), stderr: "provider failed" };
     });
 

@@ -8,6 +8,7 @@ const config = {
       project: ["scripts/**/*.ts", "test/tooling/**/*.ts"],
       ignoreDependencies: [
         "@earendil-works/pi-ai",
+        "@playwright/cli",
         "@earendil-works/pi-tui",
         "pi-claude-bridge",
         "pi-subagents",

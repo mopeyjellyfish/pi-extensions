@@ -63,5 +63,9 @@ Install the package with Pi:
 pi install npm:@mopeyjellyfish/pi-playwright-cleanup
 ```
 
-The `playwright-cli` executable remains optional and must already be available
-when browser automation is required.
+The repository's root profile includes this extension and pins a local
+`@playwright/cli`, so `pi install git:github.com/mopeyjellyfish/pi-extensions`
+can use `playwright_browser` without a global CLI. A standalone installation
+still needs `playwright-cli` on `PATH` when browser automation is required.
+Install the required browser separately, for example with
+`npx playwright-cli install-browser chromium` from a trusted workspace.

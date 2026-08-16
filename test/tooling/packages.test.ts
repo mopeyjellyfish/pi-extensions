@@ -19,6 +19,7 @@ import { repositoryRoot, toPosixPath } from "../../scripts/lib/repository.ts";
 const temporaryRoots: string[] = [];
 const ROOT_PROFILE = {
   extensions: [
+    "./packages/playwright-cleanup/src/index.ts",
     "./packages/question/src/index.ts",
     "./packages/status-line/src/index.ts",
     "./packages/todo/src/index.ts",
@@ -44,6 +45,7 @@ const ROOT_PROFILE = {
   subagents: { agents: ["./agents"] },
 } as const;
 const ROOT_DEPENDENCIES = {
+  "@playwright/cli": "0.1.18",
   "pi-claude-bridge": "0.7.0",
   "pi-subagents": "0.50.0",
 } as const;
