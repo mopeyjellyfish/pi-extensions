@@ -92,6 +92,7 @@ gh api graphql \
       pullRequest(number:$number) {
         reviewThreads(first:100) {
           nodes {
+            id
             isResolved
             isOutdated
             path
@@ -105,6 +106,7 @@ gh api graphql \
     }
   }' \
   --jq '.data.repository.pullRequest.reviewThreads.nodes | map({
+    id,
     isResolved,
     isOutdated,
     path,
@@ -121,7 +123,33 @@ gh api graphql \
 Keep the 100-thread and 100-comments-per-thread bounds unless the user needs
 exhaustive history. If either result reaches its bound, report that it may be
 incomplete before considering a cursor-paginated query. Summarize unresolved,
-current threads first and retain comment URLs so the user can verify context.
+current threads first and retain IDs and comment URLs so the user can verify
+context.
+
+Resolve a reviewed thread only with explicit resolution authority, its exact ID,
+and proof that its concern is addressed. This bounded mutation and refetch
+verification must both report `isResolved: true`; otherwise stop without
+claiming resolution:
+
+```sh
+gh api graphql \
+  -F threadId="$thread_id" \
+  -f query='mutation ResolveReviewThread($threadId:ID!) {
+    resolveReviewThread(input:{threadId:$threadId}) {
+      thread { id isResolved }
+    }
+  }' \
+  --jq '.data.resolveReviewThread.thread | {id,isResolved}'
+
+gh api graphql \
+  -F threadId="$thread_id" \
+  -f query='query ReviewThreadResolution($threadId:ID!) {
+    node(id:$threadId) {
+      ... on PullRequestReviewThread { id isResolved }
+    }
+  }' \
+  --jq '.data.node | {id,isResolved}'
+```
 
 ## Leave a comment or review
 

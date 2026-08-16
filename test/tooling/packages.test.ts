@@ -244,6 +244,8 @@ describe("package contracts", () => {
           "git-rebase-base",
           "resolving-merge-conflicts",
           "github-cli",
+          "open-pr",
+          "triage",
           "pi-worktrunk",
         ],
         skillPaths: [
@@ -251,6 +253,8 @@ describe("package contracts", () => {
           "../packages/git-conventions/skills/git-rebase-base",
           "../packages/git-conventions/skills/resolving-merge-conflicts",
           "../packages/github/skills/github-cli",
+          "../packages/github/skills/open-pr",
+          "../packages/github/skills/triage",
           "../packages/worktrunk/skills/pi-worktrunk",
         ],
       },
@@ -460,7 +464,7 @@ describe("package contracts", () => {
     if (github === undefined) {
       throw new Error("GitHub package was not discovered.");
     }
-    await expect(resolvePackageSkills(github)).resolves.toHaveLength(1);
+    await expect(resolvePackageSkills(github)).resolves.toHaveLength(3);
     await expect(validateRootProfile()).resolves.toEqual([]);
     await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);
   });
