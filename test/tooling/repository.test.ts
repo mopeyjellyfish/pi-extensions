@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -22,6 +22,19 @@ describe("repository discovery", () => {
     await expect(access(join(repositoryRoot, ".pi", "settings.json"))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
+
+  it("runs CI for pull requests whose base is another stack branch", async () => {
+    expect.hasAssertions();
+    const workflow = await readFile(join(repositoryRoot, ".github", "workflows", "ci.yml"), "utf8");
+
+    const pullRequestTrigger = /^ {2}pull_request:\n(?<options>(?: {4}.*\n)*)/mu.exec(workflow);
+
+    expect(pullRequestTrigger).not.toBeNull();
+    expect(pullRequestTrigger?.groups?.["options"]).not.toMatch(/^ {4}branches:/mu);
+    expect(pullRequestTrigger?.groups?.["options"]).toContain(
+      "    types: [opened, synchronize, reopened, edited]\n",
+    );
   });
 
   it("normalizes Windows path separators", () => {
