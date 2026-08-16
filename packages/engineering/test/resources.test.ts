@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -71,15 +72,37 @@ describe("engineering resources", () => {
         "skills/implement/SKILL.md",
         "skills/test-driven-development/SKILL.md",
         "skills/diagnosing-bugs/SKILL.md",
+        "skills/diagnosing-bugs/scripts/hitl-loop.template.sh",
         "skills/reviewing-changes/SKILL.md",
+        "prompts/debug.md",
         "prompts/implement.md",
-        "prompts/diagnose.md",
         "prompts/review-change.md",
       ]),
     );
   });
 
-  it("expands the /implement prompt", async () => {
+  it("keeps the upstream debugging skill and HITL template verbatim with Pi additions", async () => {
+    expect.hasAssertions();
+    const [skill, template] = await Promise.all([
+      read("skills/diagnosing-bugs/SKILL.md"),
+      read("skills/diagnosing-bugs/scripts/hitl-loop.template.sh"),
+    ]);
+    const separator = "\n## Pi debug additions\n";
+    const separatorIndex = skill.indexOf(separator);
+
+    expect(separatorIndex).toBeGreaterThan(0);
+    expect(createHash("sha256").update(skill.slice(0, separatorIndex)).digest("hex")).toBe(
+      "573142d28dc5a4d931dd4a6faa3e615e731f8e9cc65d2dd4468045a2efd6148c",
+    );
+    expect(createHash("sha256").update(template).digest("hex")).toBe(
+      "18ae07e1cc49b32c71767e241a6e8de4be74ef21d5e3b7e39034d9c7335f2d80",
+    );
+    expect(skill.slice(separatorIndex)).toMatch(/dedicated worktree/iu);
+    expect(skill.slice(separatorIndex)).toMatch(/`question` tool/iu);
+    expect(skill.slice(separatorIndex)).toMatch(/`test-driven-development` skill/iu);
+  });
+
+  it("expands the /implement and /debug prompts", async () => {
     expect.hasAssertions();
     const piPromptTemplates = (await import(
       pathToFileURL(
@@ -115,5 +138,11 @@ describe("engineering resources", () => {
     expect(
       piPromptTemplates.expandPromptTemplate("/implement tighten retry limit", templates),
     ).toContain("tighten retry limit");
+    expect(piPromptTemplates.expandPromptTemplate("/debug", templates)).toContain(
+      "diagnosing-bugs",
+    );
+    expect(
+      piPromptTemplates.expandPromptTemplate("/debug export crashes after sign-in", templates),
+    ).toContain("export crashes after sign-in");
   });
 });
