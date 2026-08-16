@@ -15,7 +15,7 @@ Choose one route and let that skill own its method:
    `implement`.
 4. A bug or unexplained regression: `implement`, which may apply
    `diagnosing-bugs`.
-5. A read-only change review: `reviewing-changes`.
+5. A read-only change review: `code-review`.
 
 The direct parent owns the user conversation, route choice, synthesis, final
 diff inspection, verification, and delivery authority. Do not require a

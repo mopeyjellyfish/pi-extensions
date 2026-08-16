@@ -21,22 +21,23 @@ the first edit and ask the human to start or select an isolated worktree. Do
 not create a nested worktree when the session is already inside the correct
 linked worktree.
 
-When the root profile's worker agents are available, keep the parent as the
-coordinator and run one slice through one worker. Route by the accepted plan's
-difficulty: use `terra-worker` for `standard` slices and `sol-worker` for
-`hard` slices. Treat plan-less bounded requests and confirmed bug outcomes as
-`standard` unless their scope requires a hard classification. Escalate a slice
-to `sol-worker` when a Terra attempt misses its completion conditions or a
-review finds material defects; never retry a failed
-slice at the same tier. When a change is trivial and bounded — one obvious fix
-with an obvious focused check — implement it directly as the parent instead of
-delegating. Use the `subagent` tool with a fresh context and a foreground
-workflow (`async: false`) so progress remains visible. Give the child the
-accepted pitch and plan paths, exact slice, current worktree, completion
-conditions, and required checks. Do not silently override the agent's
-configured model or thinking effort. If the worker agents are unavailable, use
-the direct parent as the executor so this skill remains independently
-installable.
+When the root profile's fixed agents are available, keep the parent as the
+coordinator. **`worker`**, the only configured implementation child, routes
+standard work, plan-less bounded requests, confirmed bugs, and accepted hard
+work. A trivial bounded change — one obvious fix with one obvious focused
+check — may remain direct parent work. Launch `worker` with fresh context in the
+foreground (`async: false`), giving it the accepted pitch and plan paths, exact
+slice, current worktree, completion conditions, and required checks. Never
+silently override its configured model or thinking level. If fixed agents are
+unavailable, use the direct parent as executor so this package remains
+independently installable.
+
+A Terra failure does not select another model. If `worker` cannot meet completion
+conditions, or a concrete constraint needs Sol, use `question` before any Sol
+run. State the evidence, expected benefit, and bounded Sol task, then wait for
+explicit approval of either a one-off Sol run or continuing in a Sol parent.
+A difficulty label alone is insufficient. Do not use Sol for repair unless the
+human has given that approval.
 
 ## Deliver the change
 
@@ -57,12 +58,10 @@ cleanup, and user-visible documentation where applicable.
 ## Parallel-ready slices
 
 Do not add workers merely because a task is large. A `parallel-ready` plan slice
-may use another worker at the slice's routed tier only when the human requests
-parallel work, the
-dependencies are clear, and every worker has an isolated worktree and sole
-write ownership there. Keep overlapping slices serial. The parent must
-integrate in plan order, synthesize the result, inspect every change, and verify
-the evidence before accepting it.
+may use another `worker` only when the human requests parallel work, dependencies
+are clear, and every worker has an isolated worktree and sole write ownership.
+Keep overlapping slices serial. The parent integrates in plan order,
+synthesizes the result, and verifies evidence before accepting it.
 
 ## Show main progress
 
@@ -80,19 +79,19 @@ residual risks, and any separately authorized delivery action. Show that
 complete work evidence in the `question` tool's document field with these
 actions:
 
-1. **Review** — when `fable-reviewer` is available, run it once with fresh
-   context as the independent read-only review. Give its task the current
-   worktree, base ref and diff scope, accepted pitch and plan paths, the complete
-   diff or a read-accessible diff artifact, changed files, and verification
-   evidence. Address material findings through `sol-worker`, reverify, and show
-   the evidence again. If the profile is unavailable, use one fresh read-only
-   reviewer.
+1. **Review** — run **`reviewer`** once with fresh context as the formal
+   read-only review. Give it the worktree, fixed-point intent (pitch, plan, or
+   request), base ref and fixed diff, changed files, and verification evidence.
+   Return material findings to `worker`, reverify, and repeat the review
+   boundary as needed. Do not route fixes to Sol without the separate approved
+   Sol question. If `reviewer` is unavailable, the direct parent performs the
+   review.
 2. **Revise** — apply the human's feedback, reverify, and show the evidence
    again.
 3. **Deepen verification** — add one requested proof or investigate one named
    uncertainty, then show the evidence again.
-4. **Pause** — leave the verified work and durable artifacts unchanged for
-   later continuation.
+4. **Pause** — leave verified work and durable artifacts unchanged for later
+   continuation.
 
 If the tool or document field is unavailable, show the complete evidence in
 conversation and ask the same four-way question. Do not infer authority to
