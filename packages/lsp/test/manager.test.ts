@@ -321,7 +321,6 @@ describe("LspManager semantic rename", () => {
       definitions: [fakeDefinition()],
       env: {
         ...process.env,
-        FAKE_DIAGNOSTIC_REFRESH: "1",
         FAKE_LSP_LOG: log,
         FAKE_PULL_DIAGNOSTICS: "1",
         FAKE_RELATED_DIAGNOSTIC_FILE: related,
@@ -338,15 +337,6 @@ describe("LspManager semantic rename", () => {
       severity: "error",
     });
     expect(unchanged.diagnostics).toHaveLength(1);
-    await new Promise<void>((resolveDelay) => {
-      setTimeout(resolveDelay, 75);
-    });
-    const refreshed = await manager.validate({
-      paths: [file],
-      scope: "document",
-      severity: "warning",
-    });
-    expect(refreshed.diagnostics).not.toHaveLength(0);
     const workspace = await manager.validate({
       paths: [file],
       scope: "workspace",
@@ -358,8 +348,29 @@ describe("LspManager semantic rename", () => {
       severity: "all",
     });
     expect(workspaceUnchanged.diagnostics[0]).toMatchObject({ path: file });
-    expect(await readFile(log, "utf8")).toContain("workspace/diagnostic/refresh");
     await manager.shutdown();
+
+    const refreshing = new LspManager({
+      cwd: root,
+      definitions: [fakeDefinition()],
+      env: {
+        ...process.env,
+        FAKE_DIAGNOSTIC_REFRESH: "1",
+        FAKE_LSP_LOG: log,
+        FAKE_PULL_DIAGNOSTICS: "1",
+        FAKE_RELATED_DIAGNOSTIC_FILE: related,
+      },
+      trusted: true,
+    });
+    await refreshing.validate({ paths: [file], scope: "document", severity: "error" });
+    await waitForLog(log, "workspace/diagnostic/refresh");
+    const refreshed = await refreshing.validate({
+      paths: [file],
+      scope: "document",
+      severity: "warning",
+    });
+    expect(refreshed.diagnostics.map((group) => group.path)).toEqual([file, related]);
+    await refreshing.shutdown();
 
     const push = new LspManager({
       cwd: root,
