@@ -4,10 +4,10 @@
 
 The root package is private and provides the small repository-wide Git profile
 documented in the root README. It selects a deliberate subset of local package
-resources, including todo for parent progress, and pins `pi-claude-bridge` and
-`pi-subagents` as its only external production dependencies. It loads the
-Claude bridge and subagent extensions plus explicit subagent prompts without
-loading the subagent dependency's broad orchestration skill.
+resources, including todo for parent progress, and pins `@playwright/cli`,
+`pi-claude-bridge`, and `pi-subagents` as its external production dependencies.
+It loads the Claude bridge and subagent extensions plus explicit subagent
+prompts without loading the subagent dependency's broad orchestration skill.
 It also exposes two package agents: a fresh Sol-medium writer and a fresh
 Fable-high read-only reviewer. The Fable stages use the bridge provider. Parent
 model and AskClaude selection remain user settings so the Git package never

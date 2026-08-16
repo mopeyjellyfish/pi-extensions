@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { chmod, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 
 import { StringEnum } from "@earendil-works/pi-ai";
@@ -15,6 +16,7 @@ import {
 import { Type, type Static } from "typebox";
 
 const WORKTREE_ROUTE_EVENT = "mopeyjellyfish:pi-worktrunk:route:v1";
+const LEASE_LAUNCHER = "playwright-cli";
 const LEASE_VERSION = 1;
 const PROCESS_TIMEOUT = 5000;
 const CLOSE_WAIT = 2000;
@@ -68,7 +70,7 @@ interface SystemProcess extends ProcessIdentity {
 interface BrowserLease {
   readonly createdAt: string;
   readonly daemonPid?: number;
-  readonly launcher: "playwright-cli";
+  readonly launcher: typeof LEASE_LAUNCHER;
   readonly ownerPiSessionId: string;
   readonly ownerProcess: ProcessIdentity;
   readonly processes: readonly ProcessIdentity[];
@@ -93,6 +95,18 @@ interface WorktreeRouteEventV1 {
 
 export interface PlaywrightCleanupOptions {
   readonly leaseDirectory?: string;
+}
+
+/**
+ * Uses the root profile's pinned CLI when available. Standalone installations
+ * retain support for a separately installed `playwright-cli` on PATH.
+ */
+export function resolvePlaywrightCli(): string {
+  try {
+    return createRequire(import.meta.url).resolve("@playwright/cli/playwright-cli.js");
+  } catch {
+    return "playwright-cli";
+  }
 }
 
 /* v8 ignore start -- defensive validation paths reject malformed external state */
@@ -132,7 +146,7 @@ function browserLease(value: unknown): value is BrowserLease {
   );
   return (
     value["version"] === LEASE_VERSION &&
-    value["launcher"] === "playwright-cli" &&
+    value["launcher"] === LEASE_LAUNCHER &&
     validStrings &&
     typeof value["sessionName"] === "string" &&
     /^pi-[a-zA-Z0-9-]+$/u.test(value["sessionName"]) &&
@@ -400,6 +414,7 @@ export default function playwrightCleanupExtension(
   pi: ExtensionAPI,
   options: PlaywrightCleanupOptions = {},
 ): void {
+  const launcher = resolvePlaywrightCli();
   const leaseDirectory = options.leaseDirectory ?? join(getAgentDir(), "playwright-browser-leases");
   let activeWorkspace: string | undefined;
   let currentLease: BrowserLease | undefined;
@@ -495,7 +510,7 @@ export default function playwrightCleanupExtension(
     let tracked = await refreshProcesses(lease, processesBeforeClose);
     if (tracked === undefined) return false;
     try {
-      await pi.exec(tracked.launcher, ["--json", `-s=${tracked.sessionName}`, "close"], {
+      await pi.exec(launcher, ["--json", `-s=${tracked.sessionName}`, "close"], {
         cwd: tracked.workspace,
         timeout: 10_000,
       });
@@ -602,15 +617,11 @@ export default function playwrightCleanupExtension(
     signal: AbortSignal | undefined,
   ) => {
     if (currentLease === undefined) throw new Error("Open the Playwright browser first.");
-    return pi.exec(
-      currentLease.launcher,
-      ["--json", `-s=${currentLease.sessionName}`, command, ...arguments_],
-      {
-        cwd: currentLease.workspace,
-        ...(signal === undefined ? {} : { signal }),
-        timeout: 120_000,
-      },
-    );
+    return pi.exec(launcher, ["--json", `-s=${currentLease.sessionName}`, command, ...arguments_], {
+      cwd: currentLease.workspace,
+      ...(signal === undefined ? {} : { signal }),
+      timeout: 120_000,
+    });
   };
 
   const newOpenArguments = (input: PlaywrightBrowserInput): string[] => {
@@ -633,7 +644,7 @@ export default function playwrightCleanupExtension(
     const now = new Date().toISOString();
     let lease: BrowserLease = {
       createdAt: now,
-      launcher: "playwright-cli",
+      launcher: LEASE_LAUNCHER,
       ownerPiSessionId,
       ownerProcess: ensureOwner(),
       processes: [],
@@ -644,7 +655,7 @@ export default function playwrightCleanupExtension(
     };
     currentLease = lease;
     await writeLease(leaseDirectory, lease);
-    const result = await pi.exec(lease.launcher, newOpenArguments(input), {
+    const result = await pi.exec(launcher, newOpenArguments(input), {
       cwd: workspace,
       ...(signal === undefined ? {} : { signal }),
       timeout: 120_000,

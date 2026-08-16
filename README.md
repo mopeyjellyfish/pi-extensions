@@ -20,6 +20,8 @@ pi install git:github.com/mopeyjellyfish/pi-extensions
 It loads only:
 
 - Pi's native tools and native compaction;
+- [`playwright_browser`](packages/playwright-cleanup/README.md), a session-owned
+  browser tool backed by the pinned Playwright CLI;
 - the [`question`](packages/question/README.md) extension;
 - the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
 - the [`todo`](packages/todo/README.md) extension for parent progress visibility;
@@ -180,13 +182,17 @@ configuration and remove these remaining baseline overrides when present:
 - the `subagents` settings block in `~/.pi/agent/settings.json` when model,
   agent, extension, builtin, and watchdog overrides are no longer intended.
 
-The root profile pins `pi-claude-bridge` and `pi-subagents` because their Pi
-0.84 lifecycle, process cleanup, worktree recovery, and model support were
-selected explicitly. Do not add context-mode, RTK, FFF, or Ponytail as root
+The root profile pins `pi-claude-bridge`, `pi-subagents`, and
+`@playwright/cli` because their lifecycle behavior was selected explicitly.
+`playwright_browser` resolves the profile's local CLI and safely owns and
+cleans up each browser session. The Playwright browser binary is downloaded
+separately when it is first needed; run
+`npx playwright-cli install-browser chromium` from a trusted workspace if it
+is not already present. Do not add context-mode, RTK, FFF, or Ponytail as root
 dependencies without repeatable task-level evidence. A host-managed integration
-that is inactive outside its host, such as Herdr's agent-state bridge, can remain
-outside the profile because its installer owns its lifecycle. This repository
-does not edit user-level Pi settings.
+that is inactive outside its host, such as Herdr's agent-state bridge, can
+remain outside the profile because its installer owns its lifecycle. This
+repository does not edit user-level Pi settings.
 
 ## Optional packages
 
