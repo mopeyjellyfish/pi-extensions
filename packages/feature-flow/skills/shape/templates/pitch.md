@@ -4,49 +4,29 @@ status: draft
 
 # Shape: {{feature}}
 
-## Executive summary
+## Problem and evidence
 
-Summarize the motivating outcome and smallest useful solution.
+State the pain, desired outcome, and only the evidence that changes this
+proposal.
 
-## Problem
+## Proposed solution
 
-Describe the current pain, why it matters, and the repository truth that shapes
-the decision. Do not ask humans for facts already available in code, tests,
-history, or documentation.
+State the smallest useful behavior and material failure or compatibility needs.
 
-## Appetite
+## Boundaries and no-gos
 
-State qualitative scope, quality floors, acceptable cuts, and conditions that
-would stop or reshape the work. Do not invent an estimate.
+Name scope limits, acceptable cuts, prohibited workarounds, and reshape triggers.
 
-## Research and prior art
+## Decision-changing research and risks
 
-Keep only decision-relevant research and credible alternatives. Prefer primary
-sources for material external claims and state why the chosen direction wins.
+Record only research, alternatives, unknowns, and risks that change a decision.
+Omit this section's entries when none do.
 
-## Solution
+## Authority
 
-Describe user behavior, important flows, failure cases, data and system
-boundaries, and material accessibility, security, privacy, compatibility,
-migration, and operational concerns. Use Mermaid or exact normative snippets
-when they make the contract clearer.
+State parent-owned product and architecture decisions and the bounded authority
+needed for approved delivery. Never infer remote, release, or destructive authority.
 
-## Fixed decisions
-
-Separate non-negotiables from implementation choices left to agent discretion.
-Record source-control, remote-action, deployment, publication, and cleanup
-authority explicitly.
-
-## Rabbit holes
-
-Name plausible distractions or complexity traps and how the work avoids them.
-
-## No-gos
-
-List explicit exclusions and prohibited workarounds.
-
-## Acceptance criteria
-
-Use observable outcomes, one per line:
+## Observable acceptance criteria
 
 - **AC-NNN — Name:** Observable outcome.

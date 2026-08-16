@@ -1,5 +1,5 @@
 ---
-description: Turn accepted intent into ordered vertical slices
+description: Turn accepted intent into one complete delivery plan and publish it
 argument-hint: "[accepted intent or accepted Shape pitch]"
 ---
 

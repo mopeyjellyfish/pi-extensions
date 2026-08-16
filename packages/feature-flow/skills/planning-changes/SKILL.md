@@ -1,79 +1,73 @@
 ---
 name: planning-changes
 description: >-
-  Turns explicit accepted intent or an accepted Shape pitch into the smallest
-  ordered vertical implementation slices.
+  Turns explicit accepted intent or an accepted Shape pitch into one complete
+  delivery plan before implementation.
 ---
 
 # Planning changes
 
 Accept explicit accepted intent or an accepted Shape pitch. The selected parent
-owns slice design, product and architecture judgment, approval, and synthesis.
-Make worktree setup the first action. Inspect only the Git and worktree state
-needed to route the task. Do not read repository instructions, public contracts,
-tests, or other planning context before the task has an isolated linked worktree.
+owns product and architecture judgment, slice design, approval, synthesis, and
+verification. Make the first action selecting or creating an isolated linked
+worktree. Do not read instructions, contracts, tests, or planning context before
+the task has that worktree. Reuse the Shape worktree or create one with the available lifecycle
+tool. If no safe tool is available, stop before any other planning work and ask
+the human to provide an isolated worktree. Never use the main-branch checkout.
 
-Reuse the Shape worktree when one exists. Otherwise, derive a short task branch
-from the accepted intent and use the available worktree lifecycle tool to create
-and activate it. If no safe worktree tool is available, stop before any other
-planning work and ask the human to start or select an isolated worktree. Never
-work in the main-branch checkout. After routing, read repository instructions,
-relevant public contracts, and the nearest tests.
-
+After routing, read the relevant instructions, public contracts, and tests.
 Create or update `docs/features/<slug>/plan.md` from
-`../shape/templates/plan.md` with `status: draft`. Plan serial by default. Use
-the smallest ordered vertical slices that each produce an observable user or
-operator outcome. Do not add waves, worker leases, or delegation machinery.
+`../shape/templates/plan.md` with `status: draft`.
 
-When a slice changes module shape, apply `codebase-design` vocabulary if that
-method is available. If it is unavailable in an independent install, use a
-direct-parent evidence-based fallback: describe the current and proposed
-boundaries, seams, dependencies, and test surface without assuming companion
-packages are installed.
+## Plan complete delivery
 
-For every slice record:
+Write one complete delivery plan before implementation begins. Cover all
+accepted scope, not only the first slice. Do not alternate plan / work / plan /
+work. Map the critical path, dependencies, atomic commit units, pull-request
+bases and stack positions, and genuinely independent lanes before approval.
+Optimize stack order before asking for approval.
 
-- the outcome and pitch or requirement trace;
-- the public seam and likely files;
-- execution mode: `serial` or `parallel-ready`, with dependencies;
-- difficulty: `standard` or `hard`, marking `hard` with its reason for
-  cross-cutting scope, migrations, security-sensitive areas, or deep debugging;
-- test posture and separate expected red signal and green signal;
-- focused verification and repository-required checks;
-- objective completion conditions.
+For every slice record its observable outcome and requirement trace, public seam
+and files, dependencies, execution lane/worktree ownership, red proof, green
+proof and checks, atomic commit, PR base/stack position, and done conditions.
+Use separate isolated worktrees and a sole writer for every parallel lane.
+Reject overlapping parallel writers, shared mutable boundaries, and unresolved
+dependencies; serialize them instead. Planning does not implement or start
+parallel work.
 
-Use `parallel-ready` only when a slice is encapsulated, has no unresolved
-dependency or shared mutable boundary, and can use its own worktree and writer.
-The label makes a slice eligible; it does not start a worker. Keep uncertain or
-overlapping slices serial.
+When a slice changes module shape, use `codebase-design` vocabulary when
+available. Otherwise use a direct-parent evidence-based fallback: current and
+proposed boundaries, seams, dependencies, and test surface.
 
-Cover the complete accepted scope without speculative cleanup. Order slices so
-the first slice proves the riskiest useful path.
+Show the whole plan document, not a summary or link, with:
 
-Show the whole plan in the `question` tool's document field with these actions:
-
-1. **Approve and implement** — accept all slices and start the first eligible
-   slice.
-2. **Revise** — apply feedback and show the whole plan again.
-3. **Deepen** — investigate one named uncertainty, update the plan, and show it
-   again.
-4. **Independent review** — use one fresh read-only reviewer, resolve material
-   findings, and show the whole plan again.
+1. **Approve and implement**
+2. **Revise**
+3. **Deepen**
+4. **Independent review**
 
 If the tool or document field is unavailable, show the whole plan in
-conversation and ask the same four-way question. Require explicit human approval
-of the whole plan; approval of one slice or a summary is insufficient.
-After approval, change `status: draft` to `status: accepted` and invoke
-`implement`. Planning does not implement or start parallel work.
+conversation and ask the same question. Require explicit human approval of the
+whole plan; one slice or a summary is insufficient.
 
-## Optional bounded discovery
+Only **Approve and implement** is explicit human approval. It authorizes the
+named plan branch's bounded commit and pull-request publication: invoke
+`commit`, then `open-pr`, then invoke `implement` with the accepted plan. If `commit`,
+`open-pr`, or required `gh stack` tooling is unavailable, fail closed for
+publication: preserve local evidence, report recovery guidance, and continue the
+plan-to-implementation handoff without publishing. Do not embed ad hoc Git
+commands. If `implement` is unavailable, use the direct parent as executor. A
+planned stack requires `open-pr` to use `gh stack`. `gh stack link` verifies a
+Worktrunk-managed chain without creating a locally tracked view; use
+`gh stack view --json` only where a local tracked view exists.
+Approval never authorizes merge, release, deployment, destructive cleanup, or
+unrelated remote changes. Mark the plan `status: accepted` only after approval.
 
-After worktree setup, the selected parent may use the combined Shape-and-
-planning lifecycle's one bounded Researcher handoff for repository mapping,
-official primary-source research, or concise factual context when that avoids
-expensive parent exploration. If the accepted pitch records that handoff, do not
-start another; use its evidence or the direct parent. The Researcher makes no
-product, architecture, slice-design, or approval decision. Use the direct-parent
-evidence-based fallback if the role is unavailable, then continue from evidence.
-For ambiguous routing, use the `question` tool; never default to a hidden Sol
-child. Independent installs without package agents use the direct parent.
+## Bounded support
+
+After worktree setup, cheap factual mapping, mechanical inventory, and QA
+test-surface checks may provide evidence when useful. Use one independent plan
+review at most when useful. Support never owns product, architecture, slice, or
+approval decisions. Use the direct-parent fallback when a role is unavailable.
+Any exceptional high-capability role requires explicit human approval;
+production guidance must not depend on private agents or model names.
