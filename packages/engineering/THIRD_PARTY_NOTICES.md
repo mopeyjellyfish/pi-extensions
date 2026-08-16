@@ -7,21 +7,27 @@ Source: <https://github.com/mattpocock/skills>
 Pinned commits:
 
 - `8b78b531ab965735c5dc74f6f7a219e1e37326df` for the adapted files below;
-- `068b6e0c62393147daf03530149cdce209c93da8` for the verbatim debugging and
-  code-review resources below, and the adapted codebase-design and architecture-
-  improvement resources below.
+- `068b6e0c62393147daf03530149cdce209c93da8` for the verbatim debugging
+  resources below, and the adapted code-review and architecture-improvement
+  resources;
+- `ee8bae40062cd6b435073368ed0c540f48c35862` for the adapted codebase-design
+  resources below.
 
-Adapted files and pinned sources:
+Files and pinned sources:
 
 - `skills/implement/SKILL.md`, adapted from
   <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/implement/SKILL.md>
 - `skills/test-driven-development/SKILL.md`, adapted from
   <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/tdd/SKILL.md>
 - `skills/codebase-design/SKILL.md`, adapted from
-  <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/codebase-design/SKILL.md>
-- `skills/code-review/SKILL.md`, verbatim from
+  <https://github.com/mattpocock/skills/blob/ee8bae40062cd6b435073368ed0c540f48c35862/skills/engineering/codebase-design/SKILL.md>
+- `skills/codebase-design/DEEPENING.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/ee8bae40062cd6b435073368ed0c540f48c35862/skills/engineering/codebase-design/DEEPENING.md>
+- `skills/codebase-design/DESIGN-IT-TWICE.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/ee8bae40062cd6b435073368ed0c540f48c35862/skills/engineering/codebase-design/DESIGN-IT-TWICE.md>
+- `skills/code-review/SKILL.md`, from
   <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/code-review/SKILL.md>,
-  followed by Pi-specific single-reviewer additions
+  adapted into the single-reviewer pitch-and-plan flow
 - `skills/improve-codebase-architecture/SKILL.md`, adapted from
   <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/improve-codebase-architecture/SKILL.md>
 - `skills/diagnosing-bugs/SKILL.md`, verbatim from
