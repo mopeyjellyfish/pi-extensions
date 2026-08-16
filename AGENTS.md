@@ -27,9 +27,19 @@ allowlists.
 
 ## Start with repository truth
 
-Before editing, inspect the current branch, worktree, and dirty files. Preserve
-unrelated user changes and use an isolated worktree for feature work when the
-current checkout is shared or dirty.
+Before any repository mutation, inspect the current branch, worktree, and dirty
+files. Read-only discovery may happen in the initial checkout. All writes,
+including pitches, plans, documentation, tests, code, generated metadata, and
+formatting, must happen in an isolated linked worktree on a non-main task
+branch. Never make changes in the main-branch checkout.
+
+If the session is already rooted in, or Pi is already routed to, the correct
+linked worktree, keep using it. Otherwise, use the Worktrunk tool to create or
+activate the task worktree before the first write. If safe worktree tooling is
+unavailable, stop and ask the human to provide an isolated worktree. Reuse one
+task worktree across Shape, planning, and serial implementation. Give each
+explicitly parallel writer a separate worktree and sole write ownership.
+Preserve unrelated user changes.
 
 Read the nearest sources of truth for the change:
 

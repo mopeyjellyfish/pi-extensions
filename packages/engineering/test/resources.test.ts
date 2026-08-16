@@ -13,8 +13,11 @@ const read = (path: string) => readFile(join(PACKAGE_ROOT, path), "utf8");
 describe("engineering resources", () => {
   it("routes root-profile work and review through fresh model-specific agents", async () => {
     expect.hasAssertions();
-    const [implement, readme] = await Promise.all([
+    const [implement, diagnosing, domainModeling, tdd, readme] = await Promise.all([
       read("skills/implement/SKILL.md"),
+      read("skills/diagnosing-bugs/SKILL.md"),
+      read("skills/domain-modeling/SKILL.md"),
+      read("skills/test-driven-development/SKILL.md"),
       read("README.md"),
     ]);
 
@@ -33,6 +36,10 @@ describe("engineering resources", () => {
     );
     expect(implement).toMatch(/unavailable[\s\S]*direct parent/iu);
     expect(implement).toMatch(/repository instructions[\s\S]*Git\s+state[\s\S]*public contracts/iu);
+    expect(implement).toMatch(/before[^.]*edit[\s\S]*isolated[^.]*worktree/iu);
+    expect(implement).toMatch(/never[^.]*main[^.]*checkout/iu);
+    expect(implement).toMatch(/same[^.]*worktree[\s\S]*pitch[\s\S]*plan/iu);
+    expect(implement).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*edit/iu);
     expect(implement).toMatch(/test-driven-development|red-green-refactor/iu);
     expect(implement).toMatch(/focused tests[\s\S]*required completion checks/iu);
     expect(implement).toMatch(/parallel-ready/iu);
@@ -42,6 +49,13 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/complete work evidence[\s\S]*document/iu);
     expect(implement).toMatch(/Review[\s\S]*Revise[\s\S]*Deepen verification[\s\S]*Pause/iu);
     expect(readme).toMatch(/terra-worker[\s\S]*sol-worker[\s\S]*Fable[\s\S]*direct parent/iu);
+    expect(readme).toMatch(/before[^.]*writ[\s\S]*isolated[^.]*worktree/iu);
+
+    for (const resource of [diagnosing, domainModeling, tdd]) {
+      expect(resource).toMatch(/before[^.]*writ[\s\S]*isolated[^.]*worktree/iu);
+      expect(resource).toMatch(/never[\s\S]{0,120}main-branch checkout/iu);
+      expect(resource).toMatch(/unavailable[^.]*stop[^.]*before[^.]*writ/iu);
+    }
 
     for (const resource of [implement, readme]) {
       expect(resource).not.toMatch(/runs\.all|writer lease|FFF|lsp_query/iu);

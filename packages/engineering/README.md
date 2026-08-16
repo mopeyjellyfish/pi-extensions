@@ -15,11 +15,18 @@ resources installed before they can use this workflow:
 Fable plan -> fresh Terra worker (Sol when hard or escalated) -> parent verification -> fresh Fable review or pause
 ```
 
-Both provider handoffs start with fresh context. The parent supplies durable
-pitch and plan paths plus the exact slice instead of copying the conversation.
-The parent stays responsible for synthesis, final diff inspection, and
-verification. An independent installation without the root agent profiles uses
-the direct parent.
+Both provider handoffs start with fresh context. Before any write, every
+mutation-capable skill requires an isolated linked worktree and never edits the
+main-branch checkout. `implement` reuses the task worktree that contains the
+accepted pitch and plan, or creates one for a plan-less bounded request when
+safe worktree tooling is available. Direct diagnosis, TDD, and domain-modeling
+work applies the same guard. When safe tooling is unavailable, the skill stops
+before writing and asks the human to provide a worktree.
+
+The parent supplies durable pitch and plan paths plus the exact slice instead
+of copying the conversation. The parent stays responsible for synthesis, final
+diff inspection, and verification. An independent installation without the
+root agent profiles uses the direct parent.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the

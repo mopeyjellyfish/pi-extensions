@@ -7,6 +7,13 @@ description: >-
 
 # Domain modeling
 
+Before any repository write, verify that the session is rooted in, or Pi is
+routed to, an isolated linked worktree for this task. Never create or update
+`CONTEXT.md` or an ADR in the main-branch checkout. Use the available worktree
+lifecycle tool to create or activate the task worktree when needed. If safe
+worktree tooling is unavailable, stop before writing and ask the human to
+provide an isolated worktree.
+
 Use the nearest `CONTEXT.md` as the source of ubiquitous language: the shared
 terms used by users, docs, and code. Read it before naming concepts. If the
 target project has none, create a concise file only when the work needs shared
