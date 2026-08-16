@@ -3,8 +3,6 @@ description: Re-pitch a message that did not land
 argument-hint: "[message or situation to clarify]"
 ---
 
-<!-- markdownlint-disable MD041 -->
-
 Use the `writing-for-agents` skill. Re-pitch the current state in pragmatic
 Simplified Technical English. If the `simple-english` skill is available, use
 it too; remain useful without it.
