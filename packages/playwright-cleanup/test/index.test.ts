@@ -101,13 +101,13 @@ function harness(
   };
 }
 
-function fakeRuntime() {
+function fakeRuntime(ownerStartedAt = "Mon Jan 1 00:00:00 2024") {
   const ownerPid = process.pid;
   const owner: FakeProcess = {
     command: "node pi",
     pid: ownerPid,
     ppid: 1,
-    startedAt: "Mon Jan 1 00:00:00 2024",
+    startedAt: ownerStartedAt,
   };
   const processes = new Map([[ownerPid, owner]]);
   let nextPid = 10_000;
@@ -218,6 +218,18 @@ describe("playwright cleanup", () => {
     expect(runtime.processes.size).toBe(1);
     expect(state.notify).not.toHaveBeenCalled();
     timers.mockRestore();
+  });
+
+  it("accepts BSD ps start times so ownership is established on macOS", async () => {
+    expect.hasAssertions();
+    const leases = await mkdtemp(join(tmpdir(), "pi-playwright-test-"));
+    const runtime = fakeRuntime("Sun 16 Aug 14:24:02 2026");
+    const state = harness(runtime.exec, leases);
+    await state.emit("session_start");
+
+    await expect(
+      state.tool().execute("open", { action: "open" }, undefined, undefined, state.ctx),
+    ).resolves.toBeDefined();
   });
 
   it("serializes concurrent opens so only one daemon is created", async () => {
@@ -658,7 +670,7 @@ describe("playwright cleanup", () => {
     expect(kill.mock.calls.filter(([pid]) => pid === daemon.pid)).toEqual([]);
     expect(
       runtime.exec.mock.calls.some(
-        ([command, arguments_]) => command === PLAYWRIGHT_CLI && arguments_.includes("close"),
+        ([command, arguments_]) => isPlaywrightCli(command) && arguments_.includes("close"),
       ),
     ).toBe(false);
     expect(runtime.processes.has(daemon.pid)).toBe(true);

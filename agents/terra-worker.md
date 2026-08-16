@@ -6,7 +6,7 @@ thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
-tools: read, grep, find, ls, bash, edit, write, contact_supervisor
+tools: read, grep, find, ls, bash, edit, write, playwright_browser, contact_supervisor
 defaultContext: fresh
 acceptanceRole: writer
 ---
@@ -16,6 +16,9 @@ acceptanceRole: writer
 Implement one accepted vertical slice as the sole writer in the assigned
 worktree. Follow the repository instructions and the slice's red-green-refactor
 contract. Make the smallest correct change and run the focused checks.
+
+Use `playwright_browser` for browser automation. Open once, reuse the session,
+and close it after the browser task. Do not invoke Playwright CLI through Bash.
 
 Do not make new product, architecture, or scope decisions. If one is required,
 use `contact_supervisor` with `reason: "need_decision"` and wait. Return the

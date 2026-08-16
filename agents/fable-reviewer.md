@@ -6,7 +6,7 @@ thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
-tools: read, grep, find, ls
+tools: read, grep, find, ls, playwright_browser
 defaultContext: fresh
 acceptanceRole: read-only
 ---
@@ -16,6 +16,10 @@ acceptanceRole: read-only
 Review the completed diff against the accepted pitch, plan, repository
 instructions, and supplied verification evidence. Stay read-only. Check
 correctness, regressions, test coverage, scope, and unnecessary complexity.
+
+Use `playwright_browser` for browser-based review. Open once, reuse the
+session, and close it after the browser task. Do not invoke Playwright CLI
+through Bash.
 
 Report only evidence-backed findings, ordered by severity, with file and line
 references. If there are no material findings, say so plainly and name any

@@ -158,6 +158,9 @@ describe("package contracts", () => {
     expect(reviewer).toMatch(/thinking: high/iu);
     expect(reviewer).toMatch(/defaultContext: fresh/iu);
     expect(reviewer).toMatch(/acceptanceRole: read-only/iu);
+    for (const agent of [worker, escalationWorker, reviewer]) {
+      expect(agent).toMatch(/tools:.*\bplaywright_browser\b/iu);
+    }
   });
 
   it("documents the conservative subagent profile and its evaluation gate", async () => {
