@@ -7,8 +7,9 @@ Source: <https://github.com/mattpocock/skills>
 Pinned commits:
 
 - `8b78b531ab965735c5dc74f6f7a219e1e37326df` for the adapted files below;
-- `068b6e0c62393147daf03530149cdce209c93da8` for the verbatim debugging
-  resources below.
+- `068b6e0c62393147daf03530149cdce209c93da8` for the verbatim debugging and
+  code-review resources below, and the adapted codebase-design and architecture-
+  improvement resources below.
 
 Adapted files and pinned sources:
 
@@ -17,7 +18,12 @@ Adapted files and pinned sources:
 - `skills/test-driven-development/SKILL.md`, adapted from
   <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/tdd/SKILL.md>
 - `skills/codebase-design/SKILL.md`, adapted from
-  <https://github.com/mattpocock/skills/blob/8b78b531ab965735c5dc74f6f7a219e1e37326df/skills/engineering/codebase-design/SKILL.md>
+  <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/codebase-design/SKILL.md>
+- `skills/code-review/SKILL.md`, verbatim from
+  <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/code-review/SKILL.md>,
+  followed by Pi-specific single-reviewer additions
+- `skills/improve-codebase-architecture/SKILL.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/improve-codebase-architecture/SKILL.md>
 - `skills/diagnosing-bugs/SKILL.md`, verbatim from
   <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/diagnosing-bugs/SKILL.md>,
   followed by Pi-specific worktree, structured-intake, and human-in-the-loop

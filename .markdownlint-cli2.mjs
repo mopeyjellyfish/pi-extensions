@@ -12,5 +12,7 @@ export default {
     "!.pi-subagents/**",
     "!.pi/subagents/**",
     "!packages/*/CHANGELOG.md",
+    // This skill keeps a hash-checked upstream prefix byte-for-byte.
+    "!packages/engineering/skills/code-review/SKILL.md",
   ],
 };

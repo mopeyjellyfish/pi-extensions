@@ -5,4 +5,4 @@ argument-hint: "[commit, range, or change to review]"
 
 <!-- markdownlint-disable MD041 -->
 
-Use the `reviewing-changes` skill. ${ARGUMENTS:-Ask for the review fixed point and the accepted intent if neither is supplied; make no edits.}
+Use the `code-review` skill. ${ARGUMENTS:-Ask for the review fixed point and the accepted intent if neither is supplied; make no edits.}
