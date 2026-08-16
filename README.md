@@ -33,8 +33,10 @@ It loads only:
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
-- `/implement` for model-routed implementation and verification;
-- `/debug` for an isolated, evidence-driven debugging loop.
+- complete [Engineering](packages/engineering/README.md) skills and prompts,
+  including `/implement`, `/debug`, `/improve`, code review, TDD, and design;
+- complete [Productivity](packages/productivity/README.md) skills and prompts,
+  including `writing-for-agents` and `/wait-what`.
 
 The lifecycle is intentionally serial and parent-led. Worktree setup is the
 first Shape and planning action: Shape creates or selects an isolated linked
@@ -43,20 +45,28 @@ questions, and planning verifies that route before reading planning context.
 Serial implementation reuses it, and no lifecycle stage works in the
 main-branch checkout.
 
-The profile uses these execution profiles:
+The human selects a Fable or Sol parent for Shape and planning; installation
+does not overwrite parent settings. The fixed child catalog is:
 
-| Stage          | Model         | Thinking | Context                                      |
-| -------------- | ------------- | -------- | -------------------------------------------- |
-| Shape and Plan | Fable 5       | medium   | parent session                               |
-| Work           | GPT-5.6 Terra | medium   | fresh child for each accepted standard slice |
-| Escalation     | GPT-5.6 Sol   | high     | fresh child for hard or escalated slices     |
-| Review         | Fable 5       | high     | fresh read-only child when review starts     |
+| Agent        | Model         | Thinking | Role and tools                                          |
+| ------------ | ------------- | -------- | ------------------------------------------------------- |
+| `worker`     | GPT-5.6 Terra | medium   | sole implementation writer                              |
+| `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research |
+| `qa`         | GPT-5.6 Luna  | medium   | read-only test and browser evidence                     |
+| `reviewer`   | Opus 5        | medium   | formal read-only code review and design review          |
+| `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair             |
+| `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                 |
 
-For reported bugs, `/debug` uses its dedicated worktree workflow to build a
-reproduction, make the smallest repair through TDD, and verify the result.
+Every child starts with fresh context and has no model fallback. Shape and
+planning remain the selected Fable or Sol parent's responsibility for product
+and architecture judgment, approval, slice design, and synthesis. They may use
+at most one bounded Researcher handoff after worktree setup. A Worker failure,
+a concrete hard constraint, or a possible Sol child requires a justified
+`question` and explicit human approval before Sol; difficulty never routes to Sol
+automatically. Ambiguous routing also uses `question`.
 
-Set the parent model in `~/.pi/agent/settings.json` so `/shape` and `/plan` use
-Fable at medium effort:
+Claude Code and OpenAI Codex must already be signed in. For a Fable parent, set
+your existing `~/.pi/agent/settings.json` parent settings, for example:
 
 ```json
 {
@@ -66,8 +76,8 @@ Fable at medium effort:
 }
 ```
 
-Merge these keys with settings you intentionally keep. Configure the bridge in
-`~/.pi/agent/claude-bridge.json`:
+A Sol parent is a human choice, not an installed default. Configure the bridge
+in `~/.pi/agent/claude-bridge.json` only when you use it:
 
 ```json
 {
@@ -80,34 +90,24 @@ Merge these keys with settings you intentionally keep. Configure the bridge in
 }
 ```
 
-This exposes AskClaude for non-bridge parent models, including Sol sessions. It
-is unavailable while the active parent itself uses `claude-bridge`, which
-prevents circular Claude delegation. Read-only isolated calls keep it a review
-and second-opinion tool; enable full mode deliberately only if it proves useful.
+AskClaude is available only to a non-claude-bridge parent; a Fable parent cannot
+call it. Use the fixed Opus Reviewer at the formal review boundary instead.
 
-The installed `terra-worker`, `sol-worker`, and `fable-reviewer` profiles pin
-their own child models and thinking levels, with no fallback model. Each profile
-receives `playwright_browser` for owned browser evidence. Every child stage
-starts with fresh context. `terra-worker` implements standard slices;
-`sol-worker` takes plan-flagged hard slices and any slice a Terra attempt
-failed, so a failed slice is never retried at the same tier. Claude Code and OpenAI Codex must already be signed in. The Git
-package does not edit user settings or bridge configuration.
+Hide pi-subagents built-ins in the pinned pi-subagents **Pi settings** object
+at `~/.pi/agent/settings.json` (not its extension config file):
 
-Large tasks do not automatically become parallel subagent tasks. The root
-profile starts one foreground worker for each accepted slice. Add another
-only for distinct `parallel-ready` work that the human approves, use no more
-than three in parallel unless the evidence justifies it, and keep one writer per
-worktree. Let the parent inspect the diff and verify all evidence. This follows OpenAI's current
-[Codex subagent guidance](https://developers.openai.com/codex/agent-configuration/subagents),
-which recommends care with parallel writes and notes that comparable subagent
-runs use more tokens.
+```json
+{
+  "subagents": {
+    "disableBuiltins": true
+  }
+}
+```
 
-The aggregate does not load the broad bundled `pi-subagents` orchestration skill.
-The focused Shape, planning, and implement skills own the lifecycle. The root
-package also installs the three narrow model-routed agents. The extension and its
-explicit prompt templates remain available.
-
-Use this conservative user configuration in
+A `subagents.defaultModel` is unnecessary: pinned pi-subagents gives each
+explicit agent frontmatter model precedence. Do not use a per-run model
+override unless the human explicitly approves that exception. Keep these
+conservative extension controls in
 `~/.pi/agent/extensions/subagent/config.json`:
 
 ```json
@@ -125,9 +125,16 @@ Use this conservative user configuration in
 }
 ```
 
-Merge these keys with any settings you intentionally keep. The Git package does
-not overwrite user configuration during installation. Restart Pi after changing
-this file.
+Merge settings you intentionally keep. Installation never changes user or
+project settings. The root profile loads complete Engineering and Productivity
+resources, including `/improve`, code review and design methods, and Git
+conflict support. Independent package installs do not automatically provide
+companion extensions, agents, or tools; use their documented direct-parent
+fallbacks and install requirements.
+
+For Git delivery, use a normal push for unchanged history. Only after a rebase,
+verify the expected remote state and use an explicit `--force-with-lease` on the
+current safe non-default, non-protected branch; never use plain force.
 
 Update or remove the profile with:
 
@@ -190,8 +197,10 @@ configuration and remove these remaining baseline overrides when present:
   use is still useful;
 - unrelated keys in `~/.pi/agent/extensions/subagent/config.json`; retain the
   conservative profile above unless a measured task needs different behavior;
-- the `subagents` settings block in `~/.pi/agent/settings.json` when model,
-  agent, extension, builtin, and watchdog overrides are no longer intended.
+- unrelated keys in the `subagents` block in `~/.pi/agent/settings.json`;
+  retain `"disableBuiltins": true` while this exact six-agent catalog is
+  intended, and remove the whole block only when pi-subagents built-ins should
+  return.
 
 The root profile pins `pi-claude-bridge`, `pi-subagents`, and
 `@playwright/cli` because their lifecycle behavior was selected explicitly.
