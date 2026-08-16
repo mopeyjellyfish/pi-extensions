@@ -7,11 +7,11 @@ description: >-
 
 # Shape
 
-Use the direct parent as the default executor. After receiving a feature brief,
-make worktree setup the first action. Inspect only the Git and worktree state
-needed to route the task. Do not read repository files, start discovery or
-research, or ask shaping questions before the task has an isolated linked
-worktree.
+The selected parent is the direct parent and default executor. It owns product
+and architecture judgment, pitch synthesis, approval, and all decisions. After receiving a feature brief, make creating or selecting an
+isolated linked worktree the first action before discovery, research, repository
+reads, or shaping questions. Inspect only the Git and worktree state needed to
+route the task.
 
 Continue when the session is already rooted in, or Pi is already routed to, the
 task's linked worktree. Otherwise, derive a short task branch from the brief and
@@ -66,8 +66,17 @@ pitch to `status: accepted` and invoke
 accepted intent, return here, mark the pitch draft, revise it, and obtain fresh
 approval before replanning.
 
-## Optional depth
+## Optional bounded discovery
 
-Do not delegate by default. If the human explicitly asks for independent
-research or review, use one host-provided role for one bounded read-only lane.
-The parent keeps the decision, synthesis, and verification responsibility.
+Do not delegate by default. After worktree setup, the selected parent may use
+the Shape-and-planning lifecycle's one bounded Researcher handoff for repository
+mapping, official primary-source research, or concise factual context when that
+avoids expensive parent exploration. State its scope, evidence, and output in
+the pitch so planning does not repeat it. The Researcher makes no product,
+architecture, or approval decision. Use the
+direct-parent fallback if it is unavailable, then continue from evidence.
+
+The selected parent keeps product judgment, architecture judgment, pitch
+synthesis, approval, and verification responsibility. For ambiguous routing,
+use the `question` tool; never default to a hidden Sol child. Independent
+installs without package agents use the direct parent.

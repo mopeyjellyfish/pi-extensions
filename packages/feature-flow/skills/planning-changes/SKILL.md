@@ -7,10 +7,11 @@ description: >-
 
 # Planning changes
 
-Accept explicit accepted intent or an accepted Shape pitch. Make worktree setup
-the first action. Inspect only the Git and worktree state needed to route the
-task. Do not read repository instructions, public contracts, tests, or other
-planning context before the task has an isolated linked worktree.
+Accept explicit accepted intent or an accepted Shape pitch. The selected parent
+owns slice design, product and architecture judgment, approval, and synthesis.
+Make worktree setup the first action. Inspect only the Git and worktree state
+needed to route the task. Do not read repository instructions, public contracts,
+tests, or other planning context before the task has an isolated linked worktree.
 
 Reuse the Shape worktree when one exists. Otherwise, derive a short task branch
 from the accepted intent and use the available worktree lifecycle tool to create
@@ -23,6 +24,12 @@ Create or update `docs/features/<slug>/plan.md` from
 `../shape/templates/plan.md` with `status: draft`. Plan serial by default. Use
 the smallest ordered vertical slices that each produce an observable user or
 operator outcome. Do not add waves, worker leases, or delegation machinery.
+
+When a slice changes module shape, apply `codebase-design` vocabulary if that
+method is available. If it is unavailable in an independent install, use a
+direct-parent evidence-based fallback: describe the current and proposed
+boundaries, seams, dependencies, and test surface without assuming companion
+packages are installed.
 
 For every slice record:
 
@@ -58,3 +65,15 @@ conversation and ask the same four-way question. Require explicit human approval
 of the whole plan; approval of one slice or a summary is insufficient.
 After approval, change `status: draft` to `status: accepted` and invoke
 `implement`. Planning does not implement or start parallel work.
+
+## Optional bounded discovery
+
+After worktree setup, the selected parent may use the combined Shape-and-
+planning lifecycle's one bounded Researcher handoff for repository mapping,
+official primary-source research, or concise factual context when that avoids
+expensive parent exploration. If the accepted pitch records that handoff, do not
+start another; use its evidence or the direct parent. The Researcher makes no
+product, architecture, slice-design, or approval decision. Use the direct-parent
+evidence-based fallback if the role is unavailable, then continue from evidence.
+For ambiguous routing, use the `question` tool; never default to a hidden Sol
+child. Independent installs without package agents use the direct parent.

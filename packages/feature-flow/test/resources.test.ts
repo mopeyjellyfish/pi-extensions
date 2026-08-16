@@ -53,10 +53,28 @@ describe("feature-flow resources", () => {
     expect(plan).toMatch(/Execution mode[\s\S]*serial.*parallel-ready/iu);
     expect(plan).toMatch(/Difficulty[\s\S]*standard[\s\S]*hard[\s\S]*reason/iu);
     expect(plan).toMatch(/Test posture[\s\S]*Red signal[\s\S]*Green signal/iu);
+    expect(shape).toMatch(
+      /selected parent[\s\S]*product[\s\S]*architecture[\s\S]*approval[\s\S]*synthesis/iu,
+    );
+    expect(shape).toMatch(/lifecycle['’]s one bounded Researcher/iu);
+    expect(shape).toMatch(/output in[\s\S]*pitch[\s\S]*planning does not repeat/iu);
+    expect(shape).toMatch(/no product[\s\S]*architecture[\s\S]*approval decision/iu);
+    expect(shape).toMatch(/direct-parent fallback[\s\S]*unavailable/iu);
+    expect(shape).toMatch(/ambiguous routing[\s\S]*`question`/iu);
+    expect(planning).toMatch(/selected parent[\s\S]*slice design[\s\S]*approval[\s\S]*synthesis/iu);
+    expect(planning).toMatch(/combined Shape-and-[\s\S]*planning lifecycle['’]s one bounded/iu);
+    expect(planning).toMatch(/accepted pitch[\s\S]*handoff[\s\S]*do not\s+start another/iu);
+    expect(planning).toMatch(/module shape[\s\S]*codebase-design/iu);
+    expect(planning).toMatch(/direct-parent evidence-based fallback[\s\S]*unavailable/iu);
+    expect(planning).toMatch(/ambiguous routing[\s\S]*`question`/iu);
     expect(readme).toMatch(/direct parent[\s\S]*pitch[\s\S]*plan/iu);
-
+    expect(readme).toMatch(/selected Fable or Sol parent[\s\S]*one bounded Researcher/iu);
+    expect(readme).toMatch(/independent installation[\s\S]*direct parent/iu);
     expect(readme).toMatch(/isolated[^.]*worktree[\s\S]*before[^.]*discovery/iu);
 
+    for (const resource of [shape, planning]) {
+      expect(resource).not.toMatch(/Fable\s+or\s+Sol/iu);
+    }
     for (const resource of [shape, planning, plan, readme]) {
       expect(resource).not.toMatch(/pi-subagents|runs\.all|writer lease|parallel-safe|FFF/iu);
     }
