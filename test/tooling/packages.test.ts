@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
@@ -31,8 +31,8 @@ const ROOT_PROFILE = {
   skills: [
     "./packages/feature-flow/skills/shape",
     "./packages/feature-flow/skills/planning-changes",
-    "./packages/engineering/skills/implement",
-    "./packages/engineering/skills/diagnosing-bugs",
+    "./packages/engineering/skills",
+    "./packages/productivity/skills",
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
@@ -40,8 +40,8 @@ const ROOT_PROFILE = {
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
     "./packages/feature-flow/prompts/plan.md",
-    "./packages/engineering/prompts/implement.md",
-    "./packages/engineering/prompts/debug.md",
+    "./packages/engineering/prompts",
+    "./packages/productivity/prompts",
     "./node_modules/pi-subagents/prompts",
   ],
   subagents: { agents: ["./agents"] },
@@ -51,6 +51,27 @@ const ROOT_DEPENDENCIES = {
   "pi-claude-bridge": "0.7.0",
   "pi-subagents": "0.50.0",
 } as const;
+
+function parseAgentFrontmatter(source: string): Record<string, unknown> {
+  const match = /^---\n([\s\S]*?)\n---/u.exec(source);
+  if (match?.[1] === undefined) throw new Error("Agent is missing YAML frontmatter.");
+  const fields: Record<string, unknown> = {};
+  let listKey: string | undefined;
+  for (const line of match[1].split("\n")) {
+    const listItem = /^ {2}- (.+)$/u.exec(line);
+    if (listItem?.[1] !== undefined && listKey !== undefined) {
+      const values = fields[listKey];
+      if (Array.isArray(values)) values.push(listItem[1]);
+      continue;
+    }
+    const field = /^([A-Za-z]+):(?: (.+))?$/u.exec(line);
+    if (field?.[1] === undefined) continue;
+    const [, key, raw] = field;
+    listKey = raw === undefined ? key : undefined;
+    fields[key] = raw === undefined ? [] : raw === "true" ? true : raw === "false" ? false : raw;
+  }
+  return fields;
+}
 
 afterEach(async () => {
   await Promise.all(
@@ -138,29 +159,152 @@ describe("package contracts", () => {
     expect(manifest.dependencies).toEqual(ROOT_DEPENDENCIES);
   });
 
-  it("ships fresh model-routed work and review agents", async () => {
+  it("ships exactly six fixed, private-skill model-routed agents", async () => {
     expect.hasAssertions();
-    const [worker, escalationWorker, reviewer] = await Promise.all([
-      readFile(join(repositoryRoot, "agents", "terra-worker.md"), "utf8"),
-      readFile(join(repositoryRoot, "agents", "sol-worker.md"), "utf8"),
-      readFile(join(repositoryRoot, "agents", "fable-reviewer.md"), "utf8"),
-    ]);
+    const expected = {
+      worker: {
+        model: "openai-codex/gpt-5.6-terra",
+        thinking: "medium",
+        role: "writer",
+        completionGuard: undefined,
+        tools: [
+          "read",
+          "grep",
+          "find",
+          "ls",
+          "bash",
+          "edit",
+          "write",
+          "playwright_browser",
+          "contact_supervisor",
+        ],
+        skills: [
+          "test-driven-development",
+          "codebase-design",
+          "diagnosing-bugs",
+          "domain-modeling",
+          "writing-for-agents",
+        ],
+        skillPaths: [
+          "../packages/engineering/skills/test-driven-development",
+          "../packages/engineering/skills/codebase-design",
+          "../packages/engineering/skills/diagnosing-bugs",
+          "../packages/engineering/skills/domain-modeling",
+          "../packages/productivity/skills/writing-for-agents",
+        ],
+      },
+      researcher: {
+        model: "openai-codex/gpt-5.6-luna",
+        thinking: "low",
+        role: "read-only",
+        completionGuard: false,
+        tools: ["read", "grep", "find", "ls", "bash", "web_search", "contact_supervisor"],
+        skills: [],
+        skillPaths: [],
+      },
+      qa: {
+        model: "openai-codex/gpt-5.6-luna",
+        thinking: "medium",
+        role: "read-only",
+        completionGuard: false,
+        tools: ["read", "grep", "find", "ls", "bash", "playwright_browser", "contact_supervisor"],
+        skills: [],
+        skillPaths: [],
+      },
+      reviewer: {
+        model: "claude-bridge/claude-opus-5",
+        thinking: "medium",
+        role: "read-only",
+        completionGuard: false,
+        tools: ["read", "grep", "find", "ls", "bash", "contact_supervisor"],
+        skills: ["code-review", "codebase-design"],
+        skillPaths: [
+          "../packages/engineering/skills/code-review",
+          "../packages/engineering/skills/codebase-design",
+        ],
+      },
+      git: {
+        model: "openai-codex/gpt-5.6-terra",
+        thinking: "medium",
+        role: "writer",
+        completionGuard: undefined,
+        tools: [
+          "read",
+          "grep",
+          "find",
+          "ls",
+          "bash",
+          "edit",
+          "write",
+          "worktree",
+          "contact_supervisor",
+        ],
+        skills: [
+          "conventional-commit",
+          "git-rebase-base",
+          "resolving-merge-conflicts",
+          "github-cli",
+          "pi-worktrunk",
+        ],
+        skillPaths: [
+          "../packages/git-conventions/skills/conventional-commit",
+          "../packages/git-conventions/skills/git-rebase-base",
+          "../packages/git-conventions/skills/resolving-merge-conflicts",
+          "../packages/github/skills/github-cli",
+          "../packages/worktrunk/skills/pi-worktrunk",
+        ],
+      },
+      utility: {
+        model: "openai-codex/gpt-5.6-luna",
+        thinking: "medium",
+        role: "read-only",
+        completionGuard: false,
+        tools: ["read", "grep", "find", "ls", "bash", "web_search", "contact_supervisor"],
+        skills: [],
+        skillPaths: [],
+      },
+    } as const;
+    const agentsRoot = join(repositoryRoot, "agents");
+    const entries = (await readdir(agentsRoot))
+      .filter((entry) => entry.endsWith(".md"))
+      .sort((left, right) => left.localeCompare(right));
 
-    expect(worker).toMatch(/model: openai-codex\/gpt-5\.6-terra/iu);
-    expect(worker).toMatch(/thinking: medium/iu);
-    expect(worker).toMatch(/defaultContext: fresh/iu);
-    expect(worker).toMatch(/acceptanceRole: writer/iu);
-    expect(escalationWorker).toMatch(/model: openai-codex\/gpt-5\.6-sol/iu);
-    expect(escalationWorker).toMatch(/thinking: high/iu);
-    expect(escalationWorker).toMatch(/defaultContext: fresh/iu);
-    expect(escalationWorker).toMatch(/acceptanceRole: writer/iu);
-    expect(reviewer).toMatch(/model: claude-bridge\/claude-fable-5/iu);
-    expect(reviewer).toMatch(/thinking: high/iu);
-    expect(reviewer).toMatch(/defaultContext: fresh/iu);
-    expect(reviewer).toMatch(/acceptanceRole: read-only/iu);
-    for (const agent of [worker, escalationWorker, reviewer]) {
-      expect(agent).toMatch(/tools:.*\bplaywright_browser\b/iu);
+    expect(entries).toEqual(
+      Object.keys(expected)
+        .map((name) => `${name}.md`)
+        .sort((left, right) => left.localeCompare(right)),
+    );
+    for (const [name, contract] of Object.entries(expected)) {
+      const text = await readFile(join(agentsRoot, `${name}.md`), "utf8");
+      const agent = parseAgentFrontmatter(text);
+
+      expect(agent["name"]).toBe(name);
+      expect(agent["model"]).toBe(contract.model);
+      expect(agent["thinking"]).toBe(contract.thinking);
+      expect(agent["systemPromptMode"]).toBe("replace");
+      expect(agent["inheritProjectContext"]).toBe(true);
+      expect(agent["inheritSkills"]).toBe(false);
+      expect(agent["defaultContext"]).toBe("fresh");
+      expect(agent["acceptanceRole"]).toBe(contract.role);
+      expect(agent["completionGuard"]).toBe(contract.completionGuard);
+      expect(agent["fallbackModels"]).toBeUndefined();
+      expect(agent["defaultModel"]).toBeUndefined();
+      expect(agent["tools"]).toEqual(contract.tools);
+      expect(agent["skills"] ?? []).toEqual(contract.skills);
+      const skillPaths =
+        agent["skillPath"] === undefined
+          ? []
+          : Array.isArray(agent["skillPath"])
+            ? agent["skillPath"]
+            : [agent["skillPath"]];
+      expect(skillPaths).toEqual(contract.skillPaths);
     }
+    const [reviewer, git] = await Promise.all([
+      readFile(join(agentsRoot, "reviewer.md"), "utf8"),
+      readFile(join(agentsRoot, "git.md"), "utf8"),
+    ]);
+    expect(reviewer).toMatch(/Pi additions[\s\S]*do not spawn[\s\S]*issue-tracker setup/iu);
+    expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
   });
 
   it("documents the conservative subagent profile and its evaluation gate", async () => {
@@ -177,6 +321,12 @@ describe("package contracts", () => {
     expect(readme).toContain('"concurrency": 2');
     expect(readme).toContain('"scheduledRuns": {');
     expect(readme).toContain('"enabled": false');
+    expect(readme).toContain('"subagents": {\n    "disableBuiltins": true');
+    expect(readme).toMatch(
+      /`subagents\.defaultModel` is unnecessary[\s\S]*frontmatter model precedence/iu,
+    );
+    expect(readme).toMatch(/per-run model[\s\S]*explicitly approves/iu);
+    expect(readme).toMatch(/retain `"disableBuiltins": true`[\s\S]*exact six-agent catalog/iu);
     expect(evaluation).toMatch(/baseline/iu);
     expect(evaluation).toMatch(/candidate/iu);
     expect(evaluation).toMatch(/total model tokens/iu);
@@ -195,11 +345,41 @@ describe("package contracts", () => {
     expect(readme).toContain('"defaultMode": "read"');
     expect(readme).toContain('"defaultIsolated": true');
     expect(readme).toContain('"allowFullMode": false');
-    expect(readme).toMatch(/Shape[\s\S]*Plan[\s\S]*Fable 5[\s\S]*medium/iu);
-    expect(readme).toMatch(/Work[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
-    expect(readme).toMatch(/Escalation[\s\S]*GPT-5\.6 Sol[\s\S]*high/iu);
-    expect(readme).toMatch(/Review[\s\S]*Fable 5[\s\S]*high/iu);
+    expect(readme).toMatch(/human selects[\s\S]*Fable or Sol parent/iu);
+    expect(readme).toMatch(/Worker[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
+    expect(readme).toMatch(/Researcher[\s\S]*GPT-5\.6 Luna[\s\S]*low/iu);
+    expect(readme).toMatch(/QA[\s\S]*GPT-5\.6 Luna[\s\S]*medium/iu);
+    expect(readme).toMatch(/Reviewer[\s\S]*Opus 5[\s\S]*medium/iu);
+    expect(readme).toMatch(/Git[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
+    expect(readme).toMatch(/Utility[\s\S]*GPT-5\.6 Luna[\s\S]*medium/iu);
+    expect(readme).toMatch(/AskClaude[\s\S]*non-claude-bridge parent/iu);
+    expect(readme).toMatch(/Fable parent\s+cannot[\s\S]*call/iu);
+    expect(readme).toMatch(/justified\s+`question`[\s\S]*explicit human approval[\s\S]*Sol/iu);
+    expect(readme).toMatch(/`\/improve`[\s\S]*code review[\s\S]*design/iu);
+    expect(readme).toMatch(/Git\s+conflict support/iu);
+    expect(readme).toMatch(
+      /normal push[\s\S]*(after a rebase|post-rebase)[\s\S]*--force-with-lease/iu,
+    );
     expect(readme).toMatch(/fresh\s+context/iu);
+  });
+
+  it("documents the portable target-repository resource boundary", async () => {
+    expect.hasAssertions();
+    const [agents, architecture] = await Promise.all([
+      readFile(join(repositoryRoot, "AGENTS.md"), "utf8"),
+      readFile(join(repositoryRoot, "docs", "architecture.md"), "utf8"),
+    ]);
+
+    for (const resource of [agents, architecture]) {
+      expect(resource).toMatch(/unrelated target\s+repositories/iu);
+      expect(resource).toMatch(/target repository['’]s instructions/iu);
+      expect(resource).toMatch(/cannot|never assume/iu);
+      expect(resource).toMatch(/paths[\s\S]*agents[\s\S]*tools[\s\S]*skills[\s\S]*extensions/iu);
+    }
+    expect(agents).toMatch(/does not make it[\s\S]*available[\s\S]*active Pi process/iu);
+    expect(agents).toMatch(/No production resource\s+may be specific to this repository/iu);
+    expect(agents).toMatch(/Playwright-cleanup[\s\S]*complete Engineering and Productivity/iu);
+    expect(agents).toMatch(/six[\s\S]*model-routed package agents/iu);
   });
 
   it("rejects a missing or additional root profile resource", async () => {
@@ -272,7 +452,7 @@ describe("package contracts", () => {
     if (gitConventions === undefined) {
       throw new Error("Git conventions package was not discovered.");
     }
-    await expect(resolvePackageSkills(gitConventions)).resolves.toHaveLength(2);
+    await expect(resolvePackageSkills(gitConventions)).resolves.toHaveLength(3);
     const github = packages.find(
       (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-github",
     );

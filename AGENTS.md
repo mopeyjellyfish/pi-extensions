@@ -10,20 +10,28 @@ production extension as scaffolding for tooling, tests, or skills.
 
 Human-facing plans, handoffs, reviews, documentation, and status summaries use pragmatic Simplified Technical English and terms from the nearest `CONTEXT.md`. Preserve exact technical content.
 
+## Production resources run in target repositories
+
+Production extensions, skills, prompts, and agents install into unrelated target
+repositories. Use the target repository's instructions and domain vocabulary.
+Never assume this monorepo's paths, package names, agents, tools, skills,
+extensions, commands, or development-only resources are installed merely
+because they exist here. Editing a resource in this checkout does not make it
+immediately available to the active Pi process; load the intended package from
+the target worktree and reload or restart as required. No production resource
+may be specific to this repository.
+
 ## Subagent execution profiles
 
-Start with the parent. Add one host-provided child only for a bounded independent
-lane or when the parent is measurably struggling. Prefer Terra for
-well-specified implementation slices. Use Sol for planning, research, review,
-and hard or escalated implementation. Use Luna only for fast, mechanical,
-repeatable work where speed matters more than accuracy. Do not repeat a failed
-Luna or Terra attempt at the same tier; promote it to Sol.
-
-Keep one writer per worktree. Every child task states its goal, scope, authority,
-required evidence, success criteria, validation, and output. The parent
-synthesizes results, verifies evidence, inspects the final diff, and runs the
-applicable checks. Do not depend on repository-owned agent names or tool
-allowlists.
+Start with the parent. Use Luna for cheap bounded read-only or mechanical
+support not covered by another role, Terra for normal implementation and Git,
+and Opus for formal review. A Sol child requires a justified `question` and
+explicit human approval; if uncertain, ask. Keep one writer per worktree. Every
+child task states its goal, scope, authority, required evidence, success
+criteria, validation, and output. The parent synthesizes results, verifies
+evidence, inspects the final diff, and runs applicable checks. Use
+host-provided role guidance without depending on repository-owned agent names
+or tool allowlists.
 
 ## Start with repository truth
 
@@ -77,13 +85,14 @@ The repository deliberately does not commit a `.pi/settings.json` that loads
 automatic project loading would register the same tools, commands, and skills
 twice. Do not add an automatic project package entry for the working copy.
 
-The private root manifest is a curated default profile. It loads the question,
-status-line, todo, web-search, and Worktrunk extensions; the Shape, planning,
-and implement lifecycle; the Git, GitHub, and Worktrunk skills; and the pinned
-`pi-claude-bridge` and `pi-subagents` extensions, subagent prompts, and
-model-routed package agents through explicit paths. The bundled subagent
-orchestration skill is intentionally excluded. Other production packages remain
-independently loadable. Pi reevaluates the root manifest during `/reload`.
+The private root manifest is a curated default profile. It loads the
+Playwright-cleanup, question, status-line, todo, web-search, and Worktrunk
+extensions; complete Engineering and Productivity skills and prompts; the Shape
+and planning lifecycle; Git, GitHub, and Worktrunk skills; and the pinned
+`pi-claude-bridge` and `pi-subagents` extensions, subagent prompts, and six
+model-routed package agents. The bundled subagent orchestration skill is
+intentionally excluded. Other production packages remain independently
+loadable. Pi reevaluates the root manifest during `/reload`.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash

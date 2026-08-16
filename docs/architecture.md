@@ -8,12 +8,22 @@ resources, including todo for parent progress, and pins `@playwright/cli`,
 `pi-claude-bridge`, and `pi-subagents` as its external production dependencies.
 It loads the Claude bridge and subagent extensions plus explicit subagent
 prompts without loading the subagent dependency's broad orchestration skill.
-It also exposes two package agents: a fresh Sol-medium writer and a fresh
-Fable-high read-only reviewer. The Fable stages use the bridge provider. Parent
-model and AskClaude selection remain user settings so the Git package never
-overwrites Pi authentication, preferences, or bridge configuration.
-Each directory under `packages/` is an independent npm package with its own Pi manifest, runtime dependencies,
-documentation, tests, and optional native helper.
+It exposes six fixed package agents: Terra-medium Worker and Git writers,
+Luna-low Researcher, Luna-medium QA and Utility read-only support, and an
+Opus-medium Reviewer. The human selects a Fable or Sol parent; parent settings
+and AskClaude selection remain user settings, so installation never overwrites
+Pi authentication, preferences, or bridge configuration. AskClaude is available
+only to a non-claude-bridge parent; a Fable parent uses the Opus Reviewer at the
+formal boundary. A Sol child requires a justified `question` and explicit human
+approval, with no automatic fallback.
+
+Each directory under `packages/` is an independent npm package with its own Pi
+manifest, runtime dependencies, documentation, tests, and optional native
+helper. Production resources install into unrelated target repositories and
+must use the target repository's instructions and vocabulary; they cannot assume this monorepo's
+paths, packages, agents, tools, skills, extensions, commands, or
+development-only resources are present. Independent packages do not
+automatically provide companion extensions or agents.
 
 A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.
 

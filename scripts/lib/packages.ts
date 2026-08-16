@@ -460,8 +460,8 @@ const ROOT_PROFILE: RootProfile = {
   skills: [
     "./packages/feature-flow/skills/shape",
     "./packages/feature-flow/skills/planning-changes",
-    "./packages/engineering/skills/implement",
-    "./packages/engineering/skills/diagnosing-bugs",
+    "./packages/engineering/skills",
+    "./packages/productivity/skills",
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
@@ -469,8 +469,8 @@ const ROOT_PROFILE: RootProfile = {
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
     "./packages/feature-flow/prompts/plan.md",
-    "./packages/engineering/prompts/implement.md",
-    "./packages/engineering/prompts/debug.md",
+    "./packages/engineering/prompts",
+    "./packages/productivity/prompts",
     "./node_modules/pi-subagents/prompts",
   ],
   subagents: { agents: ["./agents"] },
