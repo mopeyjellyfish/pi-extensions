@@ -1,5 +1,5 @@
 ---
-description: Turn a feature brief into an accepted pitch and plan
+description: Turn a feature brief into an accepted lean pitch, publish it, and plan
 argument-hint: "[feature brief]"
 ---
 

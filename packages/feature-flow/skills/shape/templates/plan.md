@@ -4,50 +4,56 @@ status: draft
 
 # Plan: {{feature}}
 
-Work the first unchecked slice. Keep slices serial unless the accepted plan
-explicitly proves that an independent lane is worth its extra coordination.
+Complete this delivery plan before implementation. It covers every accepted
+slice, the critical path, dependencies, pull-request order, and independent
+lanes.
+
+## Delivery topology
+
+| Stack position | Branch     | Pull request base | Dependencies | Lane/worktree owner                      |
+| -------------- | ---------- | ----------------- | ------------ | ---------------------------------------- |
+| 0              | `<branch>` | `<base>`          | none         | `<lane>; isolated worktree; sole writer` |
+
+State whether the plan is a stack. A planned stack uses `open-pr` and `gh stack`.
+`gh stack link` verifies a Worktrunk-managed chain but creates no local tracked
+view; use `gh stack view --json` only for locally tracked stacks.
+
+## Critical path and lanes
+
+List dependency order and each genuinely independent lane. Parallel lanes need
+separate worktrees, sole writers, and non-overlapping files.
 
 ## [ ] 001 — Observable vertical outcome
 
-### Outcome
+### Outcome and requirement trace
 
-State one user- or operator-visible result.
+State the observable result and relevant accepted criteria.
 
-### Requirement trace
+### Seam and files
 
-Link the relevant pitch headings and acceptance criteria.
+Name the public seam and likely files.
 
-### Implementation
+### Dependencies
 
-Name the public seam, likely files, and smallest production change.
+List prior slices, contracts, or `none`.
 
-### Execution mode
+### Execution lane and ownership
 
-Use `serial` or `parallel-ready`. List dependencies. Use `parallel-ready` only
-when the slice can run in an isolated worktree without shared writes.
+Use `serial` or `parallel-ready`. For `parallel-ready`, name the lane, isolated
+worktree, sole writer, non-overlapping files, and integration dependency.
 
-### Difficulty
-
-Use `standard` or `hard`. Mark `hard` with its reason for cross-cutting scope,
-migrations, security-sensitive areas, or deep debugging.
-
-### Test posture
-
-Use `tdd`, `characterization`, or `no-new-tests` with a reason.
-
-### Red signal
+### Red proof
 
 State the focused failing test or before-state proof.
 
-### Green signal
+### Green proof and checks
 
-State the focused passing test or after-state proof.
+State the focused passing proof and required checks.
 
-### Verification
+### Atomic commit and pull request
 
-List the integrated path and applicable repository-required checks.
+State the atomic commit unit, PR base, and stack position.
 
 ### Done when
 
-State objective completion conditions. Mark the slice `[x]` only after they
-hold.
+State objective completion conditions. Mark `[x]` only after they hold.

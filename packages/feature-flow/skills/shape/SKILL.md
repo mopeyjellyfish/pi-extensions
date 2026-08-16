@@ -8,75 +8,53 @@ description: >-
 # Shape
 
 The selected parent is the direct parent and default executor. It owns product
-and architecture judgment, pitch synthesis, approval, and all decisions. After receiving a feature brief, make creating or selecting an
-isolated linked worktree the first action before discovery, research, repository
-reads, or shaping questions. Inspect only the Git and worktree state needed to
-route the task.
+and architecture judgment, pitch synthesis, approval, and verification.
 
-Continue when the session is already rooted in, or Pi is already routed to, the
-task's linked worktree. Otherwise, derive a short task branch from the brief and
-use the available worktree lifecycle tool to create and activate it. If no safe
-worktree tool is available, stop before any other Shape work and ask the human
-to start or select an isolated worktree. Never work in the main-branch checkout.
-Keep the same task worktree through Shape, planning, and serial implementation;
-separate worktrees are only for explicitly parallel writers.
+After receiving a feature brief, make the first action creating or selecting an
+isolated linked worktree before discovery, research, repository reads, or
+shaping questions. Inspect only the Git and worktree state needed to route the
+task. Continue when already in the task worktree; otherwise use the available
+worktree lifecycle tool. If no safe tool is available, stop before any other
+Shape work and ask the human to provide an isolated worktree. Never work in the
+main-branch checkout. Keep the same worktree through planning and serial
+implementation; parallel writers need separate worktrees.
 
-Do not add orchestration or subagent requirements.
+## Decide enough to pitch
 
-## Understand the request
-
-Read repository instructions and the nearest relevant source, tests, and docs.
-Use the `question` tool for decisions only the human can make. If the tool is
-unavailable, ask the same focused question in conversation. Group related
-questions, recommend one option, and explain the material tradeoff. Inspect the
-repository instead of asking the human for facts that are already present.
-
-Resolve enough detail to state:
-
-- the problem and desired outcome;
-- the appetite and quality floor;
-- solution boundaries and no-gos;
-- material risks and unknowns;
-- observable acceptance criteria.
-
-## Write and approve the pitch
+Read repository instructions and the nearest relevant sources after worktree
+setup. Use the `question` tool only for a human decision; otherwise inspect the
+repository. Resolve the problem and evidence, smallest outcome, boundaries and
+no-gos, material risks, authority, and observable acceptance criteria. Do not
+restate repository truth. Keep only decision-changing research; omit empty or
+non-decision research.
 
 Create `docs/features/<slug>/pitch.md` from `templates/pitch.md` with
-`status: draft`. Keep research only when it changes a decision. Prefer the
-smallest solution that meets the acceptance criteria.
+`status: draft`. Show the complete pitch document, not a summary or link, with:
 
-Show the complete pitch in the `question` tool's document field with these
-actions:
+1. **Approve and plan**
+2. **Revise**
+3. **Deepen**
+4. **Independent review**
 
-1. **Approve and plan** — accept the pitch and create the plan.
-2. **Revise** — apply the human's feedback and show the complete pitch again.
-3. **Deepen** — investigate one named uncertainty, update the pitch, and show it
-   again.
-4. **Independent review** — use one fresh read-only reviewer, resolve material
-   findings, and show the complete pitch again.
+If the tool or document field is unavailable, show the complete pitch in
+conversation and ask the same question. Do not infer approval from silence.
 
-If the tool or its document field is unavailable, show the complete pitch in
-conversation and ask the same four-way question. Never use a summary or link in
-place of the full document. Do not infer approval from silence or from approval
-of a summary.
+Only **Approve and plan** is explicit human approval. It authorizes the named
+pitch branch's bounded commit and pull-request publication: invoke `commit`,
+then `open-pr`, then invoke `planning-changes` with the accepted pitch. If
+`commit`, `open-pr`, or required `gh stack` tooling is unavailable, fail closed
+for publication: preserve local evidence, report recovery guidance, and continue
+the pitch-to-plan handoff without publishing. Do not embed ad hoc Git commands.
+For a planned stack, `open-pr` must use `gh stack`. Approval never authorizes
+merge, release, deployment, destructive cleanup, or unrelated remote changes. Mark the pitch `status: accepted` only after approval. Return here for
+fresh approval when implementation changes accepted intent.
 
-Only **Approve and plan** is explicit human approval. After approval, change the
-pitch to `status: accepted` and invoke
-`planning-changes` with the accepted pitch. If implementation later changes
-accepted intent, return here, mark the pitch draft, revise it, and obtain fresh
-approval before replanning.
+## Bounded support
 
-## Optional bounded discovery
-
-Do not delegate by default. After worktree setup, the selected parent may use
-the Shape-and-planning lifecycle's one bounded Researcher handoff for repository
-mapping, official primary-source research, or concise factual context when that
-avoids expensive parent exploration. State its scope, evidence, and output in
-the pitch so planning does not repeat it. The Researcher makes no product,
-architecture, or approval decision. Use the
-direct-parent fallback if it is unavailable, then continue from evidence.
-
-The selected parent keeps product judgment, architecture judgment, pitch
-synthesis, approval, and verification responsibility. For ambiguous routing,
-use the `question` tool; never default to a hidden Sol child. Independent
-installs without package agents use the direct parent.
+After worktree setup, use cheap factual mapping, mechanical inventory, or QA
+test-surface support only when it saves parent context. Use at most one
+independent review when useful. Support provides evidence, not product,
+architecture, slice, or approval decisions. Use the direct-parent fallback when
+a role is unavailable. Any exceptional high-capability role requires explicit
+human approval; production guidance must not depend on private agents or model
+names.
