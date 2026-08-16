@@ -11,12 +11,16 @@ skills:
   - git-rebase-base
   - resolving-merge-conflicts
   - github-cli
+  - open-pr
+  - triage
   - pi-worktrunk
 skillPath:
   - ../packages/git-conventions/skills/commit
   - ../packages/git-conventions/skills/git-rebase-base
   - ../packages/git-conventions/skills/resolving-merge-conflicts
   - ../packages/github/skills/github-cli
+  - ../packages/github/skills/open-pr
+  - ../packages/github/skills/triage
   - ../packages/worktrunk/skills/pi-worktrunk
 tools:
   - read

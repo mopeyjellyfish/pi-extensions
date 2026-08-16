@@ -7,7 +7,8 @@ GitHub CLI authentication, or introduce another GitHub API client.
 
 ## Skill
 
-`github-cli` covers common repository-aware operations:
+`github-cli` is the shared low-level reference for common repository-aware
+operations:
 
 - create, inspect, and open pull requests;
 - collect PR conversation, review summaries, and inline review threads;
@@ -19,8 +20,26 @@ GitHub CLI authentication, or introduce another GitHub API client.
 
 The core skill stays compact and loads focused pull request, Actions, issue, or
 repository references only when needed. Read operations request selected JSON
-fields and bounded lists. Remote mutations require an explicit request and a
-resolved repository and target.
+fields and bounded lists. Remote mutations require an explicit request and a resolved repository and
+target.
+
+`open-pr` owns approved pull-request delivery. It preflights authenticated
+repository and explicit base/head state, inspects commit, diff, checks, and
+evidence, and pushes only the approved branch. Standalone delivery creates or
+updates one PR. Planned stack delivery requires `gh stack`: Worktrunk chains use
+`gh stack link`, locally tracked stacks use `gh stack submit`, and approved
+lower-branch changes use checked `gh stack sync` with expected-remote
+`--force-with-lease`, never plain force. It verifies link/sync output and
+structured PR metadata after publication. Its approachable body records problem,
+outcome, implementation details, tests and evidence, risks, and stack
+dependencies. It never merges or changes stack topology destructively.
+
+`triage` owns bounded review-feedback processing. It resolves one explicit,
+current-branch, or conversation-recorded pull request; collects comments,
+reviews, checks, and unresolved review threads; classifies feedback; routes
+valid fixes through `implement`, `commit`, and `open-pr`; drafts exact replies;
+and resolves only addressed and verified threads. It never infers approval or
+performs merge or other destructive actions.
 
 ## Requirements
 
@@ -34,3 +53,20 @@ gh auth status
 
 Credentials remain in GitHub CLI's auth storage. The skill never requires a
 repository token file or project-level credential configuration.
+
+Planned stack delivery also requires the `github/gh-stack` extension. Install it
+before publication when authorized:
+
+```sh
+gh extension install github/gh-stack
+```
+
+`open-pr` preflights `gh stack --version`, stops if it is unavailable, and never
+automatically installs it or falls back to ad hoc `gh pr create` for a planned
+stack.
+
+Actionable `triage` fixes compose the separately installed `implement` skill
+from `@mopeyjellyfish/pi-engineering` and `commit` skill from
+`@mopeyjellyfish/pi-git-conventions`, then return through `open-pr`. Without
+those companion skills, `triage` remains useful for read-only inventory and
+stops before a fix.

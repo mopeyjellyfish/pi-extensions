@@ -28,7 +28,7 @@ It loads only:
 - the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
-- `github-cli` for repository-aware pull request, review, Actions, issue, and release workflows;
+- `github-cli`, `open-pr`, and `triage` for repository-aware GitHub operations, approved pull-request delivery, and review-feedback processing;
 - pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
@@ -236,10 +236,12 @@ when the task needs its capability.
 | [`pi-worktrunk`](packages/worktrunk/README.md)                   | Worktree routing without the root profile.                                        |
 
 The enabled Worktrunk resources need [Worktrunk](https://worktrunk.dev)
-installed separately. The GitHub workflow skill needs an authenticated
-[GitHub CLI](https://cli.github.com/), and stacked pull requests additionally
-need the optional `github/gh-stack` CLI extension. The Pi package does not
-install these external tools.
+installed separately. The GitHub workflow skills need an authenticated
+[GitHub CLI](https://cli.github.com/). Planned stack delivery requires the
+`github/gh-stack` CLI extension; install it before use with
+`gh extension install github/gh-stack`. The Pi package does not install these
+external tools, and `open-pr` stops rather than falling back to ad hoc PR
+creation for a planned stack.
 
 To install one package from a checkout:
 
