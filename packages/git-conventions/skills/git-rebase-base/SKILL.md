@@ -62,10 +62,13 @@ new concise log and `git status --short`, and report the old and new `HEAD`
 values.
 
 On a conflict, stop and report the conflicted paths plus the current rebase
-status. Never stage a guessed resolution or continue automatically. If the
-user asks for help, resolve each conflict deliberately, run relevant tests,
-and use `git rebase --continue`; use `git rebase --abort` only when the user
-chooses to restore the recorded pre-rebase state.
+status. Hand off to `resolving-merge-conflicts`; it recovers both intents, runs
+repository-required checks, and continues only after verification. It uses
+`git rebase --abort` only when the user chooses to restore the recorded
+pre-rebase state.
 
-Never push or force-push the rewritten branch, delete branches, or modify the
-base branch unless the user separately requests that action.
+Publication is outside this rebase-starting method. The conflict method is the
+single boundary for a completed task-branch push: it verifies the current safe
+`origin` destination and may use `--force-with-lease` after a rebase only after
+checking the expected remote state. Never push from this rebase-starting
+method. Never use plain `--force`, delete branches, or modify the base branch.

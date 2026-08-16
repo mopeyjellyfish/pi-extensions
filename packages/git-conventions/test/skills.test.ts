@@ -10,11 +10,14 @@ const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const execFileAsync = promisify(execFile);
 
 describe("git convention skills", () => {
-  it.each(["conventional-commit", "git-rebase-base"])("ships the %s skill", async (name) => {
-    expect.hasAssertions();
-    const skill = await readFile(join(PACKAGE_ROOT, "skills", name, "SKILL.md"), "utf8");
-    expect(skill).toContain(`name: ${name}`);
-  });
+  it.each(["conventional-commit", "git-rebase-base", "resolving-merge-conflicts"])(
+    "ships the %s skill",
+    async (name) => {
+      expect.hasAssertions();
+      const skill = await readFile(join(PACKAGE_ROOT, "skills", name, "SKILL.md"), "utf8");
+      expect(skill).toContain(`name: ${name}`);
+    },
+  );
 
   it("grounds Conventional Commits in the staged change and explicit authorization", async () => {
     expect.hasAssertions();
@@ -160,6 +163,68 @@ describe("git convention skills", () => {
     expect(skill).toContain("`<type>/<kebab-slug>`");
     expect(skill).toContain("git check-ref-format --branch");
     expect(skill).toContain("Never create or rename a branch");
+  });
+
+  it("ships an attributed conflict method and a bounded publication boundary", async () => {
+    expect.hasAssertions();
+    const [skill, rebase, notice, readme, manifest] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "skills", "resolving-merge-conflicts", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "git-rebase-base", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "THIRD_PARTY_NOTICES.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "package.json"), "utf8"),
+    ]);
+    const packed = JSON.parse(
+      (
+        await execFileAsync(
+          "npm",
+          ["pack", "--dry-run", "--json", "--ignore-scripts", PACKAGE_ROOT],
+          {
+            cwd: join(PACKAGE_ROOT, "..", ".."),
+          },
+        )
+      ).stdout,
+    ) as { files: { path: string }[] }[];
+    const packedPaths = packed[0]?.files.map(({ path }) => path) ?? [];
+    const manifestValue = JSON.parse(manifest) as { files?: unknown };
+
+    expect(manifestValue.files).toContain("THIRD_PARTY_NOTICES.md");
+    expect(packedPaths).toEqual(
+      expect.arrayContaining([
+        "skills/resolving-merge-conflicts/SKILL.md",
+        "THIRD_PARTY_NOTICES.md",
+      ]),
+    );
+    expect(notice).toContain("068b6e0c62393147daf03530149cdce209c93da8");
+    expect(notice).toContain("resolving-merge-conflicts/SKILL.md");
+    expect(notice).toContain("Permission is hereby granted");
+    expect(readme).toMatch(/resolving-merge-conflicts[\s\S]*intent-preserving/iu);
+    expect(skill).toMatch(/resolution sections[\s\S]*in-progress merge or rebase/iu);
+    expect(skill).toMatch(/publication section[\s\S]*conflict-free merge or rebase/iu);
+    expect(skill).toMatch(/in-progress (?:merge|rebase)[\s\S]*recorded state/iu);
+    expect(skill).toMatch(
+      /commit messages[\s\S]*pull requests[\s\S]*issues[\s\S]*tests[\s\S]*accepted local intent/iu,
+    );
+    expect(skill).toMatch(/each hunk[\s\S]*preserve both intents[\s\S]*do not invent/iu);
+    expect(skill).toMatch(/incompatible[\s\S]*ask/iu);
+    expect(skill).toMatch(/repository-required[\s\S]*focused[\s\S]*completion checks/iu);
+    expect(skill).toMatch(/user chooses[\s\S]*git (?:merge|rebase) --abort/iu);
+    expect(skill).toMatch(/git merge --continue[\s\S]*git rebase --continue/iu);
+    expect(skill).toMatch(/current[\s\S]*non-default[\s\S]*non-protected[\s\S]*origin/iu);
+    expect(skill).toMatch(/```bash\nset -euo pipefail\ncurrent_branch=/u);
+    expect(skill).toContain("current_branch=$(git branch --show-current)");
+    expect(skill).toMatch(
+      /git fetch origin[\s\S]*record[\s\S]*expected remote state[\s\S]*check/iu,
+    );
+    expect(skill).toContain('--force-with-lease="refs/heads/$current_branch:$expected_remote"');
+    expect(skill).toMatch(/after a rebase[\s\S]*normal push[\s\S]*remote branch is absent/iu);
+    expect(skill).toMatch(/remote branch exists[\s\S]*explicit[\s\S]*expected_remote/iu);
+    expect(skill).toMatch(/Never use plain `--force`/iu);
+    expect(skill).toMatch(
+      /never push[\s\S]*tags[\s\S]*another remote[\s\S]*default[\s\S]*protected/iu,
+    );
+    expect(rebase).toMatch(/resolving-merge-conflicts/iu);
+    expect(rebase).toMatch(/--force-with-lease/iu);
   });
 
   it("rebases only a clean branch onto a verified origin base", async () => {

@@ -1,7 +1,7 @@
 {
   "name": "@mopeyjellyfish/pi-git-conventions",
   "version": "1.0.0",
-  "description": "Reusable Pi skills for Conventional Commits and safe branch rebasing.",
+  "description": "Reusable Pi skills for Conventional Commits, safe rebasing, and conflict resolution.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -11,14 +11,16 @@
     "skills/",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "keywords": [
     "pi-package",
     "pi-skill",
     "git",
     "conventional-commits",
-    "rebase"
+    "rebase",
+    "merge-conflicts"
   ],
   "devDependencies": {
     "vitest": "4.1.10"
