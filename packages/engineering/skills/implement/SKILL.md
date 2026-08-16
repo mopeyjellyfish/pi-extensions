@@ -12,13 +12,21 @@ repository instructions, Git state, accepted intent, relevant public contracts,
 and the nearest tests. Preserve unrelated changes and identify the required
 completion checks before editing.
 
-When the root profile's `sol-worker` agent is available, keep the parent as the
-coordinator and run one slice through that agent. Use the `subagent` tool with a
-fresh context and a foreground workflow (`async: false`) so progress remains
-visible. Give the child the accepted pitch and plan paths, exact slice, current
-worktree, completion conditions, and required checks. Do not silently override
-the agent's configured model or thinking effort. If `sol-worker` is unavailable,
-use the direct parent as the executor so this skill remains independently
+When the root profile's worker agents are available, keep the parent as the
+coordinator and run one slice through one worker. Route by the accepted plan's
+difficulty: use `terra-worker` for `standard` slices and `sol-worker` for
+`hard` slices. Treat plan-less bounded requests and confirmed bug outcomes as
+`standard` unless their scope requires a hard classification. Escalate a slice
+to `sol-worker` when a Terra attempt misses its completion conditions or a
+review finds material defects; never retry a failed
+slice at the same tier. When a change is trivial and bounded — one obvious fix
+with an obvious focused check — implement it directly as the parent instead of
+delegating. Use the `subagent` tool with a fresh context and a foreground
+workflow (`async: false`) so progress remains visible. Give the child the
+accepted pitch and plan paths, exact slice, current worktree, completion
+conditions, and required checks. Do not silently override the agent's
+configured model or thinking effort. If the worker agents are unavailable, use
+the direct parent as the executor so this skill remains independently
 installable.
 
 ## Deliver the change
@@ -40,7 +48,8 @@ cleanup, and user-visible documentation where applicable.
 ## Parallel-ready slices
 
 Do not add workers merely because a task is large. A `parallel-ready` plan slice
-may use another `sol-worker` only when the human requests parallel work, the
+may use another worker at the slice's routed tier only when the human requests
+parallel work, the
 dependencies are clear, and every worker has an isolated worktree and sole
 write ownership there. Keep overlapping slices serial. The parent must
 integrate in plan order, synthesize the result, inspect every change, and verify

@@ -136,15 +136,20 @@ describe("package contracts", () => {
 
   it("ships fresh model-routed work and review agents", async () => {
     expect.hasAssertions();
-    const [worker, reviewer] = await Promise.all([
+    const [worker, escalationWorker, reviewer] = await Promise.all([
+      readFile(join(repositoryRoot, "agents", "terra-worker.md"), "utf8"),
       readFile(join(repositoryRoot, "agents", "sol-worker.md"), "utf8"),
       readFile(join(repositoryRoot, "agents", "fable-reviewer.md"), "utf8"),
     ]);
 
-    expect(worker).toMatch(/model: openai-codex\/gpt-5\.6-sol/iu);
+    expect(worker).toMatch(/model: openai-codex\/gpt-5\.6-terra/iu);
     expect(worker).toMatch(/thinking: medium/iu);
     expect(worker).toMatch(/defaultContext: fresh/iu);
     expect(worker).toMatch(/acceptanceRole: writer/iu);
+    expect(escalationWorker).toMatch(/model: openai-codex\/gpt-5\.6-sol/iu);
+    expect(escalationWorker).toMatch(/thinking: high/iu);
+    expect(escalationWorker).toMatch(/defaultContext: fresh/iu);
+    expect(escalationWorker).toMatch(/acceptanceRole: writer/iu);
     expect(reviewer).toMatch(/model: claude-bridge\/claude-fable-5/iu);
     expect(reviewer).toMatch(/thinking: high/iu);
     expect(reviewer).toMatch(/defaultContext: fresh/iu);
@@ -184,7 +189,8 @@ describe("package contracts", () => {
     expect(readme).toContain('"defaultIsolated": true');
     expect(readme).toContain('"allowFullMode": false');
     expect(readme).toMatch(/Shape[\s\S]*Plan[\s\S]*Fable 5[\s\S]*medium/iu);
-    expect(readme).toMatch(/Work[\s\S]*GPT-5\.6 Sol[\s\S]*medium/iu);
+    expect(readme).toMatch(/Work[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
+    expect(readme).toMatch(/Escalation[\s\S]*GPT-5\.6 Sol[\s\S]*high/iu);
     expect(readme).toMatch(/Review[\s\S]*Fable 5[\s\S]*high/iu);
     expect(readme).toMatch(/fresh\s+context/iu);
   });

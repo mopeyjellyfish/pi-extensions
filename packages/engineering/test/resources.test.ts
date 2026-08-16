@@ -18,7 +18,14 @@ describe("engineering resources", () => {
     ]);
 
     expect(implement).toMatch(/approved slice[\s\S]*bounded request[\s\S]*confirmed bug outcome/iu);
-    expect(implement).toMatch(/sol-worker[\s\S]*fresh[\s\S]*foreground/iu);
+    expect(implement).toMatch(/terra-worker[\s\S]*standard[\s\S]*sol-worker[\s\S]*hard/iu);
+    expect(implement).toMatch(/plan-less[\s\S]*standard/iu);
+    expect(implement).toMatch(/escalate[\s\S]*sol-worker/iu);
+    expect(implement).toMatch(/never retry[\s\S]*same tier/iu);
+    expect(implement).toMatch(/trivial[\s\S]*direct(ly)? as the parent|parent[\s\S]*trivial/iu);
+    expect(implement).toMatch(
+      /sol-worker[\s\S]*fresh[\s\S]*foreground|terra-worker[\s\S]*fresh[\s\S]*foreground/iu,
+    );
     expect(implement).toMatch(/fable-reviewer[\s\S]*fresh[\s\S]*read-only/iu);
     expect(implement).toMatch(
       /fable-reviewer[\s\S]*worktree[\s\S]*base\s+ref[\s\S]*pitch[\s\S]*plan[\s\S]*diff[\s\S]*verification\s+evidence/iu,
@@ -33,7 +40,7 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/do not add workers merely because[^.]*large/iu);
     expect(implement).toMatch(/complete work evidence[\s\S]*document/iu);
     expect(implement).toMatch(/Review[\s\S]*Revise[\s\S]*Deepen verification[\s\S]*Pause/iu);
-    expect(readme).toMatch(/sol-worker[\s\S]*Fable[\s\S]*direct parent/iu);
+    expect(readme).toMatch(/terra-worker[\s\S]*sol-worker[\s\S]*Fable[\s\S]*direct parent/iu);
 
     for (const resource of [implement, readme]) {
       expect(resource).not.toMatch(/runs\.all|writer lease|FFF|lsp_query/iu);

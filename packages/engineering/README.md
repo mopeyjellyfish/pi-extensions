@@ -4,12 +4,13 @@
 provides `implement` plus optional focused skills for TDD, design, diagnosis,
 domain language, and review. It has no extension or runtime dependency.
 
-The root profile loads only `implement`. It uses the installed `sol-worker`
-profile for execution and the installed Fable reviewer for the optional final
+The root profile loads only `implement`. It uses the installed `terra-worker`
+profile for standard slices, the installed `sol-worker` profile for hard or
+escalated slices, and the installed Fable reviewer for the optional final
 review:
 
 ```text
-Fable plan -> fresh Sol worker -> parent verification -> fresh Fable review or pause
+Fable plan -> fresh Terra worker (Sol when hard or escalated) -> parent verification -> fresh Fable review or pause
 ```
 
 Both provider handoffs start with fresh context. The parent supplies durable

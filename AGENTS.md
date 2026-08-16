@@ -13,10 +13,11 @@ Human-facing plans, handoffs, reviews, documentation, and status summaries use p
 ## Subagent execution profiles
 
 Start with the parent. Add one host-provided child only for a bounded independent
-lane or when the parent is measurably struggling. Prefer Sol for planning,
-implementation, research, and review. Use Luna only for fast, mechanical,
+lane or when the parent is measurably struggling. Prefer Terra for
+well-specified implementation slices. Use Sol for planning, research, review,
+and hard or escalated implementation. Use Luna only for fast, mechanical,
 repeatable work where speed matters more than accuracy. Do not repeat a failed
-Luna attempt; promote it to Sol.
+Luna or Terra attempt at the same tier; promote it to Sol.
 
 Keep one writer per worktree. Every child task states its goal, scope, authority,
 required evidence, success criteria, validation, and output. The parent

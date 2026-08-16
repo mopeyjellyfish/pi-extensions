@@ -36,11 +36,12 @@ It loads only:
 The lifecycle is intentionally serial and parent-led, with these execution
 profiles:
 
-| Stage          | Model       | Thinking | Context                                  |
-| -------------- | ----------- | -------- | ---------------------------------------- |
-| Shape and Plan | Fable 5     | medium   | parent session                           |
-| Work           | GPT-5.6 Sol | medium   | fresh child for each accepted slice      |
-| Review         | Fable 5     | high     | fresh read-only child when review starts |
+| Stage          | Model         | Thinking | Context                                      |
+| -------------- | ------------- | -------- | -------------------------------------------- |
+| Shape and Plan | Fable 5       | medium   | parent session                               |
+| Work           | GPT-5.6 Terra | medium   | fresh child for each accepted standard slice |
+| Escalation     | GPT-5.6 Sol   | high     | fresh child for hard or escalated slices     |
+| Review         | Fable 5       | high     | fresh read-only child when review starts     |
 
 Set the parent model in `~/.pi/agent/settings.json` so `/shape` and `/plan` use
 Fable at medium effort:
@@ -72,13 +73,15 @@ is unavailable while the active parent itself uses `claude-bridge`, which
 prevents circular Claude delegation. Read-only isolated calls keep it a review
 and second-opinion tool; enable full mode deliberately only if it proves useful.
 
-The installed `sol-worker` and `fable-reviewer` profiles pin their own child
-models and thinking levels, with no fallback model. Both child stages start with
-fresh context. Claude Code and OpenAI Codex must already be signed in. The Git
+The installed `terra-worker`, `sol-worker`, and `fable-reviewer` profiles pin
+their own child models and thinking levels, with no fallback model. Every child
+stage starts with fresh context. `terra-worker` implements standard slices;
+`sol-worker` takes plan-flagged hard slices and any slice a Terra attempt
+failed, so a failed slice is never retried at the same tier. Claude Code and OpenAI Codex must already be signed in. The Git
 package does not edit user settings or bridge configuration.
 
 Large tasks do not automatically become parallel subagent tasks. The root
-profile starts one foreground `sol-worker` for each accepted slice. Add another
+profile starts one foreground worker for each accepted slice. Add another
 only for distinct `parallel-ready` work that the human approves, use no more
 than three in parallel unless the evidence justifies it, and keep one writer per
 worktree. Let the parent inspect the diff and verify all evidence. This follows OpenAI's current
@@ -88,7 +91,7 @@ runs use more tokens.
 
 The aggregate does not load the broad bundled `pi-subagents` orchestration skill.
 The focused Shape, planning, and implement skills own the lifecycle. The root
-package also installs the two narrow model-routed agents. The extension and its
+package also installs the three narrow model-routed agents. The extension and its
 explicit prompt templates remain available.
 
 Use this conservative user configuration in

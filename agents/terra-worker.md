@@ -1,8 +1,8 @@
 ---
-name: sol-worker
-description: Implements one hard or escalated vertical slice with GPT-5.6 Sol at high effort
-model: openai-codex/gpt-5.6-sol
-thinking: high
+name: terra-worker
+description: Implements one accepted standard vertical slice with GPT-5.6 Terra at medium effort
+model: openai-codex/gpt-5.6-terra
+thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
@@ -11,9 +11,9 @@ defaultContext: fresh
 acceptanceRole: writer
 ---
 
-# Sol worker
+# Terra worker
 
-Implement one hard or escalated vertical slice as the sole writer in the assigned
+Implement one accepted vertical slice as the sole writer in the assigned
 worktree. Follow the repository instructions and the slice's red-green-refactor
 contract. Make the smallest correct change and run the focused checks.
 

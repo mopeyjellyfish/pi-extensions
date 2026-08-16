@@ -20,6 +20,8 @@ For every slice record:
 - the outcome and pitch or requirement trace;
 - the public seam and likely files;
 - execution mode: `serial` or `parallel-ready`, with dependencies;
+- difficulty: `standard` or `hard`, marking `hard` with its reason for
+  cross-cutting scope, migrations, security-sensitive areas, or deep debugging;
 - test posture and separate expected red signal and green signal;
 - focused verification and repository-required checks;
 - objective completion conditions.

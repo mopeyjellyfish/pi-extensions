@@ -31,6 +31,7 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/smallest ordered[\s\S]*vertical slices/iu);
     expect(planning).toMatch(/serial by default/iu);
     expect(planning).toMatch(/execution mode[\s\S]*serial[\s\S]*parallel-ready/iu);
+    expect(planning).toMatch(/difficulty[\s\S]*standard[\s\S]*hard[\s\S]*reason/iu);
     expect(planning).toMatch(/test posture[\s\S]*red signal[\s\S]*green signal/iu);
     expect(planning).toMatch(
       /Approve and implement[\s\S]*Revise[\s\S]*Deepen[\s\S]*Independent review/iu,
@@ -40,6 +41,7 @@ describe("feature-flow resources", () => {
     expect(plan).toMatch(/^---\nstatus: draft\n---/u);
     expect(plan).toMatch(/## \[ \] 001 — Observable vertical outcome/u);
     expect(plan).toMatch(/Execution mode[\s\S]*serial.*parallel-ready/iu);
+    expect(plan).toMatch(/Difficulty[\s\S]*standard[\s\S]*hard[\s\S]*reason/iu);
     expect(plan).toMatch(/Test posture[\s\S]*Red signal[\s\S]*Green signal/iu);
     expect(readme).toMatch(/direct parent[\s\S]*pitch[\s\S]*plan/iu);
 
