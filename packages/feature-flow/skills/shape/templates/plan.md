@@ -26,6 +26,11 @@ Name the public seam, likely files, and smallest production change.
 Use `serial` or `parallel-ready`. List dependencies. Use `parallel-ready` only
 when the slice can run in an isolated worktree without shared writes.
 
+### Difficulty
+
+Use `standard` or `hard`. Mark `hard` with its reason for cross-cutting scope,
+migrations, security-sensitive areas, or deep debugging.
+
 ### Test posture
 
 Use `tdd`, `characterization`, or `no-new-tests` with a reason.
