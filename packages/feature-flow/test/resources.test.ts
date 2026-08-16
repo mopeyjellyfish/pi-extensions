@@ -22,10 +22,10 @@ describe("feature-flow resources", () => {
 
     expect(shape).toMatch(/direct parent[^.]*default executor/iu);
     expect(shape).toMatch(
-      /read-only discovery[\s\S]*isolated[^.]*worktree[\s\S]*before[^.]*write/iu,
+      /first action[\s\S]*isolated[^.]*worktree[\s\S]*before[\s\S]*(discovery|question|read)/iu,
     );
     expect(shape).toMatch(/same[^.]*worktree[\s\S]*planning[\s\S]*implementation/iu);
-    expect(shape).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*write/iu);
+    expect(shape).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*Shape work/iu);
     expect(shape).toMatch(/`question` tool/iu);
     expect(shape).toMatch(/pitch\.md[\s\S]*status: draft/iu);
     expect(shape).toMatch(/complete pitch[\s\S]*document/iu);
@@ -33,9 +33,11 @@ describe("feature-flow resources", () => {
     expect(shape).toMatch(/explicit human approval[\s\S]*`planning-changes`/iu);
     expect(shape).toMatch(/appetite[\s\S]*boundaries[\s\S]*risks[\s\S]*acceptance criteria/iu);
     expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
-    expect(planning).toMatch(/isolated[^.]*worktree[\s\S]*before[^.]*writ/iu);
+    expect(planning).toMatch(
+      /first action[\s\S]*isolated[^.]*worktree[\s\S]*before[\s\S]*(instructions|contracts|tests)/iu,
+    );
     expect(planning).toMatch(/never[^.]*main[^.]*checkout/iu);
-    expect(planning).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*write/iu);
+    expect(planning).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*planning work/iu);
     expect(planning).toMatch(/smallest ordered[\s\S]*vertical slices/iu);
     expect(planning).toMatch(/serial by default/iu);
     expect(planning).toMatch(/execution mode[\s\S]*serial[\s\S]*parallel-ready/iu);
@@ -53,7 +55,7 @@ describe("feature-flow resources", () => {
     expect(plan).toMatch(/Test posture[\s\S]*Red signal[\s\S]*Green signal/iu);
     expect(readme).toMatch(/direct parent[\s\S]*pitch[\s\S]*plan/iu);
 
-    expect(readme).toMatch(/isolated[^.]*worktree[\s\S]*before[^.]*artifact/iu);
+    expect(readme).toMatch(/isolated[^.]*worktree[\s\S]*before[^.]*discovery/iu);
 
     for (const resource of [shape, planning, plan, readme]) {
       expect(resource).not.toMatch(/pi-subagents|runs\.all|writer lease|parallel-safe|FFF/iu);

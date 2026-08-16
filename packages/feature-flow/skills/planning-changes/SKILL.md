@@ -7,15 +7,17 @@ description: >-
 
 # Planning changes
 
-Accept explicit accepted intent or an accepted Shape pitch. Read repository
-instructions, Git state, relevant public contracts, and the nearest tests.
+Accept explicit accepted intent or an accepted Shape pitch. Make worktree setup
+the first action. Inspect only the Git and worktree state needed to route the
+task. Do not read repository instructions, public contracts, tests, or other
+planning context before the task has an isolated linked worktree.
 
-Before writing or updating any repository file, verify that the session is
-rooted in, or Pi is routed to, an isolated linked worktree for this task. Reuse
-the Shape worktree when one exists. Otherwise, use the available worktree
-lifecycle tool to create and activate a short task branch. Never write a plan in
-the main-branch checkout. If no safe worktree tool is available, stop before
-the first write and ask the human to start or select an isolated worktree.
+Reuse the Shape worktree when one exists. Otherwise, derive a short task branch
+from the accepted intent and use the available worktree lifecycle tool to create
+and activate it. If no safe worktree tool is available, stop before any other
+planning work and ask the human to start or select an isolated worktree. Never
+work in the main-branch checkout. After routing, read repository instructions,
+relevant public contracts, and the nearest tests.
 
 Create or update `docs/features/<slug>/plan.md` from
 `../shape/templates/plan.md` with `status: draft`. Plan serial by default. Use

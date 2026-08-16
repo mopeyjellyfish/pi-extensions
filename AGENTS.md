@@ -28,7 +28,9 @@ allowlists.
 ## Start with repository truth
 
 Before any repository mutation, inspect the current branch, worktree, and dirty
-files. Read-only discovery may happen in the initial checkout. All writes,
+files. Read-only discovery may happen in the initial checkout except during
+Shape and planning: those workflows must make task-worktree setup their first
+action before repository reads, discovery, research, or questions. All writes,
 including pitches, plans, documentation, tests, code, generated metadata, and
 formatting, must happen in an isolated linked worktree on a non-main task
 branch. Never make changes in the main-branch checkout.

@@ -7,17 +7,18 @@ description: >-
 
 # Shape
 
-Use the direct parent as the default executor. Keep read-only discovery in the
-current checkout, but do not write a pitch or any other repository file there
-until the task has an isolated linked worktree. Never write in the main-branch
-checkout.
+Use the direct parent as the default executor. After receiving a feature brief,
+make worktree setup the first action. Inspect only the Git and worktree state
+needed to route the task. Do not read repository files, start discovery or
+research, or ask shaping questions before the task has an isolated linked
+worktree.
 
-After the task has a stable slug, inspect Git and worktree state. Continue when
-the session is already rooted in, or Pi is already routed to, the task's linked
-worktree. Otherwise, use the available worktree lifecycle tool to create and
-activate a short task branch. If no safe worktree tool is available, stop before
-the first write and ask the human to start or select an isolated worktree. Keep
-the same task worktree through Shape, planning, and serial implementation;
+Continue when the session is already rooted in, or Pi is already routed to, the
+task's linked worktree. Otherwise, derive a short task branch from the brief and
+use the available worktree lifecycle tool to create and activate it. If no safe
+worktree tool is available, stop before any other Shape work and ask the human
+to start or select an isolated worktree. Never work in the main-branch checkout.
+Keep the same task worktree through Shape, planning, and serial implementation;
 separate worktrees are only for explicitly parallel writers.
 
 Do not add orchestration or subagent requirements.
