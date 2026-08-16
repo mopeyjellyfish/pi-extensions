@@ -10,8 +10,11 @@ for human-and-agent communication:
   state, proposal or tradeoff, and the next human decision.
 
 Use the nearest `CONTEXT.md` vocabulary when one exists. The resources preserve
-exact technical content and prune duplicated or stale instructions. This is a
-skills-and-prompts package only; it has no extension or runtime dependency.
+exact technical content and prune duplicated or stale instructions. They apply
+the target repository's instructions and vocabulary, not this source
+repository's paths or tools. This is a skills-and-prompts package only; it has
+no extension or runtime dependency and does not automatically install companion
+extensions, agents, or tools.
 
 The writing approach is original and concise, with MIT-licensed inspiration
 from [mattpocock/skills](https://github.com/mattpocock/skills).
