@@ -41,5 +41,15 @@ and the `implement` skill:
 pi install git:github.com/mopeyjellyfish/pi-extensions
 ```
 
-Optional independent research or review uses one host-provided role only when
-the human requests it. The direct parent retains synthesis and verification.
+The selected Fable or Sol parent retains product and architecture judgment,
+pitch synthesis, slice design, approval, and verification. After worktree setup,
+it may use one bounded Researcher handoff for repository mapping, official
+primary-source research, or concise factual context; the handoff makes no
+product, architecture, or approval decision. If package agents are unavailable
+in an independent installation, the direct parent performs that work. Ambiguous
+routing uses `question`; no hidden Sol child is the default.
+
+When a slice changes module shape, planning uses `codebase-design` vocabulary
+when that method is installed, otherwise a direct-parent evidence-based
+boundary, seam, dependency, and test-surface assessment. This package does not
+automatically install companion extensions, agents, or tools.
