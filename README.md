@@ -34,16 +34,19 @@ It loads only:
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - complete [Engineering](packages/engineering/README.md) skills and prompts,
-  including `/implement`, `/debug`, `/improve`, code review, TDD, and design;
+  including `/just-do-it`, `/implement`, `/debug`, `/improve`, code review,
+  TDD, and design;
 - complete [Productivity](packages/productivity/README.md) skills and prompts,
   including `writing-for-agents` and `/wait-what`.
 
-The lifecycle is intentionally serial and parent-led. Worktree setup is the
-first Shape and planning action: Shape creates or selects an isolated linked
-task worktree before repository reads, discovery, research, or shaping
-questions, and planning verifies that route before reading planning context.
-Serial implementation reuses it, and no lifecycle stage works in the
-main-branch checkout.
+The lifecycle is parent-led and routes work by impact and uncertainty.
+`/just-do-it` delegates one explicit mechanical low-risk request after worktree
+setup; clear bounded work implements now; coordinated clear work plans first;
+and uncertain, hard-to-reverse, or risky work Shapes then plans. Shape and
+planning set up or verify an isolated linked task worktree before repository
+reads, discovery, research, or questions. Complete accepted plans execute in
+dependency order, with only planned independent lanes using separate worktrees
+and sole writers. No lifecycle stage works in the main-branch checkout.
 
 The human selects a Fable or Sol parent for Shape and planning; installation
 does not overwrite parent settings. The fixed child catalog is:

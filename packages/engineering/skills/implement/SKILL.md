@@ -1,98 +1,85 @@
 ---
 name: implement
 description: >-
-  Delivers one approved slice, bounded request, or confirmed bug outcome with
-  focused tests, required checks, and exact evidence.
+  Delivers accepted work in dependency order with focused proof, fixed review,
+  and bounded publication after explicit acceptance.
 ---
 
 # Implement
 
 Accept one approved slice, bounded request, or confirmed bug outcome. Read
-repository instructions, Git state, accepted intent, relevant public contracts,
-and the nearest tests. Preserve unrelated changes and identify the required
-completion checks before editing.
+repository instructions, Git state, and public contracts, then accepted intent
+and nearest tests before editing. Preserve unrelated changes and
+identify the required completion checks.
 
 Before any edit, verify that the session is rooted in, or Pi is routed to, an
-isolated linked worktree for this task. Reuse the same task worktree that holds
-the accepted pitch and plan. For a plan-less request, use the available
-worktree lifecycle tool to create and activate a short task branch. Never edit
-the main-branch checkout. If no safe worktree tool is available, stop before
-the first edit and ask the human to start or select an isolated worktree. Do
-not create a nested worktree when the session is already inside the correct
-linked worktree.
+isolated linked worktree. Reuse the same task worktree that holds the accepted
+pitch and plan. For a plan-less request, use safe worktree tooling to create and
+activate a short task branch. Never edit the main checkout. If no safe tooling
+is available, stop before editing and ask the human to provide an isolated
+worktree. Do not create a nested worktree when already in the correct one.
 
-When the root profile's fixed agents are available, keep the parent as the
-coordinator. **`worker`**, the only configured implementation child, routes
-standard work, plan-less bounded requests, confirmed bugs, and accepted hard
-work. A trivial bounded change — one obvious fix with one obvious focused
-check — may remain direct parent work. Launch `worker` with fresh context in the
-foreground (`async: false`), giving it the accepted pitch and plan paths, exact
-slice, current worktree, completion conditions, and required checks. Never
-silently override its configured model or thinking level. If fixed agents are
-unavailable, use the direct parent as executor so this package remains
-independently installable.
+## Select execution
 
-A Terra failure does not select another model. If `worker` cannot meet completion
-conditions, or a concrete constraint needs Sol, use `question` before any Sol
-run. State the evidence, expected benefit, and bounded Sol task, then wait for
-explicit approval of either a one-off Sol run or continuing in a Sol parent.
-A difficulty label alone is insufficient. Do not use Sol for repair unless the
-human has given that approval.
+Complete accepted plan execution follows dependency order without replanning.
+For a complete accepted plan, consume every accepted slice in planned dependency
+order without replanning between slices. A `parallel-ready` plan executes
+planned parallel lanes in isolated worktrees with sole write ownership only
+when their dependencies are complete. Do not add workers merely because work is
+large. Keep overlapping work serial. The parent
+synthesizes results and verifies evidence before accepting each unit. A plan-less
+bounded request, an approved slice, or a confirmed bug outcome may proceed as
+one unit.
 
-## Deliver the change
+When the configured `worker` capability is available, it is the only configured
+implementation child. The `worker` is the only configured implementation child
+for standard work, plan-less bounded requests, confirmed bugs, and accepted hard
+work. Launch one fresh foreground `worker` for standard work,
+plan-less bounded requests, confirmed bugs, and accepted hard work. Give it the
+accepted pitch and plan paths, exact slice, worktree,
+completion conditions, and required checks. A trivial bounded change — one
+obvious fix with one obvious focused check — may remain directly as the parent. If Worker is unavailable, the direct parent executes the unit.
 
-For behavior changes, use test-driven-development or the repository's equivalent
+Do not silently select a higher-capability role. A high-capability run requires
+an explicit approval stating evidence, expected benefit, and bounded task. Use bounded
+Utility or QA support only when it usefully shortens the critical path;
+the parent retains routing, synthesis, and approval.
+
+## Deliver each unit
+
+For behavior changes, follow test-driven-development or an equivalent
 red-green-refactor loop: make the smallest relevant test fail for the intended
-reason, implement only enough to pass, then refactor while green. For
-documentation, metadata, or mechanical work, use the smallest focused
-before-and-after validation instead of manufacturing a failing test.
+reason, implement enough to pass, then refactor while green. For documentation,
+metadata, or mechanical work, use the smallest focused before-and-after
+validation instead of manufacturing a failing test. For bugs, reproduce the
+observable failure, trace callers and sibling paths, fix the shared root cause,
+and leave the smallest useful regression test.
 
-For bugs, reproduce the observable failure, trace callers and sibling paths,
-fix the shared root cause, and leave the smallest useful regression test.
+After each coherent edit, run focused tests and required completion checks. At
+a completed unit, run required completion checks and inspect the diff for scope, package boundaries, test
+quality, security, cancellation, cleanup, and user-visible documentation.
+Build complete work evidence: changed files, red and green evidence or an
+explicit test exception, focused and required check results, residual risks, and
+delivery state.
 
-After each coherent edit, run focused tests. When the slice is complete, run
-the required completion checks from repository instructions. Inspect the final
-diff for scope, package boundaries, test quality, security, cancellation,
-cleanup, and user-visible documentation where applicable.
+## Fixed review and acceptance
 
-## Parallel-ready slices
+The complete work evidence document supports Review, Revise, Deepen verification,
+or Pause before acceptance. Formal review occurs at every completed unit. Run
+the fixed formal review through the configured
+`reviewer` capability with fresh read-only context when available. Give it the
+worktree, fixed-point intent (pitch, plan, or request), base ref and fixed diff,
+changed files, and verification evidence. Return material findings to the
+writer, reverify, and repeat this boundary as needed. If reviewer is
+unavailable, the direct parent reviews with `code-review`.
 
-Do not add workers merely because a task is large. A `parallel-ready` plan slice
-may use another `worker` only when the human requests parallel work, dependencies
-are clear, and every worker has an isolated worktree and sole write ownership.
-Keep overlapping slices serial. The parent integrates in plan order,
-synthesizes the result, and verifies evidence before accepting it.
+Present the evidence and an explicit **Accept and publish** action. Acceptance
+invokes `commit` and `open-pr` with no second mutation prompt. These focused
+delivery skills own publication; lifecycle guidance must not issue ad hoc Git
+commands. For a planned stack, `open-pr` must use `gh stack`; if focused
+delivery or required stack tooling is unavailable, fail closed, preserve local
+work and evidence, and state the recovery action.
 
-## Show main progress
-
-When the `todo` tool is available and the work has multiple material steps, use
-one compact parent-owned list and keep one item in progress. Update it at real
-milestones and after failures. The accepted plan remains authoritative; do not
-turn the todo list into a subagent task graph.
-
-## Finish
-
-Update an accepted plan checkbox only after its completion conditions hold.
-Build complete work evidence containing changed files, the red and green
-evidence or explicit test exception, focused and required check results,
-residual risks, and any separately authorized delivery action. Show that
-complete work evidence in the `question` tool's document field with these
-actions:
-
-1. **Review** — run **`reviewer`** once with fresh context as the formal
-   read-only review. Give it the worktree, fixed-point intent (pitch, plan, or
-   request), base ref and fixed diff, changed files, and verification evidence.
-   Return material findings to `worker`, reverify, and repeat the review
-   boundary as needed. Do not route fixes to Sol without the separate approved
-   Sol question. If `reviewer` is unavailable, the direct parent performs the
-   review with the `code-review` skill.
-2. **Revise** — apply the human's feedback, reverify, and show the evidence
-   again.
-3. **Deepen verification** — add one requested proof or investigate one named
-   uncertainty, then show the evidence again.
-4. **Pause** — leave verified work and durable artifacts unchanged for later
-   continuation.
-
-If the tool or document field is unavailable, show the complete evidence in
-conversation and ask the same four-way question. Do not infer authority to
-commit, push, merge, publish, deploy, or delete resources.
+Acceptance authorizes only the verified planned unit and named task branch. It
+does not authorize merge, deployment, release, plain force push, cleanup,
+destructive actions, or unrelated changes.
