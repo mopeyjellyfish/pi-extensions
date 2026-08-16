@@ -105,7 +105,7 @@ export function resolvePlaywrightCli(): string {
   try {
     return createRequire(import.meta.url).resolve("@playwright/cli/playwright-cli.js");
   } catch {
-    return "playwright-cli";
+    return LEASE_LAUNCHER;
   }
 }
 
@@ -178,12 +178,15 @@ function parsePosixProcesses(stdout: string): SystemProcess[] | undefined {
     const fields = line.trimStart().split(/[ \t]+/u);
     const pid = Number(fields[0]);
     const ppid = Number(fields[1]);
-    const startedAt = fields.slice(2, 7).join(" ");
+    const startedAtFields = fields.slice(2, 7);
+    const startedAt = startedAtFields.join(" ");
     const command = fields.slice(7).join(" ");
     if (
       !Number.isInteger(pid) ||
       !Number.isInteger(ppid) ||
-      !/^\S+ \S+ \d+ \d\d:\d\d:\d\d \d{4}$/u.test(startedAt) ||
+      startedAtFields.length !== 5 ||
+      startedAtFields.every((field) => !/^\d\d:\d\d:\d\d$/u.test(field)) ||
+      startedAtFields.every((field) => !/^\d{4}$/u.test(field)) ||
       command === ""
     ) {
       return undefined;

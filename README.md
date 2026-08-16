@@ -86,8 +86,9 @@ prevents circular Claude delegation. Read-only isolated calls keep it a review
 and second-opinion tool; enable full mode deliberately only if it proves useful.
 
 The installed `terra-worker`, `sol-worker`, and `fable-reviewer` profiles pin
-their own child models and thinking levels, with no fallback model. Every child
-stage starts with fresh context. `terra-worker` implements standard slices;
+their own child models and thinking levels, with no fallback model. Each profile
+receives `playwright_browser` for owned browser evidence. Every child stage
+starts with fresh context. `terra-worker` implements standard slices;
 `sol-worker` takes plan-flagged hard slices and any slice a Terra attempt
 failed, so a failed slice is never retried at the same tier. Claude Code and OpenAI Codex must already be signed in. The Git
 package does not edit user settings or bridge configuration.
