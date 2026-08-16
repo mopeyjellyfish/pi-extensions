@@ -82,7 +82,7 @@ One unit: `feat(git-conventions): expose atomic commit workflow`. Pull request p
 
 The renamed skill is loadable and packed, every prior commit safeguard still has a contract test, PR publication is no longer its responsibility, focused checks pass, and position 1 is published as PR #72 with verified evidence.
 
-## [ ] 002 — Add focused pull-request delivery and triage
+## [x] 002 — Add focused pull-request delivery and triage
 
 ### Outcome
 
@@ -139,7 +139,7 @@ One unit: `feat(github): add pull request delivery workflows`. Pull request posi
 
 Both skills are independently loadable, document the required external `gh stack` tooling, are packed and contract-tested, are reviewed for remote safety, and position 2 is published through a verified stack.
 
-## [ ] 003 — Streamline Shape and plan the whole delivery upfront
+## [x] 003 — Streamline Shape and plan the whole delivery upfront
 
 ### Outcome
 
@@ -194,7 +194,7 @@ One unit: `feat(feature-flow): streamline staged delivery planning`. Pull reques
 
 A fresh agent can produce and approve a short pitch and one complete plan, identify safe parallel work and PR order, publish accepted stages only through focused skills, and all focused/rebase checks pass.
 
-## [ ] 004 — Route work by impact and add `/just-do-it`
+## [x] 004 — Route work by impact and add `/just-do-it`
 
 ### Outcome
 

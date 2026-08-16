@@ -1,17 +1,17 @@
 # pi-engineering
 
 `@mopeyjellyfish/pi-engineering` is an independent skill-and-prompt package. It
-provides `implement` plus optional focused skills for TDD, design, debugging,
-domain language, review, and architecture discovery. It has no extension or
+provides `developing-changes`, `implement`, `/just-do-it`, and optional focused
+skills for TDD, design, debugging, domain language, review, and architecture
+discovery. It has no extension or
 runtime dependency.
 
 The root profile loads complete Engineering resources. It uses the installed
 Worker profile for standard, plan-less, and accepted hard work, then the
 installed Reviewer profile for formal read-only fixed-point review. A fixed
-agent being unavailable falls back to the direct parent. A Terra failure or a
-concrete Sol need requires a `question` with evidence, expected benefit, and a
-bounded task before explicit human approval; difficulty alone never selects
-Sol. `/debug` starts its skill in a dedicated worktree and uses the `question`
+agent being unavailable falls back to the direct parent. A higher-capability need requires a `question` with evidence, expected benefit,
+and a bounded task before explicit human approval; difficulty alone never
+selects that role. `/debug` starts its skill in a dedicated worktree and uses the `question`
 tool for focused intake:
 
 ```text
@@ -32,11 +32,33 @@ diff inspection, and verification. An independent installation without the
 root agent profiles uses the direct parent; it does not automatically provide
 companion extensions, agents, tools, or skills.
 
+`developing-changes` uses a four-route impact and uncertainty decision: a
+mechanical low-risk request goes to `/just-do-it`; one clear coherent outcome
+can implement now; coordinated clear work plans first; uncertain, hard-to-reverse,
+or risky work Shapes then plans. It uses uncertainty, reversibility, risk,
+affected boundaries, and coordination cost, not file count alone. It asks one
+focused question only at a material boundary.
+
+`/just-do-it <request>` sets up the worktree first and immediately gives one
+fresh Worker the explicit mechanical scope and objective before-and-after
+check. It stops and returns to the router for ambiguity, behavior design,
+security or migration risk, or scope expansion. Invocation grants bounded
+implementation, `commit`, and `open-pr` delivery after verification for its
+named branch only; it never grants merge, deployment, release, plain force
+push, cleanup, or unrelated changes. The parent inspects the diff and evidence;
+an independent installation falls back to the direct parent.
+
+For a complete accepted plan, `implement` consumes slices in dependency order
+without replanning and uses only planned parallel lanes with isolated worktrees
+and sole writers. Each completed unit receives fixed formal review. The explicit
+**Accept and publish** action invokes `commit` and `open-pr` without a second
+mutation prompt. Planned stacks require `gh stack`; unavailable delivery tools
+fail closed while preserving local work and recovery evidence.
+
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the
 root profile supplies `todo`, the parent uses it only for compact progress
-visibility. After verification, the complete evidence is available for review,
-revision, deeper verification, or pause.
+visibility.
 
 Install the complete independent package from a repository checkout:
 

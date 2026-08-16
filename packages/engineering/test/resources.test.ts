@@ -11,7 +11,7 @@ const REPOSITORY_ROOT = join(PACKAGE_ROOT, "..", "..");
 const read = (path: string) => readFile(join(PACKAGE_ROOT, path), "utf8");
 
 describe("engineering resources", () => {
-  it("routes root-profile work and review through fresh model-specific agents", async () => {
+  it("routes root-profile work and review through fresh capability roles", async () => {
     expect.hasAssertions();
     const [implement, diagnosing, domainModeling, tdd, readme] = await Promise.all([
       read("skills/implement/SKILL.md"),
@@ -30,9 +30,9 @@ describe("engineering resources", () => {
     );
     expect(implement).toMatch(/reviewer[^.]*unavailable[\s\S]*direct parent[^.]*`code-review`/iu);
     expect(implement).toMatch(
-      /question[\s\S]*evidence[\s\S]*expected benefit[\s\S]*bounded Sol task[\s\S]*explicit approval/iu,
+      /high-capability[\s\S]*explicit approval[\s\S]*evidence[\s\S]*expected benefit[\s\S]*bounded task/iu,
     );
-    expect(implement).not.toMatch(/difficulty[\s\S]{0,120}sol-worker|automatic[^.]*Sol/iu);
+    expect(implement).not.toMatch(/difficulty[\s\S]{0,120}automatic/iu);
     expect(implement).toMatch(/trivial[\s\S]*direct(ly)? as the parent|parent[\s\S]*trivial/iu);
     expect(implement).toMatch(/`worker`[\s\S]*fresh[\s\S]*foreground/iu);
     expect(implement).toMatch(/unavailable[\s\S]*direct parent/iu);
@@ -84,7 +84,9 @@ describe("engineering resources", () => {
     expect(manifest.peerDependencies).toBeUndefined();
     expect(paths).toEqual(
       expect.arrayContaining([
+        "skills/developing-changes/SKILL.md",
         "skills/implement/SKILL.md",
+        "skills/just-do-it/SKILL.md",
         "skills/test-driven-development/SKILL.md",
         "skills/diagnosing-bugs/SKILL.md",
         "skills/diagnosing-bugs/scripts/hitl-loop.template.sh",
@@ -97,6 +99,7 @@ describe("engineering resources", () => {
         "skills/codebase-design/DESIGN-IT-TWICE.md",
         "prompts/debug.md",
         "prompts/implement.md",
+        "prompts/just-do-it.md",
         "prompts/review-change.md",
       ]),
     );
@@ -300,7 +303,58 @@ describe("engineering resources", () => {
     expect(skill.slice(separatorIndex)).toMatch(/`test-driven-development` skill/iu);
   });
 
-  it("expands the /implement, /debug, and /improve prompts", async () => {
+  it("routes change requests by impact and uncertainty and keeps delivery bounded", async () => {
+    expect.hasAssertions();
+    const [router, implement, justDoIt, readme, rootReadme] = await Promise.all([
+      read("skills/developing-changes/SKILL.md"),
+      read("skills/implement/SKILL.md"),
+      read("skills/just-do-it/SKILL.md"),
+      read("README.md"),
+      readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
+    ]);
+
+    expect(router).toMatch(
+      /just[- ]do[- ]it[\s\S]*implement now[\s\S]*plan first[\s\S]*Shape then plan/iu,
+    );
+    expect(router).toMatch(
+      /uncertainty[\s\S]*reversib(?:ility|le)[\s\S]*risk[\s\S]*affected boundar(?:y|ies)[\s\S]*coordination/iu,
+    );
+    expect(router).toMatch(/not[\s\S]*file count alone/iu);
+    expect(router).toMatch(/one focused question[\s\S]*material boundary/iu);
+    expect(router).toMatch(
+      /`shape`[\s\S]*`planning-changes`[\s\S]*unavailable[\s\S]*direct parent[\s\S]*pitch[\s\S]*slice plan/iu,
+    );
+    expect(justDoIt).toMatch(/worktree setup[\s\S]*first/iu);
+    expect(justDoIt).toMatch(/exactly one[\s\S]*fresh[\s\S]*`worker`/iu);
+    expect(justDoIt).toMatch(/scope[\s\S]*authority[\s\S]*before[\s\S]*after[\s\S]*check/iu);
+    expect(justDoIt).toMatch(
+      /ambiguity[\s\S]*behavior design[\s\S]*security[\s\S]*migration[\s\S]*expanding scope/iu,
+    );
+    expect(justDoIt).toMatch(/direct parent/iu);
+    expect(justDoIt).toMatch(/Utility[\s\S]*QA[\s\S]*only when useful/iu);
+    expect(justDoIt).toMatch(/capability[\s\S]*review/iu);
+    expect(justDoIt).toMatch(/explicit approval[\s\S]*high-capability/iu);
+    expect(justDoIt).toMatch(/commit[\s\S]*push[\s\S]*pull request/iu);
+    expect(justDoIt).toMatch(
+      /not authorize[\s\S]*merge[\s\S]*deploy[\s\S]*plain[\s\S]*force[\s\S]*cleanup/iu,
+    );
+    expect(implement).toMatch(
+      /complete accepted plan[\s\S]*dependency order[\s\S]*without replanning/iu,
+    );
+    expect(implement).toMatch(/planned parallel lanes[\s\S]*worktrees/iu);
+    expect(implement).toMatch(/formal review[\s\S]*completed unit/iu);
+    expect(implement).toMatch(
+      /Accept and publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no second mutation prompt/iu,
+    );
+    expect(implement).toMatch(/planned stack[\s\S]*`gh stack`[\s\S]*fail closed/iu);
+    expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
+    for (const documentation of [readme, rootReadme]) {
+      expect(documentation).toMatch(/`\/just-do-it`/u);
+      expect(documentation).toMatch(/four-route|impact and uncertainty/iu);
+    }
+  });
+
+  it("expands the /implement, /debug, /improve, and /just-do-it prompts", async () => {
     expect.hasAssertions();
     const piPromptTemplates = (await import(
       pathToFileURL(
@@ -348,5 +402,14 @@ describe("engineering resources", () => {
     expect(piPromptTemplates.expandPromptTemplate("/improve checkout flow", templates)).toContain(
       "checkout flow",
     );
+    expect(piPromptTemplates.expandPromptTemplate("/just-do-it", templates)).toContain(
+      "Ask only for the mechanical request",
+    );
+    const justDoIt = piPromptTemplates.expandPromptTemplate(
+      "/just-do-it remove Y from all files",
+      templates,
+    );
+    expect(justDoIt).toContain("remove Y from all files");
+    expect(justDoIt).toContain("`just-do-it` skill");
   });
 });
