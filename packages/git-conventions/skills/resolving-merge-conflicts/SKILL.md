@@ -7,7 +7,7 @@ description: Resolve an in-progress Git merge or rebase conflict by recovering b
 
 Use the resolution sections only for an in-progress merge or rebase. The final
 publication section may also be used after a conflict-free merge or rebase has
-already completed. Compose `conventional-commit` for commit rules and
+already completed. Compose `commit` for commit rules and
 `git-rebase-base` for choosing and starting a rebase; do not repeat or bypass
 their methods.
 

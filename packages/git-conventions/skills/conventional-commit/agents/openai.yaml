@@ -1,4 +1,0 @@
-interface:
-  display_name: "Git Commits and Stacks"
-  short_description: "Create atomic commits and stacked pull requests"
-  default_prompt: "Use $conventional-commit to create validated Conventional Commits and publish approved review units with gh stack."

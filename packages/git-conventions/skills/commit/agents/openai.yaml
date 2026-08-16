@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commits"
+  short_description: "Create validated atomic commits"
+  default_prompt: "Use $commit to create validated atomic Conventional Commits."

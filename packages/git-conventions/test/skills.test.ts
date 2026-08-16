@@ -10,7 +10,7 @@ const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const execFileAsync = promisify(execFile);
 
 describe("git convention skills", () => {
-  it.each(["conventional-commit", "git-rebase-base", "resolving-merge-conflicts"])(
+  it.each(["commit", "git-rebase-base", "resolving-merge-conflicts"])(
     "ships the %s skill",
     async (name) => {
       expect.hasAssertions();
@@ -19,12 +19,18 @@ describe("git convention skills", () => {
     },
   );
 
+  it("removes the replaced conventional-commit skill", async () => {
+    expect.hasAssertions();
+    for (const path of ["SKILL.md", join("agents", "openai.yaml")]) {
+      await expect(
+        readFile(join(PACKAGE_ROOT, "skills", "conventional-commit", path), "utf8"),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+    }
+  });
+
   it("grounds Conventional Commits in the staged change and explicit authorization", async () => {
     expect.hasAssertions();
-    const skill = await readFile(
-      join(PACKAGE_ROOT, "skills", "conventional-commit", "SKILL.md"),
-      "utf8",
-    );
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8");
     expect(skill).not.toContain("TODO");
     expect(skill).toContain("AGENTS.md");
     expect(skill).toContain("git diff --cached");
@@ -38,7 +44,7 @@ describe("git convention skills", () => {
   it("plans safe atomic commit splits before staging", async () => {
     expect.hasAssertions();
     const [skill, readme] = await Promise.all([
-      readFile(join(PACKAGE_ROOT, "skills", "conventional-commit", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8"),
       readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
     ]);
 
@@ -72,10 +78,7 @@ describe("git convention skills", () => {
 
   it("detects intent-to-add entries before staging a split", async () => {
     expect.hasAssertions();
-    const skill = await readFile(
-      join(PACKAGE_ROOT, "skills", "conventional-commit", "SKILL.md"),
-      "utf8",
-    );
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8");
     expect(skill.match(/git diff --cached --quiet --ita-visible-in-index/gu)).toHaveLength(2);
 
     const repository = await mkdtemp(join(tmpdir(), "pi-git-conventions-"));
@@ -95,70 +98,42 @@ describe("git convention skills", () => {
     }
   });
 
-  it("uses gh stack for reviewable stacked pull requests", async () => {
+  it("keeps commit topology local and excludes pull-request publication", async () => {
     expect.hasAssertions();
     const [skill, readme, metadata] = await Promise.all([
-      readFile(join(PACKAGE_ROOT, "skills", "conventional-commit", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8"),
       readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
-      readFile(
-        join(PACKAGE_ROOT, "skills", "conventional-commit", "agents", "openai.yaml"),
-        "utf8",
-      ),
+      readFile(join(PACKAGE_ROOT, "skills", "commit", "agents", "openai.yaml"), "utf8"),
     ]);
 
-    expect(skill).toContain("## Publish reviewable changes with `gh stack`");
-    expect(skill).toContain("gh stack --version");
-    expect(skill).toContain('gh stack init --base "$trunk" "$bottom"');
-    expect(skill).not.toContain('gh stack init --base "$trunk" "$bottom" ... "$top"');
-    expect(skill).toContain("gh stack submit --auto");
-    expect(skill).toContain('gh stack add "$next"');
-    expect(skill).toMatch(/new worktree[^.]*does not inherit[^.]*dirty changes/iu);
-    expect(skill).toMatch(/mixed\s+changes[^.]*stop[^.]*approv[^.]*transfer/iu);
-    const publishSection = skill.slice(
-      skill.indexOf("## Publish reviewable changes with `gh stack`"),
-      skill.indexOf("## Stage one approved unit"),
-    );
-    const remotePublication = publishSection.indexOf("After every branch has one validated unit");
-    const ancestryCheck = publishSection.indexOf('git merge-base --is-ancestor "$lower" "$upper"');
-    const commitCountCheck = publishSection.indexOf('git rev-list --count "$lower..$upper"');
-    expect(ancestryCheck).toBeGreaterThanOrEqual(0);
-    expect(ancestryCheck).toBeLessThan(remotePublication);
-    expect(commitCountCheck).toBeGreaterThanOrEqual(0);
-    expect(commitCountCheck).toBeLessThan(remotePublication);
-    const metadataView = publishSection.indexOf('gh pr view "$pr_number" --json');
-    const metadataEdit = publishSection.indexOf('gh pr edit "$pr_number"');
-    expect(metadataView).toBeGreaterThan(publishSection.indexOf("gh stack submit --auto"));
-    expect(metadataEdit).toBeGreaterThan(metadataView);
-    expect(publishSection.indexOf('gh pr ready "$pr_number"')).toBeGreaterThan(metadataView);
-    expect(skill).toMatch(/actual title[^.]*Conventional Commit validator/iu);
-    expect(skill).toMatch(/body states[^.]*checks[^.]*risks/iu);
-    expect(skill).not.toMatch(/gh stack (?:submit|link)[^\n]*--open/iu);
-    expect(skill).toMatch(/`--open`[^.]*process[^.]*ready for review/iu);
-    expect(skill).toMatch(/already-linked[^.]*skipped[^.]*draft/iu);
-    expect(skill).toContain('gh pr ready "$pr_number"');
-    expect(skill).toMatch(/`gh pr ready`[^.]*explicit authority[^.]*draft status/iu);
-    expect(skill).toContain("gh stack link --base");
-    expect(skill).not.toMatch(/gh stack link[^\n]*\.\.\./u);
-    expect(skill).toContain("gh stack view --json");
-    expect(skill).toMatch(/one(?: new)? logical unit[^.]*branch[^.]*pull\s+request/iu);
-    expect(skill).toMatch(/Worktrunk[^.]*`gh stack link`/iu);
-    expect(skill).toMatch(/Worktrunk\s+worktree[^.]*branch directly below/iu);
-    expect(skill).toMatch(/branch arguments[^.]*push[^.]*create pull\s+requests/iu);
-    expect(skill).toMatch(/PR URLs[^.]*numeric ambiguity/iu);
-    expect(skill).toMatch(/successful commit[^.]*next child branch[^.]*before staging/iu);
-    expect(skill).toMatch(/Never edit[^.]*base\s+branch[^.]*independently/iu);
-    expect(skill).toMatch(/Never run `gh stack merge`[^.]*separate/iu);
-    expect(skill).toMatch(/Never run\s+`gh stack unstack`[^.]*separate/iu);
-    expect(readme).toContain("`gh stack`");
-    expect(metadata).toMatch(/stacked pull requests/iu);
+    expect(skill).not.toMatch(/gh (?:stack|pr)\b/iu);
+    expect(skill).not.toMatch(/pull[ -]request/iu);
+    expect(skill).not.toMatch(/git push|--force-with-lease/iu);
+    expect(readme).not.toContain("`gh stack`");
+    expect(metadata).not.toMatch(/stacked pull requests|publish/iu);
+    expect(metadata).toContain("$commit");
+    expect(skill).toContain('git switch -c "$next" "$lower"');
+    expect(skill).toMatch(/explicit authority[^.]*named branch creation/iu);
+    expect(skill).toContain("git merge-base --is-ancestor");
+    expect(skill).toContain("git rev-list --count");
+    expect(skill).toMatch(/branch directly below/iu);
+    expect(skill).toMatch(/one logical unit[^.]*branch/iu);
+    expect(skill).toMatch(/new\s+worktree[\s\S]*does not inherit[\s\S]*dirty changes/iu);
+    expect(skill).toMatch(/mixed\s+changes[\s\S]*stop[\s\S]*approv[\s\S]*transfer/iu);
+    expect(skill).toMatch(/Worktrunk[\s\S]*local branches/iu);
+  });
+
+  it("accepts explicit workflow-stage authority and preserves ad hoc authorization", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8");
+
+    expect(skill).toMatch(/explicit accepted workflow-stage authority[^.]*commit authority/iu);
+    expect(skill).toMatch(/ad hoc[^.]*explicitly requests the commit/iu);
   });
 
   it("suggests repository-aware branch names without inventing a standard", async () => {
     expect.hasAssertions();
-    const skill = await readFile(
-      join(PACKAGE_ROOT, "skills", "conventional-commit", "SKILL.md"),
-      "utf8",
-    );
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8");
     expect(skill).toContain("Branch naming is not part of Conventional Commits");
     expect(skill).toContain("`<type>/<kebab-slug>`");
     expect(skill).toContain("git check-ref-format --branch");
@@ -191,6 +166,8 @@ describe("git convention skills", () => {
     expect(manifestValue.files).toContain("THIRD_PARTY_NOTICES.md");
     expect(packedPaths).toEqual(
       expect.arrayContaining([
+        "skills/commit/SKILL.md",
+        "skills/commit/agents/openai.yaml",
         "skills/resolving-merge-conflicts/SKILL.md",
         "THIRD_PARTY_NOTICES.md",
       ]),
