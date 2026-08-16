@@ -33,7 +33,8 @@ It loads only:
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
-- `/implement` for model-routed implementation and verification.
+- `/implement` for model-routed implementation and verification;
+- `/debug` for an isolated, evidence-driven debugging loop.
 
 The lifecycle is intentionally serial and parent-led, with these execution
 profiles:
@@ -44,6 +45,9 @@ profiles:
 | Work           | GPT-5.6 Terra | medium   | fresh child for each accepted standard slice |
 | Escalation     | GPT-5.6 Sol   | high     | fresh child for hard or escalated slices     |
 | Review         | Fable 5       | high     | fresh read-only child when review starts     |
+
+For reported bugs, `/debug` uses its dedicated worktree workflow to build a
+reproduction, make the smallest repair through TDD, and verify the result.
 
 Set the parent model in `~/.pi/agent/settings.json` so `/shape` and `/plan` use
 Fable at medium effort:
@@ -201,7 +205,7 @@ when the task needs its capability.
 
 | Package                                                          | Add when you need                                                                 |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [`pi-engineering`](packages/engineering/README.md)               | Focused TDD, diagnosis, design, domain, or review skills beyond `implement`.      |
+| [`pi-engineering`](packages/engineering/README.md)               | Focused TDD, debugging, design, domain, or review skills beyond `implement`.      |
 | [`pi-feature-flow`](packages/feature-flow/README.md)             | Shape and planning without the root profile.                                      |
 | [`pi-git-conventions`](packages/git-conventions/README.md)       | Git delivery skills without the root profile.                                     |
 | [`pi-github`](packages/github/README.md)                         | GitHub CLI workflows without the root profile.                                    |
