@@ -312,6 +312,66 @@ describe("package contracts", () => {
     expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
   });
 
+  it("gives the Git agent a bounded skill-owned delivery contract", async () => {
+    expect.hasAssertions();
+    const prose = (await readFile(join(repositoryRoot, "agents", "git.md"), "utf8")).replaceAll(
+      /\s+/gu,
+      " ",
+    );
+
+    expect.soft(prose).toMatch(/Focus on the supplied Git and GitHub skills/iu);
+    expect.soft(prose).toMatch(/authenticated `gh` CLI methods from `github-cli`/iu);
+    expect
+      .soft(prose)
+      .toMatch(
+        /commit\/publish the worktree changes[^.]*worktree[^.]*branch[^.]*authority[^.]*intent[^.]*evidence/iu,
+      );
+    expect
+      .soft(prose)
+      .toMatch(
+        /explicit accepted authority[^.]*atomic units[^.]*Conventional Commit messages[^.]*stage[^.]*commit[^.]*push[^.]*create or update[^.]*pull request/iu,
+      );
+    expect
+      .soft(prose)
+      .toMatch(
+        /safe base updates\/rebases[^.]*merge-conflict workflows[^.]*collecting pull-request comments and reviews/iu,
+      );
+    expect
+      .soft(prose)
+      .toMatch(/does not implement product changes[^.]*independently resolve review findings/iu);
+    expect
+      .soft(prose)
+      .toMatch(/Never watch pull-request checks[^.]*Actions runs[^.]*CI[^.]*long-running status/iu);
+    expect
+      .soft(prose)
+      .toMatch(
+        /Never use `--watch`, `gh run watch`, polling, sleeps, servers, interactive editors/iu,
+      );
+    expect.soft(prose).toMatch(/one bounded structured verification of each mutation/iu);
+    expect.soft(prose).toMatch(/queued or pending CI[^.]*report the current state[^.]*hand off/iu);
+    expect
+      .soft(prose)
+      .toMatch(/transport failure[^.]*diagnose once[^.]*stop[^.]*recovery evidence/iu);
+  });
+
+  it("makes fresh-worktree setup and diagnose-before-rerun worker table stakes", async () => {
+    expect.hasAssertions();
+    const prose = (await readFile(join(repositoryRoot, "agents", "worker.md"), "utf8")).replaceAll(
+      /\s+/gu,
+      " ",
+    );
+
+    expect
+      .soft(prose)
+      .toMatch(
+        /fresh worktree[^.]*repository-defined runtime[^.]*dependency setup[^.]*before[^.]*test/iu,
+      );
+    expect.soft(prose).toMatch(/setup failure[^.]*not[^.]*red proof/iu);
+    expect.soft(prose).toMatch(/diagnose[^.]*failed check[^.]*before[^.]*rerun/iu);
+    expect.soft(prose).toMatch(/same failure[^.]*stop[^.]*inspect[^.]*complete failure/iu);
+    expect.soft(prose).toMatch(/focused checks[^.]*required completion gate[^.]*once/iu);
+  });
+
   it("documents the conservative subagent profile and its evaluation gate", async () => {
     expect.hasAssertions();
     const [readme, evaluation] = await Promise.all([

@@ -39,6 +39,12 @@ It loads only:
 - complete [Productivity](packages/productivity/README.md) skills and prompts,
   including `writing-for-agents` and `/wait-what`.
 
+The configured Git agent composes the focused Git and GitHub skills. Given a
+worktree, branch, authority, intent, and evidence, it derives atomic units and
+messages, stages, commits, pushes, and creates or updates the pull request. It
+returns after bounded structured verification; it does not watch CI or run
+long-lived commands.
+
 The lifecycle is parent-led and routes work by impact and uncertainty.
 `/just-do-it` delegates one explicit mechanical low-risk request after worktree
 setup; clear bounded work implements now; coordinated clear work plans first;
