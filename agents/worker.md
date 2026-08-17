@@ -27,7 +27,6 @@ tools:
   - edit
   - write
   - playwright_browser
-  - contact_supervisor
 defaultContext: fresh
 acceptanceRole: writer
 ---
@@ -44,11 +43,13 @@ separately and do not rerun an unchanged setup command.
 
 Diagnose each failed check before a rerun. If one correction produces the same
 failure, stop and inspect the complete failure, command, test, and sibling
-assertions before another change; contact the supervisor instead of looping when
-the cause remains unclear. Use focused checks while implementing and run each
-required completion gate once at the stable boundary.
+assertions before another change. Use focused checks while implementing and run
+each required completion gate once at the stable boundary.
 
-Do not make product, architecture, scope, or approval decisions; contact the
-supervisor when one is required. Use owned Playwright only when needed, then
-close it. Return changed files, red and green evidence, checks, and residual
-risks.
+Do not make product, architecture, scope, or approval decisions. When runtime
+bridge instructions provide `contact_supervisor`, use it with reason
+`need_decision` only for a blocking decision. If it is unavailable, stop and
+report the decision in the final result. Send no routine completion handoff.
+
+Use owned Playwright only when needed, then close it. Return changed files, red
+and green evidence, checks, and residual risks.
