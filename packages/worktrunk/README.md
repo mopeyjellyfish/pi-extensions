@@ -32,6 +32,14 @@ Create and activate preserve Worktrunk hooks and approval prompts. This package
 never adds `--yes` or retries hook-bearing operations. Review project hooks and
 approve them yourself with Worktrunk before retrying Pi's tool.
 
+Treat repository setup as part of activating a fresh worktree. Ignored
+dependencies and generated files do not normally carry across worktrees. Read
+the repository instructions and identify its declared runtime and dependencies.
+Before the first test or build, run the repository-defined setup once and verify
+that the required tool or dependency is available. Do not invent setup commands
+or assume another worktree's ignored files exist. If setup fails, diagnose the
+failure and do not rerun an unchanged command.
+
 Removal is deliberately narrower: it needs interactive confirmation, an exact
 HEAD from `worktree list`, a clean inactive worktree, preserves its branch, and
 uses `--no-hooks` with Worktrunk's foreground structured removal.
