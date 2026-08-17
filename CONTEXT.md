@@ -12,7 +12,11 @@
 - **worktree** — one Git checkout and working directory.
 - **pitch** — agreed problem, appetite, solution, and boundaries.
 - **plan** — ordered implementation slices derived from a pitch.
-- **slice** — one observable vertical outcome in a plan.
+- **vertical slice** — the smallest end-to-end behavior with a focused red and green proof.
+- **delivery unit** — one coherent review, validation, and publication boundary containing one or more dependent vertical slices.
+- **atomic commit** — one commit for a coherent change; it does not determine delivery-unit, branch, or pull-request count.
+- **branch** — the delivery unit's isolated change line by default.
+- **pull request** — the delivery unit's review and merge proposal by default.
 - **gate** — required approval or verification before proceeding.
 - **evidence** — observable output supporting a claim or decision.
 - **thinking effort** — the model reasoning level selected for a run.

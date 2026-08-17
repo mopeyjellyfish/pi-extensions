@@ -88,7 +88,7 @@ Every revision reruns its invalidated focused signal. The complete repository
 check still runs once after the final edit, regardless of reused intermediate
 evidence.
 
-## [ ] 001 — Plan vertical slices and right-sized delivery units
+## [x] 001 — Plan vertical slices and right-sized delivery units
 
 ### Outcome and requirement trace
 
@@ -181,7 +181,7 @@ A fresh planner can derive small testable vertical slices while selecting one
 coherent branch by default, rejecting a needless stack, and recording why a real
 split repays its cost.
 
-## [ ] 002 — Execute focused feedback and invalidation-aware verification
+## [x] 002 — Execute focused feedback and invalidation-aware verification
 
 ### Outcome and requirement trace
 
@@ -272,7 +272,7 @@ knows exactly when broader checks become necessary, performs one complete final
 gate, and does not create avoidable agents, worktrees, reviews, or validation
 cycles.
 
-## [ ] 003 — Publish stable units and diagnose before retry
+## [x] 003 — Publish stable units and diagnose before retry
 
 ### Outcome and requirement trace
 
