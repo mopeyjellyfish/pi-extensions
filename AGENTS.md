@@ -66,6 +66,14 @@ contracts may have changed.
 
 ## Development environment
 
+Treat repository setup as part of creating or activating a fresh linked
+worktree. Ignored dependencies, generated files, and local tool state do not
+normally carry across worktrees. Before the first test, build, or generated-file
+command, read the repository instructions, select the declared runtimes, run the
+declared dependency setup once, and verify the required tool is available. A
+setup failure is not behavioral test evidence. Diagnose it separately and do
+not rerun an unchanged command.
+
 Use Node from `.nvmrc` and Go from `.gvmrc`:
 
 ```sh
