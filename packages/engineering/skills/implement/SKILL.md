@@ -17,7 +17,10 @@ isolated linked worktree. Reuse the same task worktree that holds the accepted
 pitch and plan. For a plan-less request, use safe worktree tooling to create and
 activate a short task branch. Never edit the main checkout. If no safe tooling
 is available, stop before editing and ask the human to provide an isolated
-worktree. Do not create a nested worktree when already in the correct one.
+worktree. Do not create a nested worktree when already in the correct one. In a
+fresh worktree, follow the repository-defined runtime and dependency setup
+before the first test, build, or generated-file command. Verify the required
+tool is available and treat setup failures separately from behavior failures.
 
 ## Select execution
 
@@ -37,7 +40,7 @@ implementation child. The `worker` is the only configured implementation child
 for standard work, plan-less bounded requests, confirmed bugs, and accepted hard
 work. Launch one fresh foreground `worker` for standard work,
 plan-less bounded requests, confirmed bugs, and accepted hard work. Give it the
-accepted pitch and plan paths, exact slice, worktree,
+accepted pitch and plan paths, exact slice, worktree, repository-defined setup,
 completion conditions, and required checks. A trivial bounded change — one
 obvious fix with one obvious focused check — may remain directly as the parent. If Worker is unavailable, the direct parent executes the unit.
 

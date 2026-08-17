@@ -52,7 +52,10 @@ an independent installation falls back to the direct parent.
 
 For a complete accepted plan, `implement` consumes slices in dependency order
 without replanning and uses only planned parallel lanes with isolated worktrees
-and sole writers. Its executor loads and follows `test-driven-development` for
+and sole writers. A fresh worktree receives the repository-defined runtime and
+dependency setup before its first test or build; setup failures remain separate
+from behavioral red proof. Its executor loads and follows
+`test-driven-development` for
 behavioral work and `diagnosing-bugs` for unresolved failures; its formal
 reviewer loads and follows `code-review`. A serial delivery unit reuses one writer
 and worktree. Its validation ladder is focused slice proof, affected-boundary

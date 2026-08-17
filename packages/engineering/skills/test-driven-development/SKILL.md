@@ -14,6 +14,14 @@ lifecycle tool to create or activate the task worktree when needed. If safe
 worktree tooling is unavailable, stop before writing and ask the human to
 provide an isolated worktree.
 
+After entering a new worktree, read the repository instructions and perform its
+declared runtime and dependency setup before the first test. Ignored
+dependencies and generated files do not normally carry across worktrees. Run
+the declared setup once and verify the required tool is available; do not invent
+commands or assume another worktree's ignored files exist. A setup failure is
+not behavioral red proof. Diagnose it separately and do not rerun an unchanged
+setup command.
+
 A good test is falsifiable: it describes one observable capability through a
 public interface, uses an independent expected value, and would fail for a
 plausible wrong implementation. It survives internal refactoring. Use the narrowest stable
@@ -26,7 +34,10 @@ For each vertical behavior, use a narrow red, green, refactor sequence:
 1. Add the smallest behavior test with an independent expected value from
    accepted intent, a known literal, or a worked example.
 2. Run it and confirm the public seam fails for the intended behavioral reason,
-   not because of setup or syntax.
+   not because of setup or syntax. Diagnose a failed test before any rerun. If
+   one correction leaves the same failure, stop and inspect the complete
+   failure, command, test, and sibling assertions before another change; never
+   repeat an unchanged command without new evidence.
 3. Add only the minimum production behavior needed to pass.
 4. Run the focused test, then refactor while green.
 5. Repeat vertically, then run integration proof when dependent behaviors join.
