@@ -50,10 +50,19 @@ an independent installation falls back to the direct parent.
 
 For a complete accepted plan, `implement` consumes slices in dependency order
 without replanning and uses only planned parallel lanes with isolated worktrees
-and sole writers. Each completed unit receives fixed formal review. The explicit
-**Accept and publish** action invokes `commit` and `open-pr` without a second
-mutation prompt. Planned stacks require `gh stack`; unavailable delivery tools
-fail closed while preserving local work and recovery evidence.
+and sole writers. A serial delivery unit reuses one writer and worktree. Its
+validation ladder is focused slice proof, affected-boundary checks, integration
+proof, and stable delivery-unit required gates. Evidence is reused only while its
+covered surface is unchanged; every required full gate runs once at the stable
+boundary. One fixed formal review occurs there, and material revisions return to
+the same writer with invalidated evidence rerun. Delegation must provide a
+critical-path, parent-context, or independent-evidence benefit. Bounded one-unit
+routes do not gain forecast overhead. Pause and report material coordination
+variance against an accepted forecast when one exists, or against the bounded
+request when none does. The explicit **Accept and publish** action invokes
+`commit` and `open-pr` without a second mutation prompt. Planned stacks require
+`gh stack`; unavailable delivery tools fail closed while preserving local work
+and recovery evidence.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the
