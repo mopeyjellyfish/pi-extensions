@@ -46,7 +46,9 @@ and uncertain, hard-to-reverse, or risky work Shapes then plans. Shape and
 planning set up or verify an isolated linked task worktree before repository
 reads, discovery, research, or questions. Complete accepted plans execute in
 dependency order, with only planned independent lanes using separate worktrees
-and sole writers. No lifecycle stage works in the main-branch checkout.
+and sole writers. A coherent delivery unit normally keeps its atomic commits in
+one branch and pull request; a stack needs independent value and check viability
+at each position. No lifecycle stage works in the main-branch checkout.
 
 The human selects a Fable or Sol parent for Shape and planning; installation
 does not overwrite parent settings. The fixed child catalog is:

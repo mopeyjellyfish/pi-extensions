@@ -25,14 +25,23 @@ target.
 
 `open-pr` owns approved pull-request delivery. It preflights authenticated
 repository and explicit base/head state, inspects commit, diff, checks, and
-evidence, and pushes only the approved branch. Standalone delivery creates or
-updates one PR. Planned stack delivery requires `gh stack`: Worktrunk chains use
+evidence, and pushes only the approved branch. One coherent delivery unit uses a
+standalone PR by default and may contain multiple verified atomic commits. A
+stack needs independent value and check viability at each position plus justified
+integration, CI fan-out, and cascade cost; stack positions retain one-commit
+review units. Publication operations wait for the stable unit and are batched
+where safe. Planned stack delivery requires `gh stack`: Worktrunk chains use
 `gh stack link`, locally tracked stacks use `gh stack submit`, and approved
 lower-branch changes use checked `gh stack sync` with expected-remote
 `--force-with-lease`, never plain force. It verifies link/sync output and
 structured PR metadata after publication. Its approachable body records problem,
 outcome, implementation details, tests and evidence, risks, and stack
 dependencies. It never merges or changes stack topology destructively.
+
+For a failed check, inspect configuration, triggering event, current state, and
+bounded logs before one corrective action. Never treat a blind rerun as
+diagnosis. Pause and report material coordination variance against an accepted
+forecast before more remote mutation.
 
 `triage` owns bounded review-feedback processing. It resolves one explicit,
 current-branch, or conversation-recorded pull request; collects comments,

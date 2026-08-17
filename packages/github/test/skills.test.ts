@@ -156,8 +156,8 @@ describe("GitHub CLI skill", () => {
     expect(skill).toContain("obsolete");
     expect(skill).toContain("duplicate");
     expect(skill).toContain("question-only");
-    expect(skill).toContain("implement`, then `commit`, then `open-pr`");
-    expect(skill).toContain("implement, commit, or open-pr is unavailable");
+    expect(skill).toMatch(/`implement`[\s\S]*then `commit`[\s\S]*then `open-pr`/iu);
+    expect(skill).toMatch(/implement, commit, or open-pr is\s+unavailable/iu);
     expect(skill).toContain("inventory and recovery evidence");
     expect(skill).toContain("Draft");
     expect(skill).toContain("addressed and verified");
@@ -166,6 +166,43 @@ describe("GitHub CLI skill", () => {
     expect(skill).toContain("Never infer approval");
     expect(skill).toContain("Never merge");
     expect(skill).toContain("No destructive action");
+  });
+
+  it("publishes stable delivery units and diagnoses failures before one correction", async () => {
+    expect.hasAssertions();
+    const [openPr, triage, actions, readme] = await Promise.all([
+      readResource("open-pr"),
+      readResource("triage"),
+      readSkillFile("references/actions.md"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+    ]);
+
+    expect(openPr).toMatch(/standalone[^.]*one coherent delivery unit[^.]*default/iu);
+    expect(openPr).toMatch(/standalone pull request[^.]*multiple verified atomic commits/iu);
+    expect(openPr).toMatch(/one-commit review units/iu);
+    expect(openPr).toMatch(
+      /independent value[\s\S]*check\s+viability[\s\S]*integration[\s\S]*fan-out[\s\S]*cascade/iu,
+    );
+    expect(openPr).toMatch(/batch[\s\S]*stable delivery unit/iu);
+    expect(openPr).toMatch(
+      /one corrective action[\s\S]*configuration[\s\S]*triggering\s+event[\s\S]*current\s+state[\s\S]*bounded logs/iu,
+    );
+    expect(openPr).toMatch(/do not blindly rerun/iu);
+    expect(openPr).toMatch(/materially exceeds[\s\S]*forecast[\s\S]*pause[\s\S]*report/iu);
+    expect(triage).toMatch(
+      /configuration[\s\S]*triggering event[\s\S]*current state[\s\S]*bounded logs/iu,
+    );
+    expect(actions).toMatch(
+      /configuration[\s\S]*triggering\s+event[\s\S]*current state[\s\S]*bounded logs/iu,
+    );
+    expect(readme).toMatch(/one coherent delivery unit[\s\S]*multiple verified atomic commits/iu);
+
+    for (const resource of [openPr, triage]) {
+      expect(resource).not.toMatch(
+        /pi-extensions|packages\/|npm (?:run|test)|\bFable\b|\bSol\b|GPT-\d|Opus/iu,
+      );
+      expect(resource).not.toMatch(/\/(?:Users|home|tmp)\//u);
+    }
   });
 
   it("covers bounded GitHub Actions status and failure inspection", async () => {
