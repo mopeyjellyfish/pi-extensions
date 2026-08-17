@@ -95,6 +95,14 @@ gh run watch "$run_id" --compact --exit-status
 For a non-blocking status request, use one `gh run view` call instead. Do not
 start an indefinite watcher in a non-interactive session.
 
+## Diagnose before correction
+
+Before one corrective action, inspect the workflow configuration, triggering
+event, current state, and bounded logs. Use the structured run summary and
+failed logs above to identify the current failure. Do not blindly rerun a failed
+event: a rerun without new evidence is not diagnosis. Stop and report material
+coordination variance against an accepted forecast before more mutation.
+
 ## Rerun, cancel, or dispatch
 
 These commands mutate Actions state and can consume runner time. Show the run

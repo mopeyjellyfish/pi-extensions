@@ -44,14 +44,24 @@ Do not infer approval from silence, a positive review, a resolved thread, or a
 passing check. A request that changes product scope, architecture, authority,
 or the accepted plan needs a parent decision before it is actionable.
 
+## Diagnose failed checks before correction
+
+Before correcting a failed check, inspect its configuration, triggering event,
+current state, and bounded logs. Use the current failure as evidence; do not
+blindly rerun it. If one authorized correction is justified, record the cause
+and expected verification first. When an accepted forecast exists, pause and report
+material coordination variance against it before further remote mutation.
+Without one, compare growth with the approved delivery unit.
+
 ## Fix valid findings
 
 For each actionable item, draft the intended response and required verification
-before changing code. Route every valid fix through `implement`, then `commit`, then `open-pr`.
-That route must retain the accepted scope, worktree isolation,
+before changing code. Route every valid fix through `implement`, then `commit`,
+then `open-pr`. That route must retain the accepted scope, worktree isolation,
 focused failing/passing test evidence, commit authority, and explicit
-pull-request publication authority. If implement, commit, or open-pr is unavailable, stop with inventory and recovery evidence:
-the classified item, source URL or thread ID, intended fix and verification, unavailable route step,
+pull-request publication authority. If implement, commit, or open-pr is
+unavailable, stop with inventory and recovery evidence: the classified item,
+source URL or thread ID, intended fix and verification, unavailable route step,
 and safe next action. Do not make an ad hoc fix, commit, push, or PR update from
 this skill.
 

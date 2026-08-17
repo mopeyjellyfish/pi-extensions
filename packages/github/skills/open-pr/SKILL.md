@@ -30,6 +30,24 @@ shared low-level commands; do not duplicate that command guide here.
    confirm the head is the checked-out approved branch, and identify whether a
    PR already exists. Do not choose a base by recency.
 
+## Choose publication topology
+
+A standalone pull request for one coherent delivery unit is the default. One
+standalone pull request may contain multiple verified atomic commits; atomic
+commit boundaries do not require separate branches or pull requests. Batch
+related publication operations only after the stable delivery unit has its
+required evidence and fixed review.
+
+Plan a stack only when every position has independent value, required check
+viability, an integration dependency, CI fan-out, and justified cascade cost.
+Otherwise publish fewer delivery units. The one-commit review units safeguard
+applies to each stack position and remains unchanged.
+
+If observed coordination materially exceeds an accepted forecast, when one
+exists, pause and report the variance before another remote mutation. Without a
+forecast, compare growth with the approved delivery unit. Do not change delivery
+topology without new authority.
+
 ## Draft the reviewed body
 
 Respect a repository PR template. Draft the exact title and body before any
@@ -137,9 +155,13 @@ delete a branch, release, deploy, or change repository settings.
 
 ## Bounded recovery
 
-Make one inspected correction attempt only for a known, authorized metadata
-mismatch. Do not blindly retry authentication, validation, push, rate-limit, or
-remote failures. On failure, stop with bounded recovery evidence: repository,
-base/head, completed mutation or lack of one, PR URL if created, exact safe
-next action, and a bounded error summary. Preserve local commits and do not
-amend, reset, rebase, or change stack topology without new authority.
+This bounded recovery starts only after diagnosis. Before one corrective action,
+diagnose the current failure from configuration, the triggering event, current
+state, and bounded logs. Make one inspected, authorized correction only for a
+known mismatch. Do not blindly rerun a failed event or retry authentication,
+validation, push, rate-limit, or remote failures;
+a rerun without new evidence is not diagnosis. On failure, stop with bounded
+recovery evidence: repository, base/head, completed mutation or lack of one, PR
+URL if created, exact safe next action, and a bounded error summary. Preserve
+local commits and do not amend, reset, rebase, or change stack topology without
+new authority.
