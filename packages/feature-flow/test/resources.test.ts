@@ -37,6 +37,11 @@ describe("feature-flow resources", () => {
     expect(shape).toMatch(/exceptional high-capability role requires explicit[\s\S]*approval/iu);
     expect(shape).toMatch(/required `gh stack`[\s\S]*fails? closed[\s\S]*publication/iu);
     expect(shape).toMatch(/continue[\s\S]*pitch-to-plan handoff[\s\S]*without publishing/iu);
+    expect(shape).toMatch(
+      /separate optional execution-mode question[\s\S]*checkpointed[\s\S]*default[\s\S]*accept-all preference/iu,
+    );
+    expect(shape).toMatch(/tool[^.]*unavailable[\s\S]*cancels[\s\S]*checkpointed[^.]*default/iu);
+    expect(shape).toMatch(/preference[^.]*not[^.]*implementation authority/iu);
 
     expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
     expect(planning).toMatch(
@@ -65,6 +70,18 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/`implement` is unavailable[\s\S]*direct\s+parent/iu);
     expect(planning).toMatch(/`gh stack link`[\s\S]*Worktrunk-managed/iu);
     expect(planning).toMatch(/`gh stack view --json`[\s\S]*local tracked view/iu);
+    expect(planning).toMatch(
+      /repeat[^.]*execution mode[\s\S]*whole-plan approval[\s\S]*accept-all authority/iu,
+    );
+    expect(planning).toMatch(
+      /accept-all[^.]*named accepted plan[^.]*merge[^.]*release[^.]*deployment[^.]*destructive cleanup[^.]*unrelated work/iu,
+    );
+    expect(planning).toMatch(
+      /accepted intent[^.]*without[^.]*pitch[^.]*checkpointed[^.]*explicitly selected accept-all/iu,
+    );
+    expect(planning).toMatch(
+      /whole-plan\s+approval\s+presentation[^.]*question[^.]*selected\s+execution\s+mode/iu,
+    );
 
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
     expect(pitch).toMatch(/## Problem and evidence/iu);
@@ -72,6 +89,9 @@ describe("feature-flow resources", () => {
     expect(pitch).toMatch(/## Boundaries and no-gos/iu);
     expect(pitch).toMatch(/## Decision-changing research and risks/iu);
     expect(pitch).toMatch(/## Authority/iu);
+    expect(pitch).toMatch(
+      /execution mode[^.]*checkpointed[^.]*default[^.]*accept-all preference/iu,
+    );
     expect(pitch).toMatch(/## Observable acceptance criteria/iu);
     expect(pitch).not.toMatch(
       /^## (?:Executive summary|Appetite|Research and prior art|Solution|Fixed decisions|Rabbit holes)$/imu,
@@ -80,6 +100,9 @@ describe("feature-flow resources", () => {
     expect(plan).toMatch(/^---\nstatus: draft\n---/u);
     expect(plan).toMatch(/complete[\s\S]*delivery plan[\s\S]*before[\s\S]*implementation/iu);
     expect(plan).toMatch(/critical path[\s\S]*dependencies[\s\S]*lanes/iu);
+    expect(plan).toMatch(
+      /execution mode[^.]*checkpointed[^.]*default[^.]*accept-all[\s\S]*whole-plan approval/iu,
+    );
     expect(plan).toMatch(/## \[ \] 001 — Observable vertical outcome/u);
     expect(plan).toMatch(/Seam and files/iu);
     expect(plan).toMatch(/Execution lane and ownership/iu);
@@ -98,6 +121,10 @@ describe("feature-flow resources", () => {
       /fails closed for publication[\s\S]*continues[\s\S]*without publishing/iu,
     );
     expect(readme).toMatch(/independent installation[\s\S]*direct parent/iu);
+    expect(readme).toMatch(
+      /separate optional execution-mode question[\s\S]*checkpointed[^.]*default[\s\S]*accept-all[^.]*preference/iu,
+    );
+    expect(readme).toMatch(/whole-plan approval[^.]*accept-all authority/iu);
 
     for (const resource of [shape, planning, plan, readme]) {
       expect(resource).not.toMatch(

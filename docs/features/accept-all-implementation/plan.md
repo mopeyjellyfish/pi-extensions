@@ -6,9 +6,9 @@ status: accepted
 
 ## Delivery topology
 
-| Delivery unit | Branch                                | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                                      |
-| ------------- | ------------------------------------- | ----------------- | --------------- | ------------ | -------------------------------------------------------- |
-| 1             | `feat/implement-continuation-prompt`  | `main`            | `001`, `002`    | none         | serial; current isolated worktree; one Worker owns edits |
+| Delivery unit | Branch                               | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                                      |
+| ------------- | ------------------------------------ | ----------------- | --------------- | ------------ | -------------------------------------------------------- |
+| 1             | `feat/implement-continuation-prompt` | `main`            | `001`, `002`    | none         | serial; current isolated worktree; one Worker owns edits |
 
 The planning document shares the implementation delivery unit and existing pull
 request #79. This follow-up adds one atomic commit to the standalone branch. It
@@ -34,7 +34,7 @@ Pause before further publication if the work requires a fifth option in an
 existing four-option approval question, broad authority outside the accepted
 plan, a new runtime dependency, or another delivery unit.
 
-## [ ] 001 — Record and approve an optional implementation mode
+## [x] 001 — Record and approve an optional implementation mode
 
 ### Outcome and requirement trace
 
@@ -75,8 +75,7 @@ the selected mode as part of whole-plan approval.
 ### Green proof and checks
 
 Run `npm --workspace @mopeyjellyfish/pi-feature-flow test`. A revision to the
-execution-mode terms invalidates this proof and the integration proof in slice
-002.
+execution-mode terms invalidates this proof and the integration proof in slice 002.
 
 ### Atomic commit and pull request
 
@@ -92,7 +91,7 @@ pull request #79.
 - Accept-all authority is bounded to the named accepted plan and excludes merge,
   release, deployment, destructive cleanup, and unrelated work.
 
-## [ ] 002 — Execute accepted plans without routine prompts when authorized
+## [x] 002 — Execute accepted plans without routine prompts when authorized
 
 ### Outcome and requirement trace
 

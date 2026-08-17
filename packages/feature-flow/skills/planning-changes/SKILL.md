@@ -17,9 +17,11 @@ planning work and ask the human to provide an isolated worktree. Never use the
 main-branch checkout.
 
 After routing, read the relevant instructions, public contracts, and tests.
-Create or update `docs/features/<slug>/plan.md` from
-`../shape/templates/plan.md` with `status: draft`, unless the target repository
-defines another feature-document location.
+For accepted intent without a pitch, use checkpointed implementation unless the
+human explicitly selected accept-all. Create or update
+`docs/features/<slug>/plan.md` from `../shape/templates/plan.md` with
+`status: draft`, unless the target repository defines another feature-document
+location.
 
 ## Plan complete delivery
 
@@ -43,10 +45,19 @@ active lanes, delivery-unit and pull-request count, integration points, expensiv
 gates, and likely cascade cost. Predeclare
 an invalidation map: focused slice proof, affected-boundary checks, integration
 proof, and required stable-unit gates. Reuse evidence only while its covered
-surface is unchanged. If observed coordination materially exceeds the forecast,
-pause before further publication, show the variance, simplify the remaining
-topology, and seek fresh approval only when delivery boundaries or authority
-change.
+surface is unchanged. For checkpointed plans, if observed coordination
+materially exceeds the forecast, pause before further publication, show the
+variance, simplify the remaining topology, and seek fresh approval only when
+delivery boundaries or authority change.
+
+Repeat the pitch's selected execution mode in the complete plan: checkpointed
+implementation remains the default, and accept-all remains a preference until
+whole-plan approval confirms accept-all authority. State that accept-all
+authority applies only to the named accepted plan and never authorizes merge,
+release, deployment, destructive cleanup, or unrelated work. For an accepted
+accept-all plan, every material forecast variance returns control to the human,
+even when delivery boundaries and authority do not change. Fresh approval is
+required only when delivery boundaries or authority change.
 
 For every slice record its observable outcome and requirement trace, public seam
 and files, dependencies, execution lane/worktree ownership, red proof, green
@@ -67,6 +78,8 @@ Show the whole plan document, not a summary or link, with:
 3. **Deepen**
 4. **Independent review**
 
+The whole-plan approval presentation and question must name the selected
+execution mode so approval explicitly confirms it. Do not add a fifth option.
 If the tool or document field is unavailable, show the whole plan in
 conversation and ask the same question. Require explicit human approval of the
 whole plan; one slice or a summary is insufficient.

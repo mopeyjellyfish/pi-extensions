@@ -34,6 +34,13 @@ delivery units: a delivery unit is one review, validation, and publication
 boundary, not a commit-count rule. Planning documents share the implementation
 delivery unit's publication unless they have independent review or merge value.
 
+Ask a separate optional execution-mode question: **Checkpointed implementation
+(default)** or **Accept-all implementation**. Do not add an option to the
+four-option pitch approval question. If the question tool is unavailable or the
+human cancels or skips it, use checkpointed implementation by default. Record
+an accept-all preference in the pitch Authority section, but treat that
+preference as not implementation authority until complete-plan approval.
+
 Create `docs/features/<slug>/pitch.md` from `templates/pitch.md` with
 `status: draft`, unless the target repository defines another feature-document
 location. Show the complete pitch document, not a summary or link, with:

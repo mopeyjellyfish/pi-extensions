@@ -29,7 +29,10 @@ Omit this section's entries when none do.
 ## Authority
 
 State parent-owned product and architecture decisions and the bounded authority
-needed for approved delivery. Never infer remote, release, or destructive authority.
+needed for approved delivery. Record the execution mode: checkpointed
+implementation (default) or an accept-all preference. The preference is not
+implementation authority until whole-plan approval. Never infer remote, release,
+or destructive authority.
 
 ## Observable acceptance criteria
 
