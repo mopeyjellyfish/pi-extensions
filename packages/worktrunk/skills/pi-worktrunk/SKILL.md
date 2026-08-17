@@ -21,6 +21,13 @@ Pi extension, not an official Worktrunk integration.
 3. `worktree` is sequential. A successful create or activate can be followed
    by normal Pi file or agent-Bash tools in the same assistant tool batch.
 4. Use `action: "status"` if you need to verify the active route explicitly.
+5. Treat repository setup as part of activating a fresh linked worktree. Ignored
+   dependencies and generated files do not normally carry across worktrees.
+   Read the repository instructions and identify its declared runtime and
+   dependencies. Before the first test or build, run the repository-defined
+   setup once and verify that its required tool or dependency is available. Do
+   not invent a setup command or assume another worktree's ignored files exist.
+   If setup fails, diagnose that failure and do not rerun an unchanged command.
 
 The extension keeps Worktrunk as the lifecycle authority. Do not replace its
 configuration, worktree paths, hooks, or approvals with direct Git commands.
