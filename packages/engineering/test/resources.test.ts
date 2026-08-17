@@ -37,6 +37,9 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/`worker`[\s\S]*fresh[\s\S]*foreground/iu);
     expect(implement).toMatch(/unavailable[\s\S]*direct parent/iu);
     expect(implement).toMatch(/repository instructions[\s\S]*Git\s+state[\s\S]*public contracts/iu);
+    expect(implement).toMatch(
+      /fresh worktree[\s\S]*repository-defined runtime[\s\S]*dependency setup[\s\S]*before[^.]*test/iu,
+    );
     expect(implement).toMatch(/before[^.]*edit[\s\S]*isolated[^.]*worktree/iu);
     expect(implement).toMatch(/never[^.]*main[^.]*checkout/iu);
     expect(implement).toMatch(/same[^.]*worktree[\s\S]*pitch[\s\S]*plan/iu);
@@ -87,12 +90,22 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/critical-path[^.]*parent-context[^.]*independent evidence/iu);
     expect(implement).toMatch(/materially exceeds[\s\S]*forecast[\s\S]*pause/iu);
     expect(tdd).toMatch(/vertical behavior[^.]*red[^.]*green[^.]*refactor/iu);
+    expect(tdd).toMatch(
+      /new worktree[\s\S]*repository instructions[\s\S]*runtime[\s\S]*dependency setup[\s\S]*before[^.]*test/iu,
+    );
+    expect(tdd).toMatch(/setup failure[^.]*not[^.]*red proof/iu);
+    expect(tdd).toMatch(
+      /diagnose[^.]*failed test[^.]*before[^.]*rerun[\s\S]*same failure[\s\S]*stop/iu,
+    );
     expect(router).toMatch(/one bounded delivery unit[\s\S]*no\s+forecast or topology overhead/iu);
     expect(justDoIt).toMatch(
       /one bounded delivery unit[\s\S]*no\s+forecast or topology overhead/iu,
     );
     expect(readme).toMatch(
       /validation ladder[\s\S]*affected-boundary[\s\S]*integration[\s\S]*stable delivery-unit/iu,
+    );
+    expect(readme).toMatch(
+      /fresh worktree[\s\S]*runtime[\s\S]*dependency setup[\s\S]*first test/iu,
     );
 
     for (const resource of [implement, tdd, router, justDoIt]) {
