@@ -1,8 +1,8 @@
 ---
 name: implement
 description: >-
-  Delivers accepted work in dependency order with focused proof, fixed review,
-  and bounded publication after explicit acceptance.
+  Delivers accepted work and continues accepted plans through explicit
+  checkpoints, focused proof, fixed review, and bounded publication.
 ---
 
 # Implement
@@ -107,3 +107,28 @@ work and evidence, and state the recovery action.
 Acceptance authorizes only the verified planned unit and named task branch. It
 does not authorize merge, deployment, release, plain force push, cleanup,
 destructive actions, or unrelated changes.
+
+## Continue an accepted plan
+
+When a complete accepted plan has another delivery unit after the current unit
+is accepted and committed, and any authorized publication has completed, the
+parent summarizes progress and explains the next planned unit: its observable outcome, dependencies and
+readiness, intended proof and checks, and place in remaining plan progress. Then
+use the `question` tool with exactly these actions: **Continue**, **Review next
+unit**, and **Discuss**. If `question` is unavailable or the human cancels,
+present the same three choices in conversation, wait, and do not start the next
+unit.
+
+**Continue** launches the next ready delivery unit or planned ready lane set in
+accepted dependency order without replanning. **Review next unit** pauses
+implementation and reviews that next unit against the accepted pitch and plan;
+it does not duplicate the completed unit's fixed formal review. **Discuss**
+pauses execution for questions or potential changes. Do not silently alter the
+accepted plan. If discussion changes accepted scope, delivery boundaries,
+dependencies, or authority, route through the appropriate planning and approval
+flow before implementation resumes. After **Review next unit** or **Discuss**
+finishes without an accepted plan change, control returns to the same checkpoint.
+
+Repeat this checkpoint until no planned delivery units remain, then report plan
+completion rather than prompting for a nonexistent next unit. Plan-less requests
+and single-unit plans must not gain a next-unit prompt.
