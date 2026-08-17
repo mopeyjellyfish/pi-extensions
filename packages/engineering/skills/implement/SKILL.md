@@ -54,13 +54,17 @@ instead of creating planning overhead.
 
 ## Deliver each unit
 
-For each vertical behavior, use a narrow red-green-refactor loop: make the
-smallest relevant public-seam test fail for the intended reason, implement
-enough to pass, refactor while green, then join dependent behavior with
-integration proof. For documentation, metadata, or mechanical work, use the
-smallest focused before-and-after validation instead of manufacturing a failing
-test. For bugs, reproduce the observable failure, trace callers and sibling
-paths, fix the shared root cause, and leave the smallest useful regression test.
+For behavioral implementation, the executor must load and follow
+`test-driven-development`. If that skill is unavailable, the direct parent
+requires intended failing and passing proof at the approved public seam.
+Documentation, metadata, and mechanical work use the smallest focused validation
+that detects the intended error; do not manufacture a behavioral test.
+
+A confirmed bug outcome consumes the diagnosis evidence and regression seam
+from `diagnosing-bugs`. If the cause or outcome is unconfirmed, load and follow
+`diagnosing-bugs` before implementation. If that skill is unavailable, the
+direct parent first requires a reproducible symptom, identified cause, and
+regression seam.
 
 Use focused tests before required completion checks. When an accepted plan
 exists, use its invalidation map as the validation ladder; otherwise derive the
@@ -72,22 +76,23 @@ complete required-check set once at the stable delivery-unit boundary; no reused
 intermediate evidence removes that final gate. After a revision, rerun only its
 invalidated evidence plus the required stable-boundary gate.
 
-At the stable delivery-unit boundary, inspect the diff for scope, package
-boundaries, test quality, security, cancellation, cleanup, and user-visible
-documentation. Build complete work evidence: changed files, red and green
-evidence or an explicit test exception, focused and required check results,
-residual risks, and delivery state.
+At the stable delivery-unit boundary, the parent inspects the final diff for
+scope, package, release, dependency, and artifact hygiene, plus security,
+cancellation, cleanup, and user-visible documentation. Build complete work evidence: changed files, red and
+green evidence or an explicit test exception, focused and required check
+results, residual risks, and delivery state.
 
 ## Fixed review and acceptance
 
 The complete work evidence document supports Review, Revise, Deepen verification,
 or Pause before acceptance. One fixed formal review occurs at each stable
-completed delivery unit. Run the fixed formal review through the configured
-`reviewer` capability with fresh read-only context when available. Give it the
+completed delivery unit. When a configured `reviewer` capability exists, it
+must load and follow `code-review` with fresh read-only context. Give it the
 worktree, fixed-point intent (pitch, plan, or request), base ref and fixed diff,
 changed files, and verification evidence. Return a material review revision to
 the same writer, rerun invalidated evidence, and complete the required final
-gate. If reviewer is unavailable, the direct parent reviews with `code-review`.
+gate. If the reviewer is unavailable, the direct parent loads and follows
+`code-review`.
 
 Present the evidence and an explicit **Accept and publish** action. Acceptance
 invokes `commit` and `open-pr` with no second mutation prompt. These focused

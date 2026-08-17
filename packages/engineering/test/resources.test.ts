@@ -41,7 +41,6 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/never[^.]*main[^.]*checkout/iu);
     expect(implement).toMatch(/same[^.]*worktree[\s\S]*pitch[\s\S]*plan/iu);
     expect(implement).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*edit/iu);
-    expect(implement).toMatch(/test-driven-development|red-green-refactor/iu);
     expect(implement).toMatch(/focused tests[\s\S]*required completion checks/iu);
     expect(implement).toMatch(/parallel-ready/iu);
     expect(implement).toMatch(/isolated worktree[\s\S]*sole\s+write ownership/iu);
@@ -74,7 +73,6 @@ describe("engineering resources", () => {
     ]);
 
     expect(implement).toMatch(/serial\s+delivery unit[^.]*same writer[^.]*same worktree/iu);
-    expect(implement).toMatch(/vertical behavior[^.]*narrow red.green.refactor[^.]*integration/iu);
     expect(implement).toMatch(
       /affected-boundary[\s\S]*integration[\s\S]*stable delivery-unit boundary/iu,
     );
@@ -103,6 +101,45 @@ describe("engineering resources", () => {
       );
       expect(resource).not.toMatch(/\/(?:Users|home|tmp)\//u);
     }
+  });
+
+  it("composes coordinating skills through their specialized methods", async () => {
+    expect.hasAssertions();
+    const [implement, justDoIt, router, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("skills/just-do-it/SKILL.md"),
+      read("skills/developing-changes/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(implement).toMatch(
+      /behavioral implementation[\s\S]*load and\s+follow[\s\S]*`test-driven-development`/iu,
+    );
+    expect(implement).toMatch(
+      /unavailable[\s\S]*direct parent[\s\S]*failing and passing proof[\s\S]*public seam/iu,
+    );
+    expect(implement).toMatch(
+      /confirmed bug outcome[\s\S]*diagnosis evidence[\s\S]*regression seam/iu,
+    );
+    expect(implement).toMatch(
+      /unconfirmed[\s\S]*load and\s+follow[\s\S]*`diagnosing-bugs`[\s\S]*before implementation/iu,
+    );
+    expect(implement).not.toContain("make the smallest relevant public-seam test fail");
+    expect(implement).not.toContain("trace callers and sibling paths");
+    expect(implement).toMatch(
+      /complete work evidence[\s\S]*red and\s+green evidence[\s\S]*explicit test exception/iu,
+    );
+    expect(implement).toMatch(
+      /parent inspects the final diff[\s\S]*release[\s\S]*dependency[\s\S]*artifact hygiene[\s\S]*security[\s\S]*cancellation[\s\S]*cleanup[\s\S]*user-visible documentation/iu,
+    );
+    expect(implement).toMatch(/`reviewer`[\s\S]*load and\s+follow[\s\S]*`code-review`/iu);
+    expect(justDoIt).toMatch(/`reviewer` capability[\s\S]*load and\s+follow[\s\S]*`code-review`/iu);
+    expect(justDoIt).toMatch(/reviewer[^.]*unavailable[\s\S]*direct parent[\s\S]*`code-review`/iu);
+    expect(router).toMatch(
+      /reported[\s\S]*broken[\s\S]*unresolved cause[\s\S]*`diagnosing-bugs`/iu,
+    );
+    expect(router).toMatch(/confirmed bug outcome[\s\S]*`implement`/iu);
+    expect(readme).toMatch(/`implement`[\s\S]*`test-driven-development`[\s\S]*`diagnosing-bugs`/iu);
   });
 
   it("keeps the focused optional skills and prompt templates installable", async () => {
@@ -392,7 +429,7 @@ describe("engineering resources", () => {
     expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
     for (const documentation of [readme, rootReadme]) {
       expect(documentation).toMatch(/`\/just-do-it`/u);
-      expect(documentation).toMatch(/four-route|impact and uncertainty/iu);
+      expect(documentation).toMatch(/impact.?and.?uncertainty/iu);
     }
   });
 

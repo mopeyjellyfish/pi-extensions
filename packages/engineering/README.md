@@ -32,12 +32,14 @@ diff inspection, and verification. An independent installation without the
 root agent profiles uses the direct parent; it does not automatically provide
 companion extensions, agents, tools, or skills.
 
-`developing-changes` uses a four-route impact and uncertainty decision: a
-mechanical low-risk request goes to `/just-do-it`; one clear coherent outcome
-can implement now; coordinated clear work plans first; uncertain, hard-to-reverse,
-or risky work Shapes then plans. It uses uncertainty, reversibility, risk,
-affected boundaries, and coordination cost, not file count alone. It asks one
-focused question only at a material boundary.
+`developing-changes` uses an impact-and-uncertainty decision: a mechanical
+low-risk request goes to `/just-do-it`; one clear coherent outcome can implement
+now; a reported broken, failing, or slow behavior with an unresolved cause goes
+to `diagnosing-bugs`; coordinated clear work plans first; uncertain,
+hard-to-reverse, or risky work Shapes then plans. A confirmed bug outcome then
+goes to `implement`. It uses uncertainty, reversibility, risk, affected
+boundaries, and coordination cost, not file count alone. It asks one focused
+question only at a material boundary.
 
 `/just-do-it <request>` sets up the worktree first and immediately gives one
 fresh Worker the explicit mechanical scope and objective before-and-after
@@ -50,9 +52,11 @@ an independent installation falls back to the direct parent.
 
 For a complete accepted plan, `implement` consumes slices in dependency order
 without replanning and uses only planned parallel lanes with isolated worktrees
-and sole writers. A serial delivery unit reuses one writer and worktree. Its
-validation ladder is focused slice proof, affected-boundary checks, integration
-proof, and stable delivery-unit required gates. Evidence is reused only while its
+and sole writers. Its executor loads and follows `test-driven-development` for
+behavioral work and `diagnosing-bugs` for unresolved failures; its formal
+reviewer loads and follows `code-review`. A serial delivery unit reuses one writer
+and worktree. Its validation ladder is focused slice proof, affected-boundary
+checks, integration proof, and stable delivery-unit required gates. Evidence is reused only while its
 covered surface is unchanged; every required full gate runs once at the stable
 boundary. One fixed formal review occurs there, and material revisions return to
 the same writer with invalidated evidence rerun. Delegation must provide a

@@ -13,11 +13,15 @@ route:
 
 1. **Just do it** — explicit, mechanical, low-risk, broadly repetitive work
    with an objective check. Use `just-do-it`.
-2. **Implement now** — a bounded behavior, bug, refactor, documentation, or
-   metadata outcome with clear intent and one coherent result. Use `implement`.
-3. **Plan first** — clear accepted intent spanning multiple outcomes, packages,
+2. **Implement now** — a bounded behavior, confirmed bug outcome, refactor,
+   documentation, or metadata outcome with clear intent and one coherent result.
+   Use `implement`.
+3. **Diagnose first** — a reported broken, failing, or slow behavior with an
+   unresolved cause. Use `diagnosing-bugs`, then route its confirmed bug outcome
+   to `implement`.
+4. **Plan first** — clear accepted intent spanning multiple outcomes, packages,
    commits, pull requests, or coordinated boundaries. Use `planning-changes`.
-4. **Shape then plan** — unresolved product intent, material solution tradeoffs,
+5. **Shape then plan** — unresolved product intent, material solution tradeoffs,
    major or hard-to-reverse behavior, or security, privacy, or migration risk.
    Use `shape`, then `planning-changes` after acceptance.
 

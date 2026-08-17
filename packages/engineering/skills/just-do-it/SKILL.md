@@ -41,9 +41,11 @@ a higher-capability role. Explicit approval is required for a high-capability
 role, with the evidence, expected benefit, and bounded task.
 
 A Utility or QA capability may do bounded inventory or validation only when useful
-to shorten the critical path; neither owns implementation, routing, or approval. At the completed unit, use the fixed capability-based formal review
-role when available. Otherwise the direct parent reviews with `code-review`.
-The parent inspects the diff and evidence in every case.
+to shorten the critical path; neither owns implementation, routing, or approval.
+At the completed unit, when a configured `reviewer` capability exists, it must
+load and follow `code-review`. If the reviewer is unavailable, the direct parent
+loads and follows `code-review`. The parent inspects the diff and evidence in
+every case.
 
 ## Stop and reroute
 
