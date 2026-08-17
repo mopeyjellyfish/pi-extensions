@@ -19,11 +19,14 @@ one coherent review, validation, and publication boundary and may contain
 multiple atomic commits. State whether planning documents share implementation
 publication; split only for independent review or merge value.
 
-A stack is exceptional. For every stack position, state independent value,
-required-check viability, integration dependency, CI fan-out, and justified
-cascade cost. A planned stack uses `open-pr` and `gh stack`. `gh stack link`
-verifies a Worktrunk-managed chain but creates no local tracked view; use
-`gh stack view --json` only for locally tracked stacks.
+A stack is intentional, not automatic. Use one when a large change needs
+multiple right-sized, independently reviewable delivery units with an ordered
+dependency relationship. Do not create stack positions solely because
+implementation has multiple slices or commits. For every stack position, state
+independent value, required-check viability, integration dependency, CI fan-out,
+and justified cascade cost. A planned stack uses `open-pr` and `gh stack`.
+`gh stack link` verifies a Worktrunk-managed chain but creates no local tracked
+view; use `gh stack view --json` only for locally tracked stacks.
 
 ## Critical path, dependencies, and lanes
 

@@ -139,6 +139,11 @@ describe("feature-flow resources", () => {
     expect(plan).toMatch(
       /independent value[^.]*check viability[^.]*integration[^.]*fan-out[^.]*cascade/iu,
     );
+    const planProse = plan.replaceAll(/\s+/gu, " ");
+    expect(planProse).toMatch(
+      /stack[^.]*intentional[^.]*not automatic[\s\S]*large change[^.]*right-sized[^.]*independently reviewable[^.]*ordered dependency/iu,
+    );
+    expect(planProse).toMatch(/not[^.]*stack positions[^.]*multiple slices or commits/iu);
     expect(readme).toMatch(/one delivery unit[^.]*one branch[^.]*one pull request[^.]*default/iu);
 
     for (const resource of [shape, planning, plan]) {
