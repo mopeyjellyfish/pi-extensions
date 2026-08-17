@@ -8,7 +8,8 @@ description: >-
 # Just do it
 
 Use this only for an explicit mechanical, low-risk, broadly repetitive change
-with an objective before-and-after check. It is not a route for behavior design,
+with an objective before-and-after check. It is one bounded delivery unit with
+no forecast or topology overhead. It is not a route for behavior design,
 uncertain intent, security or migration work, or an expanding scope. Return
 those requests to `developing-changes`.
 

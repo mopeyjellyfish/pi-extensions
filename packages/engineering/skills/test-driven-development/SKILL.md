@@ -21,7 +21,7 @@ approved seam that still proves the behavior. An accepted request, accepted
 pitch, or accepted plan counts as seam approval; ask only when the seam is
 unresolved.
 
-For each vertical behavior:
+For each vertical behavior, use a narrow red, green, refactor sequence:
 
 1. Add the smallest behavior test with an independent expected value from
    accepted intent, a known literal, or a worked example.
@@ -29,8 +29,10 @@ For each vertical behavior:
    not because of setup or syntax.
 3. Add only the minimum production behavior needed to pass.
 4. Run the focused test, then refactor while green.
-5. Repeat vertically for the next behavior and finally run the integrated path
-   and required checks.
+5. Repeat vertically, then run integration proof when dependent behaviors join.
+   When a plan exists, follow its invalidation map for broader checks; otherwise
+   derive the smallest ladder from the changed surfaces. Required final gates
+   still run at the stable delivery-unit boundary.
 
 Reject mock-call-only tests, tests of a private helper or implementation
 structure, tautological expected values, and horizontal batches of imagined

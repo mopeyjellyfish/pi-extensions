@@ -63,6 +63,48 @@ describe("engineering resources", () => {
     }
   });
 
+  it("uses invalidation-aware evidence for serial delivery units", async () => {
+    expect.hasAssertions();
+    const [implement, tdd, router, justDoIt, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("skills/test-driven-development/SKILL.md"),
+      read("skills/developing-changes/SKILL.md"),
+      read("skills/just-do-it/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(implement).toMatch(/serial\s+delivery unit[^.]*same writer[^.]*same worktree/iu);
+    expect(implement).toMatch(/vertical behavior[^.]*narrow red.green.refactor[^.]*integration/iu);
+    expect(implement).toMatch(
+      /affected-boundary[\s\S]*integration[\s\S]*stable delivery-unit boundary/iu,
+    );
+    expect(implement).toMatch(/invalidation map[\s\S]*unchanged evidence[\s\S]*intermediate/iu);
+    expect(implement).toMatch(
+      /when (?:an accepted )?plan\s+exists[\s\S]*otherwise[\s\S]*changed surfaces/iu,
+    );
+    expect(tdd).toMatch(/when (?:a )?plan\s+exists[\s\S]*otherwise[\s\S]*changed surfaces/iu);
+    expect(implement).toMatch(/complete required-check set[\s\S]*once[\s\S]*stable/iu);
+    expect(implement).toMatch(/one fixed formal review[\s\S]*stable\s+completed delivery unit/iu);
+    expect(implement).toMatch(/same writer[\s\S]*material review revision/iu);
+    expect(implement).toMatch(/critical-path[^.]*parent-context[^.]*independent evidence/iu);
+    expect(implement).toMatch(/materially exceeds[\s\S]*forecast[\s\S]*pause/iu);
+    expect(tdd).toMatch(/vertical behavior[^.]*red[^.]*green[^.]*refactor/iu);
+    expect(router).toMatch(/one bounded delivery unit[\s\S]*no\s+forecast or topology overhead/iu);
+    expect(justDoIt).toMatch(
+      /one bounded delivery unit[\s\S]*no\s+forecast or topology overhead/iu,
+    );
+    expect(readme).toMatch(
+      /validation ladder[\s\S]*affected-boundary[\s\S]*integration[\s\S]*stable delivery-unit/iu,
+    );
+
+    for (const resource of [implement, tdd, router, justDoIt]) {
+      expect(resource).not.toMatch(
+        /pi-extensions|packages\/|npm (?:run|test)|GitHub Actions|\bFable\b|\bSol\b|GPT-\d|Opus/iu,
+      );
+      expect(resource).not.toMatch(/\/(?:Users|home|tmp)\//u);
+    }
+  });
+
   it("keeps the focused optional skills and prompt templates installable", async () => {
     expect.hasAssertions();
     const manifest = JSON.parse(await read("package.json")) as {
@@ -342,7 +384,7 @@ describe("engineering resources", () => {
       /complete accepted plan[\s\S]*dependency order[\s\S]*without replanning/iu,
     );
     expect(implement).toMatch(/planned parallel lanes[\s\S]*worktrees/iu);
-    expect(implement).toMatch(/formal review[\s\S]*completed unit/iu);
+    expect(implement).toMatch(/formal review[\s\S]*completed delivery unit/iu);
     expect(implement).toMatch(
       /Accept and publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no second mutation prompt/iu,
     );

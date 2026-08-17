@@ -23,7 +23,9 @@ route:
 
 Ask one focused question only when a material boundary ambiguity prevents safe
 classification. Otherwise select the lightest route and let that skill own its
-method. A read-only change review uses `code-review`.
+method. A read-only change review uses `code-review`. One bounded delivery unit has no
+forecast or topology overhead; use the lightest route that preserves its
+objective proof.
 
 The direct parent owns the user conversation, route choice, synthesis, final
 diff inspection, verification, and approval. Do not require a subagent package:
