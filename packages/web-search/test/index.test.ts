@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 import webSearchExtension from "../src/index.ts";
 
@@ -146,8 +146,26 @@ function providerModel(api: string): Record<string, unknown> {
 }
 
 describe("pi-web-search extension", () => {
-  afterEach(() => {
+  let isolatedHome = "";
+  let originalConfigPath: string | undefined;
+
+  beforeEach(async () => {
+    originalConfigPath = process.env["PI_WEB_SEARCH_CONFIG"];
+    delete process.env["PI_WEB_SEARCH_CONFIG"];
+    isolatedHome = await mkdtemp(join(tmpdir(), "pi-web-search-home-"));
+    vi.stubEnv("HOME", isolatedHome);
+    vi.stubEnv("USERPROFILE", isolatedHome);
+  });
+
+  afterEach(async () => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    if (originalConfigPath === undefined) {
+      delete process.env["PI_WEB_SEARCH_CONFIG"];
+    } else {
+      process.env["PI_WEB_SEARCH_CONFIG"] = originalConfigPath;
+    }
+    await rm(isolatedHome, { force: true, recursive: true });
   });
 
   it("registers web_search and rejects a current model without native search", async () => {
