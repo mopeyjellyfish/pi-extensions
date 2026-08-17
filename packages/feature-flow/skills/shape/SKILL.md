@@ -28,8 +28,15 @@ no-gos, material risks, authority, and observable acceptance criteria. Do not
 restate repository truth. Keep only decision-changing research; omit empty or
 non-decision research.
 
+A pitch identifies vertical slices as smallest end-to-end behaviors with focused
+red and green proof. Planning groups dependent slices into the fewest coherent
+delivery units: a delivery unit is one review, validation, and publication
+boundary, not a commit-count rule. Planning documents share the implementation
+delivery unit's publication unless they have independent review or merge value.
+
 Create `docs/features/<slug>/pitch.md` from `templates/pitch.md` with
-`status: draft`. Show the complete pitch document, not a summary or link, with:
+`status: draft`, unless the target repository defines another feature-document
+location. Show the complete pitch document, not a summary or link, with:
 
 1. **Approve and plan**
 2. **Revise**
@@ -40,14 +47,20 @@ If the tool or document field is unavailable, show the complete pitch in
 conversation and ask the same question. Do not infer approval from silence.
 
 Only **Approve and plan** is explicit human approval. It authorizes the named
-pitch branch's bounded commit and pull-request publication: invoke `commit`,
-then `open-pr`, then invoke `planning-changes` with the accepted pitch. If
-`commit`, `open-pr`, or required `gh stack` tooling is unavailable, fail closed
-for publication: preserve local evidence, report recovery guidance, and continue
-the pitch-to-plan handoff without publishing. Do not embed ad hoc Git commands.
-For a planned stack, `open-pr` must use `gh stack`. Approval never authorizes
-merge, release, deployment, destructive cleanup, or unrelated remote changes. Mark the pitch `status: accepted` only after approval. Return here for
-fresh approval when implementation changes accepted intent.
+pitch branch's bounded commit and later pull-request publication. Mark the pitch
+`status: accepted`, invoke `commit`, then invoke `planning-changes` with the
+accepted pitch. Invoke `open-pr` at this stage only when the pitch is its own
+delivery unit with independent review or merge value; otherwise defer it to the
+stable implementation delivery unit's single publication boundary.
+
+If `commit` is unavailable, preserve local evidence, report recovery guidance,
+and continue the pitch-to-plan handoff without publishing. When this pitch is an
+independent delivery unit, unavailable `open-pr` or required `gh stack` tooling
+fails closed for publication while the handoff continues. Do not embed ad hoc
+Git commands. For a planned stack, `open-pr` must use `gh stack`. Approval never
+authorizes merge, release, deployment, destructive cleanup, or unrelated remote
+changes. Return here for fresh approval when implementation changes accepted
+intent.
 
 ## Bounded support
 
