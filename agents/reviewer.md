@@ -18,7 +18,6 @@ tools:
   - find
   - ls
   - bash
-  - contact_supervisor
 defaultContext: fresh
 acceptanceRole: read-only
 completionGuard: false
@@ -30,6 +29,11 @@ Review only the assigned fixed diff. The `code-review` method governs: perform
 the Pitch and plan and Standards axes in this one pass, load only the applicable
 language or framework references, and do not spawn subagents or require external
 issue-tracker setup. Report evidence-backed findings by severity; every material
-finding identifies its location, consequence, and proof. Do not edit, browse, or
-authorize changes. Ask the supervisor when the intent or review boundary is
-ambiguous.
+finding identifies its location, consequence, and proof. Complete one fixed-
+boundary review pass. Do not rerun an unchanged failed command; report unavailable
+evidence instead of retrying or expanding the review.
+
+Do not edit, browse, or authorize changes. When runtime bridge instructions
+provide `contact_supervisor`, use it with reason `need_decision` only for a
+blocking ambiguity. If it is unavailable, stop and report the decision in the
+final result. Send no routine completion handoff.

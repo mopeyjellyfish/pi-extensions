@@ -167,17 +167,7 @@ describe("package contracts", () => {
         thinking: "medium",
         role: "writer",
         completionGuard: undefined,
-        tools: [
-          "read",
-          "grep",
-          "find",
-          "ls",
-          "bash",
-          "edit",
-          "write",
-          "playwright_browser",
-          "contact_supervisor",
-        ],
+        tools: ["read", "grep", "find", "ls", "bash", "edit", "write", "playwright_browser"],
         skills: [
           "test-driven-development",
           "codebase-design",
@@ -198,7 +188,7 @@ describe("package contracts", () => {
         thinking: "low",
         role: "read-only",
         completionGuard: false,
-        tools: ["read", "grep", "find", "ls", "bash", "web_search", "contact_supervisor"],
+        tools: ["read", "grep", "find", "ls", "bash", "web_search"],
         skills: [],
         skillPaths: [],
       },
@@ -207,7 +197,7 @@ describe("package contracts", () => {
         thinking: "medium",
         role: "read-only",
         completionGuard: false,
-        tools: ["read", "grep", "find", "ls", "bash", "playwright_browser", "contact_supervisor"],
+        tools: ["read", "grep", "find", "ls", "bash", "playwright_browser"],
         skills: [],
         skillPaths: [],
       },
@@ -216,7 +206,7 @@ describe("package contracts", () => {
         thinking: "medium",
         role: "read-only",
         completionGuard: false,
-        tools: ["read", "grep", "find", "ls", "bash", "contact_supervisor"],
+        tools: ["read", "grep", "find", "ls", "bash"],
         skills: ["code-review", "codebase-design"],
         skillPaths: [
           "../packages/engineering/skills/code-review",
@@ -227,18 +217,8 @@ describe("package contracts", () => {
         model: "openai-codex/gpt-5.6-terra",
         thinking: "medium",
         role: "writer",
-        completionGuard: undefined,
-        tools: [
-          "read",
-          "grep",
-          "find",
-          "ls",
-          "bash",
-          "edit",
-          "write",
-          "worktree",
-          "contact_supervisor",
-        ],
+        completionGuard: false,
+        tools: ["read", "grep", "find", "ls", "bash", "edit", "write", "worktree"],
         skills: [
           "commit",
           "git-rebase-base",
@@ -263,7 +243,7 @@ describe("package contracts", () => {
         thinking: "medium",
         role: "read-only",
         completionGuard: false,
-        tools: ["read", "grep", "find", "ls", "bash", "web_search", "contact_supervisor"],
+        tools: ["read", "grep", "find", "ls", "bash", "web_search"],
         skills: [],
         skillPaths: [],
       },
@@ -310,6 +290,47 @@ describe("package contracts", () => {
     expect(reviewer).toMatch(/`code-review` method[\s\S]*do not spawn[\s\S]*issue-tracker setup/iu);
     expect(reviewer).toMatch(/Pitch and plan[\s\S]*Standards/iu);
     expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
+  });
+
+  it("works around pi-subagents issue 1207 for every configured agent", async () => {
+    expect.hasAssertions();
+    const agentsRoot = join(repositoryRoot, "agents");
+    const entries = (await readdir(agentsRoot)).filter((entry) => entry.endsWith(".md"));
+
+    for (const entry of entries) {
+      const text = await readFile(join(agentsRoot, entry), "utf8");
+      const agent = parseAgentFrontmatter(text);
+      const prose = text.replaceAll(/\s+/gu, " ");
+      expect.soft(agent["tools"], entry).not.toContain("contact_supervisor");
+      expect
+        .soft(prose, entry)
+        .toMatch(
+          /runtime bridge[^.]*`contact_supervisor`[^.]*`need_decision`[\s\S]*unavailable[^.]*final[\s\S]*no routine completion/iu,
+        );
+    }
+
+    const readme = await readFile(join(repositoryRoot, "README.md"), "utf8");
+    expect(readme).toMatch(/pi-subagents[^.]*0\.50\.0[\s\S]*issue\s+#?1207/iu);
+    expect(readme).toMatch(/remove[^.]*`contact_supervisor`[^.]*explicit[^.]*`tools`/iu);
+    expect(readme).toMatch(/bridge[^.]*adds[^.]*`contact_supervisor`[^.]*runtime/iu);
+  });
+
+  it("gives read-only support agents bounded retry contracts", async () => {
+    expect.hasAssertions();
+    const [qa, researcher, reviewer, utility] = await Promise.all(
+      ["qa", "researcher", "reviewer", "utility"].map(async (name) =>
+        (await readFile(join(repositoryRoot, "agents", `${name}.md`), "utf8")).replaceAll(
+          /\s+/gu,
+          " ",
+        ),
+      ),
+    );
+
+    expect.soft(qa).toMatch(/fresh worktree[^.]*setup[^.]*before[^.]*check/iu);
+    expect.soft(qa).toMatch(/diagnose[^.]*failed[^.]*before[^.]*rerun/iu);
+    expect.soft(researcher).toMatch(/one[^.]*search pass[\s\S]*follow-up[^.]*specific gap/iu);
+    expect.soft(reviewer).toMatch(/one[^.]*fixed[^.]*pass[\s\S]*do not rerun[^.]*unchanged/iu);
+    expect.soft(utility).toMatch(/one[^.]*bounded[^.]*pass[\s\S]*do not rerun[^.]*unchanged/iu);
   });
 
   it("gives the Git agent a bounded skill-owned delivery contract", async () => {

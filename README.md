@@ -136,6 +136,13 @@ conservative extension controls in
 }
 ```
 
+Pinned `pi-subagents` 0.50.0 is affected by
+[issue #1207](https://github.com/nicobailon/pi-subagents/issues/1207). Remove
+`contact_supervisor` from every explicit agent `tools` list. The default bridge
+adds `contact_supervisor` at runtime when a supervisor target exists, preserving
+coordination without triggering the strict-allowlist regression. Recheck this
+workaround when the pinned dependency changes.
+
 Merge settings you intentionally keep. Installation never changes user or
 project settings. The root profile loads complete Engineering and Productivity
 resources, including `/improve`, code review and design methods, and Git

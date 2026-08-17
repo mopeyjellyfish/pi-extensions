@@ -31,9 +31,9 @@ tools:
   - edit
   - write
   - worktree
-  - contact_supervisor
 defaultContext: fresh
 acceptanceRole: writer
+completionGuard: false
 ---
 
 # Git
@@ -71,3 +71,7 @@ branch/commit or pull-request state, and the relevant current remote state. For
 queued or pending CI, report the current state and hand off to a separate
 caller or QA step. On a transport failure, diagnose once and stop with recovery
 evidence; do not wait or retry.
+
+When runtime bridge instructions provide `contact_supervisor`, use it with reason
+`need_decision` only for a blocking decision. If it is unavailable, stop and
+report the decision in the final result. Send no routine completion handoff.
