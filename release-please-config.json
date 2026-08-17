@@ -35,6 +35,9 @@
     "packages/github": {
       "release-type": "node"
     },
+    "packages/hashline": {
+      "release-type": "node"
+    },
     "packages/lsp": {
       "release-type": "node"
     },
