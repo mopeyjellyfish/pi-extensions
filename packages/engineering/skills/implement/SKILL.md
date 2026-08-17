@@ -1,8 +1,8 @@
 ---
 name: implement
 description: >-
-  Delivers accepted work and continues accepted plans through explicit
-  checkpoints, focused proof, fixed review, and bounded publication.
+  Delivers checkpointed and accept-all accepted plans through focused proof,
+  fixed review, and bounded publication.
 ---
 
 # Implement
@@ -23,6 +23,19 @@ before the first test, build, or generated-file command. Verify the required
 tool is available and treat setup failures separately from behavior failures.
 
 ## Select execution
+
+A complete accepted plan records its execution mode. Checkpointed implementation
+is the default: checkpointed plans retain all routine prompts. Accept-all is
+authority only when whole-plan approval confirms accept-all authority for the
+named accepted plan; otherwise treat an accept-all preference as checkpointed.
+An accept-all plan runs every named delivery unit through tests, required gates,
+fixed formal review, commit, and authorized publication in dependency order
+without routine Accept and publish or Continue questions. Accept-all plans pause
+for setup, test, check, commit, or publication failure and return control to the
+human; they also pause for material review findings, material forecast variance,
+or any change to accepted scope, delivery boundaries, dependencies, or
+authority. Accept-all never authorizes merge, release, deployment, destructive
+cleanup, or unrelated work.
 
 Complete accepted plan execution follows dependency order without replanning.
 For a complete accepted plan, consume every accepted slice in planned dependency
@@ -49,11 +62,15 @@ an explicit approval stating evidence, expected benefit, and bounded task. State
 a delegation's critical-path, parent-context, or independent evidence benefit;
 do not delegate without one. Use bounded Utility or QA support only when it
 usefully shortens the critical path; the parent retains routing, synthesis, and
-approval. If observed coordination materially exceeds the accepted forecast,
-pause before more delivery steps, report the variance, and seek fresh approval
-only when changed delivery boundaries or authority require it. When no accepted
-forecast exists, report material coordination growth against the bounded request
-instead of creating planning overhead.
+approval. During checkpointed execution, if observed coordination materially
+exceeds the accepted forecast, pause before more delivery steps; report the
+variance and seek fresh approval only when changed delivery boundaries or
+authority require it. During accepted accept-all execution, every material
+forecast variance pauses and returns control to the human, even when delivery
+boundaries and authority do not change. Fresh approval is required only when
+those boundaries or authority change. When no accepted forecast exists, report
+material coordination growth against the bounded request instead of creating
+planning overhead.
 
 ## Deliver each unit
 
@@ -92,17 +109,20 @@ or Pause before acceptance. One fixed formal review occurs at each stable
 completed delivery unit. When a configured `reviewer` capability exists, it
 must load and follow `code-review` with fresh read-only context. Give it the
 worktree, fixed-point intent (pitch, plan, or request), base ref and fixed diff,
-changed files, and verification evidence. Return a material review revision to
-the same writer, rerun invalidated evidence, and complete the required final
-gate. If the reviewer is unavailable, the direct parent loads and follows
-`code-review`.
+changed files, and verification evidence. Every material review revision returns
+to the same writer, who reruns invalidated evidence and completes the required
+final gate. For an accepted accept-all plan, pause and return control to the
+human before resolving any material finding. If the reviewer is unavailable, the
+direct parent loads and follows `code-review`.
 
-Present the evidence and an explicit **Accept and publish** action. Acceptance
-invokes `commit` and `open-pr` with no second mutation prompt. These focused
-delivery skills own publication; lifecycle guidance must not issue ad hoc Git
-commands. For a planned stack, `open-pr` must use `gh stack`; if focused
-delivery or required stack tooling is unavailable, fail closed, preserve local
-work and evidence, and state the recovery action.
+For checkpointed plans, present the evidence and an explicit **Accept and
+publish** action. Acceptance invokes `commit` and `open-pr` with no second
+mutation prompt. For accepted accept-all plans, perform the same commit and
+authorized publication after successful evidence and fixed review without that
+routine question. These focused delivery skills own publication; lifecycle
+guidance must not issue ad hoc Git commands. For a planned stack, `open-pr` must
+use `gh stack`; if focused delivery or required stack tooling is unavailable,
+fail closed, preserve local work and evidence, and state the recovery action.
 
 Acceptance authorizes only the verified planned unit and named task branch. It
 does not authorize merge, deployment, release, plain force push, cleanup,
@@ -110,14 +130,19 @@ destructive actions, or unrelated changes.
 
 ## Continue an accepted plan
 
-When a complete accepted plan has another delivery unit after the current unit
-is accepted and committed, and any authorized publication has completed, the
-parent summarizes progress and explains the next planned unit: its observable outcome, dependencies and
-readiness, intended proof and checks, and place in remaining plan progress. Then
-use the `question` tool with exactly these actions: **Continue**, **Review next
-unit**, and **Discuss**. If `question` is unavailable or the human cancels,
-present the same three choices in conversation, wait, and do not start the next
-unit.
+When a checkpointed complete accepted plan has another delivery unit after the
+current unit is accepted and committed, and any authorized publication has
+completed, the parent summarizes progress and explains the next planned unit:
+its observable outcome, dependencies and readiness, intended proof and checks,
+and place in remaining plan progress. Then use the `question` tool with exactly
+these actions: **Continue**, **Review next unit**, and **Discuss**. If `question`
+is unavailable or the human cancels, present the same three choices in
+conversation, wait, and do not start the next unit.
+
+For an accepted accept-all plan with another ready delivery unit, continue in
+accepted dependency order without a routine question after the prior unit's
+successful tests, required gates, fixed review, commit, and authorized
+publication. Pause instead for every accept-all pause condition.
 
 **Continue** launches the next ready delivery unit or planned ready lane set in
 accepted dependency order without replanning. **Review next unit** pauses

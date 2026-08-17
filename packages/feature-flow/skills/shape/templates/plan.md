@@ -8,6 +8,13 @@ Complete this delivery plan before implementation. It covers every accepted
 vertical slice, the critical path, dependencies, delivery units, and independent
 lanes.
 
+## Execution mode
+
+Repeat the selected execution mode: checkpointed implementation (default) or
+accept-all implementation. Only whole-plan approval confirms accept-all
+authority for the named accepted plan; it never authorizes merge, release,
+deployment, destructive cleanup, or unrelated work.
+
 ## Delivery topology
 
 | Delivery unit | Branch     | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                      |

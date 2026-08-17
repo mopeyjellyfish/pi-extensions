@@ -52,40 +52,60 @@ an independent installation falls back to the direct parent.
 
 For a complete accepted plan, `implement` consumes slices in dependency order
 without replanning and uses only planned parallel lanes with isolated worktrees
-and sole writers. A fresh worktree receives the repository-defined runtime and
+and sole writers. Accept-all requires whole-plan approval and otherwise defaults
+to checkpointed implementation; accepted accept-all authority applies only to
+the named accepted plan. An accept-all plan runs every named delivery unit
+through tests, required gates, fixed formal review, commit, and authorized
+publication in dependency order without routine Accept and publish or Continue
+questions. It pauses and returns control to the human for setup, test, check,
+commit, or publication failure; material review findings; material forecast
+variance; or a change to accepted scope, delivery boundaries, dependencies, or
+authority. It never authorizes merge, release, deployment, destructive cleanup,
+or unrelated work. A fresh worktree receives the repository-defined runtime and
 dependency setup before its first test or build; setup failures remain separate
 from behavioral red proof. Its executor loads and follows
-`test-driven-development` for
-behavioral work and `diagnosing-bugs` for unresolved failures; its formal
-reviewer loads and follows `code-review`. A serial delivery unit reuses one writer
-and worktree. Its validation ladder is focused slice proof, affected-boundary
-checks, integration proof, and stable delivery-unit required gates. Evidence is reused only while its
-covered surface is unchanged; every required full gate runs once at the stable
-boundary. One fixed formal review occurs there, and material revisions return to
-the same writer with invalidated evidence rerun. Delegation must provide a
-critical-path, parent-context, or independent-evidence benefit. Bounded one-unit
-routes do not gain forecast overhead. Pause and report material coordination
-variance against an accepted forecast when one exists, or against the bounded
-request when none does. The explicit **Accept and publish** action invokes
-`commit` and `open-pr` without a second mutation prompt. When a complete
-accepted plan's current unit is accepted and committed, and any authorized
-publication has completed and another unit remains, the parent summarizes
-progress and the next planned unit's
-observable outcome, dependencies and readiness, intended proof and checks, and
-remaining plan progress. The `question` tool offers exactly **Continue**,
-**Review next unit**, and **Discuss**. If `question` is unavailable or the human
-cancels, the parent presents the same three choices in conversation, waits, and
-does not start the next unit. Continue starts the next ready delivery unit or
-planned ready lane set in accepted dependency order without replanning; Review
-next unit pauses to review it against the accepted pitch and plan without
-duplicating the completed unit's fixed formal review; Discuss pauses for
-questions or potential changes. Scope, delivery boundaries, dependencies, or
-authority changes return through planning and approval before implementation
-resumes. After Review next unit or Discuss finishes without an accepted plan
-change, control returns to the same checkpoint. Repeat until no planned delivery
-units remain, then report plan completion. Plan-less requests and single-unit
-plans do not receive a next-unit prompt. Planned stacks require `gh stack`; unavailable
-delivery tools fail closed while preserving local work and recovery evidence.
+`test-driven-development` for behavioral work and `diagnosing-bugs` for
+unresolved failures; its formal reviewer loads and follows `code-review`. A
+serial delivery unit reuses one writer and worktree. Its validation ladder is
+focused slice proof, affected-boundary checks, integration proof, and stable
+delivery-unit required gates. Evidence is reused only while its covered surface
+is unchanged; every required full gate runs once at the stable boundary. One
+fixed formal review occurs there. Every material revision returns to the same
+writer, who reruns invalidated evidence and completes the required final gate.
+For an accepted accept-all plan, pause and return control to the human before
+resolving any material finding. Delegation must provide a critical-path,
+parent-context, or independent-evidence benefit. Bounded one-unit routes do not
+gain forecast overhead. For checkpointed plans, pause and report material
+coordination variance against an accepted forecast when one exists, or against
+the bounded request when none does; seek fresh approval only when delivery
+boundaries or authority change. For an accepted accept-all plan, every material
+forecast variance returns control to the human, even when delivery boundaries
+and authority do not change. Fresh approval is required only when those
+boundaries or authority change. For checkpointed plans, the explicit **Accept
+and publish** action invokes `commit` and `open-pr` without a second mutation
+prompt. For accepted accept-all plans, those same steps follow successful
+evidence and fixed review without a routine question. When a checkpointed
+complete accepted plan's current unit is accepted and committed, and any
+authorized publication has completed and another unit remains, the parent
+summarizes progress and the next planned unit's observable outcome, dependencies
+and readiness, intended proof and checks, and remaining plan progress. The
+`question` tool offers exactly **Continue**, **Review next unit**, and
+**Discuss**. If `question` is unavailable or the human cancels, the parent
+presents the same three choices in conversation, waits, and does not start the
+next unit. An accepted accept-all plan continues to the next ready unit in
+dependency order without a routine question only after successful tests,
+required gates, fixed review, commit, and authorized publication. Continue
+starts the next ready delivery unit or planned ready lane set in accepted
+dependency order without replanning; Review next unit pauses to review it
+against the accepted pitch and plan without duplicating the completed unit's
+fixed formal review; Discuss pauses for questions or potential changes. Scope,
+delivery boundaries, dependencies, or authority changes return through planning
+and approval before implementation resumes. After Review next unit or Discuss
+finishes without an accepted plan change, control returns to the same checkpoint.
+Repeat until no planned delivery units remain, then report plan completion.
+Plan-less requests and single-unit plans do not receive a next-unit prompt.
+Planned stacks require `gh stack`; unavailable delivery tools fail closed while
+preserving local work and recovery evidence.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the

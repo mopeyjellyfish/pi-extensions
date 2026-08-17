@@ -88,7 +88,7 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/one fixed formal review[\s\S]*stable\s+completed delivery unit/iu);
     expect(implement).toMatch(/same writer[\s\S]*material review revision/iu);
     expect(implement).toMatch(/critical-path[^.]*parent-context[^.]*independent evidence/iu);
-    expect(implement).toMatch(/materially exceeds[\s\S]*forecast[\s\S]*pause/iu);
+    expect(implement).toMatch(/materially\s+exceeds[\s\S]*forecast[\s\S]*pause/iu);
     expect(tdd).toMatch(/vertical behavior[^.]*red[^.]*green[^.]*refactor/iu);
     expect(tdd).toMatch(
       /new worktree[\s\S]*repository instructions[\s\S]*runtime[\s\S]*dependency setup[\s\S]*before[^.]*test/iu,
@@ -102,7 +102,7 @@ describe("engineering resources", () => {
       /one bounded delivery unit[\s\S]*no\s+forecast or topology overhead/iu,
     );
     expect(readme).toMatch(
-      /validation ladder[\s\S]*affected-boundary[\s\S]*integration[\s\S]*stable delivery-unit/iu,
+      /validation ladder[\s\S]*affected-boundary[\s\S]*integration[\s\S]*stable\s+delivery-unit/iu,
     );
     expect(readme).toMatch(
       /fresh worktree[\s\S]*runtime[\s\S]*dependency setup[\s\S]*first test/iu,
@@ -436,7 +436,7 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/planned parallel lanes[\s\S]*worktrees/iu);
     expect(implement).toMatch(/formal review[\s\S]*completed delivery unit/iu);
     expect(implement).toMatch(
-      /Accept and publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no second mutation prompt/iu,
+      /Accept\s+and\s+publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no\s+second\s+mutation\s+prompt/iu,
     );
     expect(implement).toMatch(/planned stack[\s\S]*`gh stack`[\s\S]*fail closed/iu);
     expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
@@ -482,6 +482,47 @@ describe("engineering resources", () => {
     );
     expect(readme).toMatch(
       /accepted and committed,[\s\S]*authorized\s+publication\s+has\s+completed[\s\S]*next planned unit[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss[\s\S]*same checkpoint[\s\S]*plan completion/iu,
+    );
+  });
+
+  it("uses accepted accept-all authority without removing verification or safety pauses", async () => {
+    expect.hasAssertions();
+    const [implement, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(implement).toMatch(
+      /whole-plan approval[^.]*accept-all authority[^.]*named accepted plan/iu,
+    );
+    expect(implement).toMatch(/checkpointed[^.]*retain[^.]*routine prompts/iu);
+    expect(implement).toMatch(
+      /accept-all[^.]*every named delivery unit[\s\S]*tests[\s\S]*required gates[\s\S]*fixed formal review[\s\S]*commit[\s\S]*authorized publication/iu,
+    );
+    expect(implement).toMatch(
+      /accept-all[^.]*without[^.]*routine[^.]*Accept and publish[^.]*Continue questions/iu,
+    );
+    expect(implement).toMatch(
+      /pause[^.]*setup[^.]*test[^.]*check[^.]*commit[^.]*publication failure[^.]*material review findings[^.]*material forecast variance[^.]*scope[^.]*delivery boundaries[^.]*dependencies[^.]*authority/iu,
+    );
+    expect(implement).toMatch(
+      /accept-all[^.]*never authorizes merge[^.]*release[^.]*deployment[^.]*destructive\s+cleanup[^.]*unrelated\s+work/iu,
+    );
+    expect(implement).toMatch(
+      /material\s+review\s+revision[^.]*same\s+writer[^.]*invalidated\s+evidence[^.]*required\s+final\s+gate/iu,
+    );
+    expect(implement).toMatch(
+      /accept-all[^.]*pause[^.]*return control[^.]*before resolving[^.]*material finding/iu,
+    );
+    expect(implement).toMatch(
+      /accepted\s+accept-all\s+execution[^.]*every\s+material\s+forecast\s+variance[^.]*returns?\s+control[^.]*delivery\s+boundaries[^.]*authority/iu,
+    );
+    expect(implement).toMatch(
+      /checkpointed[^.]*fresh approval[^.]*only[^.]*delivery boundaries[^.]*authority/iu,
+    );
+    expect(readme).toMatch(/accept-all[^.]*whole-plan approval[^.]*checkpointed/iu);
+    expect(readme).toMatch(
+      /tests[^.]*required gates[^.]*fixed formal review[^.]*commit[^.]*authorized\s+publication/iu,
     );
   });
 

@@ -14,10 +14,15 @@ non-overlapping ownership. The skills stop rather than use the main checkout or
 unsafe worktree tooling.
 
 Shape records problem and evidence, solution, boundaries/no-gos,
-decision-changing research and risks, authority, and observable criteria. The
-parent owns product and architecture judgment, synthesis, verification, and
-approval. It may use bounded factual, mechanical, QA, or one independent review
-support when useful; an independent installation uses the direct parent when
+decision-changing research and risks, authority, and observable criteria. It
+asks a separate optional execution-mode question: checkpointed implementation
+is the default, while accept-all is only a recorded preference. If the question
+tool is unavailable or the human cancels or skips it, checkpointed remains the
+default. Planning repeats the selected mode; only whole-plan approval confirms
+accept-all authority for the named accepted plan. The parent owns product and
+architecture judgment, synthesis, verification, and approval. It may use
+bounded factual, mechanical, QA, or one independent review support when useful;
+an independent installation uses the direct parent when
 those capabilities are unavailable. An exceptional high-capability role needs
 explicit human approval.
 
@@ -27,8 +32,9 @@ slices into delivery units: a delivery unit is one coherent review, validation,
 and publication boundary. One delivery unit, one branch, and one pull request is
 the default; it may contain multiple atomic commits for coherent changes.
 Planning documents share the implementation delivery unit's publication unless
-they have independent review or merge value. A stack is justified only when every position has
-independent value, required-check viability, integration dependency, CI fan-out,
+they have independent review or merge value. A stack is justified only when
+every position has independent value, required-check viability, integration
+dependency, CI fan-out,
 and cascade cost that repays coordination. Plans forecast critical path, lanes,
 units, integration, expensive gates, and cascade cost; they predeclare evidence
 invalidation and pause to report material forecast variance.
