@@ -1,0 +1,51 @@
+{
+  "name": "@mopeyjellyfish/pi-hashline",
+  "version": "0.0.0",
+  "description": "Anchored Hashline reads and safe range edits for Pi.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "UPSTREAM.md",
+    "UPSTREAM_README.md",
+    "UPSTREAM_CHANGELOG.md",
+    "THIRD_PARTY_LICENSES.md"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "hashline",
+    "editing"
+  ],
+  "dependencies": {
+    "@ast-grep/napi": "0.45.0",
+    "diff": "9.0.0"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/hashline"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/hashline/test/index.test.ts packages/hashline/test/representative.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
