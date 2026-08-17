@@ -21,19 +21,28 @@ support when useful; an independent installation uses the direct parent when
 those capabilities are unavailable. An exceptional high-capability role needs
 explicit human approval.
 
-Planning writes one complete delivery plan before implementation: all slices,
-critical path, dependencies, lanes, worktree ownership, red/green proof, checks,
-commit units, PR bases and stack positions, and done conditions. It does not
-alternate plan/work/plan/work or start overlapping parallel writers.
+Planning identifies vertical slices first. A vertical slice is one end-to-end
+behavior with a narrow deterministic red/green proof. It then groups dependent
+slices into delivery units: a delivery unit is one coherent review, validation,
+and publication boundary. One delivery unit, one branch, and one pull request is
+the default; it may contain multiple atomic commits for coherent changes.
+Planning documents share the implementation delivery unit's publication unless
+they have independent review or merge value. A stack is justified only when every position has
+independent value, required-check viability, integration dependency, CI fan-out,
+and cascade cost that repays coordination. Plans forecast critical path, lanes,
+units, integration, expensive gates, and cascade cost; they predeclare evidence
+invalidation and pause to report material forecast variance.
 
-Explicit acceptance bundles bounded publication authority. An accepted pitch
-uses `commit` then `open-pr` before planning; an accepted plan uses them before
-implementation. A planned stack requires `open-pr` and `gh stack`. Missing
-`commit`, `open-pr`, or stack tooling fails closed for publication with local
-evidence and recovery guidance; the direct parent continues the lifecycle
-handoff without publishing. Lifecycle text does not provide ad hoc Git commands. Approval never
-covers merge, release, deployment, destructive cleanup, or unrelated remote
-changes. For Worktrunk-managed branches, `gh stack link` verifies the chain but
+Explicit acceptance bundles bounded commit and later publication authority. An
+accepted pitch uses `commit` before planning, and an accepted plan uses `commit`
+before implementation. `open-pr` runs at those stages only when the planning
+document is an independently valuable delivery unit; otherwise the stable
+implementation unit publishes once. A planned stack requires `open-pr` and
+`gh stack`. Missing focused delivery tooling fails closed for publication with
+local evidence and recovery guidance; the direct parent continues the lifecycle
+handoff without publishing that stage. Lifecycle text does not provide ad hoc
+Git commands. Approval never covers merge, release, deployment, destructive
+cleanup, or unrelated remote changes. For Worktrunk-managed branches, `gh stack link` verifies the chain but
 does not make a locally tracked view; use `gh stack view --json` only for a
 locally tracked stack.
 

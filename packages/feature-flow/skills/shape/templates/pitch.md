@@ -12,6 +12,10 @@ proposal.
 ## Proposed solution
 
 State the smallest useful behavior and material failure or compatibility needs.
+For delivery work, distinguish vertical slices (testable end-to-end behaviors),
+delivery units (review, validation, and publication boundaries), atomic commits,
+branches, and pull requests. State whether planning documents need independent
+review or merge value before implementation.
 
 ## Boundaries and no-gos
 

@@ -28,14 +28,14 @@ describe("feature-flow resources", () => {
     expect(shape).toMatch(/no safe[^.]*available[^.]*stop[^.]*before[^.]*Shape work/iu);
     expect(shape).toMatch(/complete pitch[\s\S]*document/iu);
     expect(shape).toMatch(/Approve and plan[\s\S]*Revise[\s\S]*Deepen[\s\S]*Independent review/iu);
-    expect(shape).toMatch(
-      /explicit human approval[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*planning-changes/iu,
-    );
+    expect(shape).toMatch(/explicit human approval[\s\S]*`commit`[\s\S]*planning-changes/iu);
+    expect(shape).toMatch(/`open-pr`[\s\S]*only when[\s\S]*independent review or merge value/iu);
+    expect(shape).toMatch(/docs\/features\/<slug>\/pitch\.md/iu);
     expect(shape).toMatch(/only[\s\S]*decision-changing[\s\S]*research/iu);
     expect(shape).toMatch(/product[\s\S]*architecture[\s\S]*approval/iu);
     expect(shape).toMatch(/direct-parent fallback[\s\S]*unavailable/iu);
     expect(shape).toMatch(/exceptional high-capability role requires explicit[\s\S]*approval/iu);
-    expect(shape).toMatch(/required `gh stack`[\s\S]*fail closed[\s\S]*publication/iu);
+    expect(shape).toMatch(/required `gh stack`[\s\S]*fails? closed[\s\S]*publication/iu);
     expect(shape).toMatch(/continue[\s\S]*pitch-to-plan handoff[\s\S]*without publishing/iu);
 
     expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
@@ -56,13 +56,13 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(
       /Approve and implement[\s\S]*Revise[\s\S]*Deepen[\s\S]*Independent review/iu,
     );
-    expect(planning).toMatch(
-      /explicit human approval[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*implement/iu,
-    );
+    expect(planning).toMatch(/explicit human approval[\s\S]*`commit`[\s\S]*implement/iu);
+    expect(planning).toMatch(/`open-pr`[\s\S]*only when[\s\S]*independent review or merge value/iu);
+    expect(planning).toMatch(/docs\/features\/<slug>\/plan\.md/iu);
     expect(planning).toMatch(/planned stack[\s\S]*`gh stack`/iu);
-    expect(planning).toMatch(/fail closed[\s\S]*publication/iu);
+    expect(planning).toMatch(/fails? closed[\s\S]*publication/iu);
     expect(planning).toMatch(/continue[\s\S]*plan-to-implementation handoff/iu);
-    expect(planning).toMatch(/`implement` is unavailable[\s\S]*direct parent/iu);
+    expect(planning).toMatch(/`implement` is unavailable[\s\S]*direct\s+parent/iu);
     expect(planning).toMatch(/`gh stack link`[\s\S]*Worktrunk-managed/iu);
     expect(planning).toMatch(/`gh stack view --json`[\s\S]*local tracked view/iu);
 
@@ -86,6 +86,7 @@ describe("feature-flow resources", () => {
     expect(plan).toMatch(/`serial`[\s\S]*`parallel-ready`/iu);
     expect(plan).toMatch(/Red proof[\s\S]*Green proof/iu);
     expect(plan).toMatch(/Atomic commit[\s\S]*Pull request/iu);
+    expect(plan).toMatch(/pull-request base[\s\S]*only when[\s\S]*different delivery unit/iu);
     expect(plan).toMatch(/Stack position/iu);
     expect(plan).toMatch(/Done when/iu);
     expect(plan).not.toMatch(/Work the first unchecked slice/iu);
@@ -102,6 +103,49 @@ describe("feature-flow resources", () => {
       expect(resource).not.toMatch(
         /pi-subagents|runs\.all|writer lease|parallel-safe|FFF|\bFable\b|\bSol\b/iu,
       );
+    }
+  });
+
+  it("defines delivery units without coupling portable planning guidance to one repository", async () => {
+    expect.hasAssertions();
+    const [context, shape, planning, plan, readme] = await Promise.all([
+      readFile(join(REPOSITORY_ROOT, "CONTEXT.md"), "utf8"),
+      read("skills/shape/SKILL.md"),
+      read("skills/planning-changes/SKILL.md"),
+      read("skills/shape/templates/plan.md"),
+      read("README.md"),
+    ]);
+
+    expect(context).toMatch(
+      /delivery unit[^.]*coherent review[^.]*validation[^.]*publication boundary/iu,
+    );
+    expect(context).toMatch(/vertical slice[^.]*smallest end-to-end behavior/iu);
+    expect(context).toMatch(/atomic commit[^.]*coherent change/iu);
+    expect(context).toMatch(/branch[^.]*delivery unit/iu);
+    expect(context).toMatch(/pull request[^.]*delivery unit/iu);
+    expect(shape).toMatch(
+      /planning documents[^.]*implementation\s+delivery unit[^.]*independent review or merge value/iu,
+    );
+    expect(planning).toMatch(/fewest coherent delivery units/iu);
+    expect(planning).toMatch(/narrow deterministic red.green signal/iu);
+    expect(planning).toMatch(/one delivery unit[^.]*pull request[^.]*default/iu);
+    expect(planning).toMatch(
+      /independent value[^.]*required-check viability[^.]*integration[^.]*fan-out[^.]*cascade/iu,
+    );
+    expect(planning).toMatch(
+      /critical-path forecast[\s\S]*invalidation map[\s\S]*materially exceeds/iu,
+    );
+    expect(plan).toMatch(/Delivery unit[^.]*Vertical slices/iu);
+    expect(plan).toMatch(
+      /independent value[^.]*check viability[^.]*integration[^.]*fan-out[^.]*cascade/iu,
+    );
+    expect(readme).toMatch(/one delivery unit[^.]*one branch[^.]*one pull request[^.]*default/iu);
+
+    for (const resource of [shape, planning, plan]) {
+      expect(resource).not.toMatch(
+        /pi-extensions|packages\/|npm (?:run|test)|GitHub Actions|\bFable\b|\bSol\b|GPT-\d|Opus/iu,
+      );
+      expect(resource).not.toMatch(/\/(?:Users|home|tmp)\//u);
     }
   });
 
