@@ -446,6 +446,45 @@ describe("engineering resources", () => {
     }
   });
 
+  it("checkpoints complete accepted plans between published delivery units", async () => {
+    expect.hasAssertions();
+    const [implement, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(implement).toMatch(
+      /accepted and committed,[\s\S]*authorized\s+publication\s+has\s+completed[\s\S]*summar(?:ize|izes) progress[\s\S]*next planned unit[\s\S]*observable outcome[\s\S]*dependencies[\s\S]*readiness[\s\S]*proof[\s\S]*checks[\s\S]*remaining plan progress/iu,
+    );
+    expect(implement).toMatch(
+      /`question` tool[\s\S]*exactly[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss/iu,
+    );
+    expect(implement).toMatch(
+      /Continue[\s\S]*next ready delivery unit[\s\S]*planned ready lane set[\s\S]*accepted dependency order[\s\S]*without\s+replanning/iu,
+    );
+    expect(implement).toMatch(
+      /question[\s\S]*unavailable[\s\S]*human cancels[\s\S]*same three choices[\s\S]*conversation[\s\S]*wait[\s\S]*do not start[\s\S]*next unit/iu,
+    );
+    expect(implement).toMatch(
+      /Review next unit[\s\S]*accepted pitch[\s\S]*plan[\s\S]*not duplicate[\s\S]*fixed formal review/iu,
+    );
+    expect(implement).toMatch(
+      /Discuss[\s\S]*do not silently alter[\s\S]*scope[\s\S]*delivery boundaries[\s\S]*dependencies[\s\S]*authority[\s\S]*planning and approval\s+flow/iu,
+    );
+    expect(implement).toMatch(
+      /Review next unit[\s\S]*Discuss[\s\S]*without an accepted plan change[\s\S]*same checkpoint/iu,
+    );
+    expect(implement).toMatch(
+      /until no planned delivery units remain[\s\S]*report plan\s+completion/iu,
+    );
+    expect(implement).toMatch(
+      /plan-less requests[\s\S]*single-unit plans[\s\S]*must not[\s\S]*next-unit prompt/iu,
+    );
+    expect(readme).toMatch(
+      /accepted and committed,[\s\S]*authorized\s+publication\s+has\s+completed[\s\S]*next planned unit[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss[\s\S]*same checkpoint[\s\S]*plan completion/iu,
+    );
+  });
+
   it("expands the /implement, /debug, /improve, and /just-do-it prompts", async () => {
     expect.hasAssertions();
     const piPromptTemplates = (await import(

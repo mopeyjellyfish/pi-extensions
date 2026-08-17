@@ -67,9 +67,25 @@ critical-path, parent-context, or independent-evidence benefit. Bounded one-unit
 routes do not gain forecast overhead. Pause and report material coordination
 variance against an accepted forecast when one exists, or against the bounded
 request when none does. The explicit **Accept and publish** action invokes
-`commit` and `open-pr` without a second mutation prompt. Planned stacks require
-`gh stack`; unavailable delivery tools fail closed while preserving local work
-and recovery evidence.
+`commit` and `open-pr` without a second mutation prompt. When a complete
+accepted plan's current unit is accepted and committed, and any authorized
+publication has completed and another unit remains, the parent summarizes
+progress and the next planned unit's
+observable outcome, dependencies and readiness, intended proof and checks, and
+remaining plan progress. The `question` tool offers exactly **Continue**,
+**Review next unit**, and **Discuss**. If `question` is unavailable or the human
+cancels, the parent presents the same three choices in conversation, waits, and
+does not start the next unit. Continue starts the next ready delivery unit or
+planned ready lane set in accepted dependency order without replanning; Review
+next unit pauses to review it against the accepted pitch and plan without
+duplicating the completed unit's fixed formal review; Discuss pauses for
+questions or potential changes. Scope, delivery boundaries, dependencies, or
+authority changes return through planning and approval before implementation
+resumes. After Review next unit or Discuss finishes without an accepted plan
+change, control returns to the same checkpoint. Repeat until no planned delivery
+units remain, then report plan completion. Plan-less requests and single-unit
+plans do not receive a next-unit prompt. Planned stacks require `gh stack`; unavailable
+delivery tools fail closed while preserving local work and recovery evidence.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the
