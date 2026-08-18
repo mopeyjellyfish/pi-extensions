@@ -56,10 +56,10 @@ Forecast:
 - delivery units and pull requests: one and one;
 - integration points: upstream library to Node adapters, library to Pi tool
   overrides, tool results to session restoration, package to root profile;
-- expensive gates: native dependency packed install on supported CI platforms,
-  ported upstream suite, concurrency and lifecycle integration tests, source and
-  packed Pi smoke, `npm run check`, `npm run security:check`, and manual idle
-  `/reload` acceptance;
+- expensive gates: about 45 MB of default ast-grep language packs installed and
+  loaded on supported CI platforms, the ported upstream suite, concurrency and
+  lifecycle integration tests, source and packed Pi smoke, `npm run check`,
+  `npm run security:check`, and manual idle `/reload` acceptance;
 - likely cascade cost: a change to snapshot details or canonical path handling
   invalidates slices `001`-`003`; a runtime dependency or manifest change also
   invalidates slice `004` packed and security evidence.
@@ -82,7 +82,7 @@ Invalidation map:
 | Package manifest, lockfile, root profile          | Package validation, source smoke, packed smoke, security checks, deterministic reload |
 | Prompt, README, notice, or copied-file inventory  | Prompt contract, pack contents, markdown checks, attribution review                   |
 
-## [ ] 001 — Installed package performs one safe anchored edit
+## [x] 001 — Installed package performs one safe anchored edit
 
 ### Outcome and requirement trace
 
@@ -120,10 +120,16 @@ Likely files:
   `package-lock.json`.
 
 Use exact runtime dependencies `@ast-grep/napi@0.45.0` for the portable native
-syntax seam and `diff@9.0.0` for line-run recovery. The selected ast-grep version
-is older than the repository's 14-day release-age floor. Replace Bun file/hash
-and the private LRU with Node crypto/fs and a small package-owned bounded cache.
-Do not import another Oh My Pi runtime package.
+syntax seam and `diff@9.0.0` for line-run recovery. Add the official dynamic
+language packages `@ast-grep/lang-bash@0.0.8`, `@ast-grep/lang-go@0.0.6`,
+`@ast-grep/lang-rust@0.0.7`, `@ast-grep/lang-python@0.0.6`,
+`@ast-grep/lang-json@0.0.7`, `@ast-grep/lang-markdown@0.0.6`, and
+`@ast-grep/lang-yaml@0.0.6`. Together with ast-grep's built-in HTML,
+JavaScript/JSX, TypeScript/TSX, and CSS parsers, these are the required default
+language set. Every selected version is older than the repository's 14-day
+release-age floor. Replace Bun file/hash and the private LRU with Node crypto/fs
+and a small package-owned bounded cache. Do not import another Oh My Pi runtime
+package.
 
 ### Dependencies
 
@@ -163,10 +169,11 @@ result details invalidate this proof.
 
 ### Atomic commit and pull request
 
-Atomic commit: `feat(pi-hashline): add anchored Hashline editing`. It includes
-source, focused tests, package documentation and notices, release registration,
-and the lockfile required to leave a valid independently installable package.
-Delivery unit 1; no separate stack position.
+Completed in `abc0f10` as
+`feat(pi-hashline): add anchored Hashline editing`. It includes source, focused
+tests, package documentation and notices, release registration, and the lockfile
+required to leave a valid independently installable package. Delivery unit 1;
+no separate stack position.
 
 ### Done when
 
@@ -201,10 +208,12 @@ Likely files:
 - complete ported upstream behavior tests plus Pi-specific policy and result
   tests.
 
-The syntax adapter maps ast-grep's parsed named nodes to Hashline's 1-indexed
-`BlockResolver` and parse-boundary probes for supported languages. It must return
-`null` for unknown languages or parse failures. The line-diff adapter maps
-jsdiff runs to the exact unchanged/added/removed contract recovery expects.
+The syntax adapter registers all accepted official dynamic packages once per
+process, maps every accepted file extension to ast-grep's built-in or registered
+language, and maps parsed named nodes to Hashline's 1-indexed `BlockResolver`
+and parse-boundary probes. It must return `null` for unknown languages or parse
+failures. The line-diff adapter maps jsdiff runs to the exact
+unchanged/added/removed contract recovery expects.
 Canonical targets are resolved relative to `ctx.cwd`; normalize a leading `@`,
 reject invalid escapes where Pi would not authorize mutation, and key snapshots
 by canonical absolute path.
@@ -236,9 +245,10 @@ leave every file unchanged.
 - All applicable upstream Hashline tests pass under Vitest without weakening
   assertions. Any intentionally host-specific exclusion is listed in
   `UPSTREAM.md` with a reason and equivalent replacement proof.
-- Supported-language block tests prove exact multi-line spans. Unknown or
-  unparsable languages reject `PUT N*`/`CUT N*`; after-block lowering keeps only
-  upstream's documented warning behavior.
+- Block and boundary tests prove exact behavior for HTML,
+  JavaScript/JSX, TypeScript/TSX, CSS, Bash, Go, Rust, Python, JSON, Markdown,
+  and YAML. Unknown or unparsable languages reject `PUT N*`/`CUT N*`;
+  after-block lowering keeps only upstream's documented warning behavior.
 - Stale recovery maps unchanged unambiguous anchors and rejects changed or
   duplicated ambiguous anchors.
 - Seen-line tests reject edits in or across undisplayed/elided rows.
