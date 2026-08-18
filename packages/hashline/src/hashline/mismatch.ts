@@ -14,7 +14,7 @@ import {
 } from "./format.ts";
 import { formatAnchoredContext } from "./messages.ts";
 
-const LINE_REF_RE = /^\s*[>+\-*]*\s*(\d+)(?::.*)?\s*$/;
+const LINE_REF_RE = /^(?:[>+*-]+\s*)?(\d+)(?::.*)?$/u;
 /** Format the required-shape diagnostic shown when a line reference is malformed. */
 export function formatFullAnchorRequirement(raw?: string): string {
   const received = raw === undefined ? "" : ` Received ${JSON.stringify(raw)}.`;
@@ -26,12 +26,12 @@ export function formatFullAnchorRequirement(raw?: string): string {
 
 /** Parse a decorated bare line-number anchor like `42`, `*42:foo`, ` > 7`. */
 export function parseTag(ref: string): { line: number } {
-  const match = ref.match(LINE_REF_RE);
+  const match = LINE_REF_RE.exec(ref.trim());
   if (!match) {
     throw new Error(`Invalid line reference. Expected ${formatFullAnchorRequirement(ref)}.`);
   }
-  const line = Number.parseInt(match[1], 10);
-  if (line < 1) throw new Error(`Line number must be >= 1, got ${line} in "${ref}".`);
+  const line = Number(match[1]);
+  if (line < 1) throw new Error(`Line number must be >= 1, got ${String(line)} in "${ref}".`);
   return { line };
 }
 
@@ -78,7 +78,7 @@ export class MismatchError extends Error {
 
   get displayMessage(): string {
     return MismatchError.formatDisplayMessage({
-      path: this.path,
+      ...(this.path === undefined ? {} : { path: this.path }),
       expectedFileHash: this.expectedFileHash,
       actualFileHash: this.actualFileHash,
       fileLines: this.fileLines,
@@ -118,6 +118,8 @@ export class MismatchError extends Error {
 /** Throws when the line reference is out of bounds for the given file. */
 export function validateLineRef(ref: { line: number }, fileLines: string[]): void {
   if (ref.line < 1 || ref.line > fileLines.length) {
-    throw new Error(`Line ${ref.line} does not exist (file has ${fileLines.length} lines)`);
+    throw new Error(
+      `Line ${String(ref.line)} does not exist (file has ${String(fileLines.length)} lines)`,
+    );
   }
 }

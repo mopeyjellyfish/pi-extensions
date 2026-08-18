@@ -16,4 +16,4 @@ export * from "./snapshots.ts";
 export * from "./stream.ts";
 export * from "./syntax.ts";
 export * from "./tokenizer.ts";
-export * from "./types.ts";
+export type * from "./types.ts";

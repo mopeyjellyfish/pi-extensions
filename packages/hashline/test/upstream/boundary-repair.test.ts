@@ -1,5 +1,14 @@
-import { describe, expect, it } from "bun:test";
-import { applyEdits, InMemorySnapshotStore, parsePatch, Recovery } from "@oh-my-pi/hashline";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import {
+  applyEdits,
+  InMemorySnapshotStore,
+  parsePatch,
+  Recovery,
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 /**
  * Applies with a code path, so the tree-sitter probe can judge whether an
@@ -35,6 +44,7 @@ function boundaryRepairWarnings(warnings: readonly string[]): string[] {
 
 describe("boundary-balance repair", () => {
   it("restores a uniformly omitted base indent from unchanged structural rows", () => {
+    expect.hasAssertions();
     const file = [
       "    if (value > 90) {",
       "      result = error;",
@@ -64,16 +74,18 @@ describe("boundary-balance repair", () => {
         "    }",
       ].join("\n"),
     );
-    expect(warnings.some((w) => /Auto-indented a replacement body/.test(w))).toBe(true);
+    expect(warnings.some((w) => w.includes("Auto-indented a replacement body"))).toBe(true);
   });
   it("preserves intentional indentation-only replacements", () => {
+    expect.hasAssertions();
     const file = ["    first();", "    second();"].join("\n");
     const { text, warnings } = apply(file, "PUT 1.=2:\n+first();\n+second();");
     expect(text).toBe("first();\nsecond();");
-    expect(warnings.some((w) => /Auto-indented a replacement body/.test(w))).toBe(false);
+    expect(warnings.some((w) => w.includes("Auto-indented a replacement body"))).toBe(false);
   });
 
   it("retains a swallowed opening comment fence when syntax and indentation prove the boundary", () => {
+    expect.hasAssertions();
     const file = ["class C {", "\t/**", "\t * Old summary.", "\t */", "\tmethod() {}", "}"].join(
       "\n",
     );
@@ -91,6 +103,7 @@ describe("boundary-balance repair", () => {
   // fragment + paren close that still live just below the range, doubling
   // `</>` and `);`. `replace 11.=31:` covers `const …` through the second `/>`.
   it("drops a duplicated multi-line closing block (the Root.tsx incident)", () => {
+    expect.hasAssertions();
     const file = [
       'import type React from "react";',
       'import { Composition } from "remotion";',
@@ -139,6 +152,7 @@ describe("boundary-balance repair", () => {
   // Single structural-closer duplication: the range ends one line short and
   // the payload restates the `});` that survives just below it.
   it("drops a single duplicated structural closer (`});`)", () => {
+    expect.hasAssertions();
     const file = ["it('a', () => {", "\tsetup();", "\trun();", "});", "after();"].join("\n");
     // `replace 2.=3:` replaces the two body lines but the payload also restates the
     // `});` at line 4, which survives — a duplicate close.
@@ -150,10 +164,11 @@ describe("boundary-balance repair", () => {
     expect(boundaryRepairWarnings(warnings)).toHaveLength(1);
   });
 
-  // Single structural-opener duplication: the range starts one line late and
+  // Structural-opener duplication: the range starts one line late and
   // the payload restates the method-signature opener that survives just above
-  // it (the tui.ts `#planRender(` incident).
+  // the tui.ts `#planRender(` incident).
   it("drops a single duplicated structural opener (`planRender(`)", () => {
+    expect.hasAssertions();
     const file = [
       "class Foo {",
       "\t/** doc */",
@@ -196,6 +211,7 @@ describe("boundary-balance repair", () => {
 
   // A duplicated opener whose imbalance does NOT explain the delta is left alone.
   it("preserves a duplicated opener when it does not account for the imbalance", () => {
+    expect.hasAssertions();
     const file = ["if (a) {", "\tfoo();", "}", "bar();"].join("\n");
     // Payload duplicates `if (a) {` but is net +2 braces; dropping the one
     // opener cannot zero the delta, so nothing is repaired — the result is
@@ -211,6 +227,7 @@ describe("boundary-balance repair", () => {
 
   // Genuine missing-closer: payload omits the trailing `});`.
   it("spares the deleted closing line when the payload omits it", () => {
+    expect.hasAssertions();
     const file = ["const handlers = {", "\ta() {", "\t\treturn 1;", "\t},", "};"].join("\n");
     // `replace 5.=5:` is the final `};`. Model inserts a new method but forgets to
     // restate `};`; sparing it keeps the object literal balanced.
@@ -235,6 +252,7 @@ describe("boundary-balance repair", () => {
   // restates the range's final closer must not trigger "missing closer" repair;
   // keeping the deleted suffix would duplicate the closer outside the payload.
   it("does not spare a deleted closing line that the payload already restates", () => {
+    expect.hasAssertions();
     const file = ["class Foo {", "\tok();", "\t}", "}"].join("\n");
     const diff = ["PUT 1-4:", "+class Foo {", "+\tok();", "+}"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -245,6 +263,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("drops duplicated leading and trailing boundary lines around a range replacement", () => {
+    expect.hasAssertions();
     const file = [
       "func _cmd_travel_homeworld():",
       "\tvar destination = get_homeworld()",
@@ -277,6 +296,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("preserves payloads where multi-line boundary echoes cover every line", () => {
+    expect.hasAssertions();
     const file = ["A", "B", "old", "C", "D"].join("\n");
     const diff = ["PUT 3-3:", "+A", "+B", "+C", "+D"].join("\n");
 
@@ -287,6 +307,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("preserves payloads made only of lines matching both replacement neighbors", () => {
+    expect.hasAssertions();
     const file = ["a", "old", "c"].join("\n");
     const diff = ["PUT 2-2:", "+a", "+c"].join("\n");
 
@@ -300,6 +321,7 @@ describe("boundary-balance repair", () => {
   // payload/range delta is intentional structural content, not a boundary
   // mistake: stripping the edges would corrupt the brace structure.
   it("preserves balance-shifting boundary echoes that do not explain the delta", () => {
+    expect.hasAssertions();
     const file = ["}", "old();", "}"].join("\n");
     // Payload deliberately opens with the same bare `}` that sits above the
     // range and closes with the same `}` that sits below it; the payload is
@@ -315,6 +337,7 @@ describe("boundary-balance repair", () => {
   // The common wrapper-echo mistake stays repaired: balance-neutral edges
   // (opener + closer) that duplicate the surviving neighbors are dropped.
   it("still drops a balance-neutral wrapper echo", () => {
+    expect.hasAssertions();
     const file = ["function f() {", "old();", "}"].join("\n");
     const diff = ["PUT 2-2:", "+function f() {", "+fresh();", "+}"].join("\n");
 
@@ -327,6 +350,7 @@ describe("boundary-balance repair", () => {
   // Balance-preserving edits are never touched, even when the payload's last
   // line coincidentally equals the line just below the range.
   it("leaves a balance-preserving replacement alone (no false positive)", () => {
+    expect.hasAssertions();
     const file = ["foo();", "bar();", "bar();", "baz();"].join("\n");
     // Replace line 2 with two balanced statements; the tail `bar();` equals
     // the surviving line 3 but the payload is balanced — must NOT be dropped.
@@ -339,6 +363,7 @@ describe("boundary-balance repair", () => {
   // A duplicated full statement (balance-neutral) is left intact: dropping it
   // could discard intended content, and it does not break syntax.
   it("does not drop a balance-neutral duplicated statement", () => {
+    expect.hasAssertions();
     const file = ["a = 1;", "b = 2;", "c = 3;"].join("\n");
     const diff = ["PUT 1-1:", "+a = 1;", "+b = 2;"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -348,6 +373,7 @@ describe("boundary-balance repair", () => {
 
   // Brackets inside strings must not trigger a spurious balance mismatch.
   it("ignores brackets inside string literals", () => {
+    expect.hasAssertions();
     const file = ['const a = "}";', 'const b = "x";', 'const c = "y";'].join("\n");
     const diff = ["PUT 2-2:", '+const b = "}}}";'].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -359,6 +385,7 @@ describe("boundary-balance repair", () => {
   // survives just below the range — the att#1 `replace 639.=644` shape where
   // the range was one line short of the `const changedFiles` it retyped.
   it("drops a one-sided trailing keeper echo in a multi-line rewrite", () => {
+    expect.hasAssertions();
     const file = [
       "function f() {",
       "  a();",
@@ -378,6 +405,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("drops a one-sided JSX closer echo in a single-line expansion", () => {
+    expect.hasAssertions();
     const file = ["const view = (", "  <section>", "    <Old />", "  </section>", ");"].join("\n");
     const diff = ["PUT 3-3:", "+    <New />", "+  </section>"].join("\n");
     const { text, warnings } = applyTsx(file, diff);
@@ -390,6 +418,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("drops a JSX closer echo after a self-closing tag with a greater-than prop expression", () => {
+    expect.hasAssertions();
     const file = ["const view = (", "<Foo>", "old text", "</Foo>", ");"].join("\n");
     const diff = ["PUT 3-3:", "+<Foo value={a > b} />", "+</Foo>"].join("\n");
     const { text, warnings } = applyTsx(file, diff);
@@ -402,6 +431,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("preserves a nested JSX closer that matches the surviving parent closer", () => {
+    expect.hasAssertions();
     const file = [
       "const view = (",
       '<section className="outer">',
@@ -428,6 +458,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("preserves a nested JSX closer when the opener spans payload lines", () => {
+    expect.hasAssertions();
     const file = [
       "const view = (",
       '<section className="outer">',
@@ -465,6 +496,7 @@ describe("boundary-balance repair", () => {
   // Mirror direction: the payload restates the keeper that survives just above
   // the multi-line range (range one line low instead of one short).
   it("drops a one-sided leading keeper echo in a multi-line rewrite", () => {
+    expect.hasAssertions();
     const file = ["setup();", "a();", "b();", "c();"].join("\n");
     const diff = ["PUT 3-4:", "+a();", "+B();", "+C();"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -476,6 +508,7 @@ describe("boundary-balance repair", () => {
   // boundary line (here the `return threadError(...)`), leaving a dangling
   // `if`. The PyThreadRuntime incident: SWAP 654.=655 restating line 653.
   it("rejects a leading keeper echo when the payload cannot fill the widened range", () => {
+    expect.hasAssertions();
     const file = [
       "{",
       "    auto* handle = payloadFor<PyThreadHandle>(self);",
@@ -496,6 +529,7 @@ describe("boundary-balance repair", () => {
   // range — repairing would delete `c();` even though the payload never
   // mentions it.
   it("rejects a trailing keeper echo when the payload cannot fill the widened range", () => {
+    expect.hasAssertions();
     const file = ["a();", "b();", "c();", "keep();"].join("\n");
     const diff = ["PUT 2-3:", "+B();", "+keep();"].join("\n");
     expect(() => apply(file, diff)).toThrow(/rejected: the body ends by restating/);
@@ -506,6 +540,7 @@ describe("boundary-balance repair", () => {
   // after `return;` as dead code. The PyThreadRuntime setIdent incident:
   // SWAP 718.=718 on the `}` of an early-return block.
   it("rejects sparing a deleted closer when the payload claims no position inside the block", () => {
+    expect.hasAssertions();
     const file = [
       "        if (!global) {",
       "            handle.setDone();",
@@ -517,9 +552,21 @@ describe("boundary-balance repair", () => {
     expect(() => apply(file, diff)).toThrow(/selected boundary row is required/);
   });
 
+  // Equal payload and boundary indentation is ambiguous even when the nearest
+  // preceding content has that same indent: keeping the selected closer would
+  // parse, but its intended side cannot be inferred safely.
+  it("fails closed for a single-line equal-indent boundary with a matching prior row", () => {
+    expect.hasAssertions();
+    const file = ["if (ready) {", "work();", "}", "after();"].join("\n");
+    const diff = ["PUT 3-3:", "+after();"].join("\n");
+
+    expect(() => apply(file, diff)).toThrow(/selected boundary row is required/);
+  });
+
   // Contrast with the rejection above: a payload indented deeper than the
   // spared closer claims the inside of the block, so the spare still fires.
   it("still spares a closer when the payload indentation claims the block interior", () => {
+    expect.hasAssertions();
     const file = ["if (!global) {", "    setDone();", "    return;", "}", "after();"].join("\n");
     const diff = ["PUT 4-4:", "+    setIdent();"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -534,6 +581,7 @@ describe("boundary-balance repair", () => {
   // (`CUT 1`). The patch nets to balanced, so the closer must stay deleted —
   // the per-group repair wrongly kept it, leaving a stray `}`.
   it("does not keep a deleted closer when another hunk removes its opener (#3142)", () => {
+    expect.hasAssertions();
     const file = ["if enabled {", '\tText("Old")', "}", '\tText("Tail")'].join("\n");
     const diff = ["CUT 1", "PUT 2-3:", '+Text("New")'].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -544,6 +592,7 @@ describe("boundary-balance repair", () => {
   // A wrapper removal and a genuine missing closer in the same patch: the
   // residual must be spent on the genuine hunk, not the wrapper-removed one.
   it("spends the missing-closer residual on the genuine hunk, not an earlier wrapper removal", () => {
+    expect.hasAssertions();
     const file = ["if enabled {", '\tText("Old")', "}", "const config = {", "\ta: 1,", "};"].join(
       "\n",
     );
@@ -556,6 +605,7 @@ describe("boundary-balance repair", () => {
   // A replaced opener (not removed) leaves a genuine missing closer downstream:
   // the net deleted-prefix balance is zero, so the closer is correctly kept.
   it("keeps the closer when the matching opener is replaced rather than removed", () => {
+    expect.hasAssertions();
     const file = ["if (a) {", "\told();", "}"].join("\n");
     const diff = ["PUT 1-1:", "+if (b) {", "PUT 2-3:", "+\tfresh();"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -564,6 +614,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("does not keep deleted closer suffixes whose tail the payload already restates", () => {
+    expect.hasAssertions();
     const file = [
       "const REASONING_LABEL_PATTERN = /think/i;",
       "const NO_REASONING_LABEL_PATTERN = /no/i;",
@@ -594,6 +645,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("keeps only the non-restated outer closer for a nested deleted suffix", () => {
+    expect.hasAssertions();
     const file = ["class C {", "\told();", "\t}", "}"].join("\n");
     const diff = ["PUT 2-4:", "+\tnewMethod() {", "+\t\treturn 1;", "+\t}"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -602,6 +654,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("ignores non-contiguously deleted openers when choosing which closer to keep", () => {
+    expect.hasAssertions();
     const file = ["if (a) {", "\told();", "\tmore();", "}", "const obj = {", "\ta: 1,", "};"].join(
       "\n",
     );
@@ -614,6 +667,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("counts earlier kept closers in later projected prefixes", () => {
+    expect.hasAssertions();
     const file = [
       "if (a) {",
       "\told();",
@@ -645,6 +699,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("does not let an earlier kept closer cover a later orphan closer", () => {
+    expect.hasAssertions();
     const file = ["if (a) {", "\told();", "}", "}"].join("\n");
     const diff = ["PUT 2-3:", "+\tfresh();", "PUT 4-4:", "+after();"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -653,6 +708,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("does not keep a deleted outer closer when one survives below the range", () => {
+    expect.hasAssertions();
     const file = ["class C {", "\tmethod() {", "\t\told();", "\t}", "}", "}"].join("\n");
     const diff = ["PUT 2-5:", "+\tmethod() {", "+\t\tfresh();", "+\t}"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -661,6 +717,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("keeps an omitted inner closer when the outer closer survives below", () => {
+    expect.hasAssertions();
     const file = ["class C {", "\tmethod() {", "\t\told();", "\t}", "}", "}"].join("\n");
     const diff = ["PUT 2-5:", "+\tmethod() {", "+\t\tfresh();"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -669,6 +726,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("counts head insertions before replacement payloads in original coordinates", () => {
+    expect.hasAssertions();
     const file = ["\told();", "}"].join("\n");
     const diff = ["PUT <1:", "+if (a) {", "PUT 1-2:", "+\tfresh();"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -677,6 +735,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("counts a separately inserted closer immediately below the range", () => {
+    expect.hasAssertions();
     const file = ["class C {", "\told();", "}", "after();", "const obj = {", "\ta: 1,", "};"].join(
       "\n",
     );
@@ -698,6 +757,7 @@ describe("boundary-balance repair", () => {
   });
 
   it("keeps an omitted outer closer even when the payload restates an inner closer", () => {
+    expect.hasAssertions();
     const file = ["if (a) {", "\tif (b) {", "\t\told();", "\t}", "}", "after();"].join("\n");
     const diff = ["PUT 1-5:", "+if (a) {", "+\tif (c) {", "+\t\tfresh();", "+\t}"].join("\n");
     const { text, warnings } = apply(file, diff);
@@ -710,6 +770,7 @@ describe("boundary-balance repair", () => {
   // A dupSuffix repair in hunk A zeroes its contribution; the residual must be
   // recomputed post-repair so hunk B's genuine missing closer still fires.
   it("still keeps a missing closer when another hunk's dupSuffix repair masks the raw delta", () => {
+    expect.hasAssertions();
     const file = [
       'addEventListener("click", () => {',
       "\tfoo();",
@@ -750,6 +811,7 @@ describe("boundary-balance repair", () => {
   // Per-slot residual: an unterminated backtick template in one hunk must not
   // bleed across into another hunk's delimiter count and mask its missing closer.
   it("does not let an unterminated template in one hunk mask a missing closer in another", () => {
+    expect.hasAssertions();
     const file = ["const log = makeLog(`", "prefix", "`);", "const obj = {", "\ta: 1", "};"].join(
       "\n",
     );
@@ -764,6 +826,7 @@ describe("boundary-balance repair", () => {
   // closing the `if` above, and the payload (sibling-depth statements) never
   // restates it. The closer is spared and the payload lands after it.
   it("spares a leading closer the range swallowed when the payload claims sibling depth", () => {
+    expect.hasAssertions();
     const file = [
       "fn f() {",
       "\tif a {",
@@ -801,6 +864,7 @@ describe("boundary-balance repair", () => {
   // the block the closer just terminated — before vs after is a coin flip,
   // so the edit is rejected instead of guessed.
   it("rejects a swallowed leading closer when the payload claims the block interior", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\treturn;", "\t}", "\tlet lead = old1();", "}"].join(
       "\n",
     );
@@ -811,6 +875,7 @@ describe("boundary-balance repair", () => {
   // Deliberate two-hunk unwrap: another hunk deletes the matching `if` opener,
   // so the whole-patch residual is clean and the leading closer stays deleted.
   it("does not spare a leading closer whose opener another hunk removes", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\treturn;", "\t}", "\tlet lead = old1();", "}"].join(
       "\n",
     );
@@ -827,6 +892,7 @@ describe("boundary-balance repair", () => {
   // orphan the old body's closers below. The edit applies as authored (text
   // shape cannot prove a syntactic block) but warns with the block-op remedy.
   it("warns when a balanced payload's range ends mid-block", () => {
+    expect.hasAssertions();
     const file = [
       "fn old(a: u32) -> bool {",
       "\tlet x = a + 1;",
@@ -861,6 +927,7 @@ describe("boundary-balance repair", () => {
   // prose, so the edit must apply verbatim — never be rejected. The advisory
   // warning still fires (shape witnesses pass); the author ignores it.
   it("applies a prose edit that deletes a literal opening brace in Markdown", () => {
+    expect.hasAssertions();
     const file = ["Intro {", "body", "}"].join("\n");
     const diff = ["PUT 1-2:", "+Revised"].join("\n");
     const { text } = apply(file, diff);
@@ -870,33 +937,36 @@ describe("boundary-balance repair", () => {
   // Repairing an already-broken file by appending closers is deliberate
   // net-closing content — never a mid-block mistake.
   it("does not warn for a net-closing payload that repairs a broken file", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\treturn;", "\tdone();", "}"].join("\n");
     const diff = ["PUT 3-3:", "+\t\treturn;", "+\t}"].join("\n");
     const { text, warnings } = applyRust(file, diff);
     expect(text).toBe(["fn f() {", "\tif a {", "\t\treturn;", "\t}", "\tdone();", "}"].join("\n"));
-    expect(warnings.filter((warning) => /mid-block/.test(warning))).toHaveLength(0);
+    expect(warnings.filter((warning) => warning.includes("mid-block"))).toHaveLength(0);
   });
   // Symmetric invalid→valid repair: the file already carries a surplus
   // opener, so replacing that opener line with a plain statement rebalances
   // the file — the surviving `}` below pairs with `fn f() {`, not with the
   // deleted `if a {`. Must apply without a mid-block warning.
   it("does not warn when deleting a surplus opener from an already-broken file", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\twork();", "}"].join("\n");
     const diff = ["PUT 2-2:", "+\tprepare();"].join("\n");
     const { text, warnings } = applyRust(file, diff);
     expect(text).toBe(["fn f() {", "\tprepare();", "\t\twork();", "}"].join("\n"));
-    expect(warnings.filter((warning) => /mid-block/.test(warning))).toHaveLength(0);
+    expect(warnings.filter((warning) => warning.includes("mid-block"))).toHaveLength(0);
   });
   // The balance scanner counts regex-literal braces naively; that miscount
   // may only ever suppress, never trigger the mid-block warning. Replacing
   // the `/{/` line is valid JS before and after — no deleted line ends with
   // a raw `{` and no lone closer line survives below.
   it("does not warn when replacing a regex literal whose braces fooled the balance scanner", () => {
+    expect.hasAssertions();
     const file = ["const open = /{/;", "const close = /}/;"].join("\n");
     const diff = ["PUT 1-1:", "+const open = /x/;"].join("\n");
     const { text, warnings } = apply(file, diff);
     expect(text).toBe(["const open = /x/;", "const close = /}/;"].join("\n"));
-    expect(warnings.filter((warning) => /mid-block/.test(warning))).toHaveLength(0);
+    expect(warnings.filter((warning) => warning.includes("mid-block"))).toHaveLength(0);
   });
 
   // Same regex pair embedded in a real function: the enclosing `}` below is
@@ -904,6 +974,7 @@ describe("boundary-balance repair", () => {
   // opener-shape witness (`const open = /{/;` ends with `;`, not `{`) must
   // still suppress the warning.
   it("does not warn for a regex-literal replacement inside a real block", () => {
+    expect.hasAssertions();
     const file = ["function setup() {", "\tconst open = /{/;", "\tconst close = /}/;", "}"].join(
       "\n",
     );
@@ -912,13 +983,14 @@ describe("boundary-balance repair", () => {
     expect(text).toBe(
       ["function setup() {", "\tconst open = /x/;", "\tconst close = /}/;", "}"].join("\n"),
     );
-    expect(warnings.filter((warning) => /mid-block/.test(warning))).toHaveLength(0);
+    expect(warnings.filter((warning) => warning.includes("mid-block"))).toHaveLength(0);
   });
   // The parser's veto in prose: Markdown parses with or without the literal
   // `}`, so the leading-closer spare must not fire and — since nothing is
   // wrong — must not even warn. (The advisory counterexample: the authored
   // intent is `Intro {` + `Revised`, not a resurrected brace.)
   it("applies a prose edit verbatim when the range deletes a literal leading brace", () => {
+    expect.hasAssertions();
     const file = ["Intro {", "}", "old"].join("\n");
     const diff = ["PUT 2-3:", "+Revised"].join("\n");
     const { text, warnings } = applyProse(file, diff);
@@ -929,6 +1001,7 @@ describe("boundary-balance repair", () => {
   // Mirror for the trailing edge: the long-shipped suffix spare is vetoed by
   // the same parse.
   it("applies a prose edit verbatim when the range deletes a literal trailing brace", () => {
+    expect.hasAssertions();
     const file = ["old", "}", "Outro"].join("\n");
     const diff = ["PUT 1-2:", "+Revised"].join("\n");
     const { text, warnings } = applyProse(file, diff);
@@ -939,6 +1012,7 @@ describe("boundary-balance repair", () => {
   // Same leading-closer shape in real code: no veto is available (the authored
   // result does not parse), so the spare fires and the file stays valid.
   it("spares the swallowed leading closer when the authored edit does not parse", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\treturn;", "\t}", "\tlet lead = old1();", "}"].join(
       "\n",
     );
@@ -953,6 +1027,7 @@ describe("boundary-balance repair", () => {
   // the closer-spare must not fire: the edit lands exactly as authored, even
   // though the delimiter heuristics alone would have "repaired" it.
   it("applies as authored when no path is supplied, since no repair can be proven", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\treturn;", "\t}", "\tlet lead = old1();", "}"].join(
       "\n",
     );
@@ -968,6 +1043,7 @@ describe("boundary-balance repair", () => {
   // Same for a language tree-sitter does not know: nothing can be proven, so
   // nothing is rewritten and no advisory is invented.
   it("applies as authored for a language the parser does not know", () => {
+    expect.hasAssertions();
     const file = ["fn f() {", "\tif a {", "\t\treturn;", "\t}", "\tlet lead = old1();", "}"].join(
       "\n",
     );
@@ -989,6 +1065,7 @@ describe("boundary-balance repair", () => {
   // closer-spare verdict would also let this unsafe edit through, deleting
   // range lines the body never restates.
   it("still rejects a too-short one-sided echo on a language the parser cannot read", () => {
+    expect.hasAssertions();
     const file = ["alpha", "beta", "gamma", "delta", "eps"].join("\n");
     const diff = ["PUT 2-4:", "+alpha", "+fresh1"].join("\n");
     for (const path of [undefined, "fixture.unknownlang", "fixture.ts"]) {
@@ -1008,6 +1085,7 @@ describe("boundary-balance repair through stale-snapshot recovery", () => {
   // region, so anchor recovery succeeds and the repaired (de-duplicated)
   // hunk lands without doubling the closer.
   it("de-duplicates a closer while recovering from a drifted file", () => {
+    expect.hasAssertions();
     const snapshotLines = [
       'import { x } from "y";',
       "",
@@ -1079,16 +1157,18 @@ describe("rust lifetime delimiter counting (the extension() incident)", () => {
   ].join("\n");
 
   it("flags a range that swallows a lifetime-carrying signature line", () => {
+    expect.hasAssertions();
     // Range 11-16 deletes the signature's `{` (hidden behind `'static`
     // before the fix) and the match block; payload is only the new body.
     const { text, warnings } = applyRust(file, "PUT 11.=16:\n+\t\tself.into()");
     // Applied as authored — advisory, not repair.
     expect(text).toContain("\t\tself.into()");
     expect(text).not.toContain("pub const fn extension");
-    expect(warnings.some((w) => /introduced a syntax error/.test(w))).toBe(true);
+    expect(warnings.some((w) => w.includes("introduced a syntax error"))).toBe(true);
   });
 
   it("does not resurrect a swallowed signature when body indentation matches", () => {
+    expect.hasAssertions();
     const { text, warnings } = applyRust(file, "PUT 11.=16:\n+      self.into()");
 
     expect(text).toContain("      self.into()");
@@ -1098,6 +1178,7 @@ describe("rust lifetime delimiter counting (the extension() incident)", () => {
   });
 
   it("stays silent for the correct whole-construct replacement", () => {
+    expect.hasAssertions();
     const diff = [
       "PUT 11.=17:",
       "+   pub const fn extension(self) -> &'static str {",
@@ -1109,6 +1190,7 @@ describe("rust lifetime delimiter counting (the extension() incident)", () => {
   });
 
   it("stays silent editing below a multi-lifetime signature", () => {
+    expect.hasAssertions();
     // `<'a>(left: &'a str, right: &'a str)` — pairing apostrophes across
     // lifetimes would swallow the `(` and fabricate a paren delta.
     const multi = [
@@ -1122,6 +1204,7 @@ describe("rust lifetime delimiter counting (the extension() incident)", () => {
   });
 
   it("still lexes rust char literals as literals", () => {
+    expect.hasAssertions();
     // `'{'` / `'}'` in match arms are content, not delimiters.
     const arms = [
       "fn depth(c: char, mut n: i32) -> i32 {",
@@ -1166,6 +1249,7 @@ describe("post-apply parse advisory (the resolve_alias_path incident)", () => {
     "PUT 7.=7:\n+\t\t\treturn tar::resolve_alias_path(&self.entries, path, self.limits);";
 
   it("warns when a balance-neutral edit stops the file parsing", () => {
+    expect.hasAssertions();
     const { text, warnings } = applyRust(file, misplaced);
     // Applied as authored; the warning names the landing line.
     expect(text).toContain("return tar::resolve_alias_path(&self.entries, path, self.limits);");
@@ -1173,6 +1257,7 @@ describe("post-apply parse advisory (the resolve_alias_path incident)", () => {
   });
 
   it("stays silent when the same statement lands on the intended line", () => {
+    expect.hasAssertions();
     const { warnings } = applyRust(
       file,
       "PUT 14.=14:\n+         return tar::resolve_alias_path(&self.entries, path, self.limits);",
@@ -1181,6 +1266,7 @@ describe("post-apply parse advisory (the resolve_alias_path incident)", () => {
   });
 
   it("casts no advisory when the baseline was already broken", () => {
+    expect.hasAssertions();
     // Mid-refactor file that never parsed: the edit did not cause the
     // damage, so reporting it would be noise.
     const broken = ["impl A {", "   fn half(", "   let x = 1;"].join("\n");
@@ -1189,6 +1275,7 @@ describe("post-apply parse advisory (the resolve_alias_path incident)", () => {
   });
 
   it("casts no advisory for languages the probe cannot parse", () => {
+    expect.hasAssertions();
     // Markdown braces are prose; `parsesCleanly` never vouches for the
     // baseline, so breakage cannot be attributed to the edit.
     const prose = ["# Title", "", "Uses { braces } freely.", "Done."].join("\n");

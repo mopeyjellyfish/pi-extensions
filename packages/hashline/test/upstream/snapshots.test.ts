@@ -1,12 +1,32 @@
-import { describe, expect, it } from "bun:test";
-import { computeFileHash, InMemorySnapshotStore } from "@oh-my-pi/hashline";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import {
+  computeFileHash,
+  InMemorySnapshotStore,
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const PATH = "/tmp/__hashline-snapshots__.ts";
 const OTHER = "/tmp/__hashline-other__.ts";
 const TAG_RE = /^[0-9A-F]{4}$/;
 
+function nodeHashCollision(): readonly [string, string] {
+  const byTag = new Map<string, string>();
+  for (let index = 0; index < 100_000; index++) {
+    const text = `node-hash-collision-${String(index)}\n`;
+    const tag = computeFileHash(text);
+    const previous = byTag.get(tag);
+    if (previous !== undefined && previous !== text) return [previous, text];
+    byTag.set(tag, text);
+  }
+  throw new Error("Expected a 16-bit Hashline tag collision.");
+}
+
 describe("InMemorySnapshotStore", () => {
   it("derives the tag from whole-file content (matches computeFileHash)", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const text = "L1\nL2\nL3\n";
     const tag = store.record(PATH, text);
@@ -15,6 +35,7 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("fuses repeated reads of identical content onto one tag", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const text = "alpha\nbeta\ngamma\n";
     const first = store.record(PATH, text);
@@ -26,6 +47,7 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("mints a new tag when content changes and retains the prior version", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const v1 = "one\ntwo\n";
     const v2 = "one\ntwo\nthree\n";
@@ -39,6 +61,7 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("promotes a re-observed older version back to head", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const v1 = "x\n";
     const v2 = "y\n";
@@ -50,6 +73,7 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("bounds per-path history to maxVersionsPerPath (oldest dropped)", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore({ maxVersionsPerPath: 2 });
     const tagA = store.record(PATH, "A\n");
     const tagB = store.record(PATH, "B\n");
@@ -61,6 +85,7 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("bounds tracked paths to maxPaths (cold path evicted)", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore({ maxPaths: 1 });
     const tag = store.record(PATH, "first\n");
     store.record(OTHER, "second\n");
@@ -70,12 +95,14 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("rejects cross-path lookups", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const tag = store.record(PATH, "shared\n");
     expect(store.byHash(OTHER, tag)).toBeNull();
   });
 
   it("invalidate drops one path; clear drops everything", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const tagA = store.record(PATH, "A\n");
     const tagB = store.record(OTHER, "B\n");
@@ -87,6 +114,7 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("relocate moves version history and read provenance to a new path", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const dest = "/tmp/__hashline-dest__.ts";
     const tag = store.record(PATH, "A\n", [1]);
@@ -98,13 +126,16 @@ describe("InMemorySnapshotStore", () => {
   });
 
   it("findByHash returns every retained version with that tag across paths", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const text = "shared\n";
     const tag = store.record(PATH, text);
     store.record(OTHER, text);
 
     const matches = store.findByHash(tag);
-    expect(matches.map((snapshot) => snapshot.path).sort()).toEqual([OTHER, PATH].sort());
+    expect(
+      matches.map((snapshot) => snapshot.path).sort((left, right) => left.localeCompare(right)),
+    ).toEqual([OTHER, PATH].sort((left, right) => left.localeCompare(right)));
     expect(matches.every((snapshot) => snapshot.hash === tag)).toBe(true);
     // A tag no retained version carries yields no matches.
     expect(store.findByHash(tag === "0000" ? "FFFF" : "0000")).toEqual([]);
@@ -116,11 +147,10 @@ describe("InMemorySnapshotStore", () => {
   // so downstream tag→text lookups can still tell them apart. Regression
   // for issue #4075.
   describe("hash collisions", () => {
-    // These two texts both hash to `1D84` under `computeFileHash`.
-    const COLLIDE_A = "line one 263\nline two 4471\n";
-    const COLLIDE_B = "line one 410\nline two 6970\n";
+    const [COLLIDE_A, COLLIDE_B] = nodeHashCollision();
 
     it("keeps two colliding texts as separate versions with separate seenLines", () => {
+      expect.hasAssertions();
       expect(computeFileHash(COLLIDE_A)).toBe(computeFileHash(COLLIDE_B));
 
       const store = new InMemorySnapshotStore();
@@ -142,6 +172,7 @@ describe("InMemorySnapshotStore", () => {
     });
 
     it("still fuses identical repeated reads of one colliding text onto one snapshot", () => {
+      expect.hasAssertions();
       const store = new InMemorySnapshotStore();
       const first = store.record(PATH, COLLIDE_A, [1]);
       const again = store.record(PATH, COLLIDE_A, [2]);

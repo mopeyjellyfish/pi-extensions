@@ -183,7 +183,7 @@ The package is structurally valid and independently loadable, attribution is in
 the packed artifact, and one observed text range can be changed only with its
 valid tag without regressing image reads or output limits.
 
-## [ ] 002 — Full language and recovery fail closed
+## [x] 002 — Full language and recovery fail closed
 
 ### Outcome and requirement trace
 
@@ -213,14 +213,15 @@ Likely files:
 The syntax adapter initializes Tree-sitter WASM and loads the accepted grammars
 once before tool use, maps accepted file extensions to those grammars, and ports
 Oh My Pi's `block_range_at` and `enclosing_block_boundaries` algorithms over
-strict parse trees. It rejects a block when its selected subtree has an error
-and returns `null` for whole-file parse errors, unknown languages, or load
-failures. Every tree/parser resource is bounded and deleted when no longer
-needed. The line-diff adapter maps jsdiff runs to the exact
+strict parse trees. `block_range_at` rejects a block when its selected subtree
+has an error, but deliberately permits unrelated root parse errors; it returns
+`null` for unknown languages or load failures. `enclosing_block_boundaries` and
+whole-file parse-clean advisories reject root parse errors. Every tree/parser
+resource is bounded and deleted when no longer needed. The line-diff adapter maps jsdiff runs to the exact
 unchanged/added/removed contract recovery expects.
-Canonical targets are resolved relative to `ctx.cwd`; normalize a leading `@`,
-reject invalid escapes where Pi would not authorize mutation, and key snapshots
-by canonical absolute path.
+Canonical targets accept the same cwd-relative and absolute paths as Pi's
+built-ins, normalize a leading `@`, and key snapshots by canonical absolute
+path. This adapter does not add a cwd sandbox that Pi itself does not impose.
 
 For multi-section edits, resolve and sort unique canonical paths, acquire nested
 Pi mutation queues in deterministic order, preflight every section while all

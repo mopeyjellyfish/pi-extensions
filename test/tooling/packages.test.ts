@@ -530,6 +530,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-feature-flow",
       "@mopeyjellyfish/pi-git-conventions",
       "@mopeyjellyfish/pi-github",
+      "@mopeyjellyfish/pi-hashline",
       "@mopeyjellyfish/pi-lsp",
       "@mopeyjellyfish/pi-playwright-cleanup",
       "@mopeyjellyfish/pi-productivity",

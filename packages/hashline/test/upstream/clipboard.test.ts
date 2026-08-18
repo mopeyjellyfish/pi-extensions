@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   applyEdits,
   type BlockResolver,
@@ -11,14 +12,17 @@ import {
   parsePatch,
   parsePatchStreaming,
   resolveBlockEdits,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const PATH = "x.ts";
 
 // Deterministic stub: the block beginning on line N spans [N, N+1].
 const stubResolver: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line + 1 });
 
-function taggedPatcher(files: Array<[string, string]>): {
+function taggedPatcher(files: [string, string][]): {
   fs: InMemoryFilesystem;
   snapshots: InMemorySnapshotStore;
   patcher: Patcher;
@@ -33,12 +37,14 @@ function taggedPatcher(files: Array<[string, string]>): {
 
 describe("clipboard parsing", () => {
   it("lowers `CUT N-M` to a capture plus per-line deletes", () => {
+    expect.hasAssertions();
     const cut = parsePatch("CUT 2-3").edits;
     expect(cut.map((edit) => edit.kind)).toEqual(["cut", "delete", "delete"]);
     expect(cut[0]).toMatchObject({ kind: "cut", range: { start: { line: 2 }, end: { line: 3 } } });
   });
 
   it("parses every PUT paste locator, rejecting colons on register PUTs", () => {
+    expect.hasAssertions();
     const cursors = parsePatch("CUT 1\nPUT <2\nPUT >3\nPUT <1\nPUT >$").edits.flatMap((edit) =>
       edit.kind === "paste" && edit.at.kind === "gap" ? [edit.at.cursor] : [],
     );
@@ -51,22 +57,27 @@ describe("clipboard parsing", () => {
   });
 
   it("rejects colon on register PUT", () => {
+    expect.hasAssertions();
     expect(() => parsePatch("PUT >2 @name:")).toThrow(/never takes `:`/);
   });
 
   it("rejects body rows under CUT", () => {
+    expect.hasAssertions();
     expect(() => parsePatch("CUT 1-2\n+x")).toThrow(/`CUT` deletes/);
   });
 
   it("rejects a CUT range overlapping another hunk's range", () => {
+    expect.hasAssertions();
     expect(() => parsePatch("CUT 2-4\nPUT 3:\n+x")).toThrow(/already targeted by another hunk/);
   });
 
   it("reports inverted CUT ranges with op-specific retry forms", () => {
+    expect.hasAssertions();
     expect(() => parsePatch("CUT 5-2")).toThrow(/`CUT 5`.*`CUT 5\.=6`/);
   });
 
   it("flushes a trailing bodyless clipboard op in streaming mode", () => {
+    expect.hasAssertions();
     const { edits } = parsePatchStreaming("CUT 1\nPUT >$");
     expect(edits.map((edit) => edit.kind)).toEqual(["cut", "delete", "paste"]);
   });
@@ -74,16 +85,19 @@ describe("clipboard parsing", () => {
 
 describe("clipboard apply semantics", () => {
   it("moves a range within a file (CUT + PUT)", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 2-3\nPUT >5`);
     expect(section.applyTo("l1\nl2\nl3\nl4\nl5\n").text).toBe("l1\nl4\nl5\nl2\nl3\n");
   });
 
   it("repeats CUT content without consuming the clipboard", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 2\nPUT <1\nPUT >$`);
     expect(section.applyTo("l1\nl2\nl3\n").text).toBe("l2\nl1\nl3\nl2\n");
   });
 
   it("swaps two regions with named registers", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(
       `[${PATH}#1A2B]\nCUT 1-2 @a\nCUT 3-4 @b\nPUT <1 @b\nPUT >$ @a`,
     );
@@ -91,6 +105,7 @@ describe("clipboard apply semantics", () => {
   });
 
   it("rejects PUT with an empty register", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT >1`);
     expect(() => section.applyTo("l1\nl2\n")).toThrow(/Nothing to paste/);
   });
@@ -99,6 +114,7 @@ describe("clipboard apply semantics", () => {
   // write nothing back — a mistyped register name must not silently destroy
   // content. (Gap pastes stay a warned no-op; see the next test.)
   it("rejects a span paste from an empty named register instead of deleting the range", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT 2-3 @gone`);
     expect(() => section.applyTo("l1\nl2\nl3\nl4\n")).toThrow(
       /`@gone` is empty.*would delete those lines/s,
@@ -106,6 +122,7 @@ describe("clipboard apply semantics", () => {
   });
 
   it("pastes nothing at a gap from an empty named register, with a warning", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 1 @kept\nPUT >2 @gone`);
     const result = section.applyTo("l1\nl2\n");
     expect(result.text).toBe("l2\n");
@@ -113,21 +130,25 @@ describe("clipboard apply semantics", () => {
   });
 
   it("drops an empty-register PUT on the streaming-tolerant path", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT >1`);
     expect(section.applyPartialTo("l1\nl2\n").text).toBe("l1\nl2\n");
   });
 
   it("allows a CUT without a following PUT", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 2`);
     expect(section.applyTo("l1\nl2\nl3\n").text).toBe("l1\nl3\n");
   });
 
   it("rejects multiple unlabeled CUTs before an unlabeled paste", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 1\nCUT 3\nPUT >$`);
     expect(() => section.applyTo("l1\nl2\nl3\n")).toThrow(/unlabeled `CUT`s are pending/);
   });
 
   it("allows consecutive CUTs into named registers", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(
       `[${PATH}#1A2B]\nCUT 1 @first\nCUT 3 @second\nPUT >$ @second`,
     );
@@ -135,11 +156,13 @@ describe("clipboard apply semantics", () => {
   });
 
   it("rejects an out-of-range capture", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 8-9\nPUT <1`);
     expect(() => section.applyTo("l1\nl2\n")).toThrow(/out of range/);
   });
 
   it("threads host-owned named registers across applyEdits calls", () => {
+    expect.hasAssertions();
     const clipboard: Clipboard = {};
     const cut = parsePatch("CUT 1 @r").edits;
     const paste = parsePatch("PUT >$ @r").edits;
@@ -150,6 +173,7 @@ describe("clipboard apply semantics", () => {
 
 describe("clipboard block ops", () => {
   it("expands CUT N* to a span capture plus per-line deletes", () => {
+    expect.hasAssertions();
     const edits = parsePatch("CUT 2*\nPUT >$").edits;
     const resolved = resolveBlockEdits(edits, "l1\nl2\nl3\nl4", PATH, stubResolver);
     expect(resolved.map((edit) => edit.kind)).toEqual(["cut", "delete", "delete", "paste"]);
@@ -160,12 +184,14 @@ describe("clipboard block ops", () => {
   });
 
   it("moves a block after another block via PUT >N*", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 1*\nPUT >3*`);
     // stub blocks: [1,2] and [3,4].
     expect(section.applyTo("a1\na2\nb1\nb2\nrest", stubResolver).text).toBe("b1\nb2\na1\na2\nrest");
   });
 
   it("echoes clipboard block resolutions with their op", () => {
+    expect.hasAssertions();
     const seen: string[] = [];
     resolveBlockEdits(parsePatch("CUT 2*\nPUT >$").edits, "l1\nl2\nl3", PATH, stubResolver, {
       onResolved: (resolution) => seen.push(resolution.op),
@@ -174,12 +200,14 @@ describe("clipboard block ops", () => {
   });
 
   it("rejects a single-line CUT N* resolution with the plain-op retry", () => {
+    expect.hasAssertions();
     const single: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line });
     const edits = parsePatch("CUT 2*\nPUT >$").edits;
     expect(() => resolveBlockEdits(edits, "a\nb\nc", PATH, single)).toThrow(/use `CUT 2`/);
   });
 
   it("lowers an unresolvable PUT >N* to a plain paste with a warning", () => {
+    expect.hasAssertions();
     const warnings: string[] = [];
     const resolved = resolveBlockEdits(
       parsePatch("CUT 1\nPUT >2*").edits,
@@ -197,6 +225,7 @@ describe("clipboard block ops", () => {
 
 describe("clipboard across sections and batches", () => {
   it("moves lines between files within one patch", async () => {
+    expect.hasAssertions();
     const a = "keep\nmove1\nmove2\n";
     const b = "b1\n";
     const { fs, patcher, tags } = taggedPatcher([
@@ -205,9 +234,9 @@ describe("clipboard across sections and batches", () => {
     ]);
 
     const input = [
-      `[a.ts#${tags.get("a.ts")}]`,
+      `[a.ts#${tags.get("a.ts") ?? ""}]`,
       "CUT 2-3",
-      `[b.ts#${tags.get("b.ts")}]`,
+      `[b.ts#${tags.get("b.ts") ?? ""}]`,
       "PUT >$",
     ].join("\n");
 

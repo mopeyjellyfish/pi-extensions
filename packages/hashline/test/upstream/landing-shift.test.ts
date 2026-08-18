@@ -1,11 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   applyEdits,
   type BlockResolver,
   type BlockSpan,
   Patch,
   parsePatch,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 /**
  * After-insert landing correction: an `insert after N:` body indented
@@ -33,6 +37,7 @@ function apply(text: string, patch: string): { text: string; warnings: string[] 
 
 describe("after-insert landing shift", () => {
   it("slides a shallower body past the closing line and warns", () => {
+    expect.hasAssertions();
     const { text, warnings } = apply(FILE, "PUT >3:\n+    c();");
 
     expect(text).toBe(
@@ -52,6 +57,7 @@ describe("after-insert landing shift", () => {
   });
 
   it("crosses multiple closer levels and stops when depth returns to the body's", () => {
+    expect.hasAssertions();
     const nested = [
       "function f() {", // 1
       "    if (x) {", // 2
@@ -66,21 +72,23 @@ describe("after-insert landing shift", () => {
 
     // Body at depth 4 escapes both the `for` and the `if`.
     const outer = apply(nested, "PUT >4:\n+    c();");
-    expect(outer.text.split("\n")[6]).toBe("    c();");
+    expect(outer.text.split("\n", 7)[6]).toBe("    c();");
     expect(outer.warnings[0]).toMatch(/moved past 2 closing lines to after line 6/);
 
     // Body at depth 8 escapes only the `for`, staying inside the `if`.
     const inner = apply(nested, "PUT >4:\n+        c();");
-    expect(inner.text.split("\n")[5]).toBe("        c();");
+    expect(inner.text.split("\n", 6)[5]).toBe("        c();");
     expect(inner.warnings[0]).toMatch(/moved past 1 closing line to after line 5/);
   });
 
   it("does not shift when the body matches the anchor's depth", () => {
+    expect.hasAssertions();
     const { text } = apply(FILE, "PUT >3:\n+        c();");
-    expect(text.split("\n")[3]).toBe("        c();");
+    expect(text.split("\n", 4)[3]).toBe("        c();");
   });
 
   it("never crosses content lines (indentation-only languages stay put)", () => {
+    expect.hasAssertions();
     const py = ["def f():", "    if x:", "        a()", "    b()", ""].join("\n");
     const { text, warnings } = apply(py, "PUT >3:\n+    c()");
     expect(text).toBe(
@@ -90,18 +98,21 @@ describe("after-insert landing shift", () => {
   });
 
   it("treats a body of pure closers as depth-neutral", () => {
+    expect.hasAssertions();
     const { text, warnings } = apply(FILE, "PUT >3:\n+    }");
-    expect(text.split("\n")[3]).toBe("    }");
+    expect(text.split("\n", 4)[3]).toBe("    }");
     expect(warnings).toHaveLength(0);
   });
 
   it("skips incomparable indentation styles (tabs file, spaces body)", () => {
+    expect.hasAssertions();
     const tabs = ["function f() {", "\tif (x) {", "\t\ta();", "\t}", "\tb();", "}", ""].join("\n");
     const { text } = apply(tabs, "PUT >3:\n+    c();");
-    expect(text.split("\n")[3]).toBe("    c();");
+    expect(text.split("\n", 4)[3]).toBe("    c();");
   });
 
   it("refuses to cross a line targeted by another hunk", () => {
+    expect.hasAssertions();
     const { text, warnings } = apply(FILE, "PUT >3:\n+    c();\nCUT 4");
     // The closer on line 4 is owned by the cut; the insert stays put.
     expect(text).toBe(
@@ -113,6 +124,7 @@ describe("after-insert landing shift", () => {
   });
 
   it("looks past blank lines between the anchor and the closer", () => {
+    expect.hasAssertions();
     const gapped = [
       "function f() {",
       "    if (x) {",
@@ -141,12 +153,14 @@ describe("after-insert landing shift", () => {
   });
 
   it("leaves `PUT < N:` untouched", () => {
+    expect.hasAssertions();
     const { text, warnings } = apply(FILE, "PUT <4:\n+    c();");
-    expect(text.split("\n")[3]).toBe("    c();");
+    expect(text.split("\n", 4)[3]).toBe("    c();");
     expect(warnings).toHaveLength(0);
   });
 
   it("composes with `PUT >N*: N:` to escape enclosing closers", () => {
+    expect.hasAssertions();
     // stub: block beginning on N spans [N, N+1] → `block 2` ends on line 3.
     const stubResolver: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line + 1 });
     const text = ["function f() {", "    const t = mk({", "    });", "}", "x();", ""].join("\n");
@@ -159,9 +173,9 @@ describe("after-insert landing shift", () => {
     expect(result.text).toBe(
       ["function f() {", "    const t = mk({", "    });", "}", "ref = t;", "x();", ""].join("\n"),
     );
-    expect(result.warnings?.some((w) => /moved past 1 closing line to after line 4/.test(w))).toBe(
-      true,
-    );
+    expect(
+      result.warnings?.some((w) => w.includes("moved past 1 closing line to after line 4")),
+    ).toBe(true);
   });
 });
 
@@ -185,6 +199,7 @@ describe("insert-after-block inward landing shift", () => {
   ].join("\n");
 
   it("pulls a deeper body inside the block, after its last content line", () => {
+    expect.hasAssertions();
     const resolver: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line + 2 });
     const section = Patch.parseSingle("[x.ts#1A2B]\nPUT >2*:\n+        setup();");
     const result = section.applyTo(BLOCK_FILE, resolver);
@@ -206,6 +221,7 @@ describe("insert-after-block inward landing shift", () => {
   });
 
   it("lands right after the opener of an empty block", () => {
+    expect.hasAssertions();
     const resolver: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line + 1 });
     const text = ["function f() {", "    afterEach(() => {", "    });", "}", ""].join("\n");
     const section = Patch.parseSingle("[x.ts#1A2B]\nPUT >2*:\n+        setup();");
@@ -217,12 +233,13 @@ describe("insert-after-block inward landing shift", () => {
         "\n",
       ),
     );
-    expect(result.warnings?.some((w) => /placed inside the block, after line 2/.test(w))).toBe(
+    expect(result.warnings?.some((w) => w.includes("placed inside the block, after line 2"))).toBe(
       true,
     );
   });
 
   it("crosses nested trailing closers and stops at the body's claimed depth", () => {
+    expect.hasAssertions();
     const resolver: BlockResolver = (): BlockSpan => ({ start: 1, end: 5 });
     const text = ["foo(() => {", "    bar(() => {", "        x();", "    });", "});", ""].join(
       "\n",
@@ -238,12 +255,13 @@ describe("insert-after-block inward landing shift", () => {
         "\n",
       ),
     );
-    expect(result.warnings?.some((w) => /placed inside the block, after line 4/.test(w))).toBe(
+    expect(result.warnings?.some((w) => w.includes("placed inside the block, after line 4"))).toBe(
       true,
     );
   });
 
   it("leaves a sibling-depth body after the block (the literal contract)", () => {
+    expect.hasAssertions();
     const resolver: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line + 2 });
     const section = Patch.parseSingle("[x.ts#1A2B]\nPUT >2*:\n+    cleanup();");
 
@@ -264,13 +282,15 @@ describe("insert-after-block inward landing shift", () => {
   });
 
   it("never shifts a plain `insert after M:` anchored on a closer", () => {
+    expect.hasAssertions();
     const { text, warnings } = apply(BLOCK_FILE, "PUT >4:\n+        leak();");
 
-    expect(text.split("\n")[4]).toBe("        leak();");
+    expect(text.split("\n", 5)[4]).toBe("        leak();");
     expect(warnings).toHaveLength(0);
   });
 
   it("refuses to cross a closer targeted by another hunk", () => {
+    expect.hasAssertions();
     const resolver: BlockResolver = (): BlockSpan => ({ start: 1, end: 5 });
     const text = ["foo(() => {", "    bar(() => {", "        x();", "    });", "});", ""].join(
       "\n",
@@ -292,6 +312,8 @@ describe("insert-after-block inward landing shift", () => {
         "",
       ].join("\n"),
     );
-    expect(result.warnings?.some((w) => /placed inside the block/.test(w)) ?? false).toBe(false);
+    expect(result.warnings?.some((w) => w.includes("placed inside the block")) ?? false).toBe(
+      false,
+    );
   });
 });

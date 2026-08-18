@@ -8,6 +8,7 @@
  * first).
  */
 import { formatNumberedLine } from "./format.ts";
+
 import type { StreamOptions } from "./types.ts";
 
 interface ResolvedStreamOptions {
@@ -48,7 +49,7 @@ function createChunkEmitter(options: ResolvedStreamOptions): ChunkEmitter {
 
     const chunks: string[] = [];
     const sepBytes = outLines.length === 0 ? 0 : 1;
-    const lineBytes = Buffer.byteLength(formatted, "utf-8");
+    const lineBytes = Buffer.byteLength(formatted, "utf8");
     const wouldOverflow =
       outLines.length >= options.maxChunkLines ||
       outBytes + sepBytes + lineBytes > options.maxChunkBytes;
@@ -85,10 +86,10 @@ async function* bytesFromReadableStream(
 ): AsyncGenerator<Uint8Array> {
   const reader = stream.getReader();
   try {
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read();
       if (done) return;
-      if (value) yield value;
+      yield value;
     }
   } finally {
     reader.releaseLock();

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   computeFileHash,
   InMemoryFilesystem,
@@ -6,7 +7,10 @@ import {
   Patch,
   Patcher,
   parsePatch,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const PATH = "src/old.ts";
 const DEST = "src/new.ts";
@@ -14,16 +18,19 @@ const CONTENT = "one\ntwo\nthree\n";
 
 describe("hashline file ops", () => {
   it("parses REM and rejects line ops in the same section", () => {
+    expect.hasAssertions();
     expect(parsePatch("REM").fileOp).toEqual({ kind: "rem" });
     expect(() => parsePatch(`PUT 1-1:\n+one\nREM`)).toThrow(/REM.*line ops/);
   });
 
   it("parses MV with a normalized destination path", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#AB12]\nMV ${DEST}`);
     expect(section.fileOp).toEqual({ kind: "move", dest: DEST });
   });
 
   it("deletes a tagged file with REM", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, CONTENT);
@@ -37,6 +44,7 @@ describe("hashline file ops", () => {
   });
 
   it("moves a file without content edits", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, CONTENT, [1, 2]);
@@ -54,6 +62,7 @@ describe("hashline file ops", () => {
   });
 
   it("applies line edits then moves the updated content", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, CONTENT);

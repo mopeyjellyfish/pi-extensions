@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "erasableSyntaxOnly": false,
-    "exactOptionalPropertyTypes": false,
-    "noUncheckedIndexedAccess": false
+    "rootDir": "."
   },
-  "include": ["src/**/*.ts", "test/index.test.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }

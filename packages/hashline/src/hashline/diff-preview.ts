@@ -8,7 +8,8 @@
  * `…` marker instead of echoing every inserted line.
  *
  * This is intentionally decoupled from the diff producer: anything that
- * emits the `<sign><lineNum>|<content>` shape works.
+ * emits either `<sign><lineNum>|<content>` (upstream) or
+ * `<sign><lineNum> <content>` (Pi's `generateDiffString`) shape works.
  */
 import type { CompactDiffOptions, CompactDiffPreview } from "./types.ts";
 
@@ -24,13 +25,13 @@ function isPreviewSeparator(line: string | undefined): boolean {
 }
 
 function appendPreviewLine(output: string[], line: string): void {
-  const normalized = RAW_ELISION_MARKERS.has(line) ? PREVIEW_ELISION_MARKER : line;
+  const normalized = RAW_ELISION_MARKERS.has(line.trim()) ? PREVIEW_ELISION_MARKER : line;
   // Separators (elision markers, blank gap rows) never stack: omitted
   // removed lines between two separators would otherwise leave them
   // adjacent. A leading separator is dropped outright.
   if (
     isPreviewSeparator(normalized) &&
-    (output.length === 0 || isPreviewSeparator(output[output.length - 1]))
+    (output.length === 0 || isPreviewSeparator(output.at(-1)))
   ) {
     return;
   }
@@ -49,17 +50,16 @@ function normalizeAddedRunContext(value: number | undefined): number {
 }
 
 function parseNumberedDiffLine(line: string): ParsedDiffLine | undefined {
-  const kind = line[0];
+  const kind = line.charAt(0);
   if (kind !== "+" && kind !== "-" && kind !== " ") return undefined;
 
   const body = line.slice(1);
-  const sep = body.indexOf("|");
-  if (sep === -1) return undefined;
+  const match = /^\s*(?<lineNumber>[1-9]\d*)(?<separator>[| ])(?<content>.*)$/u.exec(body);
+  if (match?.groups === undefined) return undefined;
+  const lineNumber = Number(match.groups["lineNumber"]);
+  if (!Number.isSafeInteger(lineNumber)) return undefined;
 
-  const lineNumber = Number.parseInt(body.slice(0, sep), 10);
-  if (!Number.isFinite(lineNumber)) return undefined;
-
-  return { kind, lineNumber, content: body.slice(sep + 1) };
+  return { kind, lineNumber, content: match.groups["content"] ?? "" };
 }
 
 function appendAddedRun(output: string[], run: string[], edgeLines: number): void {
@@ -71,9 +71,9 @@ function appendAddedRun(output: string[], run: string[], edgeLines: number): voi
     return;
   }
 
-  for (let i = 0; i < edgeLines; i++) appendPreviewLine(output, run[i]);
+  for (let i = 0; i < edgeLines; i++) appendPreviewLine(output, run[i] ?? "");
   appendPreviewLine(output, PREVIEW_ELISION_MARKER);
-  for (let i = run.length - edgeLines; i < run.length; i++) appendPreviewLine(output, run[i]);
+  for (let i = run.length - edgeLines; i < run.length; i++) appendPreviewLine(output, run[i] ?? "");
 }
 
 export function buildCompactDiffPreview(
@@ -110,24 +110,23 @@ export function buildCompactDiffPreview(
     switch (parsed.kind) {
       case "+": {
         addedLines++;
-        addedRun.push(`${parsed.lineNumber}:${parsed.content}`);
+        addedRun.push(`${String(parsed.lineNumber)}:${parsed.content}`);
         break;
       }
       case "-":
         flushAddedRun();
         removedLines++;
         break;
-      default: {
+      case " ": {
         flushAddedRun();
         const newLineNumber = parsed.lineNumber + addedLines - removedLines;
-        appendPreviewLine(formatted, `${newLineNumber}:${parsed.content}`);
+        appendPreviewLine(formatted, `${String(newLineNumber)}:${parsed.content}`);
         break;
       }
     }
   }
   flushAddedRun();
-  while (formatted.length > 0 && isPreviewSeparator(formatted[formatted.length - 1]))
-    formatted.pop();
+  while (formatted.length > 0 && isPreviewSeparator(formatted.at(-1))) formatted.pop();
 
   return { preview: formatted.join("\n"), addedLines, removedLines };
 }

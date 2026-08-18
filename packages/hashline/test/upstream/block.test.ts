@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   type BlockResolution,
   type BlockResolver,
@@ -12,7 +13,10 @@ import {
   Patcher,
   parsePatch,
   resolveBlockEdits,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const PATH = "x.ts";
 
@@ -32,35 +36,44 @@ function normalizeEdits(edits: readonly Edit[]): unknown[] {
   });
 }
 
+type BlockEdit = Extract<Edit, { kind: "block" }>;
+
+function expectBlockEdit(edit: Edit | undefined): BlockEdit {
+  if (edit?.kind !== "block") throw new Error("expected one parsed block edit");
+  return edit;
+}
+
 describe("PUT N*: parsing", () => {
   it("parses `PUT N*: N:` into a single deferred block edit", () => {
+    expect.hasAssertions();
     const { edits } = parsePatch("PUT 2*:\n+A\n+B");
 
     expect(edits).toHaveLength(1);
-    const edit = edits[0];
-    expect(edit?.kind).toBe("block");
-    if (edit?.kind !== "block") throw new Error("expected a block edit");
+    const edit = expectBlockEdit(edits[0]);
     expect(edit.anchor.line).toBe(2);
     expect(edit.payloads).toEqual(["A", "B"]);
   });
 
   it("still parses a literal `SWAP N.=M:` range (distinct from `PUT N*:`)", () => {
+    expect.hasAssertions();
     const { edits } = parsePatch("PUT 2-3:\n+A");
     expect(edits.some((edit) => edit.kind === "block")).toBe(false);
     expect(edits.some((edit) => edit.kind === "delete")).toBe(true);
   });
 
   it("treats a `PUT N*:` hunk with no body row as a delete-only block edit", () => {
+    expect.hasAssertions();
     const result = parsePatch("PUT 2*:");
     expect(result.edits).toEqual([
       { kind: "block", anchor: { line: 2 }, payloads: [], lineNum: 1, index: 0 },
     ]);
-    expect(result.warnings.some((w) => /empty `PUT` body as deletion/.test(w))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("empty `PUT` body as deletion"))).toBe(true);
   });
 });
 
 describe("resolveBlockEdits", () => {
   it("expands a block edit exactly like the equivalent `SWAP start.=end:`", () => {
+    expect.hasAssertions();
     const blockEdits = parsePatch("PUT 2*:\n+A\n+B").edits;
     const resolved = resolveBlockEdits(blockEdits, "ignored", PATH, stubResolver);
     const replaceEdits = parsePatch("PUT 2-3:\n+A\n+B").edits;
@@ -70,11 +83,13 @@ describe("resolveBlockEdits", () => {
   });
 
   it("returns the input untouched when there are no block edits (fast path)", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 1-1:\n+X").edits;
     expect(resolveBlockEdits(edits, "ignored", PATH, stubResolver)).toBe(edits);
   });
 
   it("throws (default) when no resolver is wired", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 2*:\n+X").edits;
     expect(() => resolveBlockEdits(edits, "ignored", PATH, undefined)).toThrow(
       "not available here",
@@ -82,6 +97,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("drops an unresolvable block edit in `drop` mode", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 2*:\n+X").edits;
     const resolved = resolveBlockEdits(edits, "ignored", PATH, () => null, {
       onUnresolved: "drop",
@@ -90,6 +106,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("throws a block-unresolved error in `throw` mode when the resolver returns null", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 7*:\n+X").edits;
     expect(() => resolveBlockEdits(edits, "ignored", PATH, () => null)).toThrow(
       "could not resolve a syntactic block beginning on line 7",
@@ -97,6 +114,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("includes a nearby-context preview in the block-unresolved error", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 3*:\n+X").edits;
     const text = "alpha\nbravo\ncharlie\ndelta\necho\nfoxtrot";
     let error: Error | undefined;
@@ -114,6 +132,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("suggests the next multi-line opener for a blank anchor without applying it", () => {
+    expect.hasAssertions();
     const text = "alpha\n\nfunction x() {\n  return 1;\n}";
     const resolver: BlockResolver = ({ line }) => (line === 3 ? { start: 3, end: 5 } : null);
     const edits = parsePatch("PUT 2*:\n+function y() {}").edits;
@@ -124,6 +143,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("suggests both the exact statement range and nearest enclosing block", () => {
+    expect.hasAssertions();
     const text = "function x() {\n  run();\n}";
     const resolver: BlockResolver = ({ line }) => {
       if (line === 2) return { start: 2, end: 2 };
@@ -138,6 +158,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("omits the context preview when the anchor line is out of range", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 9*:\n+X").edits;
     let error: Error | undefined;
     try {
@@ -150,6 +171,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("fires onResolved with the resolved span for replace and cut blocks", () => {
+    expect.hasAssertions();
     const seen: BlockResolution[] = [];
     // stubResolver maps line N → span [N, N+1].
     resolveBlockEdits(parsePatch("PUT 2*:\n+A\n+B").edits, "ignored", PATH, stubResolver, {
@@ -166,6 +188,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("does not fire onResolved for a dropped unresolvable block", () => {
+    expect.hasAssertions();
     const seen: BlockResolution[] = [];
     resolveBlockEdits(parsePatch("PUT 2*:\n+X").edits, "ignored", PATH, () => null, {
       onUnresolved: "drop",
@@ -181,6 +204,7 @@ describe("resolveBlockEdits", () => {
   const singleLineResolver: BlockResolver = ({ line }): BlockSpan => ({ start: line, end: line });
 
   it("rejects a `PUT N*:` that resolves to a single line", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 2*:\n+X").edits;
     expect(() => resolveBlockEdits(edits, "a\nb\nc", PATH, singleLineResolver)).toThrow(
       "For only this statement use `PUT 2:`.",
@@ -188,6 +212,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("rejects an `PUT >N*:` that resolves to a single line", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT >2*:\n+X").edits;
     expect(() => resolveBlockEdits(edits, "a\nb\nc", PATH, singleLineResolver)).toThrow(
       /single-line block/,
@@ -195,6 +220,7 @@ describe("resolveBlockEdits", () => {
   });
 
   it("drops a single-line block resolution on the lenient preview path", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT 2*:\n+X").edits;
     const resolved = resolveBlockEdits(edits, "a\nb\nc", PATH, singleLineResolver, {
       onUnresolved: "drop",
@@ -207,6 +233,7 @@ describe("PatchSection.applyTo / applyPartialTo with block edits", () => {
   const text = "function x() {\n  if (y) {\n  }\n}\n";
 
   it("applyTo resolves a block edit and matches the equivalent `replace`", () => {
+    expect.hasAssertions();
     const blockSection = Patch.parseSingle(`[${PATH}#1A2B]\nPUT 2*:\n+  if (y || z) {\n+  }`);
     const replaceSection = Patch.parseSingle(`[${PATH}#1A2B]\nPUT 2-3:\n+  if (y || z) {\n+  }`);
 
@@ -218,11 +245,13 @@ describe("PatchSection.applyTo / applyPartialTo with block edits", () => {
   });
 
   it("applyTo throws when a block edit has no resolver", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT 2*:\n+X`);
     expect(() => section.applyTo(text)).toThrow("no block resolver configured");
   });
 
   it("applyPartialTo drops an unresolvable block edit instead of throwing", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT 2*:\n+X`);
     // No resolver → drop. The lone block edit vanishes, so the text is unchanged.
     const result = section.applyPartialTo(text);
@@ -234,6 +263,7 @@ describe("Patcher with a block resolver", () => {
   const text = "function x() {\n  if (y) {\n  }\n}\n";
 
   it("applies a block edit on the hash-match path", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, text]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, text);
@@ -248,6 +278,7 @@ describe("Patcher with a block resolver", () => {
   });
 
   it("surfaces the resolved span on the section result (hash-match path)", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, text]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, text);
@@ -263,7 +294,10 @@ describe("Patcher with a block resolver", () => {
   });
 
   it("enriches reversed absolute ranges with the resolved block endpoint without writing", async () => {
-    const source = Array.from({ length: 255 }, (_, index) => `line ${index + 1}`).join("\n");
+    expect.hasAssertions();
+    const source = Array.from({ length: 255 }, (_, index) => `line ${String(index + 1)}`).join(
+      "\n",
+    );
     const fs = new InMemoryFilesystem([[PATH, source]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, source);
@@ -279,6 +313,7 @@ describe("Patcher with a block resolver", () => {
   });
 
   it("resolves against the tagged snapshot and recovers onto drifted content", async () => {
+    expect.hasAssertions();
     const snapshotText = "line0\nline1\nline2\nline3\nline4\n";
     // The live file gained a trailing line after the read minted the tag.
     const liveText = "line0\nline1\nline2\nline3\nline4\nline5\n";
@@ -293,13 +328,14 @@ describe("Patcher with a block resolver", () => {
 
     expect(result.sections[0]?.op).toBe("update");
     expect(fs.get(PATH)).toBe("line0\nNEW\nline3\nline4\nline5\n");
-    expect(result.sections[0]?.warnings.some((w) => /Recovered/.test(w))).toBe(true);
+    expect(result.sections[0]?.warnings.some((w) => w.includes("Recovered"))).toBe(true);
     // Drift routed the resolution through recovery, where line numbers shift,
     // so the (now-misleading) span is intentionally not surfaced.
     expect(result.sections[0]?.blockResolutions).toBeUndefined();
   });
 
   it("rejects a block edit whose tag was never recorded for this path", async () => {
+    expect.hasAssertions();
     const liveText = "line0\nline1\nline2\n";
     const fs = new InMemoryFilesystem([[PATH, liveText]]);
     const snapshots = new InMemorySnapshotStore();
@@ -314,6 +350,7 @@ describe("Patcher with a block resolver", () => {
   });
 
   it("throws a block-unresolved error when the resolver returns null", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, text]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, text);
@@ -330,22 +367,23 @@ describe("CUT N*", () => {
   const text = "function x() {\n  if (y) {\n  }\n}\n";
 
   it("parses `CUT N* N` into a cut block edit", () => {
+    expect.hasAssertions();
     const { edits } = parsePatch("CUT 2*");
 
     expect(edits).toHaveLength(1);
-    const edit = edits[0];
-    expect(edit?.kind).toBe("block");
-    if (edit?.kind !== "block") throw new Error("expected a block edit");
+    const edit = expectBlockEdit(edits[0]);
     expect(edit.anchor.line).toBe(2);
     expect(edit.payloads).toEqual([]);
     expect(edit.mode).toBe("cut");
   });
 
   it("rejects body rows under `CUT N* N`", () => {
+    expect.hasAssertions();
     expect(() => parsePatch("CUT 2*\n+X")).toThrow("`CUT` deletes (and captures) the named lines");
   });
 
   it("resolveBlockEdits expands a cut block into capture and deletes", () => {
+    expect.hasAssertions();
     const resolved = resolveBlockEdits(parsePatch("CUT 2*").edits, "ignored", PATH, stubResolver);
 
     expect(resolved.map((edit) => edit.kind)).toEqual(["cut", "delete", "delete"]);
@@ -355,17 +393,20 @@ describe("CUT N*", () => {
   });
 
   it("applyTo deletes the resolved block span", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 2*`);
     // stub span [2,3] → drop "  if (y) {" and "  }".
     expect(section.applyTo(text, stubResolver).text).toBe("function x() {\n}\n");
   });
 
   it("applyPartialTo drops an unresolvable cut-block edit", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nCUT 2*`);
     expect(section.applyPartialTo(text).text).toBe(text);
   });
 
   it("Patcher applies a cut-block edit on the hash-match path", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, text]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, text);
@@ -382,27 +423,29 @@ describe("PUT >N*:", () => {
   const text = "function x() {\n  if (y) {\n  }\n}\n";
 
   it("parses `PUT >N*: N:` into a deferred block edit with insert mode", () => {
+    expect.hasAssertions();
     const { edits } = parsePatch("PUT >2*:\n+A\n+B");
 
     expect(edits).toHaveLength(1);
-    const edit = edits[0];
-    expect(edit?.kind).toBe("block");
-    if (edit?.kind !== "block") throw new Error("expected a block edit");
+    const edit = expectBlockEdit(edits[0]);
     expect(edit.anchor.line).toBe(2);
     expect(edit.payloads).toEqual(["A", "B"]);
     expect(edit.mode).toBe("insert_after");
   });
 
   it("still parses a literal `PUT > N:` anchor (distinct from `PUT >N*:`)", () => {
+    expect.hasAssertions();
     const { edits } = parsePatch("PUT >2:\n+A");
     expect(edits.some((edit) => edit.kind === "block")).toBe(false);
   });
 
   it("rejects an `PUT >N*: N:` hunk with no body row", () => {
+    expect.hasAssertions();
     expect(() => parsePatch("PUT >2*:")).toThrow("promises body rows");
   });
 
   it("resolveBlockEdits expands to the equivalent `insert after end:` lowering", () => {
+    expect.hasAssertions();
     const blockEdits = parsePatch("PUT >2*:\n+A\n+B").edits;
     // stub span [2,3] → after_anchor inserts at line 3.
     const resolved = resolveBlockEdits(blockEdits, "ignored", PATH, stubResolver);
@@ -413,6 +456,7 @@ describe("PUT >N*:", () => {
   });
 
   it("fires onResolved with op insert_after", () => {
+    expect.hasAssertions();
     const seen: BlockResolution[] = [];
     resolveBlockEdits(parsePatch("PUT >2*:\n+A").edits, "ignored", PATH, stubResolver, {
       onResolved: (resolution) => seen.push(resolution),
@@ -421,6 +465,7 @@ describe("PUT >N*:", () => {
   });
 
   it("lowers an unresolvable anchor to plain `PUT > N:` with a warning", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT >7*:\n+X").edits;
     const warnings: string[] = [];
 
@@ -434,6 +479,7 @@ describe("PUT >N*:", () => {
   });
 
   it("lowers `PUT >N*:` even when no resolver is wired", () => {
+    expect.hasAssertions();
     const edits = parsePatch("PUT >2*:\n+X").edits;
     const warnings: string[] = [];
 
@@ -446,6 +492,7 @@ describe("PUT >N*:", () => {
   });
 
   it("lowers a closing-delimiter anchor to plain `PUT > N:` with a warning", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT >3*:\n+  done();`);
     const resolver: BlockResolver = ({ line }) => (line === 2 ? { start: 2, end: 3 } : null);
 
@@ -454,10 +501,11 @@ describe("PUT >N*:", () => {
     // line 3 is `  }` — no block begins there, but it ends one; the body
     // lands after it, exactly where `insert_after_block` would have put it.
     expect(result.text).toBe("function x() {\n  if (y) {\n  }\n  done();\n}\n");
-    expect(result.warnings?.some((w) => /applied as plain `PUT >3:`/.test(w))).toBe(true);
+    expect(result.warnings?.some((w) => w.includes("applied as plain `PUT >3:`"))).toBe(true);
   });
 
   it("lowers an unresolvable blank-line anchor to plain `PUT > N:` instead of failing", () => {
+    expect.hasAssertions();
     const blankAnchored = Patch.parseSingle(`[notes.md#1A2B]\nPUT >2*:\n+- new entry`);
 
     const result = blankAnchored.applyTo("### Changed\n\n- old entry\n", () => null);
@@ -471,6 +519,7 @@ describe("PUT >N*:", () => {
   });
 
   it("Patcher surfaces the closer-anchor lowering warning", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, text]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, text);
@@ -480,12 +529,13 @@ describe("PUT >N*:", () => {
     const result = await patcher.apply(Patch.parse(`[${PATH}#${tag}]\nPUT >3*:\n+  done();`));
 
     expect(fs.get(PATH)).toBe("function x() {\n  if (y) {\n  }\n  done();\n}\n");
-    expect(result.sections[0]?.warnings.some((w) => /applied as plain `PUT >3:`/.test(w))).toBe(
+    expect(result.sections[0]?.warnings.some((w) => w.includes("applied as plain `PUT >3:`"))).toBe(
       true,
     );
   });
 
   it("applyTo inserts the body after the resolved block's last line", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1A2B]\nPUT >2*:\n+  done();`);
     // stub span [2,3] → body lands after "  }" (line 3), before the final "}".
     expect(section.applyTo(text, stubResolver).text).toBe(
@@ -494,6 +544,7 @@ describe("PUT >N*:", () => {
   });
 
   it("Patcher applies an insert-after-block edit and surfaces the resolution", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, text]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, text);

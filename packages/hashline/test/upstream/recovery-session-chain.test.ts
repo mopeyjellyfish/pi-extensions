@@ -9,7 +9,8 @@
  * standard session-chain banner, and anchors shifted by prior insertions remap
  * to the same logical line before replay.
  */
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   computeFileHash,
   InMemorySnapshotStore,
@@ -17,7 +18,10 @@ import {
   RECOVERY_LINE_REMAP_WARNING,
   RECOVERY_SESSION_CHAIN_WARNING,
   Recovery,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const PATH = "/tmp/__hashline-recovery-session-chain__.ts";
 
@@ -45,6 +49,7 @@ function seedTwoSnapshots(): {
 
 describe("Recovery — session-chain replay anchor-content gate", () => {
   it("refuses replay when an edit anchor's line content diverges between snapshot and current", () => {
+    expect.hasAssertions();
     const { store, v1Text, h0 } = seedTwoSnapshots();
     // Edit anchored at line 5 — the exact line the prior in-session edit
     // rewrote. Replaying onto current would overwrite "L5-CHANGED" with
@@ -63,6 +68,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("replays edits onto current when every anchor's line content is unchanged", () => {
+    expect.hasAssertions();
     const { store, v1Text, h0 } = seedTwoSnapshots();
     // Edit anchored at line 3 — unchanged between v0 and v1. Recovery
     // proves that the target and its surrounding context still map to the
@@ -88,6 +94,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("recovers stale anchors shifted by a prior in-session insertion", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const v0Text = lines("L1", "L2", "L3", "L4", "L5", "L6");
     const h0 = store.record(PATH, v0Text);
@@ -108,6 +115,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("recovers stale anchors shifted by a prior in-session deletion", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const v0Text = lines("L1", "L2", "L3", "L4", "L5", "L6");
     const h0 = store.record(PATH, v0Text);
@@ -128,6 +136,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("refuses duplicate-line remaps when surrounding context no longer matches", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const v0Text = lines("start", "DUP", "mid", "DUP", "tail");
     const h0 = store.record(PATH, v0Text);
@@ -146,6 +155,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("refuses to relocate a stale replacement onto duplicated context", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const block = ["head", "TARGET_A", "TARGET_B", "ctx1", "ctx2", "ctx3"];
     const v0Text = lines(...block, "middle", ...block, "tail");
@@ -175,6 +185,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("refuses an isolated unique-line remap when neither neighbor follows its offset", () => {
+    expect.hasAssertions();
     const store = new InMemorySnapshotStore();
     const v0Text = lines("L1", "L2", "L3", "L4", "T", "L6");
     const h0 = store.record(PATH, v0Text);
@@ -193,6 +204,7 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
   });
 
   it("recovers duplicate-line anchors shifted by a prior insertion when context still matches", () => {
+    expect.hasAssertions();
     // Remap-parity pin for the linearized validator: an anchor RANGE
     // covering a duplicated line ("DUP" appears twice) plus a unique line
     // must still remap through a prior insertion — the duplicate-context
@@ -224,7 +236,8 @@ describe("Recovery — session-chain replay anchor-content gate", () => {
  * against one collider are plausible-but-wrong against the other.
  */
 function findCollidingTexts(): { older: string; newer: string } {
-  const textFor = (n: number): string => lines("shared head", `unique payload ${n}`, "shared tail");
+  const textFor = (n: number): string =>
+    lines("shared head", `unique payload ${String(n)}`, "shared tail");
   const byTag = new Map<string, number>();
   for (let n = 0; ; n++) {
     const text = textFor(n);
@@ -237,6 +250,7 @@ function findCollidingTexts(): { older: string; newer: string } {
 
 describe("Recovery — colliding snapshot tags", () => {
   it("recovers against the most-recently retained text when two colliders share the tag", () => {
+    expect.hasAssertions();
     const { older, newer } = findCollidingTexts();
     const tag = computeFileHash(older);
     expect(computeFileHash(newer)).toBe(tag);
@@ -263,6 +277,7 @@ describe("Recovery — colliding snapshot tags", () => {
   });
 
   it("still recovers when exactly one retained text carries the tag", () => {
+    expect.hasAssertions();
     // Same drift scenario with a single retained text for the tag.
     const { older } = findCollidingTexts();
     const store = new InMemorySnapshotStore();
@@ -285,16 +300,17 @@ describe("Recovery — colliding snapshot tags", () => {
 
 describe("Recovery — ill-formed UTF-16 content", () => {
   it("remaps line anchors natively when the file contains lone surrogates", () => {
+    expect.hasAssertions();
     // Native diffLineRuns operates directly over UTF-16 code units, so
     // recovery remaps anchors natively when files contain lone surrogates.
     const store = new InMemorySnapshotStore();
-    const snapshotText = lines("head", "lone \ud800 surrogate", "target line", "tail");
+    const snapshotText = lines("head", "lone \u{D800} surrogate", "target line", "tail");
     const hash = store.record(PATH, snapshotText);
     // Current text gained one line above the target; the anchor must shift.
     const currentText = lines(
       "inserted above",
       "head",
-      "lone \ud800 surrogate",
+      "lone \u{D800} surrogate",
       "target line",
       "tail",
     );
@@ -308,7 +324,7 @@ describe("Recovery — ill-formed UTF-16 content", () => {
 
     expect(recovered).not.toBeNull();
     expect(recovered?.text).toBe(
-      lines("inserted above", "head", "lone \ud800 surrogate", "model payload", "tail"),
+      lines("inserted above", "head", "lone \u{D800} surrogate", "model payload", "tail"),
     );
   });
 });
