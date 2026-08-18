@@ -40,15 +40,14 @@ Segments appear in this order:
 3. project directory;
 4. effective Git or routed-worktree branch, divergence, staged, changed, and conflict counts;
 5. context use and auto-compaction indicator;
-6. the available account limit with the lowest remaining percentage;
-7. active-branch session tokens and cost;
-8. compact active/attention counts for an optional `pi-subagents` fleet;
-9. todo progress and the active item, or the next pending item.
+6. provider account limits and their remaining percentages;
+7. compact active/attention counts for an optional `pi-subagents` fleet;
+8. todo progress and the active item, or the next pending item.
 
 For example:
 
 ```text
-╭─  GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨  limit 30%    28M · $1.23   2 !1   2/5 · Implement integration ─
+╭─  GPT-5.6 Sol  think:high   pi-extensions   main ↑2 +1 ~3   72.5%/372k 󰁨  limits 5 hour 75% · Weekly 30%   2 !1   2/5 · Implement integration ─
 ╰─❯ Write here
 ```
 
@@ -65,13 +64,16 @@ contract. Pi also does not expose the previous custom footer, so shutdown
 restores Pi's built-in footer.
 
 The package does not reproduce `pi-powerline-footer` welcome overlays, stash,
-bash mode, separate prompt history, or working vibes.
+bash mode, separate prompt history, working vibes, or session token and cost
+totals.
 
 ## Model and account status
 
 Run `/status` to show the active model, thinking level, directory, session ID,
-context use, and all available provider limits. The status line shows only the
-limit with the lowest remaining percentage.
+context use, and all available provider limits. For Codex subscriptions, the
+status line shows both the short-window and weekly or monthly percentages. For
+provider headers, it shows each observed limit dimension. The limit segment is
+prioritized when space is limited. Session token and cost totals are omitted.
 
 OpenAI Codex OAuth refreshes subscription usage at session start, after a model
 change, after each settled agent run, and when you run `/status`. This package
@@ -120,5 +122,5 @@ icon or actionable failure summary published by `pi-lsp`.
 The first release deliberately has one opinionated style rather than a theme
 configuration surface. It follows `pi-powerline-footer` defaults: mauve model,
 thinking-level colours, teal directory, semantic Git state, threshold-aware
-context, muted tokens, and a dim `` separator. Todo uses warning colour while
-work remains and success colour when all items are closed.
+context and account limits, and a dim `` separator. Todo uses warning colour
+while work remains and success colour when all items are closed.

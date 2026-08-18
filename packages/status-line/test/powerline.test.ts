@@ -27,8 +27,10 @@ const testTheme: StatusLineTheme = {
 const baseView: StatusLineView = {
   branch: "feat/status-line-integration",
   context: { contextWindow: 372_000, percent: 72.5 },
-  accountLimit: { remainingPercent: 30 },
-  costUsd: 1.23,
+  accountLimits: [
+    { label: "5 hour limit", remainingPercent: 75 },
+    { label: "Weekly limit", remainingPercent: 30 },
+  ],
   cwd: "/Users/david/code/personal/pi-extensions",
   effort: "high",
   extensionStatuses: [],
@@ -41,7 +43,6 @@ const baseView: StatusLineView = {
     current: "Implement status integration",
     total: 5,
   },
-  tokens: 28_000_000,
 };
 
 describe("Powerlevel10k status rendering", () => {
@@ -54,15 +55,14 @@ describe("Powerlevel10k status rendering", () => {
     expect(line).not.toContain("\u{E0B0}");
     expect(line).not.toContain("\u{E0B2}");
     expect(plain).toContain(
-      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨  limit 30%    28M · $1.23   2 !1   2/5 · Implement status integration",
+      " GPT-5.6 Sol  think:high   pi-extensions   feat/status-line-integration ↑2 ↓1 +3 ~4   72.5%/372k 󰁨  limits 5 hour 75% · Weekly 30%   2 !1   2/5 · Implement status integration",
     );
 
     const styled = renderStatusLine(baseView, 240, testTheme);
     expect(styled).toContain("\u{1B}[38;5;1mthink:high\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m feat/status-line-integration ↑2 ↓1 +3 ~4\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 72.5%/372k 󰁨\u{1B}[0m");
-    expect(styled).toContain("\u{1B}[38;5;3mlimit 30%\u{1B}[0m");
-    expect(styled).toContain("\u{1B}[38;5;4m  28M · $1.23\u{1B}[0m");
+    expect(styled).toContain("\u{1B}[38;5;3mlimits 5 hour 75% · Weekly 30%\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;5m 2 !1\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;3m 2/5 · Implement status integration\u{1B}[0m");
     expect(styled).toContain("\u{1B}[38;5;5m\u{1B}[0m");
@@ -80,7 +80,6 @@ describe("Powerlevel10k status rendering", () => {
             cwd: baseView.cwd,
             extensionStatuses: [],
             gitState: "clean",
-            tokens: 12_000,
           },
           60,
         ),
@@ -92,13 +91,48 @@ describe("Powerlevel10k status rendering", () => {
     }
   });
 
-  it("formats cost ranges and a healthy compact subagent fleet", () => {
+  it("prioritizes both account limits and provider dimensions", () => {
+    expect.hasAssertions();
+    expect(stripAnsi(renderStatusLine(baseView, 240))).toContain("limits 5 hour 75% · Weekly 30%");
+    expect(stripAnsi(renderStatusLine(baseView, 72))).toContain("limits 5 hour 75% · Weekly 30%");
+
+    const providerView: StatusLineView = {
+      accountLimits: [
+        { label: "Requests", remainingPercent: 25 },
+        { label: "Tokens", remainingPercent: 87 },
+        { label: "Input tokens", remainingPercent: 60 },
+        { label: "Output tokens", remainingPercent: 50 },
+      ],
+      cwd: "/repo",
+      extensionStatuses: [],
+      gitState: "clean",
+    };
+    expect(stripAnsi(renderStatusLine(providerView, 140))).toContain(
+      "limits Requests 25% · Tokens 87% · Input tokens 60% · Output tokens 50%",
+    );
+    const narrow = stripAnsi(renderStatusLine(providerView, 40));
+    expect(narrow).toContain("limits Requests 25%");
+    expect(narrow).not.toContain("Tokens");
+
+    expect(
+      stripAnsi(
+        renderStatusLine(
+          { ...providerView, accountLimits: [{ label: "x".repeat(200), remainingPercent: 25 }] },
+          240,
+        ),
+      ),
+    ).toContain("limit 25%");
+    expect(stripAnsi(renderStatusLine({ ...providerView, accountLimits: [] }, 240))).not.toContain(
+      "limit",
+    );
+  });
+
+  it("formats a healthy compact subagent fleet", () => {
     expect.hasAssertions();
     const low = stripAnsi(
       renderStatusLine(
         {
           branch: "main",
-          costUsd: 0.004,
           cwd: baseView.cwd,
           extensionStatuses: [],
           gitDetails: { ahead: 0, behind: 0, changed: 0, conflicts: 1, staged: 0 },
@@ -109,12 +143,8 @@ describe("Powerlevel10k status rendering", () => {
       ),
     );
     expect(low).toContain(" main !1");
-    expect(low).toContain("$0.004");
     expect(low).toContain(" 1");
     expect(low).not.toContain("!1   1 !");
-
-    expect(stripAnsi(renderStatusLine({ ...baseView, costUsd: 12.3 }, 240))).toContain("$12.3");
-    expect(stripAnsi(renderStatusLine({ ...baseView, costUsd: 101 }, 240))).toContain("$101");
   });
 
   it("sanitizes external text and reports an all-closed list", () => {

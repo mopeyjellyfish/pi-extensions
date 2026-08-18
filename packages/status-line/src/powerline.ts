@@ -29,10 +29,12 @@ export interface SubagentStatusLineView {
 }
 
 export interface StatusLineView {
-  readonly accountLimit?: { readonly remainingPercent: number };
+  readonly accountLimits?: readonly {
+    readonly label: string;
+    readonly remainingPercent: number;
+  }[];
   readonly branch?: string;
   readonly context?: ContextStatusLineView;
-  readonly costUsd?: number;
   readonly cwd: string;
   readonly effort?: string;
   readonly extensionStatuses: readonly string[];
@@ -41,7 +43,6 @@ export interface StatusLineView {
   readonly model?: string;
   readonly subagents?: SubagentStatusLineView;
   readonly todo?: TodoStatusLineView;
-  readonly tokens?: number;
 }
 
 interface Segment {
@@ -55,11 +56,11 @@ interface Segment {
     | "model"
     | "path"
     | "subagents"
-    | "todo"
-    | "tokens";
+    | "todo";
 }
 
 interface RenderOptions {
+  readonly accountLimitLimit: number;
   readonly branchLimit: number;
   readonly cwdLimit: number;
   readonly extensionLimit: number;
@@ -71,7 +72,6 @@ interface RenderOptions {
   readonly includeModel: boolean;
   readonly includeSubagents: boolean;
   readonly includeTodo: boolean;
-  readonly includeTokens: boolean;
   readonly modelLimit: number;
   readonly todoLimit: number;
 }
@@ -113,13 +113,6 @@ function formatTokens(count: number): string {
   if (count < 1_000_000) return `${String(Math.round(count / 1000))}k`;
   if (count < 10_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   return `${String(Math.round(count / 1_000_000))}M`;
-}
-
-function formatCost(costUsd: number): string {
-  if (costUsd < 0.01) return `$${costUsd.toFixed(3)}`;
-  if (costUsd < 10) return `$${costUsd.toFixed(2)}`;
-  if (costUsd < 100) return `$${costUsd.toFixed(1)}`;
-  return `$${String(Math.round(costUsd))}`;
 }
 
 function rgb(hex: string, text: string): string {
@@ -174,8 +167,12 @@ function colorSegment(segment: Segment, view: StatusLineView, theme: StatusLineT
         segment.text,
       );
     case "accountLimit":
-      return theme.fg(accountLimitColor(view.accountLimit?.remainingPercent ?? 100), segment.text);
-    case "tokens":
+      return theme.fg(
+        accountLimitColor(
+          Math.min(...(view.accountLimits?.map((limit) => limit.remainingPercent) ?? [100])),
+        ),
+        segment.text,
+      );
     case "extension":
       return theme.fg("muted", segment.text);
     case "subagents":
@@ -224,13 +221,6 @@ function branchText(view: StatusLineView): string | undefined {
   return [view.branch, ...suffixes].join(" ");
 }
 
-function usageText(view: StatusLineView): string | undefined {
-  const values: string[] = [];
-  if (view.tokens !== undefined && view.tokens > 0) values.push(`  ${formatTokens(view.tokens)}`);
-  if (view.costUsd !== undefined && view.costUsd > 0) values.push(formatCost(view.costUsd));
-  return values.length === 0 ? undefined : values.join(" · ");
-}
-
 function identitySegments(view: StatusLineView, options: RenderOptions): Segment[] {
   const result: Segment[] = [];
   if (options.includeModel && view.model !== undefined) {
@@ -257,17 +247,24 @@ function contextSegment(view: StatusLineView, options: RenderOptions): Segment |
 }
 
 function accountLimitSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
-  return options.includeAccountLimit && view.accountLimit !== undefined
-    ? {
-        text: `limit ${String(Math.round(view.accountLimit.remainingPercent))}%`,
-        tone: "accountLimit",
-      }
-    : undefined;
-}
-
-function usageSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
-  const text = usageText(view);
-  return options.includeTokens && text !== undefined ? { text, tone: "tokens" } : undefined;
+  if (!options.includeAccountLimit || view.accountLimits === undefined) return undefined;
+  const values = view.accountLimits.map((limit) => {
+    const label = sanitize(limit.label).replace(/\s+limit$/iu, "");
+    return `${label} ${String(Math.round(limit.remainingPercent))}%`;
+  });
+  const visible: string[] = [];
+  for (const value of values) {
+    const candidate = `limits ${[...visible, value].join(" · ")}`;
+    if (visibleWidth(candidate) > options.accountLimitLimit) break;
+    visible.push(value);
+  }
+  if (visible.length > 0) {
+    return { text: `limits ${visible.join(" · ")}`, tone: "accountLimit" };
+  }
+  const first = view.accountLimits[0];
+  return first === undefined
+    ? undefined
+    : { text: `limit ${String(Math.round(first.remainingPercent))}%`, tone: "accountLimit" };
 }
 
 function subagentSegment(view: StatusLineView, options: RenderOptions): Segment | undefined {
@@ -300,7 +297,6 @@ function stateSegments(view: StatusLineView, options: RenderOptions): Segment[] 
   return [
     contextSegment(view, options),
     accountLimitSegment(view, options),
-    usageSegment(view, options),
     subagentSegment(view, options),
     todoSegment(view, options),
     extensionSegment(view, options),
@@ -326,6 +322,7 @@ export function renderStatusLine(
   if (width <= 0) return "";
   const variants = [
     {
+      accountLimitLimit: 120,
       branchLimit: 60,
       cwdLimit: 40,
       extensionLimit: 36,
@@ -337,11 +334,11 @@ export function renderStatusLine(
       includeModel: true,
       includeSubagents: true,
       includeTodo: true,
-      includeTokens: true,
       modelLimit: 28,
       todoLimit: 52,
     },
     {
+      accountLimitLimit: 80,
       branchLimit: 36,
       cwdLimit: 28,
       extensionLimit: 0,
@@ -353,11 +350,11 @@ export function renderStatusLine(
       includeModel: true,
       includeSubagents: true,
       includeTodo: true,
-      includeTokens: true,
       modelLimit: 22,
       todoLimit: 30,
     },
     {
+      accountLimitLimit: 60,
       branchLimit: 28,
       cwdLimit: 20,
       extensionLimit: 0,
@@ -369,15 +366,15 @@ export function renderStatusLine(
       includeModel: true,
       includeSubagents: true,
       includeTodo: true,
-      includeTokens: false,
       modelLimit: 18,
       todoLimit: 18,
     },
     {
+      accountLimitLimit: 48,
       branchLimit: 18,
       cwdLimit: 16,
       extensionLimit: 0,
-      includeAccountLimit: false,
+      includeAccountLimit: true,
       includeBranch: true,
       includeContext: false,
       includeEffort: true,
@@ -385,23 +382,38 @@ export function renderStatusLine(
       includeModel: true,
       includeSubagents: true,
       includeTodo: false,
-      includeTokens: false,
       modelLimit: 16,
       todoLimit: 0,
     },
     {
+      accountLimitLimit: 40,
       branchLimit: 14,
-      cwdLimit: 12,
+      cwdLimit: 8,
       extensionLimit: 0,
-      includeAccountLimit: false,
-      includeBranch: true,
+      includeAccountLimit: true,
+      includeBranch: false,
       includeContext: false,
       includeEffort: false,
       includeExtensions: false,
       includeModel: false,
       includeSubagents: false,
       includeTodo: false,
-      includeTokens: false,
+      modelLimit: 0,
+      todoLimit: 0,
+    },
+    {
+      accountLimitLimit: 24,
+      branchLimit: 14,
+      cwdLimit: 8,
+      extensionLimit: 0,
+      includeAccountLimit: true,
+      includeBranch: false,
+      includeContext: false,
+      includeEffort: false,
+      includeExtensions: false,
+      includeModel: false,
+      includeSubagents: false,
+      includeTodo: false,
       modelLimit: 0,
       todoLimit: 0,
     },

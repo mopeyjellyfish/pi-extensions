@@ -380,7 +380,8 @@ describe("pi-status-line extension", () => {
     expect(rendered).toContain(" GPT-5.4");
     expect(rendered).toContain("think:high");
     expect(rendered).toContain(" 18.5%/272k 󰁨");
-    expect(rendered).toContain("  15k · $0.12");
+    expect(rendered).not.toContain(" ");
+    expect(rendered).not.toContain("$0.12");
     expect(rendered).toContain(" 2/5 · Implement integration");
     expect(rendered).toContain("review ready");
     expect(rendered).not.toContain("worktree: example-feature");
@@ -566,7 +567,7 @@ describe("pi-status-line extension", () => {
     const component = editor(harness);
     const rendered = component?.render(100).join(" ") ?? "";
     expect(rendered).toContain("main");
-    expect(rendered).toContain("  500");
+    expect(rendered).not.toContain("  500");
     expect(rendered).toContain(" ?%/2.0M 󰁨");
     expect(rendered).not.toContain("gpt-5.4");
 
@@ -615,12 +616,29 @@ describe("pi-status-line extension", () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
       Promise.resolve(
         Response.json({
+          additional_rate_limits: [
+            {
+              limit_name: "GPT-5.3-Codex-Spark",
+              rate_limit: {
+                primary_window: {
+                  limit_window_seconds: 604_800,
+                  reset_at: 1_800_600_000,
+                  used_percent: 10,
+                },
+              },
+            },
+          ],
           plan_type: "pro",
           rate_limit: {
             primary_window: {
               limit_window_seconds: 18_000,
               reset_at: 1_800_000_000,
               used_percent: 75,
+            },
+            secondary_window: {
+              limit_window_seconds: 604_800,
+              reset_at: 1_800_600_000,
+              used_percent: 40,
             },
           },
         }),
@@ -649,7 +667,9 @@ describe("pi-status-line extension", () => {
       const component = editor(harness);
       await vi.waitFor(() => {
         expect(fetch).toHaveBeenCalledOnce();
-        expect(component?.render(180).join(" ")).toContain("limit 25%");
+        const rendered = component?.render(180).join(" ") ?? "";
+        expect(rendered).toContain("limits 5 hour 25% · Weekly 60%");
+        expect(rendered).not.toContain("Spark");
       });
 
       await harness.commands.get("status")?.("", ctx);
@@ -685,13 +705,16 @@ describe("pi-status-line extension", () => {
     await emitLifecycle(harness, "after_provider_response", ctx, {
       headers: {
         "x-ratelimit-limit-requests": "100",
+        "x-ratelimit-limit-tokens": "200",
         "x-ratelimit-remaining-requests": "25",
+        "x-ratelimit-remaining-tokens": "50",
         "x-ratelimit-reset-requests": "20s",
+        "x-ratelimit-reset-tokens": "30s",
       },
       status: 200,
     });
 
-    expect(component?.render(180).join(" ")).toContain("limit 25%");
+    expect(component?.render(180).join(" ")).toContain("limits Requests 25% · Tokens 25%");
     await harness.commands.get("status")?.("", ctx);
     const text = (harness.entries.at(-1)?.data as { text?: string }).text ?? "";
     expect(text).toContain("Account: openai");

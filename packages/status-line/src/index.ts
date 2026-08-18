@@ -3,7 +3,6 @@ import { Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 import {
   fetchAccountUsage,
-  nearestAccountLimit,
   parseProviderLimitHeaders,
   type AccountUsageContext,
   type AccountUsageSnapshot,
@@ -62,11 +61,6 @@ interface TodoSummaryEventV1 {
   };
   readonly total: number;
   readonly version: 1;
-}
-
-interface SessionTotals {
-  readonly costUsd?: number;
-  readonly tokens?: number;
 }
 
 interface SubagentRpcReplyV1 {
@@ -138,28 +132,6 @@ function todoSummary(value: unknown): TodoSummaryEventV1 | undefined {
       : {}),
     total,
     version: 1,
-  };
-}
-
-function finiteNonnegative(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
-}
-
-function sessionTotals(ctx: ExtensionContext): SessionTotals {
-  let costUsd = 0;
-  let tokens = 0;
-  for (const entry of ctx.sessionManager.getBranch()) {
-    if (entry.type !== "message" || entry.message.role !== "assistant") continue;
-    tokens +=
-      finiteNonnegative(entry.message.usage.input) +
-      finiteNonnegative(entry.message.usage.output) +
-      finiteNonnegative(entry.message.usage.cacheRead) +
-      finiteNonnegative(entry.message.usage.cacheWrite);
-    costUsd += finiteNonnegative(entry.message.usage.cost.total);
-  }
-  return {
-    ...(costUsd > 0 ? { costUsd } : {}),
-    ...(tokens > 0 ? { tokens } : {}),
   };
 }
 
@@ -255,13 +227,22 @@ function optionalViewDetails(
   model: string | undefined,
   subagents: SubagentStatusLineView | undefined,
   todo: TodoStatusLineView | undefined,
-  totals: SessionTotals,
 ): Partial<StatusLineView> {
-  const accountLimit = nearestAccountLimit(accountUsage);
+  const accountLimits =
+    accountUsage?.status === "available"
+      ? accountUsage.source === "codex-usage"
+        ? accountUsage.limits.filter((limit) => limit.scope === "account")
+        : accountUsage.limits
+      : undefined;
   return {
-    ...(accountLimit === undefined
+    ...(accountLimits === undefined || accountLimits.length === 0
       ? {}
-      : { accountLimit: { remainingPercent: accountLimit.remainingPercent } }),
+      : {
+          accountLimits: accountLimits.map(({ label, remainingPercent }) => ({
+            label,
+            remainingPercent,
+          })),
+        }),
     ...(branch === undefined ? {} : { branch }),
     ...(context === undefined ? {} : { context }),
     ...(effort === undefined ? {} : { effort }),
@@ -269,7 +250,6 @@ function optionalViewDetails(
     ...(model === undefined ? {} : { model }),
     ...(subagents === undefined ? {} : { subagents }),
     ...(todo === undefined ? {} : { todo }),
-    ...totals,
   };
 }
 
@@ -608,7 +588,6 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     const context = contextStatus(currentContext);
     const effort = effortText(pi, currentContext);
     const model = modelText(currentContext);
-    const totals = sessionTotals(currentContext);
     return {
       ...optionalViewDetails(
         accountUsage,
@@ -619,7 +598,6 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
         model,
         subagents,
         todoView,
-        totals,
       ),
       cwd: currentContext.cwd,
       extensionStatuses,
