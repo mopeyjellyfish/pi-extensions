@@ -20,6 +20,9 @@ pi install git:github.com/mopeyjellyfish/pi-extensions
 It loads only:
 
 - Pi's native tools and native compaction;
+- [`pi-hashline`](packages/hashline/README.md), which augments `read` with
+  anchored `[PATH#TAG]` headers, replaces `edit` syntax with fail-closed
+  Hashline patches, and keeps `write` for new files and whole-file replacement;
 - [`playwright_browser`](packages/playwright-cleanup/README.md), a session-owned
   browser tool backed by the pinned Playwright CLI;
 - the [`question`](packages/question/README.md) extension;
@@ -255,7 +258,9 @@ repository does not edit user-level Pi settings.
 ## Optional packages
 
 Every directory under `packages/` remains independently installable. Add one
-when the task needs its capability.
+when the task needs its capability. `pi-hashline` adapts Hashline from
+[Oh My Pi](https://github.com/can1357/oh-my-pi) by Can Bölük under the MIT
+license.
 
 | Package                                                          | Add when you need                                                                 |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -263,6 +268,7 @@ when the task needs its capability.
 | [`pi-feature-flow`](packages/feature-flow/README.md)             | Shape and planning without the root profile.                                      |
 | [`pi-git-conventions`](packages/git-conventions/README.md)       | Git delivery skills without the root profile.                                     |
 | [`pi-github`](packages/github/README.md)                         | GitHub CLI workflows without the root profile.                                    |
+| [`pi-hashline`](packages/hashline/README.md)                     | Anchored reads and fail-closed Hashline edits without the root profile.           |
 | [`pi-lsp`](packages/lsp/README.md)                               | Semantic navigation, diagnostics, or refactoring for a supported language server. |
 | [`pi-playwright-cleanup`](packages/playwright-cleanup/README.md) | Ownership and cleanup of browser sessions.                                        |
 | [`pi-productivity`](packages/productivity/README.md)             | Clearer agent instructions.                                                       |

@@ -19,7 +19,5 @@ export default {
     "!.pi-subagents/**",
     "!.pi/subagents/**",
     "!packages/*/CHANGELOG.md",
-    "!packages/*/UPSTREAM_*.md",
-    "!packages/*/src/hashline/prompt.md",
   ],
 };

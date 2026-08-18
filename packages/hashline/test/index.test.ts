@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { basename, join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   createReadToolDefinition,
@@ -123,6 +124,60 @@ describe("Hashline extension", () => {
       await expect(readFile(absolute, "utf8")).resolves.toBe("absolute\\n");
       await expect(readFile(join(directory, "at.txt"), "utf8")).resolves.toBe("at\\n");
     } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("matches Pi path normalization for tilde, file URLs, and Unicode spaces", async () => {
+    expect.hasAssertions();
+    const homeDirectory = await mkdtemp(join(homedir(), "pi-hashline-path-"));
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-path-"));
+    try {
+      const tools = register();
+      const read = tools.get("read");
+      const write = tools.get("write");
+      const edit = tools.get("edit");
+      if (read === undefined || write === undefined || edit === undefined)
+        throw new Error("Hashline tools were not registered.");
+
+      const tildePath = `~/${basename(homeDirectory)}/tilde.txt`;
+      await write.execute(
+        "write",
+        { path: tildePath, content: "one\n" },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      const tildeTag = await readTag(read, tildePath, directory);
+      await edit.execute(
+        "edit",
+        { input: `[${tildePath}#${tildeTag}]\nPUT 1.=1:\n+ONE` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(readFile(join(homeDirectory, "tilde.txt"), "utf8")).resolves.toBe("ONE\n");
+
+      const urlFile = join(directory, "url.txt");
+      await write.execute(
+        "write",
+        { path: pathToFileURL(urlFile).href, content: "URL\n" },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(readFile(urlFile, "utf8")).resolves.toBe("URL\n");
+
+      const spacedFile = join(directory, "space file.txt");
+      await writeFile(spacedFile, "space\n");
+      const spacedTag = await readTag(read, "space\u{A0}file.txt", directory);
+      expect(spacedTag).toMatch(/^[0-9A-F]{4}$/u);
+
+      await writeFile(join(directory, "user’s.txt"), "curly\n");
+      const curlyTag = await readTag(read, "user's.txt", directory);
+      expect(curlyTag).toMatch(/^[0-9A-F]{4}$/u);
+    } finally {
+      await rm(homeDirectory, { force: true, recursive: true });
       await rm(directory, { force: true, recursive: true });
     }
   });
