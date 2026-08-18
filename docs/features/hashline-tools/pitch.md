@@ -37,9 +37,12 @@ grammar, prompt, tests, documentation, and provenance from pinned commit
 `644ad30d6e9436074a00f8bd08ecadcd98992fc1`. Keep the copied implementation
 in-repository so it can be tested and changed locally. Adapt Bun-only and
 Oh-My-Pi-only dependency seams to this repository's supported Node runtime
-without weakening the language's fail-closed safety behavior. Preserve the
-upstream copyright and full MIT notice, identify copied or adapted files, and
-credit Can Bölük and Oh My Pi in both the package README and root README.
+without weakening the language's fail-closed safety behavior. The syntax seam
+must support HTML, JavaScript/JSX, TypeScript/TSX, CSS, Bash, Go, Rust, Python,
+JSON, Markdown, and YAML by default through ast-grep's built-in and official
+dynamic language packages. Preserve the upstream copyright and full MIT notice,
+identify copied or adapted files, and credit Can Bölük and Oh My Pi in both the
+package README and root README.
 
 Integrate the library through coordinated Pi tool behavior:
 
@@ -98,9 +101,12 @@ review or merge value.
   host integration is separate and much larger. Copying only the library does
   not produce a usable Pi tool.
 - **Runtime compatibility:** upstream uses `Bun.file`, `Bun.write`, `Bun.hash`, a
-  private LRU import, and native syntax/diff functions. Planning must select and
-  prove Node-compatible replacements before implementation. Adding a new native
-  runtime dependency triggers security and packed-install checks.
+  private LRU import, and native syntax/diff functions. Node-compatible file,
+  hash, cache, and line-diff adapters are required. `@ast-grep/napi` has only
+  HTML, JavaScript/TypeScript, and CSS built in; the accepted common language
+  set therefore also needs official Bash, Go, Rust, Python, JSON, Markdown, and
+  YAML dynamic packages. These native packages add about 45 MB unpacked and
+  trigger security and packed-install checks.
 - **Tool composition:** a `read` override must preserve non-text behavior and
   exact details expected by Pi's renderer. A write wrapper must not race with
   edit; both must share Pi's mutation queue.
@@ -146,7 +152,9 @@ changes, and worktree removal are not authorized.
   details, and rendering behavior.
 - **AC-005 — Hashline edits:** `edit` accepts the documented Hashline input and
   correctly applies ranges, insertions, block operations, cuts, register pastes,
-  moves, removals, multiple sections, line endings, and BOM handling.
+  moves, removals, multiple sections, line endings, and BOM handling. Structural
+  parsing works by default for HTML, JavaScript/JSX, TypeScript/TSX, CSS, Bash,
+  Go, Rust, Python, JSON, Markdown, and YAML.
 - **AC-006 — Fail-closed safety:** stale or unknown tags, unseen anchors,
   malformed patches, duplicate canonical targets, ambiguous recovery, and
   unsupported block anchors fail without partial or unintended writes.
