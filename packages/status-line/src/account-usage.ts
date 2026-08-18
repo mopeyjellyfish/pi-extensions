@@ -1,11 +1,12 @@
 import { stripAnsi } from "./powerline.ts";
 
-export interface AccountLimit {
+interface AccountLimit {
   readonly label: string;
   readonly limit?: number;
   readonly remaining?: number;
   readonly remainingPercent: number;
   readonly resetsAt?: number;
+  readonly scope: "account" | "model" | "provider" | "spend";
   readonly usedPercent: number;
   readonly windowSeconds?: number;
 }
@@ -131,11 +132,13 @@ function codexWindow(value: unknown): CodexWindow | undefined {
 function accountLimit(
   value: CodexWindow,
   label = windowLabel(value.limit_window_seconds),
+  scope: AccountLimit["scope"] = "account",
 ): AccountLimit {
   return {
     label,
     remainingPercent: 100 - value.used_percent,
     resetsAt: value.reset_at * 1000,
+    scope,
     usedPercent: value.used_percent,
     windowSeconds: value.limit_window_seconds,
   };
@@ -168,6 +171,7 @@ function additionalLimits(value: unknown): AccountLimit[] | undefined {
         accountLimit(
           entry,
           windows.length === 1 ? label : `${label} · ${windowLabel(entry.limit_window_seconds)}`,
+          "model",
         ),
       ),
     );
@@ -197,6 +201,7 @@ function spendLimit(value: unknown): AccountLimit | null | undefined {
     label: "Spend limit",
     remainingPercent,
     resetsAt: resetAt * 1000,
+    scope: "spend",
     usedPercent,
   };
 }
@@ -442,6 +447,7 @@ function headerLimit(
     remaining,
     remainingPercent,
     resetsAt,
+    scope: "provider",
     usedPercent: 100 - remainingPercent,
   };
 }
@@ -524,18 +530,4 @@ export function parseProviderLimitHeaders(
   return limits.length === 0
     ? undefined
     : { limits, observedAt, provider, source: "response-headers", status: "available" };
-}
-
-export function nearestAccountLimit(
-  usage: AccountUsageSnapshot | undefined,
-): AccountLimit | undefined {
-  return usage?.status === "available"
-    ? usage.limits.reduce<AccountLimit | undefined>(
-        (nearest, limit) =>
-          nearest === undefined || limit.remainingPercent < nearest.remainingPercent
-            ? limit
-            : nearest,
-        undefined,
-      )
-    : undefined;
 }
