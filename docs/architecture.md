@@ -9,9 +9,12 @@ resources, including todo for parent progress, and pins `@playwright/cli`,
 It loads the Claude bridge and subagent extensions plus explicit subagent
 prompts without loading the subagent dependency's broad orchestration skill.
 It exposes six fixed package agents: Terra-medium Worker and Git writers,
-Luna-low Researcher, Luna-medium QA and Utility read-only support, and an
-Opus-medium Reviewer. The human selects a Fable or Sol parent; parent settings
-and AskClaude selection remain user settings, so installation never overwrites
+Luna-low Researcher, Luna-medium QA gate verification and Utility read-only
+support, and an Opus-medium Reviewer. Implementation keeps focused repair loops
+in Worker, runs exact named repository gates in QA, permits one aggregated
+retained-Worker repair, and reviews only a frozen green diff. The human selects
+a Fable or Sol parent; parent settings and AskClaude selection remain user
+settings, so installation never overwrites
 Pi authentication, preferences, or bridge configuration. AskClaude is available
 only to a non-claude-bridge parent; a Fable parent uses the Opus Reviewer at the
 formal boundary. A Sol child requires a justified `question` and explicit human
