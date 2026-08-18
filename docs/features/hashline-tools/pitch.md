@@ -37,12 +37,12 @@ grammar, prompt, tests, documentation, and provenance from pinned commit
 `644ad30d6e9436074a00f8bd08ecadcd98992fc1`. Keep the copied implementation
 in-repository so it can be tested and changed locally. Adapt Bun-only and
 Oh-My-Pi-only dependency seams to this repository's supported Node runtime
-without weakening the language's fail-closed safety behavior. The syntax seam
-must support HTML, JavaScript/JSX, TypeScript/TSX, CSS, Bash, Go, Rust, Python,
-JSON, Markdown, and YAML by default through ast-grep's built-in and official
-dynamic language packages. Preserve the upstream copyright and full MIT notice,
-identify copied or adapted files, and credit Can Bölük and Oh My Pi in both the
-package README and root README.
+without weakening the language's fail-closed safety behavior. Port Oh My Pi's
+`pi-ast` block-range and enclosing-boundary algorithms to TypeScript and run
+them on strict Tree-sitter WASM. Load HTML, JavaScript/JSX, TypeScript/TSX, CSS,
+Bash, Go, Rust, Python, JSON, Markdown, and YAML grammars by default. Preserve
+the upstream copyright and full MIT notice, identify copied or adapted files,
+and credit Can Bölük and Oh My Pi in both the package README and root README.
 
 Integrate the library through coordinated Pi tool behavior:
 
@@ -102,11 +102,12 @@ review or merge value.
   not produce a usable Pi tool.
 - **Runtime compatibility:** upstream uses `Bun.file`, `Bun.write`, `Bun.hash`, a
   private LRU import, and native syntax/diff functions. Node-compatible file,
-  hash, cache, and line-diff adapters are required. `@ast-grep/napi` has only
-  HTML, JavaScript/TypeScript, and CSS built in; the accepted common language
-  set therefore also needs official Bash, Go, Rust, Python, JSON, Markdown, and
-  YAML dynamic packages. These native packages add about 45 MB unpacked and
-  trigger security and packed-install checks.
+  hash, cache, and line-diff adapters are required. ast-grep's Node API can
+  expose named nodes but not the strict parse-error status required by upstream
+  fail-closed boundary behavior. Use `web-tree-sitter` and a pinned prebuilt WASM
+  grammar catalog instead, and port Oh My Pi's two relevant `pi-ast` algorithms
+  rather than its Rust/N-API distribution. The portable runtime and catalog add
+  about 144 MB unpacked and trigger security, startup, and packed-install checks.
 - **Tool composition:** a `read` override must preserve non-text behavior and
   exact details expected by Pi's renderer. A write wrapper must not race with
   edit; both must share Pi's mutation queue.
