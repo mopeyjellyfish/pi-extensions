@@ -8,7 +8,7 @@
 
 - Recovered dangling range separators in hunk headers (`PUT 244.=:`, `CUT 5.=`) as single-line ranges (`N.=N`) instead of rejecting the header as an orphan payload line.
 
-## [17.3.3] - 2026-08-14
+## [17.3.3] - 2026-08-14 <!-- duplicate upstream entry -->
 
 ### Fixed
 
@@ -116,7 +116,7 @@
 
 ### Changed
 
-- Bare `- ` bullet body rows are now auto-accepted as literal content with a warning when the hunk is unambiguously a Markdown bullet list (every `-` row bullet-shaped and no plain `+new` diff counterpart); ambiguous `-` rows still fail with the teaching error.
+- Bare <code>- </code> bullet body rows are now auto-accepted as literal content with a warning when the hunk is unambiguously a Markdown bullet list (every `-` row bullet-shaped and no plain `+new` diff counterpart); ambiguous `-` rows still fail with the teaching error.
 
 ## [17.0.8] - 2026-07-22
 

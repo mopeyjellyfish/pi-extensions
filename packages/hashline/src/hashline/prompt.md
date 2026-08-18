@@ -1,3 +1,5 @@
+# Hashline patch language
+
 Line-anchored patch language: name original lines/gaps to replace, insert, cut, or paste; then give new content. `:` headers take `+` body rows; colonless paste `PUT`, `CUT`, `REM`, `MV` take none.
 
 <headers>
@@ -39,7 +41,8 @@ Only below `:` headers. Row: verbatim `+TEXT` (leading whitespace preserved); `+
 
 <example>
 `read` output shape:
-```
+
+```text
 [greet.py#A1B2]
 1:def greet(name):
 2:    msg = "Hello, " + name
@@ -49,7 +52,7 @@ Only below `:` headers. Row: verbatim `+TEXT` (leading whitespace preserved); `+
 
 Edit, then move:
 
-```
+```text
 [greet.py#A1B2]
 PUT 1.=3:
 +def greet(name):
@@ -59,7 +62,7 @@ MV lib/greet.py
 
 Markdown bullets — file receives `- task`:
 
-```
+```text
 [PLAN.md#A1B2]
 PUT >2:
 +- task
@@ -68,7 +71,7 @@ PUT >2:
 
 Move `greet` to sibling file via named register; flows across sections:
 
-```
+```text
 [greet.py#A1B2]
 CUT 1* @fn
 [other.py#3C4D]
@@ -77,7 +80,7 @@ PUT <1 @fn
 
 `PUT 1*:` resolves lines 1–3 (`def` through `print(msg)`); line 4 separate, remains:
 
-```
+```text
 [greet.py#A1B2]
 PUT 1*:
 +def greet(name):
@@ -86,7 +89,7 @@ PUT 1*:
 
 Decorator/doc-comment separate block: point N at decorator to include both; anchoring `def` line 2 orphans `@cache`:
 
-```
+```text
 [svc.py#C3D4]
 PUT 1*:
 +@cache
@@ -97,6 +100,8 @@ PUT 1*:
 </example>
 
 <anti-patterns>
+
+```text
 # WRONG — empty `PUT` to delete. RIGHT: `CUT 4.=4`
 PUT 4.=4:
 
@@ -148,6 +153,8 @@ PUT >3:
 
 PUT >20 @fn:
 +function f() {}
+```
+
 </anti-patterns>
 
 <critical>

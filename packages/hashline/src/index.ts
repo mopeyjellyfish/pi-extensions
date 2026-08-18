@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 
 import {
   createReadToolDefinition,
@@ -25,8 +25,10 @@ import {
   Patch,
   Patcher,
   resolveTreeSitterBlock,
+  clearSyntaxCaches,
   stripBom,
 } from "./hashline/index.ts";
+import { absolutePath, resolvePiReadPath } from "./paths.ts";
 import { detailsFor, restoreState, type HashlineToolDetails } from "./state.ts";
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -35,10 +37,6 @@ const editParameters = Type.Object(
   { input: Type.String({ description: "Hashline patch input headed by [PATH#TAG]." }) },
   { additionalProperties: false },
 );
-
-function absolutePath(path: string, cwd: string): string {
-  return resolve(cwd, path.replace(/^@/u, ""));
-}
 
 /** Pi accepts cwd-relative and absolute paths; this adapter canonicalizes both for snapshot keys. */
 class PiFilesystem extends NodeFilesystem {
@@ -201,13 +199,16 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
   pi.on("session_shutdown", () => {
     snapshots.clear();
     clipboard.named?.clear();
+    clearSyntaxCaches();
   });
 
   pi.registerTool(
     defineTool({
       ...createReadToolDefinition(process.cwd()),
       async execute(id, input, signal, update, ctx) {
-        const path = new PiFilesystem(ctx.cwd, signal).canonicalPath(input.path);
+        const path = new PiFilesystem(ctx.cwd, signal).canonicalPath(
+          resolvePiReadPath(input.path, ctx.cwd),
+        );
         return withFileMutationQueue(path, async () => {
           const builtIn = createReadToolDefinition(ctx.cwd);
           const result = await builtIn.execute(id, input, signal, update, ctx);

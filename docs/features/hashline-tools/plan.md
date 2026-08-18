@@ -366,7 +366,7 @@ Write remains a compatible whole-file tool, concurrent mutations cannot lose
 updates, branch transitions restore only safe state, and shutdown leaves no
 session leakage.
 
-## [ ] 004 — Default profile installs and reloads Hashline once
+## [x] 004 — Default profile installs and reloads Hashline once
 
 ### Outcome and requirement trace
 

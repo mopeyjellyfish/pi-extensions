@@ -70,6 +70,13 @@ export function initializeSyntax(): Promise<void> {
   return initialization;
 }
 
+/** Drop bounded content-derived caches before Pi reloads the extension. */
+export function clearSyntaxCaches(): void {
+  blockCache.clear();
+  boundaryCache.clear();
+  cleanCache.clear();
+}
+
 function initializedGrammars(): ReadonlyMap<GrammarName, Language> {
   if (grammars === undefined)
     throw new Error(

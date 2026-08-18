@@ -448,6 +448,7 @@ function validateRootRuntime(value: Record<string, unknown>, errors: string[]): 
 
 const ROOT_PROFILE: RootProfile = {
   extensions: [
+    "./packages/hashline/src/index.ts",
     "./packages/playwright-cleanup/src/index.ts",
     "./packages/question/src/index.ts",
     "./packages/status-line/src/index.ts",
