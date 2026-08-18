@@ -70,9 +70,12 @@ does not overwrite parent settings. The fixed child catalog is:
 
 Implementation uses Worker for one vertical slice and focused checks, then QA
 for one read-only pass over the exact named repository gates. QA aggregates all
-failures before one precise retained-Worker repair; a second failed QA pass
-stops before formal review. This keeps broad checks and coverage out of the
-Worker's development loop while the parent retains finalization and acceptance.
+failures before each retained-Worker repair. Worker and QA repeat while failure
+signatures, diagnostic counts, or coverage gaps show measurable progress. They
+stop on repeated evidence, a non-completed Worker result, or scope variance;
+formal review starts only after QA verifies the gates. This keeps broad checks
+and coverage out of the Worker's development loop while the parent retains
+finalization and acceptance.
 
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected Fable or Sol parent's responsibility for product
@@ -148,8 +151,8 @@ this workflow. Its smaller parent tool schema may reduce orchestration context,
 but replacing the pinned runtime now would remove contracts used by this
 profile: retained-Worker resume, structured usage telemetry, acceptance gates,
 and the status RPC consumed by the status line. Those capabilities directly
-support the bounded Worker → QA verifier flow. Keep the current runtime and
-measure representative end-to-end runs before considering a migration; a
+support the progress-bounded Worker ↔ QA verifier flow. Keep the current
+runtime and measure representative end-to-end runs before considering a
 smaller tool description alone does not reduce Worker discovery, repair, or
 repository-check work.
 

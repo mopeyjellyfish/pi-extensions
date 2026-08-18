@@ -392,7 +392,8 @@ describe("package contracts", () => {
     expect.soft(prose).toMatch(/setup failure[^.]*not[^.]*red proof/iu);
     expect.soft(prose).toMatch(/bounded ordered orientation/iu);
     expect.soft(prose).toMatch(/diagnose[^.]*failed command[^.]*before[^.]*rerun/iu);
-    expect.soft(prose).toMatch(/two unsuccessful repair loops[^.]*stop/iu);
+    expect.soft(prose).toMatch(/same failure[^.]*without new evidence[^.]*stop/iu);
+    expect.soft(prose).toMatch(/no fixed repair count/iu);
     expect
       .soft(prose)
       .toMatch(

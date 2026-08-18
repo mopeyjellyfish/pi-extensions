@@ -74,8 +74,12 @@ describe("engineering resources", () => {
     const implement = implementText.replaceAll(/\s+/gu, " ");
     const readme = readmeText.replaceAll(/\s+/gu, " ");
 
-    expect(implement).toMatch(/one worker attempt[\s\S]*one precise QA repair resume/iu);
+    expect(implement).toMatch(
+      /one worker attempt[\s\S]*repeat QA repair resumes[^.]*measurable progress/iu,
+    );
     expect(implement).toMatch(/one review repair resume/iu);
+    expect(implement).toMatch(/no fixed iteration, turn, tool, token, or cost limit/iu);
+    expect(implement).toMatch(/stop[^.]*same failure[^.]*without new evidence/iu);
     expect(implement).toMatch(/fresh read-only `qa` verifier[\s\S]*aggregated defect packet/iu);
     expect(implement).toMatch(/partial[^.]*must not[^.]*automatic[^.]*retry/iu);
     expect(implement).toMatch(
@@ -87,6 +91,7 @@ describe("engineering resources", () => {
       /tool calls[\s\S]*changed production[\s\S]*test LOC[\s\S]*review cycles/iu,
     );
     expect(readme).toMatch(/bounded worker[\s\S]*parent finalization/iu);
+    expect(readme).toMatch(/Worker[^.]*QA[^.]*while[^.]*progress/iu);
   });
 
   it("uses invalidation-aware evidence for serial delivery units", async () => {
@@ -533,7 +538,7 @@ describe("engineering resources", () => {
       /accept-all[^.]*never authorizes merge[^.]*release[^.]*deployment[^.]*destructive\s+cleanup[^.]*unrelated\s+work/iu,
     );
     expect(implement).toMatch(
-      /review repair resume[^.]*same retained Worker[\s\S]*writer reruns focused[^.]*invalidated evidence[^.]*QA or the parent completes[^.]*required final gate/iu,
+      /review repair resume[^.]*same retained Worker[\s\S]*writer reruns focused[^.]*invalidated evidence[^.]*progress-bounded QA loop[^.]*required final gate passes/iu,
     );
     expect(implement).toMatch(
       /accept-all[^.]*pause[^.]*return control[^.]*before resolving[^.]*material finding/iu,

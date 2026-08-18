@@ -29,9 +29,10 @@ In a fresh worktree, complete repository-defined setup before the first check
 that requires its runtime or dependencies; report setup failures separately
 from product failures. Continue through independent named commands when safe so
 all actionable failures are collected. Diagnose output without changing files,
-and aggregate related failures into one defect packet with the failing command,
-location, expected condition, and useful bounded output. Never rerun an
-unchanged failing command.
+and aggregate related failures into one defect packet with stable failure
+signatures, the failing command, location, expected condition, and useful
+bounded output. Include failing-command and diagnostic counts so the parent can
+compare progress. Never rerun an unchanged failing command.
 
 Use Playwright only for named browser evidence; close its browser session before
 returning. After a repair, run only invalidated checks first, then the exact

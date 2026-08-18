@@ -64,9 +64,11 @@ needed to complete its handoff. Required completion gates, broad coverage,
 repository-wide checks, security checks, packing, and formal review belong to
 the parent after the diff is stable.
 
-Diagnose each failed command before a rerun. After two unsuccessful repair
-loops, stop and report the root cause. Do not make product, architecture, scope,
-or approval decisions. When runtime bridge instructions provide
+Diagnose each failed command before a rerun. Continue repair while check output
+shows new evidence or measurable progress. If the same failure recurs without
+new evidence, stop and report the root cause. There is no fixed repair count.
+Do not make product, architecture, scope, or approval decisions. When runtime
+bridge instructions provide
 `contact_supervisor`, use it with reason `need_decision` only for a blocking
 decision. If it is unavailable, stop and report the decision in the final
 result. Send no routine completion handoff.
