@@ -16,15 +16,16 @@ difficulty alone never selects that role. `/debug` starts its skill in a
 dedicated worktree and uses the `question` tool for focused intake:
 
 ```text
-parent plan -> bounded Worker -> QA verifier -> one Worker repair -> QA verifier -> fresh Reviewer
+parent plan -> bounded Worker <-> QA while progressing -> fresh Reviewer
 ```
 
 The Worker owns one vertical change, focused behavioral proof, and local static
 checks. Parent finalization owns the named repository gates and delegates their
 mechanical execution to QA when that capability exists. QA runs each named gate
-once, aggregates every actionable failure into one packet, and never edits. One
-precise retained-Worker repair may consume that packet; a second failed QA pass
-stops instead of creating an unbounded repair loop.
+once, aggregates every actionable failure into one packet, and never edits.
+Worker and QA repeat while failure signatures, diagnostic counts, or coverage
+gaps show measurable progress. They stop on repeated evidence, a non-completed
+Worker result, or scope variance rather than on a fixed iteration count.
 
 All configured child handoffs start with fresh context. Before any write, every
 mutation-capable skill requires an isolated linked worktree and never edits the
@@ -78,15 +79,17 @@ unresolved failures; its formal reviewer loads and follows `code-review`. A
 serial delivery unit reuses one writer and worktree. Its validation ladder is
 focused slice proof and affected-boundary checks in the Worker, followed by
 integration proof and stable delivery-unit required gates in one read-only QA
-pass. QA aggregates failures before one precise retained-Worker repair. Evidence
-is reused only while its covered surface is unchanged; after repair, QA runs
-invalidated checks and the complete gate once. A second failed QA pass stops.
-One fixed formal review occurs only after the diff and checks freeze. Material
-findings return as one batch for one retained-Worker review repair. The Worker
-reruns focused invalidated evidence before QA completes the required final gate;
-the parent verifies the repaired findings without a second full review. For an
-accepted accept-all plan, pause and return control to the human before
-resolving any material finding. Delegation must provide a critical-path,
+pass. QA aggregates failures before each retained-Worker repair. Evidence is
+reused only while its covered surface is unchanged; after repair, QA runs
+invalidated checks and the complete gate once. Worker and QA repeat while
+evidence shows measurable progress and stop on repeated failures without new
+evidence. One fixed formal review occurs only after the diff and checks freeze.
+Material findings return as one batch for one retained-Worker review repair.
+The Worker reruns focused invalidated evidence and re-enters QA until the
+required final
+gate passes; the parent verifies the repaired findings without a second full
+review. For an accepted accept-all plan, pause and return control to the human
+before resolving any material finding. Delegation must provide a critical-path,
 parent-context, or independent-evidence benefit. Bounded one-unit routes do not
 gain forecast overhead. For checkpointed plans, pause and report material
 coordination variance against an accepted forecast when one exists, or against

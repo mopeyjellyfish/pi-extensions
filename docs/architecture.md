@@ -11,8 +11,9 @@ prompts without loading the subagent dependency's broad orchestration skill.
 It exposes six fixed package agents: Terra-medium Worker and Git writers,
 Luna-low Researcher, Luna-medium QA gate verification and Utility read-only
 support, and an Opus-medium Reviewer. Implementation keeps focused repair loops
-in Worker, runs exact named repository gates in QA, permits one aggregated
-retained-Worker repair, and reviews only a frozen green diff. The human selects
+in Worker and runs exact named repository gates in QA. Worker and QA repeat
+while verification evidence shows measurable progress, stop on repeated or
+out-of-scope failures, and review only a frozen green diff. The human selects
 a Fable or Sol parent; parent settings and AskClaude selection remain user
 settings, so installation never overwrites
 Pi authentication, preferences, or bridge configuration. AskClaude is available

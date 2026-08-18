@@ -75,16 +75,19 @@ those fields. Do not append previous transcripts, every possible edge case, or
 final repository gates. Treat Worker results as `completed`, `blocked`,
 `variance`, or `partial`. A blocked or variance result pauses for the parent. A
 partial result must not trigger an automatic retry or a larger
-"finish everything" task. Permit one precise QA repair resume of the same
-retained Worker for one aggregated verifier defect packet. If that Worker is
-not resumable or the resumed work is incomplete, return control for direct
-parent ownership or replanning; do not launch a replacement Worker.
+"finish everything" task. After a completed initial attempt, use the first QA
+failure packet for the initial repair. After later QA passes, repeat QA repair
+resumes of the latest retained Worker while verifier evidence shows measurable
+progress. If that Worker is not resumable or any repair returns `blocked`,
+`variance`, or `partial`, return control for direct parent ownership or
+replanning; do not launch a replacement Worker.
 
 Do not impose hard turn, tool, token, or cost budgets on a mutation-capable
-Worker. Such interruption can strand an unsafe partial edit, and tool counts do
-not prove that a slice is buildable. Use runtime counters as telemetry; enforce
-the boundary through one attempt, phase-bounded repair resumes, explicit scope
-variance, and the Worker's repair-loop stop.
+Worker. There is no fixed iteration, turn, tool, token, or cost limit. Such
+interruption can strand an unsafe partial edit, and counts do not prove that a
+slice is buildable. Use runtime counters as telemetry; enforce the boundary
+through evidence of progress, explicit scope variance, and the Worker's
+repeated-failure stop.
 
 Do not silently select a higher-capability role. A high-capability run requires
 an explicit approval stating evidence, expected benefit, and bounded task. State
@@ -124,16 +127,28 @@ affected-boundary checks needed for a useful handoff. The parent owns
 finalization: integration proof, coverage, root or repository-wide checks,
 security or packing checks, and required completion gates.
 
-When a configured `qa` capability exists, use it as one fresh read-only `qa`
-verifier in the same worktree after the Worker freezes the diff. Give it the
-exact named completion commands; it must run each once and return all failures
-as one aggregated defect packet. If QA is unavailable, the parent runs the same
-commands directly. On failure, send that packet through the QA repair resume.
-The Worker repairs with focused checks. QA then runs invalidated checks first
-and the exact complete gate once after they pass. A second failed QA pass stops
-the unit as blocked; do not alternate unbounded Worker and QA runs. Coverage is
-a late diagnostic and runs only in these QA passes, never in separate workers
-per file or failure group.
+After every completed Worker handoff, run one fresh read-only `qa` verifier in
+the same worktree when that capability exists. Give it the exact named
+completion commands; it must run each once and return all failures as one
+aggregated defect packet. If QA is unavailable, the parent runs the same
+commands directly.
+
+The first failing QA packet establishes the baseline and starts the initial
+repair. On later failures, compare the new packet with the prior pass.
+Measurable progress means fewer failing commands or failure signatures, a
+smaller diagnostic or coverage gap, or new evidence that resolves a prior
+failure. While progress is measurable, resume the latest retained Worker with
+the complete packet. The Worker repairs with focused checks and returns control
+to QA. QA runs invalidated checks first, then the exact complete gate once after
+they pass. Repeat Worker and QA while evidence shows measurable progress;
+proceed to formal review only when QA returns `verified`.
+
+Stop the loop when the same failure recurs without new evidence, the defect set
+does not shrink or materially change after an accepted repair, the Worker does
+not return `completed`, or repair requires scope or architecture outside the
+accepted intent. This is a progress boundary, not an iteration limit. Coverage
+is a late diagnostic: rerun it only after relevant production or test changes,
+and never create separate workers per file or failure group.
 
 Before formal review, require a frozen diff, clean diff check, focused proof,
 required completion gates passing, no known task TODOs, and no active writer.
@@ -147,10 +162,10 @@ Record efficiency telemetry in that evidence when available: child tokens and
 turns, tool calls, changed production and test LOC, focused and full-check
 executions, review cycles, and incomplete Worker count. Warn when scope or LOC
 is more than twice the accepted estimate, test LOC materially exceeds
-production LOC without explanation, coverage runs more than twice, a full gate
-ran before the diff froze, more than one formal review occurred, or any Worker
-returned incomplete work. Telemetry informs the next decision; it never creates
-new behavior or test scope.
+production LOC without explanation, coverage reruns without relevant file
+changes, a full gate ran before the diff froze, more than one formal review
+occurred, or any Worker returned incomplete work. Telemetry informs the next
+decision; it never creates new behavior or test scope.
 
 ## Fixed review and acceptance
 
@@ -163,12 +178,12 @@ changed files, and verification evidence. Return material findings as one
 prioritized batch. After approval to repair, permit one review repair resume of
 the same retained Worker; if it is not resumable, the parent owns the repair
 directly rather than launching a replacement. The writer reruns focused
-invalidated evidence, then QA or the parent completes the required final gate.
-The parent verifies the repaired findings without starting a second full review;
-pause if a repair changes architecture or accepted scope. For an accepted
-accept-all plan, pause and return control to the human before resolving any
-material finding. If the reviewer is unavailable, the direct parent loads and
-follows `code-review`.
+invalidated evidence, then re-enters the progress-bounded QA loop until the
+required final gate passes. The parent verifies the repaired findings without
+starting a second full review; pause if a repair changes architecture or
+accepted scope. For an accepted accept-all plan, pause and return control to the
+human before resolving any material finding. If the reviewer is unavailable,
+the direct parent loads and follows `code-review`.
 
 For checkpointed plans, present the evidence and an explicit **Accept and
 publish** action. Acceptance invokes `commit` and `open-pr` with no second
