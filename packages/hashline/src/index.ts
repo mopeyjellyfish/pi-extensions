@@ -1,8 +1,9 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 
 import {
   createReadToolDefinition,
+  createWriteToolDefinition,
   generateDiffString,
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
@@ -19,12 +20,14 @@ import {
   InMemorySnapshotStore,
   initializeSyntax,
   NodeFilesystem,
+  type Clipboard,
   type PreflightWriteOptions,
   Patch,
   Patcher,
   resolveTreeSitterBlock,
   stripBom,
 } from "./hashline/index.ts";
+import { detailsFor, restoreState, type HashlineToolDetails } from "./state.ts";
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
@@ -34,7 +37,7 @@ const editParameters = Type.Object(
 );
 
 function absolutePath(path: string, cwd: string): string {
-  return resolve(cwd, path.startsWith("@") ? path.slice(1) : path);
+  return resolve(cwd, path.replace(/^@/u, ""));
 }
 
 /** Pi accepts cwd-relative and absolute paths; this adapter canonicalizes both for snapshot keys. */
@@ -109,7 +112,7 @@ class PiFilesystem extends NodeFilesystem {
 }
 
 function compareCodePoints(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
+  return Number(left > right) - Number(left < right);
 }
 
 const OUTPUT_TRUNCATION = "[Hashline output truncated at Pi's 2,000-line/50-KB limit.]";
@@ -185,26 +188,83 @@ export * from "./hashline/index.ts";
 
 export default function hashlineExtension(pi: ExtensionAPI): void {
   const snapshots = new InMemorySnapshotStore();
+  const clipboard: Clipboard = {};
+
+  pi.on("session_start", async (event, ctx) => {
+    if (event.reason === "new") {
+      snapshots.clear();
+      clipboard.named?.clear();
+      return;
+    }
+    await restoreState(ctx, snapshots, clipboard);
+  });
+  pi.on("session_shutdown", () => {
+    snapshots.clear();
+    clipboard.named?.clear();
+  });
 
   pi.registerTool(
     defineTool({
       ...createReadToolDefinition(process.cwd()),
       async execute(id, input, signal, update, ctx) {
-        const builtIn = createReadToolDefinition(ctx.cwd);
-        const result = await builtIn.execute(id, input, signal, update, ctx);
-        if (isBuiltInImageResult(result)) return result;
-        if (signal?.aborted) throw new Error("Operation aborted");
         const path = new PiFilesystem(ctx.cwd, signal).canonicalPath(input.path);
-        const raw = await readFile(path, "utf8");
-        if (signal?.aborted) throw new Error("Operation aborted");
-        const normalized = normalizeToLF(stripBom(raw).text);
-        const tag = snapshots.record(path, normalized);
-        const anchored = boundedAnchoredText(path, tag, normalized, input.offset, input.limit);
-        snapshots.recordSeenLines(path, tag, anchored.seenLines);
-        return {
-          content: [{ type: "text" as const, text: anchored.text }],
-          details: result.details,
-        };
+        return withFileMutationQueue(path, async () => {
+          const builtIn = createReadToolDefinition(ctx.cwd);
+          const result = await builtIn.execute(id, input, signal, update, ctx);
+          if (isBuiltInImageResult(result)) return result;
+          if (signal?.aborted) throw new Error("Operation aborted");
+          const raw = await readFile(path, "utf8");
+          if (signal?.aborted) throw new Error("Operation aborted");
+          const normalized = normalizeToLF(stripBom(raw).text);
+          const tag = snapshots.record(path, normalized);
+          const anchored = boundedAnchoredText(path, tag, normalized, input.offset, input.limit);
+          snapshots.recordSeenLines(path, tag, anchored.seenLines);
+          return {
+            content: [{ type: "text" as const, text: anchored.text }],
+            details: { ...result.details, ...detailsFor(snapshots, clipboard, [path]) },
+          };
+        });
+      },
+    }),
+  );
+
+  const { renderResult: builtInWriteRenderer, ...builtInWrite } = createWriteToolDefinition(
+    process.cwd(),
+  );
+  pi.registerTool(
+    defineTool<typeof builtInWrite.parameters, HashlineToolDetails>({
+      ...builtInWrite,
+      ...(builtInWriteRenderer === undefined
+        ? {}
+        : {
+            renderResult(result, options, theme, context) {
+              return builtInWriteRenderer(
+                { ...result, details: undefined },
+                options,
+                theme,
+                context,
+              );
+            },
+          }),
+      async execute(_id, { path, content }, signal, _update, ctx) {
+        const absolute = new PiFilesystem(ctx.cwd, signal).canonicalPath(path);
+        return withFileMutationQueue(absolute, async () => {
+          if (signal?.aborted) throw new Error("Operation aborted");
+          await mkdir(dirname(absolute), { recursive: true });
+          if (signal?.aborted) throw new Error("Operation aborted");
+          await writeFile(absolute, content, "utf8");
+          const normalized = normalizeToLF(stripBom(content).text);
+          snapshots.record(absolute, normalized);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Successfully wrote ${String(content.length)} bytes to ${path}`,
+              },
+            ],
+            details: detailsFor(snapshots, clipboard, [absolute]),
+          };
+        });
       },
     }),
   );
@@ -241,6 +301,7 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
             blockResolver: resolveTreeSitterBlock,
             fs: filesystem,
             snapshots,
+            clipboard,
           }).apply(patch);
           const preview = result.sections
             .map(
@@ -270,6 +331,11 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
                 path: section.path,
                 warnings: section.warnings,
               })),
+              ...detailsFor(
+                snapshots,
+                clipboard,
+                result.sections.map((section) => filesystem.canonicalPath(section.path)),
+              ),
               ...(firstChangedSection?.firstChangedLine === undefined
                 ? {}
                 : { firstChangedLine: firstChangedSection.firstChangedLine }),
