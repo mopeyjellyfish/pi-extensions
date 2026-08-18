@@ -327,7 +327,9 @@ describe("package contracts", () => {
     );
 
     expect.soft(qa).toMatch(/fresh worktree[^.]*setup[^.]*before[^.]*check/iu);
-    expect.soft(qa).toMatch(/diagnose[^.]*failed[^.]*before[^.]*rerun/iu);
+    expect.soft(qa).toMatch(/exact named completion commands[^.]*each once/iu);
+    expect.soft(qa).toMatch(/aggregate[^.]*failures[^.]*one defect packet/iu);
+    expect.soft(qa).toMatch(/never rerun[^.]*unchanged failing command/iu);
     expect.soft(researcher).toMatch(/one[^.]*search pass[\s\S]*follow-up[^.]*specific gap/iu);
     expect.soft(reviewer).toMatch(/one[^.]*fixed[^.]*pass[\s\S]*do not rerun[^.]*unchanged/iu);
     expect.soft(utility).toMatch(/one[^.]*bounded[^.]*pass[\s\S]*do not rerun[^.]*unchanged/iu);
@@ -375,7 +377,7 @@ describe("package contracts", () => {
       .toMatch(/transport failure[^.]*diagnose once[^.]*stop[^.]*recovery evidence/iu);
   });
 
-  it("makes fresh-worktree setup and diagnose-before-rerun worker table stakes", async () => {
+  it("bounds Worker discovery, repair loops, and final-gate ownership", async () => {
     expect.hasAssertions();
     const prose = (await readFile(join(repositoryRoot, "agents", "worker.md"), "utf8")).replaceAll(
       /\s+/gu,
@@ -388,9 +390,14 @@ describe("package contracts", () => {
         /fresh worktree[^.]*repository-defined runtime[^.]*dependency setup[^.]*before[^.]*test/iu,
       );
     expect.soft(prose).toMatch(/setup failure[^.]*not[^.]*red proof/iu);
-    expect.soft(prose).toMatch(/diagnose[^.]*failed check[^.]*before[^.]*rerun/iu);
-    expect.soft(prose).toMatch(/same failure[^.]*stop[^.]*inspect[^.]*complete failure/iu);
-    expect.soft(prose).toMatch(/focused checks[^.]*required completion gate[^.]*once/iu);
+    expect.soft(prose).toMatch(/bounded ordered orientation/iu);
+    expect.soft(prose).toMatch(/diagnose[^.]*failed command[^.]*before[^.]*rerun/iu);
+    expect.soft(prose).toMatch(/two unsuccessful repair loops[^.]*stop/iu);
+    expect
+      .soft(prose)
+      .toMatch(
+        /during development[^.]*focused validation[\s\S]*required completion gates[^.]*parent/iu,
+      );
   });
 
   it("documents the conservative subagent profile and its evaluation gate", async () => {
@@ -413,6 +420,9 @@ describe("package contracts", () => {
     );
     expect(readme).toMatch(/per-run model[\s\S]*explicitly approves/iu);
     expect(readme).toMatch(/retain `"disableBuiltins": true`[\s\S]*exact six-agent catalog/iu);
+    expect(readme).toMatch(
+      /pi-subagents-lite[\s\S]*retained-Worker resume[\s\S]*usage telemetry[\s\S]*status RPC/iu,
+    );
     expect(evaluation).toMatch(/baseline/iu);
     expect(evaluation).toMatch(/candidate/iu);
     expect(evaluation).toMatch(/total model tokens/iu);

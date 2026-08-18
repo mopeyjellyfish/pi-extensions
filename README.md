@@ -63,10 +63,16 @@ does not overwrite parent settings. The fixed child catalog is:
 | ------------ | ------------- | -------- | ------------------------------------------------------- |
 | `worker`     | GPT-5.6 Terra | medium   | sole implementation writer                              |
 | `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research |
-| `qa`         | GPT-5.6 Luna  | medium   | read-only test and browser evidence                     |
+| `qa`         | GPT-5.6 Luna  | medium   | read-only gate verification and acceptance evidence     |
 | `reviewer`   | Opus 5        | medium   | formal read-only code review and design review          |
 | `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair             |
 | `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                 |
+
+Implementation uses Worker for one vertical slice and focused checks, then QA
+for one read-only pass over the exact named repository gates. QA aggregates all
+failures before one precise retained-Worker repair; a second failed QA pass
+stops before formal review. This keeps broad checks and coverage out of the
+Worker's development loop while the parent retains finalization and acceptance.
 
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected Fable or Sol parent's responsibility for product
@@ -135,6 +141,17 @@ conservative extension controls in
   }
 }
 ```
+
+We evaluated
+[`pi-subagents-lite`](https://github.com/AlexParamonov/pi-subagents-lite) for
+this workflow. Its smaller parent tool schema may reduce orchestration context,
+but replacing the pinned runtime now would remove contracts used by this
+profile: retained-Worker resume, structured usage telemetry, acceptance gates,
+and the status RPC consumed by the status line. Those capabilities directly
+support the bounded Worker → QA verifier flow. Keep the current runtime and
+measure representative end-to-end runs before considering a migration; a
+smaller tool description alone does not reduce Worker discovery, repair, or
+repository-check work.
 
 Pinned `pi-subagents` 0.50.0 is affected by
 [issue #1207](https://github.com/nicobailon/pi-subagents/issues/1207). Remove

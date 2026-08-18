@@ -98,7 +98,9 @@ Playwright-cleanup, question, status-line, todo, web-search, and Worktrunk
 extensions; complete Engineering and Productivity skills and prompts; the Shape
 and planning lifecycle; Git, GitHub, and Worktrunk skills; and the pinned
 `pi-claude-bridge` and `pi-subagents` extensions, subagent prompts, and six
-model-routed package agents. The bundled subagent orchestration skill is
+model-routed package agents. The Luna QA agent runs bounded read-only final gates
+and aggregates failures before one precise retained-Worker repair. The bundled
+subagent orchestration skill is
 intentionally excluded. Other production packages remain independently
 loadable. Pi reevaluates the root manifest during `/reload`.
 

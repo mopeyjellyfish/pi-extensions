@@ -7,18 +7,26 @@ discovery. It has no extension or
 runtime dependency.
 
 The root profile loads complete Engineering resources. It uses the installed
-Worker profile for standard, plan-less, and accepted hard work, then the
-installed Reviewer profile for formal read-only fixed-point review. A fixed
-agent being unavailable falls back to the direct parent. A higher-capability need requires a `question` with evidence, expected benefit,
-and a bounded task before explicit human approval; difficulty alone never
-selects that role. `/debug` starts its skill in a dedicated worktree and uses the `question`
-tool for focused intake:
+Worker profile for standard, plan-less, and accepted hard work, the configured
+QA profile as a read-only gate verifier, then the installed Reviewer profile for
+formal read-only fixed-point review. A fixed agent being unavailable falls back
+to the direct parent. A higher-capability need requires a `question` with
+evidence, expected benefit, and a bounded task before explicit human approval;
+difficulty alone never selects that role. `/debug` starts its skill in a
+dedicated worktree and uses the `question` tool for focused intake:
 
 ```text
-parent plan -> fresh Worker -> parent verification -> fresh Reviewer -> Worker reverify or pause
+parent plan -> bounded Worker -> QA verifier -> one Worker repair -> QA verifier -> fresh Reviewer
 ```
 
-Both provider handoffs start with fresh context. Before any write, every
+The Worker owns one vertical change, focused behavioral proof, and local static
+checks. Parent finalization owns the named repository gates and delegates their
+mechanical execution to QA when that capability exists. QA runs each named gate
+once, aggregates every actionable failure into one packet, and never edits. One
+precise retained-Worker repair may consume that packet; a second failed QA pass
+stops instead of creating an unbounded repair loop.
+
+All configured child handoffs start with fresh context. Before any write, every
 mutation-capable skill requires an isolated linked worktree and never edits the
 main-branch checkout. `implement` reuses the task worktree that contains the
 accepted pitch and plan, or creates one for a plan-less bounded request when
@@ -55,10 +63,11 @@ without replanning and uses only planned parallel lanes with isolated worktrees
 and sole writers. Accept-all requires whole-plan approval and otherwise defaults
 to checkpointed implementation; accepted accept-all authority applies only to
 the named accepted plan. An accept-all plan runs every named delivery unit
-through tests, required gates, fixed formal review, commit, and authorized
-publication in dependency order without routine Accept and publish or Continue
-questions. It pauses and returns control to the human for setup, test, check,
-commit, or publication failure; material review findings; material forecast
+through focused tests, read-only QA verification of required gates, fixed
+formal review, commit, and authorized publication in dependency order without
+routine Accept and publish or Continue questions. It pauses and returns control
+to the human for setup, test, check, commit, or publication failure; material
+review findings; material forecast
 variance; or a change to accepted scope, delivery boundaries, dependencies, or
 authority. It never authorizes merge, release, deployment, destructive cleanup,
 or unrelated work. A fresh worktree receives the repository-defined runtime and
@@ -67,12 +76,16 @@ from behavioral red proof. Its executor loads and follows
 `test-driven-development` for behavioral work and `diagnosing-bugs` for
 unresolved failures; its formal reviewer loads and follows `code-review`. A
 serial delivery unit reuses one writer and worktree. Its validation ladder is
-focused slice proof, affected-boundary checks, integration proof, and stable
-delivery-unit required gates. Evidence is reused only while its covered surface
-is unchanged; every required full gate runs once at the stable boundary. One
-fixed formal review occurs there. Every material revision returns to the same
-writer, who reruns invalidated evidence and completes the required final gate.
-For an accepted accept-all plan, pause and return control to the human before
+focused slice proof and affected-boundary checks in the Worker, followed by
+integration proof and stable delivery-unit required gates in one read-only QA
+pass. QA aggregates failures before one precise retained-Worker repair. Evidence
+is reused only while its covered surface is unchanged; after repair, QA runs
+invalidated checks and the complete gate once. A second failed QA pass stops.
+One fixed formal review occurs only after the diff and checks freeze. Material
+findings return as one batch for one retained-Worker review repair. The Worker
+reruns focused invalidated evidence before QA completes the required final gate;
+the parent verifies the repaired findings without a second full review. For an
+accepted accept-all plan, pause and return control to the human before
 resolving any material finding. Delegation must provide a critical-path,
 parent-context, or independent-evidence benefit. Bounded one-unit routes do not
 gain forecast overhead. For checkpointed plans, pause and report material

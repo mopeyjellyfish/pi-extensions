@@ -49,19 +49,48 @@ slices. A plan-less bounded request, an approved slice, or a confirmed bug
 outcome may proceed as one unit.
 
 When the configured `worker` capability is available, it is the only configured
-implementation child. The `worker` is the only configured implementation child
-for standard work, plan-less bounded requests, confirmed bugs, and accepted hard
-work. Launch one fresh foreground `worker` for standard work,
-plan-less bounded requests, confirmed bugs, and accepted hard work. Give it the
-accepted pitch and plan paths, exact slice, worktree, repository-defined setup,
-completion conditions, and required checks. A trivial bounded change — one
-obvious fix with one obvious focused check — may remain directly as the parent. If Worker is unavailable, the direct parent executes the unit.
+implementation child. Launch one fresh foreground `worker` for one worker
+attempt on standard work, plan-less bounded requests, confirmed bugs, and
+accepted hard work. A trivial bounded change — one obvious fix with one obvious
+focused check — may remain directly as the parent. If Worker is unavailable,
+the direct parent executes the unit.
+
+Keep the Worker task compact. Reference durable accepted intent instead of
+copying the conversation, and use only this contract:
+
+```text
+Goal:
+Public seam:
+Allowed files:
+Explicit non-goals:
+Focused failing test:
+Focused validation:
+Success criteria:
+Stop conditions:
+Output:
+```
+
+Give exact pitch and plan paths, slice, worktree, setup, and focused checks in
+those fields. Do not append previous transcripts, every possible edge case, or
+final repository gates. Treat Worker results as `completed`, `blocked`,
+`variance`, or `partial`. A blocked or variance result pauses for the parent. A
+partial result must not trigger an automatic retry or a larger
+"finish everything" task. Permit one precise QA repair resume of the same
+retained Worker for one aggregated verifier defect packet. If that Worker is
+not resumable or the resumed work is incomplete, return control for direct
+parent ownership or replanning; do not launch a replacement Worker.
+
+Do not impose hard turn, tool, token, or cost budgets on a mutation-capable
+Worker. Such interruption can strand an unsafe partial edit, and tool counts do
+not prove that a slice is buildable. Use runtime counters as telemetry; enforce
+the boundary through one attempt, phase-bounded repair resumes, explicit scope
+variance, and the Worker's repair-loop stop.
 
 Do not silently select a higher-capability role. A high-capability run requires
 an explicit approval stating evidence, expected benefit, and bounded task. State
 a delegation's critical-path, parent-context, or independent evidence benefit;
-do not delegate without one. Use bounded Utility or QA support only when it
-usefully shortens the critical path; the parent retains routing, synthesis, and
+do not delegate without one. Use bounded Utility support only when it usefully
+shortens the critical path; the parent retains routing, synthesis, and
 approval. During checkpointed execution, if observed coordination materially
 exceeds the accepted forecast, pause before more delivery steps; report the
 variance and seek fresh approval only when changed delivery boundaries or
@@ -88,19 +117,40 @@ regression seam.
 
 Use focused tests before required completion checks. When an accepted plan
 exists, use its invalidation map as the validation ladder; otherwise derive the
-smallest ladder from the changed surfaces without creating a forecast. Run
-focused slice proof while developing, affected-boundary checks when a boundary
-changes, and integration proof when dependent slices join. Unchanged evidence
-may be reused at intermediate stages only while its covered surface is unchanged. Run the
-complete required-check set once at the stable delivery-unit boundary; no reused
-intermediate evidence removes that final gate. After a revision, rerun only its
-invalidated evidence plus the required stable-boundary gate.
+smallest ladder from the changed surfaces without creating a forecast. Reuse
+unchanged evidence at intermediate stages only while its covered surface stays
+unchanged. The Worker runs focused slice proof while developing and
+affected-boundary checks needed for a useful handoff. The parent owns
+finalization: integration proof, coverage, root or repository-wide checks,
+security or packing checks, and required completion gates.
 
-At the stable delivery-unit boundary, the parent inspects the final diff for
-scope, package, release, dependency, and artifact hygiene, plus security,
-cancellation, cleanup, and user-visible documentation. Build complete work evidence: changed files, red and
-green evidence or an explicit test exception, focused and required check
-results, residual risks, and delivery state.
+When a configured `qa` capability exists, use it as one fresh read-only `qa`
+verifier in the same worktree after the Worker freezes the diff. Give it the
+exact named completion commands; it must run each once and return all failures
+as one aggregated defect packet. If QA is unavailable, the parent runs the same
+commands directly. On failure, send that packet through the QA repair resume.
+The Worker repairs with focused checks. QA then runs invalidated checks first
+and the exact complete gate once after they pass. A second failed QA pass stops
+the unit as blocked; do not alternate unbounded Worker and QA runs. Coverage is
+a late diagnostic and runs only in these QA passes, never in separate workers
+per file or failure group.
+
+Before formal review, require a frozen diff, clean diff check, focused proof,
+required completion gates passing, no known task TODOs, and no active writer.
+At that boundary, the parent inspects the final diff for scope, package,
+release, dependency, and artifact hygiene, plus security, cancellation, cleanup,
+and user-visible documentation. Build complete work evidence: changed files,
+red and green evidence or an explicit test exception, focused and required
+check results, residual risks, and delivery state.
+
+Record efficiency telemetry in that evidence when available: child tokens and
+turns, tool calls, changed production and test LOC, focused and full-check
+executions, review cycles, and incomplete Worker count. Warn when scope or LOC
+is more than twice the accepted estimate, test LOC materially exceeds
+production LOC without explanation, coverage runs more than twice, a full gate
+ran before the diff froze, more than one formal review occurred, or any Worker
+returned incomplete work. Telemetry informs the next decision; it never creates
+new behavior or test scope.
 
 ## Fixed review and acceptance
 
@@ -109,11 +159,16 @@ or Pause before acceptance. One fixed formal review occurs at each stable
 completed delivery unit. When a configured `reviewer` capability exists, it
 must load and follow `code-review` with fresh read-only context. Give it the
 worktree, fixed-point intent (pitch, plan, or request), base ref and fixed diff,
-changed files, and verification evidence. Every material review revision returns
-to the same writer, who reruns invalidated evidence and completes the required
-final gate. For an accepted accept-all plan, pause and return control to the
-human before resolving any material finding. If the reviewer is unavailable, the
-direct parent loads and follows `code-review`.
+changed files, and verification evidence. Return material findings as one
+prioritized batch. After approval to repair, permit one review repair resume of
+the same retained Worker; if it is not resumable, the parent owns the repair
+directly rather than launching a replacement. The writer reruns focused
+invalidated evidence, then QA or the parent completes the required final gate.
+The parent verifies the repaired findings without starting a second full review;
+pause if a repair changes architecture or accepted scope. For an accepted
+accept-all plan, pause and return control to the human before resolving any
+material finding. If the reviewer is unavailable, the direct parent loads and
+follows `code-review`.
 
 For checkpointed plans, present the evidence and an explicit **Accept and
 publish** action. Acceptance invokes `commit` and `open-pr` with no second

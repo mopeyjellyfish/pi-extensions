@@ -23,7 +23,7 @@ describe("engineering resources", () => {
 
     expect(implement).toMatch(/approved slice[\s\S]*bounded request[\s\S]*confirmed bug outcome/iu);
     expect(implement).toMatch(/`worker`[\s\S]*standard[\s\S]*plan-less[\s\S]*accepted hard/iu);
-    expect(implement).toMatch(/`worker`[\s\S]*only configured implementation child/iu);
+    expect(implement).toMatch(/`worker`[\s\S]*only configured\s+implementation child/iu);
     expect(implement).toMatch(/`reviewer`[\s\S]*fresh[\s\S]*read-only/iu);
     expect(implement).toMatch(
       /`reviewer`[\s\S]*worktree[\s\S]*fixed[- ]point[\s\S]*intent[\s\S]*diff[\s\S]*evidence/iu,
@@ -65,6 +65,30 @@ describe("engineering resources", () => {
     }
   });
 
+  it("bounds implementation delegation, validation, and reporting without runtime caps", async () => {
+    expect.hasAssertions();
+    const [implementText, readmeText] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("README.md"),
+    ]);
+    const implement = implementText.replaceAll(/\s+/gu, " ");
+    const readme = readmeText.replaceAll(/\s+/gu, " ");
+
+    expect(implement).toMatch(/one worker attempt[\s\S]*one precise QA repair resume/iu);
+    expect(implement).toMatch(/one review repair resume/iu);
+    expect(implement).toMatch(/fresh read-only `qa` verifier[\s\S]*aggregated defect packet/iu);
+    expect(implement).toMatch(/partial[^.]*must not[^.]*automatic[^.]*retry/iu);
+    expect(implement).toMatch(
+      /Goal:[\s\S]*Public seam:[\s\S]*Allowed files:[\s\S]*Stop conditions:/iu,
+    );
+    expect(implement).toMatch(/do not impose hard turn, tool, token, or cost budgets/iu);
+    expect(implement).toMatch(/parent[^.]*required completion gates[\s\S]*fixed formal review/iu);
+    expect(implement).toMatch(
+      /tool calls[\s\S]*changed production[\s\S]*test LOC[\s\S]*review cycles/iu,
+    );
+    expect(readme).toMatch(/bounded worker[\s\S]*parent finalization/iu);
+  });
+
   it("uses invalidation-aware evidence for serial delivery units", async () => {
     expect.hasAssertions();
     const [implement, tdd, router, justDoIt, readme] = await Promise.all([
@@ -77,16 +101,16 @@ describe("engineering resources", () => {
 
     expect(implement).toMatch(/serial\s+delivery unit[^.]*same writer[^.]*same worktree/iu);
     expect(implement).toMatch(
-      /affected-boundary[\s\S]*integration[\s\S]*stable delivery-unit boundary/iu,
+      /affected-boundary[\s\S]*integration[\s\S]*required completion gates/iu,
     );
     expect(implement).toMatch(/invalidation map[\s\S]*unchanged evidence[\s\S]*intermediate/iu);
     expect(implement).toMatch(
       /when (?:an accepted )?plan\s+exists[\s\S]*otherwise[\s\S]*changed surfaces/iu,
     );
     expect(tdd).toMatch(/when (?:a )?plan\s+exists[\s\S]*otherwise[\s\S]*changed surfaces/iu);
-    expect(implement).toMatch(/complete required-check set[\s\S]*once[\s\S]*stable/iu);
+    expect(implement).toMatch(/complete gate once[\s\S]*frozen diff/iu);
     expect(implement).toMatch(/one fixed formal review[\s\S]*stable\s+completed delivery unit/iu);
-    expect(implement).toMatch(/same writer[\s\S]*material review revision/iu);
+    expect(implement).toMatch(/review repair resume[\s\S]*same retained Worker/iu);
     expect(implement).toMatch(/critical-path[^.]*parent-context[^.]*independent evidence/iu);
     expect(implement).toMatch(/materially\s+exceeds[\s\S]*forecast[\s\S]*pause/iu);
     expect(tdd).toMatch(/vertical behavior[^.]*red[^.]*green[^.]*refactor/iu);
@@ -509,7 +533,7 @@ describe("engineering resources", () => {
       /accept-all[^.]*never authorizes merge[^.]*release[^.]*deployment[^.]*destructive\s+cleanup[^.]*unrelated\s+work/iu,
     );
     expect(implement).toMatch(
-      /material\s+review\s+revision[^.]*same\s+writer[^.]*invalidated\s+evidence[^.]*required\s+final\s+gate/iu,
+      /review repair resume[^.]*same retained Worker[\s\S]*writer reruns focused[^.]*invalidated evidence[^.]*QA or the parent completes[^.]*required final gate/iu,
     );
     expect(implement).toMatch(
       /accept-all[^.]*pause[^.]*return control[^.]*before resolving[^.]*material finding/iu,
@@ -522,7 +546,7 @@ describe("engineering resources", () => {
     );
     expect(readme).toMatch(/accept-all[^.]*whole-plan approval[^.]*checkpointed/iu);
     expect(readme).toMatch(
-      /tests[^.]*required gates[^.]*fixed formal review[^.]*commit[^.]*authorized\s+publication/iu,
+      /tests[^.]*required gates[^.]*fixed\s+formal review[^.]*commit[^.]*authorized\s+publication/iu,
     );
   });
 
