@@ -3,7 +3,11 @@ import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createReadToolDefinition } from "@earendil-works/pi-coding-agent";
+import {
+  createReadToolDefinition,
+  createWriteToolDefinition,
+  withFileMutationQueue,
+} from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 
 import hashlineExtension from "../src/index.ts";
@@ -29,9 +33,22 @@ interface Tool {
   }>;
 }
 
-function register(): Map<string, Tool> {
+interface LifecycleHandlers {
+  start?:
+    | ((event: { readonly reason: string }, context: ExtensionContext) => Promise<void> | void)
+    | undefined;
+  shutdown?: (() => Promise<void> | void) | undefined;
+}
+
+function register(handlers: LifecycleHandlers = {}): Map<string, Tool> {
   const tools = new Map<string, Tool>();
   hashlineExtension({
+    on: (event: string, handler: LifecycleHandlers["start"]) => {
+      if (handler === undefined) return;
+      if (event === "session_start") handlers.start = handler;
+      if (event === "session_shutdown")
+        handlers.shutdown = () => handler({ reason: "shutdown" }, context(""));
+    },
     registerTool: (tool: Tool) => tools.set(tool.name, tool),
   } as unknown as ExtensionAPI);
   return tools;
@@ -59,6 +76,408 @@ function context(cwd: string): ExtensionContext {
 }
 
 describe("Hashline extension", () => {
+  it("keeps Pi write definition metadata and rendering while adding Hashline details", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    try {
+      const write = register().get("write");
+      if (write === undefined) throw new Error("Hashline write tool was not registered.");
+      const builtIn = createWriteToolDefinition(directory);
+      const registered = write as unknown as typeof builtIn;
+      expect(registered.name).toBe(builtIn.name);
+      expect(registered.label).toBe(builtIn.label);
+      expect(registered.description).toBe(builtIn.description);
+      expect(registered.parameters).toBe(builtIn.parameters);
+      expect(registered.promptSnippet).toBe(builtIn.promptSnippet);
+      expect(registered.promptGuidelines).toEqual(builtIn.promptGuidelines);
+      expect(registered.renderCall).toBeTypeOf("function");
+      expect(registered.renderResult).toBeTypeOf("function");
+      const relative = await write.execute(
+        "write",
+        { path: "nested/relative.txt", content: "relative\\n" },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      const absolute = join(directory, "absolute.txt");
+      await write.execute(
+        "write",
+        { path: absolute, content: "absolute\\n" },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await write.execute(
+        "write",
+        { path: "@at.txt", content: "at\\n" },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      expect(relative.content).toEqual([
+        { type: "text", text: "Successfully wrote 10 bytes to nested/relative.txt" },
+      ]);
+      await expect(readFile(join(directory, "nested", "relative.txt"), "utf8")).resolves.toBe(
+        "relative\\n",
+      );
+      await expect(readFile(absolute, "utf8")).resolves.toBe("absolute\\n");
+      await expect(readFile(join(directory, "at.txt"), "utf8")).resolves.toBe("at\\n");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("restores active-branch anchors on lifecycle starts and clears state on new and shutdown", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    const file = join(directory, "fixture.txt");
+    await writeFile(file, "one\ntwo\n");
+    try {
+      const first = register();
+      const firstRead = first.get("read");
+      if (firstRead === undefined) throw new Error("Hashline read tool was not registered.");
+      const observed = await firstRead.execute(
+        "read",
+        { path: file },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      const details = observed.details;
+      const entry = {
+        type: "message",
+        id: "result",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:00.000Z",
+        message: {
+          role: "toolResult",
+          toolName: "read",
+          toolCallId: "call",
+          content: [],
+          details,
+          isError: false,
+        },
+      };
+      const lifecycle: LifecycleHandlers = {};
+      const tools = register(lifecycle);
+      const edit = tools.get("edit");
+      if (edit === undefined || lifecycle.start === undefined || lifecycle.shutdown === undefined)
+        throw new Error("Hashline lifecycle handlers were not registered.");
+      const restoredContext = {
+        ...context(directory),
+        sessionManager: { getBranch: () => [entry] },
+      } as unknown as ExtensionContext;
+      await lifecycle.start({ reason: "reload" }, restoredContext);
+      await edit.execute(
+        "edit",
+        { input: `[fixture.txt#${tagFrom(observed.content[0]?.text ?? "")}]\nPUT 2.=2:\n+TWO` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(readFile(file, "utf8")).resolves.toBe("one\nTWO\n");
+      await lifecycle.shutdown();
+      await lifecycle.shutdown();
+      await lifecycle.start({ reason: "new" }, restoredContext);
+      await expect(
+        edit.execute(
+          "edit",
+          { input: `[fixture.txt#${tagFrom(observed.content[0]?.text ?? "")}]\nPUT 2.=2:\n+two` },
+          undefined,
+          undefined,
+          context(directory),
+        ),
+      ).rejects.toThrow(/not from this session|mismatch|tag/i);
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("keeps prior state when a lifecycle branch lookup fails", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    const file = join(directory, "fixture.txt");
+    await writeFile(file, "one\ntwo\n");
+    try {
+      const lifecycle: LifecycleHandlers = {};
+      const tools = register(lifecycle);
+      const read = tools.get("read");
+      const edit = tools.get("edit");
+      if (read === undefined || edit === undefined || lifecycle.start === undefined)
+        throw new Error("Hashline lifecycle handlers were not registered.");
+      const tag = await readTag(read, file, directory);
+      await edit.execute(
+        "edit",
+        { input: `[fixture.txt#${tag}]\nCUT 2 @clip` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(
+        lifecycle.start({ reason: "resume" }, {
+          ...context(directory),
+          sessionManager: {
+            getBranch: () => {
+              throw new Error("broken");
+            },
+          },
+        } as unknown as ExtensionContext),
+      ).rejects.toThrow("broken");
+      const fresh = await readTag(read, file, directory);
+      await edit.execute(
+        "edit",
+        { input: `[fixture.txt#${fresh}]\nPUT >$ @clip` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(readFile(file, "utf8")).resolves.toBe("one\ntwo\n");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("persists a named register across separate edit calls", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    const source = join(directory, "source.txt");
+    const target = join(directory, "target.txt");
+    await writeFile(source, "one\ntwo\n");
+    await writeFile(target, "alpha\n");
+    try {
+      const tools = register();
+      const read = tools.get("read");
+      const edit = tools.get("edit");
+      if (read === undefined || edit === undefined)
+        throw new Error("Hashline tools were not registered.");
+      const sourceTag = await readTag(read, source, directory);
+      const cut = await edit.execute(
+        "edit",
+        { input: `[source.txt#${sourceTag}]\nCUT 2 @clip` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      expect(
+        (cut.details as { readonly hashline?: { readonly registers?: object } }).hashline
+          ?.registers,
+      ).toHaveProperty("clip", ["two"]);
+      const targetTag = await readTag(read, target, directory);
+      await edit.execute(
+        "edit",
+        { input: `[target.txt#${targetTag}]\nPUT >$ @clip` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(readFile(source, "utf8")).resolves.toBe("one\n");
+      await expect(readFile(target, "utf8")).resolves.toBe("alpha\ntwo\n");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("records a fresh write snapshot that a following Hashline edit can use", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    const file = join(directory, "nested", "fixture.txt");
+    try {
+      const tools = register();
+      const write = tools.get("write");
+      const edit = tools.get("edit");
+      expect(write).toBeDefined();
+      expect(edit).toBeDefined();
+      if (write === undefined || edit === undefined)
+        throw new Error("Hashline tools were not registered.");
+      const cancelled = new AbortController();
+      cancelled.abort();
+      await expect(
+        write.execute(
+          "write",
+          { path: "@nested/cancelled.txt", content: "cancelled\n" },
+          cancelled.signal,
+          undefined,
+          context(directory),
+        ),
+      ).rejects.toThrow(/aborted/i);
+      const result = await write.execute(
+        "write",
+        { path: "@nested/fixture.txt", content: "one\ntwo\n" },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      const details = result.details as {
+        readonly hashline?: { readonly snapshots?: readonly { readonly tag: string }[] };
+      };
+      const writtenSnapshot = details.hashline?.snapshots?.[0];
+      const tag = writtenSnapshot?.tag;
+      expect(tag).toMatch(/^[0-9A-F]{4}$/u);
+      expect(writtenSnapshot).not.toHaveProperty("seen");
+      await edit.execute(
+        "edit",
+        { input: `[nested/fixture.txt#${tag ?? ""}]\nPUT 2.=2:\n+TWO` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      await expect(readFile(file, "utf8")).resolves.toBe("one\nTWO\n");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("does not advance a write snapshot on failure and reports a landed write after a late abort", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    const file = join(directory, "fixture.txt");
+    const blocked = join(directory, "blocked");
+    await writeFile(file, "one\n");
+    await writeFile(blocked, "not a directory");
+    try {
+      const tools = register();
+      const read = tools.get("read");
+      const write = tools.get("write");
+      const edit = tools.get("edit");
+      if (read === undefined || write === undefined || edit === undefined)
+        throw new Error("Hashline tools were not registered.");
+      const oldTag = await readTag(read, file, directory);
+      await expect(
+        write.execute(
+          "write",
+          { path: "blocked/child.txt", content: "never" },
+          undefined,
+          undefined,
+          context(directory),
+        ),
+      ).rejects.toMatchObject({ code: "EEXIST" });
+      let abortChecks = 0;
+      const abortAfterMkdir = {
+        get aborted(): boolean {
+          return abortChecks++ >= 1;
+        },
+      } as AbortSignal;
+      await expect(
+        write.execute(
+          "write",
+          { path: "after-mkdir.txt", content: "never" },
+          abortAfterMkdir,
+          undefined,
+          context(directory),
+        ),
+      ).rejects.toThrow(/aborted/i);
+      await expect(readFile(join(directory, "after-mkdir.txt"), "utf8")).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      await edit.execute(
+        "edit",
+        { input: `[fixture.txt#${oldTag}]\nPUT 1.=1:\n+ONE` },
+        undefined,
+        undefined,
+        context(directory),
+      );
+      let checks = 0;
+      const lateAbort = {
+        get aborted(): boolean {
+          return checks++ >= 2;
+        },
+      } as AbortSignal;
+      const landed = await write.execute(
+        "write",
+        { path: "landed.txt", content: "landed content" },
+        lateAbort,
+        undefined,
+        context(directory),
+      );
+      const details = landed.details as {
+        readonly hashline?: {
+          readonly snapshots?: readonly { readonly path: string; readonly tag: string }[];
+        };
+      };
+      expect(details.hashline?.snapshots?.[0]?.path).toMatch(/landed\.txt$/u);
+      expect(details.hashline?.snapshots?.[0]?.tag).toMatch(/^[0-9A-F]{4}$/u);
+      expect(JSON.stringify(landed.details)).not.toContain("landed content");
+      await expect(readFile(join(directory, "landed.txt"), "utf8")).resolves.toBe("landed content");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("serializes same-path write and edit while different paths remain independent", async () => {
+    expect.hasAssertions();
+    const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
+    const file = join(directory, "fixture.txt");
+    const other = join(directory, "other.txt");
+    await writeFile(file, "one\n");
+    try {
+      const tools = register();
+      const read = tools.get("read");
+      const write = tools.get("write");
+      const edit = tools.get("edit");
+      if (read === undefined || write === undefined || edit === undefined)
+        throw new Error("Hashline tools were not registered.");
+      const tag = await readTag(read, file, directory);
+      let samePathSettled = false;
+      let pending: Promise<PromiseSettledResult<unknown>[]> | undefined;
+      await withFileMutationQueue(file, async () => {
+        const readPending = read.execute(
+          "read",
+          { path: "fixture.txt" },
+          undefined,
+          undefined,
+          context(directory),
+        );
+        const editPending = edit.execute(
+          "edit",
+          { input: `[fixture.txt#${tag}]\nPUT 1.=1:\n+ONE` },
+          undefined,
+          undefined,
+          context(directory),
+        );
+        const writePending = write.execute(
+          "write",
+          { path: "fixture.txt", content: "written\n" },
+          undefined,
+          undefined,
+          context(directory),
+        );
+        pending = Promise.allSettled([readPending, editPending, writePending]);
+        void pending.then(() => {
+          samePathSettled = true;
+        });
+        await Promise.resolve();
+        expect(samePathSettled).toBe(false);
+        await expect(
+          write.execute(
+            "write",
+            { path: "other.txt", content: "other" },
+            undefined,
+            undefined,
+            context(directory),
+          ),
+        ).resolves.toBeDefined();
+        await expect(readFile(other, "utf8")).resolves.toBe("other");
+      });
+      if (pending === undefined) throw new Error("Queued mutations were not started.");
+      const settled = await pending;
+      const readResult = settled[0];
+      const editResult = settled[1];
+      const writeResult = settled[2];
+      expect(readResult?.status).toBe("fulfilled");
+      expect(writeResult?.status).toBe("fulfilled");
+      const editOutcome =
+        editResult?.status === "fulfilled"
+          ? "fulfilled"
+          : /mismatch|tag/iu.test(String(editResult?.reason))
+            ? "stale-rejected"
+            : "unexpected-rejection";
+      expect(editOutcome).not.toBe("unexpected-rejection");
+      await expect(readFile(file, "utf8")).resolves.toBe("written\n");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
   it("reads an anchor then applies one tagged range replacement", async () => {
     expect.hasAssertions();
     const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));
@@ -83,10 +502,15 @@ describe("Hashline extension", () => {
       const output = observed.content[0]?.text ?? "";
       const tag = /\[.+#([0-9A-F]{4})\]/u.exec(output)?.[1];
       expect(tag).toBeDefined();
+      const liveSignal = {
+        get aborted(): boolean {
+          return false;
+        },
+      } as AbortSignal;
       await edit.execute(
         "edit",
         { input: `[${file}#${tag ?? ""}]\nPUT 2.=2:\n+BETA` },
-        undefined,
+        liveSignal,
         undefined,
         context(directory),
       );

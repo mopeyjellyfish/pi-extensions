@@ -2,7 +2,11 @@
 
 Pi Hashline adds anchored text reads and Hashline edits to Pi. Read an existing
 text file, then use its `[PATH#TAG]` header with `edit` to change observed lines.
-Use `write` for new files or intentional full-file replacement.
+Use `write` for new files or intentional full-file replacement. Successful
+writes return a fresh Hashline tag, and named registers persist across separate
+edits. Pi restores only bounded snapshot and register metadata from the active
+session branch after reload, resume, or fork, and revalidates every restored tag
+against the current file before accepting it.
 
 Library consumers using parser-backed block operations must call and await
 `initializeSyntax()` from `@mopeyjellyfish/pi-hashline` before using the

@@ -278,7 +278,7 @@ Every accepted grammar and safety behavior has public red/green evidence, all
 applicable upstream tests pass on Node, and unsupported or ambiguous edits fail
 without writes.
 
-## [ ] 003 — Writes and session branches preserve valid state
+## [x] 003 — Writes and session branches preserve valid state
 
 ### Outcome and requirement trace
 
