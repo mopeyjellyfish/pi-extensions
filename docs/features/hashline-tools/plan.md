@@ -56,10 +56,11 @@ Forecast:
 - delivery units and pull requests: one and one;
 - integration points: upstream library to Node adapters, library to Pi tool
   overrides, tool results to session restoration, package to root profile;
-- expensive gates: about 45 MB of default ast-grep language packs installed and
-  loaded on supported CI platforms, the ported upstream suite, concurrency and
-  lifecycle integration tests, source and packed Pi smoke, `npm run check`,
-  `npm run security:check`, and manual idle `/reload` acceptance;
+- expensive gates: about 144 MB of Tree-sitter WASM runtime and grammar catalog
+  installed and the accepted grammar set loaded on supported CI platforms, the
+  ported upstream suite, concurrency and lifecycle integration tests, source and
+  packed Pi smoke, `npm run check`, `npm run security:check`, and manual idle
+  `/reload` acceptance;
 - likely cascade cost: a change to snapshot details or canonical path handling
   invalidates slices `001`-`003`; a runtime dependency or manifest change also
   invalidates slice `004` packed and security evidence.
@@ -119,17 +120,18 @@ Likely files:
 - `release-please-config.json`, `.release-please-manifest.json`, and
   `package-lock.json`.
 
-Use exact runtime dependencies `@ast-grep/napi@0.45.0` for the portable native
-syntax seam and `diff@9.0.0` for line-run recovery. Add the official dynamic
-language packages `@ast-grep/lang-bash@0.0.8`, `@ast-grep/lang-go@0.0.6`,
-`@ast-grep/lang-rust@0.0.7`, `@ast-grep/lang-python@0.0.6`,
-`@ast-grep/lang-json@0.0.7`, `@ast-grep/lang-markdown@0.0.6`, and
-`@ast-grep/lang-yaml@0.0.6`. Together with ast-grep's built-in HTML,
-JavaScript/JSX, TypeScript/TSX, and CSS parsers, these are the required default
-language set. Every selected version is older than the repository's 14-day
-release-age floor. Replace Bun file/hash and the private LRU with Node crypto/fs
-and a small package-owned bounded cache. Do not import another Oh My Pi runtime
-package.
+Slice `001` provisionally used `@ast-grep/napi@0.45.0`; slice `002` removes it
+because its public Node interface does not expose the strict parse-error signal
+required by upstream fail-closed behavior. Use exact runtime dependencies
+`web-tree-sitter@0.26.11` and `tree-sitter-wasm@1.1.3` for syntax, plus
+`diff@9.0.0` for line-run recovery. Port Oh My Pi's `pi-ast` block-range and
+enclosing-boundary algorithms to TypeScript over Tree-sitter's named-node,
+position, traversal, and `hasError` interface. Load HTML, JavaScript/JSX,
+TypeScript/TSX, CSS, Bash, Go, Rust, Python, JSON, Markdown, and YAML grammars by
+default from the catalog. Every selected version is older than the repository's
+14-day release-age floor. Replace Bun file/hash and the private LRU with Node
+crypto/fs and a small package-owned bounded cache. Do not import another Oh My
+Pi runtime package or add Rust/native-binary release infrastructure.
 
 ### Dependencies
 
@@ -208,11 +210,13 @@ Likely files:
 - complete ported upstream behavior tests plus Pi-specific policy and result
   tests.
 
-The syntax adapter registers all accepted official dynamic packages once per
-process, maps every accepted file extension to ast-grep's built-in or registered
-language, and maps parsed named nodes to Hashline's 1-indexed `BlockResolver`
-and parse-boundary probes. It must return `null` for unknown languages or parse
-failures. The line-diff adapter maps jsdiff runs to the exact
+The syntax adapter initializes Tree-sitter WASM and loads the accepted grammars
+once before tool use, maps accepted file extensions to those grammars, and ports
+Oh My Pi's `block_range_at` and `enclosing_block_boundaries` algorithms over
+strict parse trees. It rejects a block when its selected subtree has an error
+and returns `null` for whole-file parse errors, unknown languages, or load
+failures. Every tree/parser resource is bounded and deleted when no longer
+needed. The line-diff adapter maps jsdiff runs to the exact
 unchanged/added/removed contract recovery expects.
 Canonical targets are resolved relative to `ctx.cwd`; normalize a leading `@`,
 reject invalid escapes where Pi would not authorize mutation, and key snapshots
