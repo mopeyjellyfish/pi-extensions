@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   applyEdits,
   detectLineEnding,
@@ -12,13 +13,16 @@ import {
   parsePatch,
   Recovery,
   type SplitOptions,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+  isReadMetadataLine,
+  parseTag,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const repl = (text: string): string => `+${text}`;
 
-function tag(line: number): string {
-  return `${line}`;
-}
+const tag = String;
 
 function sameLineRange(anchor: string): string {
   return `PUT ${anchor}:`;
@@ -35,9 +39,9 @@ interface SectionView {
 }
 
 function toSectionView(section: PatchSection): SectionView {
-  return section.fileHash !== undefined
-    ? { path: section.path, fileHash: section.fileHash, diff: section.diff }
-    : { path: section.path, diff: section.diff };
+  return section.fileHash === undefined
+    ? { path: section.path, diff: section.diff }
+    : { path: section.path, fileHash: section.fileHash, diff: section.diff };
 }
 
 function splitHashlineInput(input: string, options: SplitOptions = {}): SectionView {
@@ -64,20 +68,29 @@ function tryRecoverHashline(args: {
 }
 
 class BlockingFilesystem extends InMemoryFilesystem {
-  #blocked = new Set<string>();
+  readonly #blocked = new Set<string>();
 
   constructor(initial: Iterable<readonly [string, string]>, blocked: Iterable<string>) {
     super(initial);
     for (const filePath of blocked) this.#blocked.add(filePath);
   }
 
-  override async preflightWrite(filePath: string): Promise<void> {
+  override preflightWrite(filePath: string): Promise<void> {
     if (this.#blocked.has(filePath)) throw new Error(`blocked write: ${filePath}`);
+    return Promise.resolve();
   }
 }
 
 describe("hashline normalization", () => {
+  it("parses adversarially long decorated anchors and read elision metadata without regex backtracking", () => {
+    expect.hasAssertions();
+    const decoration = ">+*".repeat(10_000);
+    expect(parseTag(`${decoration} 42:payload`)).toEqual({ line: 42 });
+    expect(isReadMetadataLine(`1-2:${".".repeat(10_000)}...`)).toBe(true);
+  });
+
   it("preserves the first newline style when restoring mixed-ending files", () => {
+    expect.hasAssertions();
     expect(detectLineEnding("a\r\nb\nc")).toBe("\r\n");
     expect(detectLineEnding("a\nb\r\nc")).toBe("\n");
   });
@@ -87,6 +100,7 @@ describe("hashline parser — range-anchor contracts", () => {
   const content = "aaa\nbbb\nccc";
 
   it("keeps parsed sections reusable across target snapshots", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(["[a.ts]", `PUT >${tag(2)}:`, repl("tail")].join("\n"));
 
     expect(section.applyTo("aaa\nbbb").text).toBe("aaa\nbbb\ntail");
@@ -94,6 +108,7 @@ describe("hashline parser — range-anchor contracts", () => {
   });
 
   it("applies canonical PUT/CUT operations against concrete anchors", () => {
+    expect.hasAssertions();
     const diff = [
       `PUT <${tag(2)}:`,
       repl("before b"),
@@ -111,10 +126,12 @@ describe("hashline parser — range-anchor contracts", () => {
   });
 
   it("inserts after the final line without falling off the file", () => {
+    expect.hasAssertions();
     expect(applyDiff(content, `PUT >${tag(3)}:\n${repl("tail")}`)).toBe("aaa\nbbb\nccc\ntail");
   });
 
   it("preserves whitespace-bearing and sigil-leading payload exactly", () => {
+    expect.hasAssertions();
     const payload = "\tconst streamKeepaliveMs = opts.streamKeepaliveMs;";
     expect(applyDiff(content, `PUT >${tag(2)}:\n${repl(payload)}`)).toBe(
       `aaa\nbbb\n${payload}\nccc`,
@@ -128,13 +145,15 @@ describe("hashline parser — range-anchor contracts", () => {
   });
 
   it("strips copied read-output prefixes only inside pasted bare body rows", () => {
+    expect.hasAssertions();
     const diff = `PUT ${tag(2)}-${tag(4)}:\n${repl("line one")}\n${tag(3)}:line two`;
     const { edits, warnings } = parsePatch(diff);
     expect(applyEdits("aaa\nbbb\nccc\nddd\neee", edits).text).toBe("aaa\nline one\nline two\neee");
-    expect(warnings.some((w) => /Auto-prefixed bare body row/.test(w))).toBe(true);
+    expect(warnings.some((w) => w.includes("Auto-prefixed bare body row"))).toBe(true);
   });
 
   it("rejects overlapping replacement ranges", () => {
+    expect.hasAssertions();
     const diff = `PUT ${tag(2)}-${tag(4)}:\n${repl("NEW1")}\nPUT ${tag(3)}-${tag(5)}:\n${repl("NEW2")}`;
     expect(() => parsePatch(diff).edits).toThrow(
       /anchor line 3 is already targeted by another hunk on line 1/,
@@ -142,6 +161,7 @@ describe("hashline parser — range-anchor contracts", () => {
   });
 
   it("rejects obsolete line-hash anchors and applies line-number anchors without per-anchor hashes", () => {
+    expect.hasAssertions();
     expect(() => parsePatch(`2ab:\n${repl("BBB")}`).edits).toThrow(/payload line has no preceding/);
     expect(applyDiff(content, `${sameLineRange(tag(2))}\n${repl("BBB")}`)).toBe("aaa\nBBB\nccc");
   });
@@ -149,7 +169,8 @@ describe("hashline parser — range-anchor contracts", () => {
 
 describe("hashline input splitter", () => {
   it("extracts path, snapshot tag, and diff body from bracket headers", () => {
-    const input = [`[src/foo.ts#1A2B]`, `${sameLineRange(tag(2))}`, repl("BBB")].join("\n");
+    expect.hasAssertions();
+    const input = [`[src/foo.ts#1A2B]`, sameLineRange(tag(2)), repl("BBB")].join("\n");
     expect(splitHashlineInput(input)).toEqual({
       path: "src/foo.ts",
       fileHash: "1A2B",
@@ -158,6 +179,7 @@ describe("hashline input splitter", () => {
   });
 
   it("normalizes leading blanks, cwd-relative paths, and explicit fallback paths", () => {
+    expect.hasAssertions();
     expect(splitHashlineInput(`\n[foo.ts]\nPUT <1:\n${repl("x")}`)).toEqual({
       path: "foo.ts",
       diff: `PUT <1:\n${repl("x")}`,
@@ -176,6 +198,7 @@ describe("hashline input splitter", () => {
   });
 
   it("splits multiple sections and drops a trailing header without operations", () => {
+    expect.hasAssertions();
     const input = ["[a.ts]", "PUT <1:", repl("a"), "[b.ts]", "PUT >$:", repl("b")].join("\n");
     expect(splitHashlineInputs(input)).toEqual([
       { path: "a.ts", diff: `PUT <1:\n${repl("a")}` },
@@ -187,6 +210,7 @@ describe("hashline input splitter", () => {
   });
 
   it("rejects unified-diff hunk headers on the first line", () => {
+    expect.hasAssertions();
     const input = ["@@ -1,3 +1,3 @@", "PUT <1:", repl("x")].join("\n");
     expect(() => splitHashlineInputs(input)).toThrow(/unified-diff hunk header/);
   });
@@ -194,6 +218,7 @@ describe("hashline input splitter", () => {
 
 describe("Patcher preflight", () => {
   it("preflights write policy for every section before committing a batch", async () => {
+    expect.hasAssertions();
     const fixture = new BlockingFilesystem(
       [
         ["a.ts", "aaa\n"],
@@ -206,20 +231,16 @@ describe("Patcher preflight", () => {
     const bTag = snapshots.record("b.ts", "bbb\n");
     const input = [
       formatHashlineHeader("a.ts", aTag),
-      `${sameLineRange(tag(1))}`,
+      sameLineRange(tag(1)),
       repl("AAA"),
       formatHashlineHeader("b.ts", bTag),
-      `${sameLineRange(tag(1))}`,
+      sameLineRange(tag(1)),
       repl("BBB"),
     ].join("\n");
 
-    try {
-      await new Patcher({ fs: fixture, snapshots }).apply(Patch.parse(input));
-      throw new Error("expected blocked write");
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toMatch(/blocked write: b\.ts/);
-    }
+    await expect(new Patcher({ fs: fixture, snapshots }).apply(Patch.parse(input))).rejects.toThrow(
+      /blocked write: b\.ts/,
+    );
     expect(fixture.get("a.ts")).toBe("aaa\n");
     expect(fixture.get("b.ts")).toBe("bbb\n");
   });
@@ -227,6 +248,7 @@ describe("Patcher preflight", () => {
 
 describe("Recovery", () => {
   it("returns null when neither patch recovery nor replay can land", () => {
+    expect.hasAssertions();
     const cache = new InMemorySnapshotStore();
     const filePath = "/tmp/__hashline-recovery-applypatch__.ts";
     const snapshotText = "alpha\nbeta\ngamma\ndelta\nepsilon";
@@ -243,6 +265,7 @@ describe("Recovery", () => {
   });
 
   it("recovers from an older in-session snapshot after the current file advanced", () => {
+    expect.hasAssertions();
     const cache = new InMemorySnapshotStore();
     const filePath = "/tmp/__hashline-cache-ring-recovery__.ts";
     const v0Text = "L1\nL2\nL3\nL4\nL5\nL6\nL7\nL8\nL9\nL10\n";
@@ -268,6 +291,7 @@ describe("hashline abort sentinel", () => {
   const sentinel = "*** Abort";
 
   it("terminates parsing without surfacing a warning", () => {
+    expect.hasAssertions();
     const diff = [
       `PUT >${tag(1)}:`,
       repl("HELLO"),
@@ -282,6 +306,7 @@ describe("hashline abort sentinel", () => {
   });
 
   it("stops the input splitter before later sections", () => {
+    expect.hasAssertions();
     const input = [
       "[a.ts]",
       `PUT >${tag(1)}:`,
@@ -293,13 +318,16 @@ describe("hashline abort sentinel", () => {
     ].join("\n");
     const sections = splitHashlineInputs(input);
     expect(sections).toHaveLength(1);
-    expect(sections[0].path).toBe("a.ts");
-    expect(sections[0].diff.includes("never")).toBe(false);
+    const section = sections[0];
+    if (section === undefined) throw new Error("expected one input section");
+    expect(section.path).toBe("a.ts");
+    expect(section.diff.includes("never")).toBe(false);
   });
 });
 
 describe("hashline parser — cut and blank payload semantics", () => {
   it("applies inline cut operations", () => {
+    expect.hasAssertions();
     expect(applyDiff("line1\nline2\nline3\n", splitHashlineInput("[a.ts]\nCUT 2\n").diff)).toBe(
       "line1\nline3\n",
     );
@@ -309,11 +337,13 @@ describe("hashline parser — cut and blank payload semantics", () => {
   });
 
   it("treats old inline replacement syntax as orphan body", () => {
+    expect.hasAssertions();
     const { diff } = splitHashlineInput("[a.ts]\n2.=2=replacement\n");
     expect(() => parsePatch(diff)).toThrow(/payload line has no preceding hunk header/);
   });
 
   it("preserves explicit blank replacement rows", () => {
+    expect.hasAssertions();
     const text = "a\nb\nc\nd\ne\n";
     const ops = `[a.ts]\nPUT 2-2:\n${repl("")}\n${repl("")}\nPUT 4-4:\n${repl("D")}\n`;
     expect(applyDiff(text, splitHashlineInput(ops).diff)).toBe("a\n\n\nc\nD\ne\n");

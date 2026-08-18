@@ -23,6 +23,7 @@
  * filesystem configuration.
  */
 import * as path from "node:path";
+
 import { applyEdits } from "./apply.ts";
 import { hasBlockEdit, resolveBlockEdits } from "./block.ts";
 import {
@@ -32,9 +33,7 @@ import {
   validateClipboardSequence,
 } from "./clipboard.ts";
 import { computeFileHash, formatHashlineHeader } from "./format.ts";
-import type { Filesystem, WriteResult } from "./fs.ts";
 import { isNotFound } from "./fs.ts";
-import type { Patch, PatchSection } from "./input.ts";
 import {
   HEADTAIL_DRIFT_WARNING,
   missingSnapshotTagMessage,
@@ -53,6 +52,9 @@ import {
 } from "./normalize.ts";
 import { InvalidAbsoluteRangeError } from "./parser.ts";
 import { Recovery, type RecoveryResult } from "./recovery.ts";
+
+import type { Filesystem, WriteResult } from "./fs.ts";
+import type { Patch, PatchSection } from "./input.ts";
 import type { Snapshot, SnapshotStore } from "./snapshots.ts";
 import type {
   ApplyResult,
@@ -158,19 +160,41 @@ export interface PatcherApplyResult {
  * {@link Patcher.commit} just writes the {@link PreparedSection.applyResult}.
  */
 export class PreparedSection {
+  readonly section: PatchSection;
+  readonly canonicalPath: string;
+  readonly exists: boolean;
+  readonly rawContent: string;
+  readonly bom: string;
+  readonly lineEnding: LineEnding;
+  readonly normalized: string;
+  readonly applyResult: ApplyResult;
+  readonly parseWarnings: readonly string[];
+  readonly fileOp: FileOp | undefined;
+
   /** @internal */
   constructor(
-    readonly section: PatchSection,
-    readonly canonicalPath: string,
-    readonly exists: boolean,
-    readonly rawContent: string,
-    readonly bom: string,
-    readonly lineEnding: LineEnding,
-    readonly normalized: string,
-    readonly applyResult: ApplyResult,
-    readonly parseWarnings: readonly string[],
-    readonly fileOp: FileOp | undefined,
-  ) {}
+    section: PatchSection,
+    canonicalPath: string,
+    exists: boolean,
+    rawContent: string,
+    bom: string,
+    lineEnding: LineEnding,
+    normalized: string,
+    applyResult: ApplyResult,
+    parseWarnings: readonly string[],
+    fileOp: FileOp | undefined,
+  ) {
+    this.section = section;
+    this.canonicalPath = canonicalPath;
+    this.exists = exists;
+    this.rawContent = rawContent;
+    this.bom = bom;
+    this.lineEnding = lineEnding;
+    this.normalized = normalized;
+    this.applyResult = applyResult;
+    this.parseWarnings = parseWarnings;
+    this.fileOp = fileOp;
+  }
 
   /** Convenience: returns true when the apply produced no change and no file op. */
   get isNoop(): boolean {
@@ -189,19 +213,19 @@ function hasAnchorScopedEdit(edits: readonly Edit[]): boolean {
   });
 }
 
-function assertSectionHashPresent(sectionPath: string, fileHash: string | undefined): void {
-  if (fileHash !== undefined) return;
+function requiredSectionHash(sectionPath: string, fileHash: string | undefined): string {
+  if (fileHash !== undefined) return fileHash;
   throw new Error(missingSnapshotTagMessage(sectionPath));
 }
 
 function recoveryToApplyResult(result: RecoveryResult): ApplyResult {
   return {
     text: result.text,
-    firstChangedLine: result.firstChangedLine,
+    ...(result.firstChangedLine === undefined ? {} : { firstChangedLine: result.firstChangedLine }),
     warnings: result.warnings,
   };
 }
-function mergeWarnings(...sources: ReadonlyArray<readonly string[] | undefined>): string[] {
+function mergeWarnings(...sources: readonly (readonly string[] | undefined)[]): string[] {
   const out: string[] = [];
   for (const source of sources) {
     if (!source) continue;
@@ -248,7 +272,8 @@ export class Patcher {
   readonly #enforceSeenLines: boolean;
 
   constructor(options: PatcherOptions) {
-    if (!options.snapshots) {
+    // TypeScript callers must provide this required field; retain a clear failure for untyped JS.
+    if (!Object.hasOwn(options, "snapshots")) {
       throw new Error(
         "Hashline Patcher requires a SnapshotStore; section tags are opaque store pointers.",
       );
@@ -278,7 +303,9 @@ export class Patcher {
 
     // Single-section fast path.
     if (patch.sections.length === 1) {
-      const prepared = await this.prepare(patch.sections[0], clipboard);
+      const section = patch.sections[0];
+      if (section === undefined) throw new Error("Single-section patch has no section.");
+      const prepared = await this.prepare(section, clipboard);
       const result = await this.commit(prepared);
       if (this.clipboard !== undefined) commitClipboard(clipboard, this.clipboard);
       return { sections: [result] };
@@ -305,8 +332,10 @@ export class Patcher {
 
     const results: PatchSectionResult[] = [];
     for (let index = 0; index < prepared.length; index++) {
+      const current = prepared[index];
+      if (current === undefined) throw new Error(`Missing prepared section ${String(index)}.`);
       try {
-        results.push(await this.commit(prepared[index]));
+        results.push(await this.commit(current));
       } catch (error) {
         // A mid-batch write failure leaves earlier sections on disk with no
         // rollback; report exactly which sections landed so the caller can
@@ -315,13 +344,17 @@ export class Patcher {
         const notWritten = prepared.slice(index + 1).map((entry) => entry.section.path);
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(
-          `Failed to write ${prepared[index].section.path}: ${message}` +
+          `Failed to write ${current.section.path}: ${message}` +
             (written.length > 0 ? ` Sections already written: ${written.join(", ")}.` : "") +
             (notWritten.length > 0 ? ` Sections not written: ${notWritten.join(", ")}.` : ""),
           { cause: error },
         );
       }
-      if (this.clipboard !== undefined) commitClipboard(sectionStates[index], this.clipboard);
+      if (this.clipboard !== undefined) {
+        const state = sectionStates[index];
+        if (state === undefined) throw new Error(`Missing clipboard state ${String(index)}.`);
+        commitClipboard(state, this.clipboard);
+      }
     }
     return { sections: results };
   }
@@ -384,7 +417,7 @@ export class Patcher {
     const parsed = await this.#parseWithRangeDiagnostics(section);
     const parseWarnings = [...parsed.warnings];
     const fileOp = parsed.fileOp;
-    assertSectionHashPresent(section.path, section.fileHash);
+    const sectionHash = requiredSectionHash(section.path, section.fileHash);
 
     let target = section;
     let canonicalPath = this.fs.canonicalPath(target.path);
@@ -401,11 +434,7 @@ export class Patcher {
       const recovered = this.#recoverSectionPathFromTag(target, canonicalPath);
       if (recovered && this.fs.allowTagPathRecovery(target.path, recovered.section.path)) {
         parseWarnings.push(
-          pathRecoveredFromTagMessage(
-            target.path,
-            recovered.section.path,
-            target.fileHash as string,
-          ),
+          pathRecoveredFromTagMessage(target.path, recovered.section.path, sectionHash),
         );
         target = recovered.section;
         canonicalPath = recovered.canonicalPath;
@@ -416,7 +445,7 @@ export class Patcher {
     // Gate the final (possibly recovered) target before any write work, so
     // an unrecoverable read-only target (e.g. a plan-mode working-tree path)
     // fails with the write guard rather than a misleading "file not found".
-    await this.fs.preflightWrite(target.path, { fileOp });
+    await this.fs.preflightWrite(target.path, fileOp === undefined ? {} : { fileOp });
 
     if (!read.exists) {
       throw new Error(`File not found: ${target.path}. Use the write tool to create new files.`);
@@ -494,6 +523,7 @@ export class Patcher {
     ].filter((candidate) => this.fs.canonicalPath(candidate) !== originalCanonicalPath);
     if (candidates.length !== 1) return null;
     const resolved = candidates[0];
+    if (resolved === undefined) return null;
     return { section: section.withPath(resolved), canonicalPath: this.fs.canonicalPath(resolved) };
   }
 
@@ -517,8 +547,6 @@ export class Patcher {
     } = prepared;
     const after = applyResult.text;
     const warnings = mergeWarnings(parseWarnings, applyResult.warnings);
-    const moveDest = fileOp?.kind === "move" ? fileOp.dest : undefined;
-    const resultPath = moveDest ?? section.path;
 
     if (fileOp?.kind === "rem") {
       await this.fs.delete(section.path);
@@ -537,6 +565,7 @@ export class Patcher {
       };
     }
 
+    const moveDest = fileOp?.kind === "move" ? fileOp.dest : undefined;
     if (after === normalized && moveDest === undefined) {
       const hash = this.#recordFullSnapshot(canonicalPath, normalized);
       return {
@@ -553,6 +582,7 @@ export class Patcher {
       };
     }
 
+    const resultPath = moveDest ?? section.path;
     const persisted = bom + restoreLineEndings(after, lineEnding);
 
     if (moveDest !== undefined) {
@@ -570,8 +600,12 @@ export class Patcher {
         written: persisted,
         fileHash,
         header: formatHashlineHeader(moveDest, fileHash),
-        firstChangedLine: applyResult.firstChangedLine,
-        blockResolutions: applyResult.blockResolutions,
+        ...(applyResult.firstChangedLine === undefined
+          ? {}
+          : { firstChangedLine: applyResult.firstChangedLine }),
+        ...(applyResult.blockResolutions === undefined
+          ? {}
+          : { blockResolutions: applyResult.blockResolutions }),
         moveDest,
         warnings,
       };
@@ -614,8 +648,12 @@ export class Patcher {
       written: write.text,
       fileHash,
       header: formatHashlineHeader(section.path, fileHash),
-      firstChangedLine: applyResult.firstChangedLine,
-      blockResolutions: applyResult.blockResolutions,
+      ...(applyResult.firstChangedLine === undefined
+        ? {}
+        : { firstChangedLine: applyResult.firstChangedLine }),
+      ...(applyResult.blockResolutions === undefined
+        ? {}
+        : { blockResolutions: applyResult.blockResolutions }),
       warnings: allWarnings,
     };
   }
@@ -623,7 +661,7 @@ export class Patcher {
   async #readBinaryBom(path: string): Promise<string> {
     if (!this.fs.readBinary) return "";
     const bytes = await this.fs.readBinary(path);
-    return hasUtf8Bom(bytes) ? "\uFEFF" : "";
+    return hasUtf8Bom(bytes) ? "\u{FEFF}" : "";
   }
 
   async #tryRead(path: string): Promise<{ exists: boolean; rawContent: string }> {
@@ -674,12 +712,13 @@ export class Patcher {
     if (!seen || seen.size === 0) return;
     const unseen = section.collectAnchorLines().filter((line) => !seen.has(line));
     if (unseen.length === 0) return;
-    const sourceLines = matchedSnapshot?.text.split("\n") ?? [];
+    const sourceLines = matchedSnapshot.text.split("\n");
     const revealed: RevealedLine[] = [];
     const revealCount = Math.min(unseen.length, SEEN_LINE_REVEAL_CAP);
     let columnTruncated = false;
     for (let i = 0; i < revealCount; i++) {
       const line = unseen[i];
+      if (line === undefined) continue;
       // Out-of-range anchors are caught by parse/apply with a better
       // message; skip them here so they never join the revealed set.
       if (line < 1 || line > sourceLines.length) continue;
@@ -722,6 +761,83 @@ export class Patcher {
     });
   }
 
+  #resolveEditsForApply(args: {
+    section: PatchSection;
+    canonicalPath: string;
+    normalized: string;
+    edits: readonly Edit[];
+    expected: string | undefined;
+    liveMatches: boolean;
+    storedSnapshotForTag: Snapshot | null;
+  }): {
+    edits: readonly Edit[];
+    blockResolutions: BlockResolution[];
+    withWarnings: (result: ApplyResult) => ApplyResult;
+  } {
+    const {
+      section,
+      canonicalPath,
+      normalized,
+      edits,
+      expected,
+      liveMatches,
+      storedSnapshotForTag,
+    } = args;
+    if (!hasBlockEdit(edits)) {
+      return { edits, blockResolutions: [], withWarnings: (result) => result };
+    }
+    const blockResolutions: BlockResolution[] = [];
+    const resolveWarnings: string[] = [];
+    const baseText =
+      expected === undefined || liveMatches ? normalized : storedSnapshotForTag?.text;
+    if (baseText === undefined) {
+      throw this.#mismatchError(section, canonicalPath, normalized, expected ?? "", false);
+    }
+    const resolved = resolveBlockEdits(edits, baseText, section.path, this.blockResolver, {
+      onUnresolved: "throw",
+      onResolved: (resolution) => blockResolutions.push(resolution),
+      onWarning: (warning) => resolveWarnings.push(warning),
+    });
+    const withWarnings = (result: ApplyResult): ApplyResult =>
+      resolveWarnings.length === 0
+        ? result
+        : { ...result, warnings: [...resolveWarnings, ...(result.warnings ?? [])] };
+    return { edits: resolved, blockResolutions, withWarnings };
+  }
+
+  #applyLiveEdits(args: {
+    section: PatchSection;
+    canonicalPath: string;
+    normalized: string;
+    clipboard: Clipboard;
+    expected: string | undefined;
+    matchedSnapshot: Snapshot | null;
+    resolvedState: {
+      edits: readonly Edit[];
+      blockResolutions: BlockResolution[];
+      withWarnings: (result: ApplyResult) => ApplyResult;
+    };
+  }): ApplyResult {
+    const {
+      section,
+      canonicalPath,
+      normalized,
+      clipboard,
+      expected,
+      matchedSnapshot,
+      resolvedState,
+    } = args;
+    if (expected !== undefined && this.#enforceSeenLines) {
+      this.#assertSeenLines(section, expected, matchedSnapshot);
+    }
+    const result = applyEdits(normalized, resolvedState.edits, { clipboard, path: canonicalPath });
+    const withResolutions =
+      resolvedState.blockResolutions.length > 0
+        ? { ...result, blockResolutions: resolvedState.blockResolutions }
+        : result;
+    return resolvedState.withWarnings(withResolutions);
+  }
+
   #applyWithRecovery(args: {
     section: PatchSection;
     canonicalPath: string;
@@ -752,54 +868,44 @@ export class Patcher {
     //     resulting ranges can be mapped to unchanged live lines below.
     // When a block edit needs the tagged snapshot but it is unavailable, the
     // range cannot be placed safely — reject with a MismatchError (re-read).
-    const blockResolutions: BlockResolution[] = [];
-    const resolveWarnings: string[] = [];
-    let resolved: readonly Edit[] = edits;
-    if (hasBlockEdit(edits)) {
-      const baseText =
-        expected === undefined || liveMatches ? normalized : storedSnapshotForTag?.text;
-      if (baseText === undefined) {
-        throw this.#mismatchError(section, canonicalPath, normalized, expected ?? "", false);
-      }
-      resolved = resolveBlockEdits(edits, baseText, section.path, this.blockResolver, {
-        onUnresolved: "throw",
-        onResolved: (resolution) => blockResolutions.push(resolution),
-        onWarning: (warning) => resolveWarnings.push(warning),
-      });
-    }
+    const resolvedState = this.#resolveEditsForApply({
+      section,
+      canonicalPath,
+      normalized,
+      edits,
+      expected,
+      liveMatches,
+      storedSnapshotForTag,
+    });
     // Surface clipboard sequencing mistakes (`PASTE` before any capture,
     // capturing over un-pasted `CUT` content) with their targeted message
     // before the recovery path below, which swallows apply failures and
     // re-surfaces them as tag-mismatch errors.
-    validateClipboardSequence(resolved, clipboard);
-    const withResolveWarnings = (result: ApplyResult): ApplyResult =>
-      resolveWarnings.length === 0
-        ? result
-        : { ...result, warnings: [...resolveWarnings, ...(result.warnings ?? [])] };
+    validateClipboardSequence(resolvedState.edits, clipboard);
 
     // No tag, or the tag still names the live content: an edit anchored at any
     // line is safe to apply, and the resolved block spans line up with what
     // the caller read, so echo them back. (A drifted file falls through to
     // recovery below, where line numbers shift, so resolutions are dropped.)
     if (expected === undefined || liveMatches) {
-      // The line numbers in `edits` index the exact content the tag names.
-      // Reject any anchor the read never displayed: editing lines the model
-      // has not seen is the off-by-memory mistake that mangles files.
-      if (expected !== undefined && this.#enforceSeenLines) {
-        this.#assertSeenLines(section, expected, matchedSnapshot);
-      }
-      const result = applyEdits(normalized, resolved, { clipboard, path: canonicalPath });
-      return withResolveWarnings(
-        blockResolutions.length > 0 ? { ...result, blockResolutions } : result,
-      );
+      return this.#applyLiveEdits({
+        section,
+        canonicalPath,
+        normalized,
+        clipboard,
+        expected,
+        matchedSnapshot,
+        resolvedState,
+      });
     }
+    const { edits: resolved, withWarnings } = resolvedState;
     // Head/tail-only inserts are position-stable: "start"/"end" cannot move
     // with content drift, so a stale tag is non-fatal. Apply onto the live
     // content and warn instead of hard-failing — unlike an anchored
     // mismatch, which cannot be safely relocated and must reject.
     if (!hasAnchorScopedEdit(resolved)) {
       const result = applyEdits(normalized, resolved, { clipboard, path: canonicalPath });
-      return withResolveWarnings({
+      return withWarnings({
         ...result,
         warnings: [HEADTAIL_DRIFT_WARNING, ...(result.warnings ?? [])],
       });
@@ -813,7 +919,7 @@ export class Patcher {
       edits: resolved,
       clipboard,
     });
-    if (recovered) return withResolveWarnings(recoveryToApplyResult(recovered));
+    if (recovered) return withWarnings(recoveryToApplyResult(recovered));
     const hashRecognized = this.snapshots.byHash(canonicalPath, expected) !== null;
     throw this.#mismatchError(section, canonicalPath, normalized, expected, hashRecognized);
   }

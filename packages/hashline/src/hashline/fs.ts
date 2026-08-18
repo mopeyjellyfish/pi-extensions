@@ -8,8 +8,11 @@
  * {@link Filesystem.readText} and {@link Filesystem.writeText}; the FS deals
  * only in raw text strings.
  */
+import { realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as pathModule from "node:path";
+
+import type { FileOp } from "./types.ts";
 
 /**
  * Result returned by {@link Filesystem.writeText}. The patcher echoes back
@@ -20,8 +23,6 @@ export interface WriteResult {
   /** Final text that was persisted. May differ from the input if the FS transformed it. */
   text: string;
 }
-
-import type { FileOp } from "./types.ts";
 
 /** Optional hints for {@link Filesystem.preflightWrite}. */
 export interface PreflightWriteOptions {
@@ -69,23 +70,27 @@ export abstract class Filesystem {
   readBinary?(path: string): Promise<Uint8Array | undefined>;
 
   /** Validate that `path` is writable before a prepared batch starts committing. */
-  async preflightWrite(_path: string, _options?: PreflightWriteOptions): Promise<void> {}
+  preflightWrite(path: string, options?: PreflightWriteOptions): Promise<void> {
+    void path;
+    void options;
+    return Promise.resolve();
+  }
 
   /** Persist `content` at `path`. Returns the actual final text that was written. */
   abstract writeText(path: string, content: string): Promise<WriteResult>;
 
   /** Delete the file at `path`. Default: not supported. */
-  async delete(path: string): Promise<void> {
-    throw new Error(`Filesystem does not support delete: ${path}`);
+  delete(path: string): Promise<void> {
+    return Promise.reject(new Error(`Filesystem does not support delete: ${path}`));
   }
 
   /**
    * Move/rename `from` to `to`. When `content` is provided the destination
    * receives that text; otherwise implementations may preserve the source bytes.
    */
-  async move(from: string, to: string, content?: string): Promise<void> {
+  move(from: string, to: string, content?: string): Promise<void> {
     void content;
-    throw new Error(`Filesystem does not support move: ${from} -> ${to}`);
+    return Promise.reject(new Error(`Filesystem does not support move: ${from} -> ${to}`));
   }
 
   /** Return true when the path exists and can be read. Default: probe via {@link readText}. */
@@ -120,7 +125,9 @@ export abstract class Filesystem {
    * internal-URL authored target (approved read-only), or a `resolvedPath`
    * outside the working tree (a sandbox/vault/out-of-tree write).
    */
-  allowTagPathRecovery(_authoredPath: string, _resolvedPath: string): boolean {
+  allowTagPathRecovery(authoredPath: string, resolvedPath: string): boolean {
+    void authoredPath;
+    void resolvedPath;
     return true;
   }
 }
@@ -130,7 +137,7 @@ export abstract class Filesystem {
  * a building block for stacked adapters (e.g. an LRU layer on top).
  */
 export class InMemoryFilesystem extends Filesystem {
-  #files = new Map<string, string>();
+  readonly #files = new Map<string, string>();
 
   constructor(initial?: Iterable<readonly [string, string]>) {
     super();
@@ -139,31 +146,30 @@ export class InMemoryFilesystem extends Filesystem {
     }
   }
 
-  async readText(path: string): Promise<string> {
+  readText(path: string): Promise<string> {
     const text = this.#files.get(path);
-    if (text === undefined) throw new NotFoundError(path);
-    return text;
+    return text === undefined ? Promise.reject(new NotFoundError(path)) : Promise.resolve(text);
   }
 
-  async writeText(path: string, content: string): Promise<WriteResult> {
+  writeText(path: string, content: string): Promise<WriteResult> {
     this.#files.set(path, content);
-    return { text: content };
+    return Promise.resolve({ text: content });
   }
 
-  override async delete(path: string): Promise<void> {
-    if (!this.#files.delete(path)) throw new NotFoundError(path);
+  override delete(path: string): Promise<void> {
+    return this.#files.delete(path) ? Promise.resolve() : Promise.reject(new NotFoundError(path));
   }
 
-  override async move(from: string, to: string, content?: string): Promise<void> {
+  override move(from: string, to: string, content?: string): Promise<void> {
     const existing = this.#files.get(from);
-    if (existing === undefined) throw new NotFoundError(from);
-    const finalContent = content ?? existing;
-    this.#files.set(to, finalContent);
+    if (existing === undefined) return Promise.reject(new NotFoundError(from));
+    this.#files.set(to, content ?? existing);
     this.#files.delete(from);
+    return Promise.resolve();
   }
 
-  override async exists(path: string): Promise<boolean> {
-    return this.#files.has(path);
+  override exists(path: string): Promise<boolean> {
+    return Promise.resolve(this.#files.has(path));
   }
 
   /** Synchronous helper for setting up fixtures without awaiting. */
@@ -240,7 +246,20 @@ export class NodeFilesystem extends Filesystem {
   }
 
   override canonicalPath(path: string): string {
-    return pathModule.resolve(path);
+    const resolved = pathModule.resolve(path);
+    try {
+      return realpathSync.native(resolved);
+    } catch {
+      // A move destination may not exist yet. Its existing parent is still a
+      // filesystem identity boundary, so resolve it before reattaching the
+      // final segment; otherwise retain Pi's normal absolute-path policy.
+      const parent = pathModule.dirname(resolved);
+      try {
+        return pathModule.join(realpathSync.native(parent), pathModule.basename(resolved));
+      } catch {
+        return resolved;
+      }
+    }
   }
 
   override async exists(path: string): Promise<boolean> {

@@ -15,6 +15,7 @@ import {
   emptyRegisterSpanPasteMessage,
 } from "./messages.ts";
 import { cloneCursor } from "./tokenizer.ts";
+
 import type { Clipboard, Edit } from "./types.ts";
 
 type CutEdit = Extract<Edit, { kind: "cut" }>;
@@ -22,7 +23,9 @@ type CutEdit = Extract<Edit, { kind: "cut" }>;
 function describeCutEdit(edit: CutEdit): string {
   const { start, end } = edit.range;
   const span =
-    start.line === end.line ? `${start.line}` : `${start.line}${HL_RANGE_SEP}${end.line}`;
+    start.line === end.line
+      ? String(start.line)
+      : `${String(start.line)}${HL_RANGE_SEP}${String(end.line)}`;
   const reg = edit.register ? ` @${edit.register}` : "";
   return `${HL_CUT_KEYWORD} ${span}${reg}`;
 }
@@ -66,22 +69,22 @@ function readRegister(
     if (onEmptyPaste === "drop") return null;
     const known = clipboard.named ? [...clipboard.named.keys()] : [];
     if (target === "span") {
-      throw new Error(`line ${lineNum}: ${emptyRegisterSpanPasteMessage(register, known)}`);
+      throw new Error(`line ${String(lineNum)}: ${emptyRegisterSpanPasteMessage(register, known)}`);
     }
-    onWarning?.(`line ${lineNum}: ${emptyRegisterPasteWarning(register, known)}`);
+    onWarning?.(`line ${String(lineNum)}: ${emptyRegisterPasteWarning(register, known)}`);
     return [];
   }
 
   const pending = clipboard.pendingAnonCuts ?? [];
   if (pending.length > 1) {
     if (onEmptyPaste === "drop") return null;
-    throw new Error(`line ${lineNum}: ${ambiguousAnonymousPasteMessage(pending)}`);
+    throw new Error(`line ${String(lineNum)}: ${ambiguousAnonymousPasteMessage(pending)}`);
   }
 
   const lines = clipboard.lines;
   if (lines === undefined) {
     if (onEmptyPaste === "drop") return null;
-    throw new Error(`line ${lineNum}: ${EMPTY_PASTE}`);
+    throw new Error(`line ${String(lineNum)}: ${EMPTY_PASTE}`);
   }
   // Successful anonymous read clears the pending ambiguity counter for follow-up pastes.
   clipboard.pendingAnonCuts = [];
@@ -95,17 +98,17 @@ function writeRegister(edit: CutEdit, fileLines: readonly string[], clipboard: C
   const { start, end } = edit.range;
   if (start.line < 1 || end.line > fileLines.length) {
     throw new Error(
-      `line ${edit.lineNum}: \`${describeCutEdit(edit)}\` is out of range (file has ${fileLines.length} lines).`,
+      `line ${String(edit.lineNum)}: \`${describeCutEdit(edit)}\` is out of range (file has ${String(fileLines.length)} lines).`,
     );
   }
   const captured = fileLines.slice(start.line - 1, end.line);
-  if (edit.register !== undefined) {
-    clipboard.named ??= new Map();
-    clipboard.named.set(edit.register, captured);
-  } else {
+  if (edit.register === undefined) {
     clipboard.lines = captured;
     clipboard.pendingAnonCuts ??= [];
     clipboard.pendingAnonCuts.push(describeCutEdit(edit));
+  } else {
+    clipboard.named ??= new Map();
+    clipboard.named.set(edit.register, captured);
   }
 }
 
@@ -113,6 +116,61 @@ function writeRegister(edit: CutEdit, fileLines: readonly string[], clipboard: C
  * Resolve clipboard edits against the original file lines in authored order.
  * Cuts fill the register and emit nothing; pastes expand to inserts (+ deletes for span targets).
  */
+function appendPasteEdits(
+  edit: Extract<Edit, { kind: "paste" }>,
+  fileLines: readonly string[],
+  clipboard: Clipboard,
+  onEmptyPaste: "throw" | "drop",
+  onWarning: ResolveClipboardEditsOptions["onWarning"],
+  resolved: Edit[],
+  synthIndex: number,
+): number {
+  const lines = readRegister(
+    edit.register,
+    edit.at.kind,
+    clipboard,
+    edit.lineNum,
+    onEmptyPaste,
+    onWarning,
+  );
+  if (lines === null) return synthIndex;
+  if (edit.at.kind === "gap") {
+    for (const text of lines) {
+      resolved.push({
+        kind: "insert",
+        cursor: cloneCursor(edit.at.cursor),
+        text,
+        lineNum: edit.lineNum,
+        index: synthIndex++,
+        ...(edit.blockStart === undefined ? {} : { blockStart: edit.blockStart }),
+      });
+    }
+    return synthIndex;
+  }
+  const range = edit.at.range;
+  if (range.start.line < 1 || range.end.line > fileLines.length) {
+    const reg = edit.register ? ` @${edit.register}` : "";
+    throw new Error(
+      `line ${String(edit.lineNum)}: \`${HL_PUT_KEYWORD} ${String(range.start.line)}${HL_RANGE_SEP}${String(range.end.line)}${reg}\` is out of range (file has ${String(fileLines.length)} lines).`,
+    );
+  }
+  const cursor = { kind: "before_anchor" as const, anchor: { line: range.start.line } };
+  for (const text of lines) {
+    resolved.push({
+      kind: "insert",
+      cursor: cloneCursor(cursor),
+      text,
+      lineNum: edit.lineNum,
+      index: synthIndex++,
+      mode: "replacement",
+    });
+  }
+  for (let line = range.start.line; line <= range.end.line; line++) {
+    resolved.push({ kind: "delete", anchor: { line }, lineNum: edit.lineNum, index: synthIndex++ });
+  }
+  return synthIndex;
+}
+
 export function resolveClipboardEdits(
   edits: readonly Edit[],
   fileLines: readonly string[],
@@ -123,66 +181,19 @@ export function resolveClipboardEdits(
   const onEmptyPaste = options.onEmptyPaste ?? "throw";
   const resolved: Edit[] = [];
   let synthIndex = 0;
-
   for (const edit of edits) {
-    if (edit.kind === "cut") {
-      writeRegister(edit, fileLines, clipboard);
-      continue;
-    }
-    if (edit.kind === "paste") {
-      const lines = readRegister(
-        edit.register,
-        edit.at.kind,
+    if (edit.kind === "cut") writeRegister(edit, fileLines, clipboard);
+    else if (edit.kind === "paste")
+      synthIndex = appendPasteEdits(
+        edit,
+        fileLines,
         clipboard,
-        edit.lineNum,
         onEmptyPaste,
         options.onWarning,
+        resolved,
+        synthIndex,
       );
-      if (lines === null) continue;
-
-      if (edit.at.kind === "gap") {
-        for (const text of lines) {
-          resolved.push({
-            kind: "insert",
-            cursor: cloneCursor(edit.at.cursor),
-            text,
-            lineNum: edit.lineNum,
-            index: synthIndex++,
-            ...(edit.blockStart === undefined ? {} : { blockStart: edit.blockStart }),
-          });
-        }
-      } else {
-        // Span paste: insert replacement lines before start, then delete span lines.
-        const range = edit.at.range;
-        if (range.start.line < 1 || range.end.line > fileLines.length) {
-          const reg = edit.register ? ` @${edit.register}` : "";
-          throw new Error(
-            `line ${edit.lineNum}: \`${HL_PUT_KEYWORD} ${range.start.line}${HL_RANGE_SEP}${range.end.line}${reg}\` is out of range (file has ${fileLines.length} lines).`,
-          );
-        }
-        const cursor = { kind: "before_anchor" as const, anchor: { line: range.start.line } };
-        for (const text of lines) {
-          resolved.push({
-            kind: "insert",
-            cursor: cloneCursor(cursor),
-            text,
-            lineNum: edit.lineNum,
-            index: synthIndex++,
-            mode: "replacement",
-          });
-        }
-        for (let line = range.start.line; line <= range.end.line; line++) {
-          resolved.push({
-            kind: "delete",
-            anchor: { line },
-            lineNum: edit.lineNum,
-            index: synthIndex++,
-          });
-        }
-      }
-      continue;
-    }
-    resolved.push(edit);
+    else resolved.push(edit);
   }
   return resolved;
 }
@@ -207,10 +218,12 @@ export function forkClipboard(source?: Clipboard): Clipboard {
 
 /** Publish a clipboard fork back to its source register (only named registers persist across batches). */
 export function commitClipboard(fork: Clipboard, target: Clipboard): void {
-  if (fork.named !== undefined) {
-    target.named ??= new Map();
-    for (const [k, v] of fork.named) target.named.set(k, v);
+  if (fork.named === undefined) {
+    return;
   }
+
+  target.named ??= new Map();
+  for (const [k, v] of fork.named) target.named.set(k, v);
 }
 
 /**
@@ -222,13 +235,13 @@ export function validateClipboardSequence(edits: readonly Edit[], clipboard: Cli
   const fork = forkClipboard(clipboard);
   for (const edit of edits) {
     if (edit.kind === "cut") {
-      if (edit.register !== undefined) {
-        fork.named ??= new Map();
-        fork.named.set(edit.register, []);
-      } else {
+      if (edit.register === undefined) {
         fork.lines = [];
         fork.pendingAnonCuts ??= [];
         fork.pendingAnonCuts.push(describeCutEdit(edit));
+      } else {
+        fork.named ??= new Map();
+        fork.named.set(edit.register, []);
       }
     } else if (edit.kind === "paste") {
       readRegister(edit.register, edit.at.kind, fork, edit.lineNum, "throw");

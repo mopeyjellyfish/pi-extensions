@@ -16,20 +16,29 @@
 
 import { HL_FILE_HASH_LENGTH } from "./format.ts";
 
-const HL_PREFIX_RE = /^\s*(?:>>>|>>)?\s*(?:[+*-]\s*)?\d+[:|]/;
-const HL_PREFIX_PLUS_RE = /^\s*(?:>>>|>>)?\s*\+\s*\d+:/;
-const HL_HEADER_RE = new RegExp(`^\\s*\\[[^#\\r\\n]+#[0-9a-fA-F]{${HL_FILE_HASH_LENGTH}}\\]\\s*$`);
-const DIFF_PLUS_RE = /^[+](?![+])/;
-const READ_TRUNCATION_NOTICE_RE =
-  /^\s*\[(?:(?:Showing lines \d+-\d+ of \d+|\d+ more lines? in (?:file|\S+))\b.*\bUse :L?\d+|(?:…|\.\.\.)?\d+\s*ln elided;\s*re-read needed ranges with .+)\]\s*$/;
-const READ_RANGE_ELISION_RE = /^\s*[1-9]\d*\s*-\s*[1-9]\d*:.*(?:…|\.\.\.).*$/;
+const HL_PREFIX_RE = /^\s*(?:(?:>>>|>>)\s*)?(?:[+*-]\s*)?\d+[:|]/;
+const HL_PREFIX_PLUS_RE = /^\s*(?:(?:>>>|>>)\s*)?\+\s*\d+:/;
+const HL_HEADER_RE = new RegExp(
+  `^\\s*\\[[^#\\r\\n]+#[0-9a-fA-F]{${String(HL_FILE_HASH_LENGTH)}}\\]\\s*$`,
+);
+const DIFF_PLUS_RE = /^\+(?!\+)/;
+const READ_TRUNCATION_SHOWING_RE =
+  /^\s*\[(?:Showing lines \d+-\d+ of \d+|\d+ more lines? in (?:file|\S+))\b[^\r\n]*\bUse :L?\d+\]\s*$/u;
+const READ_TRUNCATION_ELIDED_RE =
+  /^\s*\[(?:…|\.\.\.)?\d+\s*ln elided;\s*re-read needed ranges with [^\r\n]+\]\s*$/u;
+const READ_RANGE_ELISION_PREFIX_RE = /^\s*[1-9]\d*\s*-\s*[1-9]\d*:/u;
+
+function isReadRangeElision(line: string): boolean {
+  return READ_RANGE_ELISION_PREFIX_RE.test(line) && (line.includes("…") || line.includes("..."));
+}
 const READ_SINGLE_ELISION_RE = /^\s*(?:…|\.\.\.)\s*$/;
 
 /** Whether a row is display-only metadata emitted by `read`, never source. */
 export function isReadMetadataLine(line: string): boolean {
   return (
-    READ_TRUNCATION_NOTICE_RE.test(line) ||
-    READ_RANGE_ELISION_RE.test(line) ||
+    READ_TRUNCATION_SHOWING_RE.test(line) ||
+    READ_TRUNCATION_ELIDED_RE.test(line) ||
+    isReadRangeElision(line) ||
     READ_SINGLE_ELISION_RE.test(line)
   );
 }

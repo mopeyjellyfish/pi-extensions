@@ -8,6 +8,7 @@ import {
   HL_PAYLOAD_REPLACE,
   HL_RANGE_SEP,
 } from "./format.ts";
+
 import type { BlockSpan } from "./types.ts";
 
 /** Lines of context shown either side of a hash mismatch. */
@@ -57,15 +58,16 @@ const RANGE_OP_FORMS: Record<
   }
 > = {
   replace: {
-    single: (line, reg) => (reg ? `PUT ${line}${regSuffix(reg)}` : `PUT ${line}:`),
+    single: (line, reg) => (reg ? `PUT ${String(line)}${regSuffix(reg)}` : `PUT ${String(line)}:`),
     range: (start, end, reg) =>
       reg
-        ? `PUT ${start}${HL_RANGE_SEP}${end}${regSuffix(reg)}`
-        : `PUT ${start}${HL_RANGE_SEP}${end}:`,
+        ? `PUT ${String(start)}${HL_RANGE_SEP}${String(end)}${regSuffix(reg)}`
+        : `PUT ${String(start)}${HL_RANGE_SEP}${String(end)}:`,
   },
   cut: {
-    single: (line, reg) => `CUT ${line}${regSuffix(reg)}`,
-    range: (start, end, reg) => `CUT ${start}${HL_RANGE_SEP}${end}${regSuffix(reg)}`,
+    single: (line, reg) => `CUT ${String(line)}${regSuffix(reg)}`,
+    range: (start, end, reg) =>
+      `CUT ${String(start)}${HL_RANGE_SEP}${String(end)}${regSuffix(reg)}`,
   },
 };
 
@@ -73,9 +75,9 @@ const RANGE_OP_FORMS: Record<
 function blockFormAt(op: AbsoluteRangeOp, line: number, reg?: string): string {
   return op === "replace"
     ? reg
-      ? `PUT ${line}*${regSuffix(reg)}`
-      : `PUT ${line}*:`
-    : `CUT ${line}*${regSuffix(reg)}`;
+      ? `PUT ${String(line)}*${regSuffix(reg)}`
+      : `PUT ${String(line)}*:`
+    : `CUT ${String(line)}*${regSuffix(reg)}`;
 }
 
 /** Explain absolute range endpoints and provide safe, non-applying retry forms. */
@@ -96,15 +98,15 @@ export function invalidAbsoluteRangeMessage(
       : null;
   const blockForm = blockFormAt(op, start, register);
   let message =
-    `line ${patchLine}: Invalid absolute range: start ${start}, end ${end}. ` +
+    `line ${String(patchLine)}: Invalid absolute range: start ${String(start)}, end ${String(end)}. ` +
     `The value after \`${HL_RANGE_SEP}\` is an absolute source line, not a line count or replacement length. ` +
     `For one line use \`${single}\`.`;
   if (counted !== null) {
-    message += ` For ${end} lines starting at ${start}, use \`${counted}\`.`;
+    message += ` For ${String(end)} lines starting at ${String(start)}, use \`${counted}\`.`;
   }
   if (block?.start === start && block.end > start) {
     message +=
-      ` The syntactic block beginning at ${start} ends at ${block.end}, ` +
+      ` The syntactic block beginning at ${String(start)} ends at ${String(block.end)}, ` +
       `so \`${blockForm}\` is also valid.`;
   }
   return message;
@@ -144,10 +146,10 @@ export const SNAPSHOT_ROWS_AUTO_PUT_WARNING = `Recovered top-level \`N:TEXT\` sn
  */
 export function repeatedSnapshotRowMessage(line: number): string {
   return (
-    `two or more pasted \`${line}:TEXT\` read-output rows name line ${line}. ` +
-    `Such rows are recovered as single-line \`PUT ${line}${HL_RANGE_SEP}${line}:\` replacements, so repeating a ` +
+    `two or more pasted \`${String(line)}:TEXT\` read-output rows name line ${String(line)}. ` +
+    `Such rows are recovered as single-line \`PUT ${String(line)}${HL_RANGE_SEP}${String(line)}:\` replacements, so repeating a ` +
     `number would keep only the last row and drop the rest. Write the hunk explicitly: one ` +
-    `\`PUT ${line}${HL_RANGE_SEP}M:\` header covering exactly the lines that change, followed by \`+TEXT\` body ` +
+    `\`PUT ${String(line)}${HL_RANGE_SEP}M:\` header covering exactly the lines that change, followed by \`+TEXT\` body ` +
     `rows holding their complete final content.`
   );
 }
@@ -159,7 +161,7 @@ export function repeatedSnapshotRowMessage(line: number): string {
  */
 export function literalOpRowWarning(line: number, text: string): string {
   return (
-    `line ${line}: body row \`${HL_PAYLOAD_REPLACE}${text}\` is itself a valid hunk header, so it was inserted ` +
+    `line ${String(line)}: body row \`${HL_PAYLOAD_REPLACE}${text}\` is itself a valid hunk header, so it was inserted ` +
     `into the file as literal text rather than executed. Ops are never \`${HL_PAYLOAD_REPLACE}\`-prefixed — drop ` +
     `the \`${HL_PAYLOAD_REPLACE}\` to run it, and re-issue if this line landed in the file by mistake.`
   );
@@ -217,31 +219,31 @@ export function blockUnresolvedMessage(
   const fallback =
     op === "replace"
       ? register
-        ? `PUT ${line}${HL_RANGE_SEP}M @${register}`
-        : `PUT ${line}${HL_RANGE_SEP}M:`
+        ? `PUT ${String(line)}${HL_RANGE_SEP}M @${register}`
+        : `PUT ${String(line)}${HL_RANGE_SEP}M:`
       : register
-        ? `CUT ${line}${HL_RANGE_SEP}M @${register}`
-        : `CUT ${line}${HL_RANGE_SEP}M`;
+        ? `CUT ${String(line)}${HL_RANGE_SEP}M @${register}`
+        : `CUT ${String(line)}${HL_RANGE_SEP}M`;
   const anchorText = fileLines?.[line - 1];
   const nextBlock = suggestions.nextBlock;
   let message: string;
-  if (anchorText !== undefined && anchorText.trim().length === 0 && nextBlock) {
+  if (anchorText?.trim().length === 0 && nextBlock) {
     const retry = blockFormAt(op, nextBlock.start, register);
     message =
-      `Line ${line} is blank; no syntactic block can begin there. ` +
-      `The next multi-line block begins at line ${nextBlock.start} and ends at line ${nextBlock.end}. ` +
+      `Line ${String(line)} is blank; no syntactic block can begin there. ` +
+      `The next multi-line block begins at line ${String(nextBlock.start)} and ends at line ${String(nextBlock.end)}. ` +
       `Retry \`${retry}\`.`;
   } else {
     message =
-      `\`${phrase}\` could not resolve a syntactic block beginning on line ${line} ` +
+      `\`${phrase}\` could not resolve a syntactic block beginning on line ${String(line)} ` +
       `(unsupported language, blank/closer line, or parse error). Use \`${fallback}\` with explicit lines.`;
   }
   const enclosingBlock = suggestions.enclosingBlock;
   if (enclosingBlock) {
     const retry = blockFormAt(op, enclosingBlock.start, register);
     message +=
-      ` The nearest enclosing multi-line block begins at line ${enclosingBlock.start} ` +
-      `and ends at line ${enclosingBlock.end}; use \`${retry}\` to target it.`;
+      ` The nearest enclosing multi-line block begins at line ${String(enclosingBlock.start)} ` +
+      `and ends at line ${String(enclosingBlock.end)}; use \`${retry}\` to target it.`;
   }
   if (fileLines) {
     const context = formatAnchoredContext([line], fileLines);
@@ -269,27 +271,27 @@ function closerLoweredWarning(blockForm: string, plainForm: string): string {
  * form — applying with a warning beats failing the patch.
  */
 function unresolvedLoweredWarning(blockForm: string, line: number, plainForm: string): string {
-  return `\`${blockForm}\` could not resolve a syntactic block on line ${line}, so it was applied as plain \`${plainForm}\`. Verify the landing line; anchor on a line that OPENS a construct.`;
+  return `\`${blockForm}\` could not resolve a syntactic block on line ${String(line)}, so it was applied as plain \`${plainForm}\`. Verify the landing line; anchor on a line that OPENS a construct.`;
 }
 
 /** `PUT >N*:` anchored on a closing-delimiter line; applied as `PUT >N:`. */
 export function insertAfterBlockCloserLoweredWarning(line: number): string {
-  return closerLoweredWarning(`PUT >${line}*:`, `PUT >${line}:`);
+  return closerLoweredWarning(`PUT >${String(line)}*:`, `PUT >${String(line)}:`);
 }
 
 /** `PUT >N*:` anchor unresolvable; applied as `PUT >N:`. */
 export function insertAfterBlockUnresolvedLoweredWarning(line: number): string {
-  return unresolvedLoweredWarning(`PUT >${line}*:`, line, `PUT >${line}:`);
+  return unresolvedLoweredWarning(`PUT >${String(line)}*:`, line, `PUT >${String(line)}:`);
 }
 
 /** Register `PUT >N*` anchored on a closing-delimiter line; applied as `PUT >N`. */
 export function pasteAfterBlockCloserLoweredWarning(line: number): string {
-  return closerLoweredWarning(`PUT >${line}*`, `PUT >${line}`);
+  return closerLoweredWarning(`PUT >${String(line)}*`, `PUT >${String(line)}`);
 }
 
 /** Register `PUT >N*` anchor unresolvable; applied as `PUT >N`. */
 export function pasteAfterBlockUnresolvedLoweredWarning(line: number): string {
-  return unresolvedLoweredWarning(`PUT >${line}*`, line, `PUT >${line}`);
+  return unresolvedLoweredWarning(`PUT >${String(line)}*`, line, `PUT >${String(line)}`);
 }
 /**
  * A one-sided exact boundary echo cannot cover the selected range after the
@@ -305,10 +307,10 @@ export function ambiguousBoundaryEchoMessage(
 ): string {
   const where =
     side === "leading"
-      ? `opens by restating the ${count} line(s) just above the range`
-      : `ends by restating the ${count} line(s) just below the range`;
+      ? `opens by restating the ${String(count)} line(s) just above the range`
+      : `ends by restating the ${String(count)} line(s) just below the range`;
   return (
-    `\`PUT ${startLine}${HL_RANGE_SEP}${endLine}:\` rejected: the body ${where}, ` +
+    `\`PUT ${String(startLine)}${HL_RANGE_SEP}${String(endLine)}:\` rejected: the body ${where}, ` +
     `but is too short to be the full final content of the selected range. ` +
     `Re-issue with the range covering exactly the lines that change and the body as their complete final content.`
   );
@@ -320,7 +322,7 @@ export function ambiguousBoundaryEchoMessage(
  */
 export function ambiguousBoundaryPlacementMessage(startLine: number, endLine: number): string {
   return (
-    `\`PUT ${startLine}${HL_RANGE_SEP}${endLine}:\` rejected: a selected boundary row is required for the file to parse, ` +
+    `\`PUT ${String(startLine)}${HL_RANGE_SEP}${String(endLine)}:\` rejected: a selected boundary row is required for the file to parse, ` +
     `but the body indentation does not establish whether it belongs before or after that row. ` +
     `Re-read the region and re-issue with a range that excludes every unchanged boundary row.`
   );
@@ -336,10 +338,10 @@ export function textualBoundaryEchoWarning(
   trailing: number,
 ): string {
   const parts: string[] = [];
-  if (leading > 0) parts.push(`${leading} leading`);
-  if (trailing > 0) parts.push(`${trailing} trailing`);
+  if (leading > 0) parts.push(`${String(leading)} leading`);
+  if (trailing > 0) parts.push(`${String(trailing)} trailing`);
   return (
-    `Auto-repaired a replacement boundary echo at line ${startLine}: dropped ${parts.join(" and ")} body line(s) ` +
+    `Auto-repaired a replacement boundary echo at line ${String(startLine)}: dropped ${parts.join(" and ")} body line(s) ` +
     `already present outside the range. Issue the body as final content for the selected range only.`
   );
 }
@@ -358,12 +360,12 @@ export function boundaryVariantRepairWarning(
   const keptPart =
     kept === 0
       ? ""
-      : `retained ${kept} syntax-essential source boundary row(s) selected by the range`;
+      : `retained ${String(kept)} syntax-essential source boundary row(s) selected by the range`;
   const droppedPart =
-    dropped === 0 ? "" : `dropped ${dropped} body row(s) duplicated just outside the range`;
+    dropped === 0 ? "" : `dropped ${String(dropped)} body row(s) duplicated just outside the range`;
   const action = [keptPart, droppedPart].filter(Boolean).join(" and ");
   return (
-    `Auto-repaired replacement boundaries at line ${startLine}: ${action}. ` +
+    `Auto-repaired replacement boundaries at line ${String(startLine)}: ${action}. ` +
     `The result was verified by the syntax probe — re-issue with the range covering exactly the changed ` +
     `lines and the body as their complete final content.`
   );
@@ -377,7 +379,7 @@ export function boundaryVariantRepairWarning(
  * compiler pass.
  */
 export function editBrokeParseWarning(firstChangedLine: number | undefined): string {
-  const at = firstChangedLine === undefined ? "" : ` near line ${firstChangedLine}`;
+  const at = firstChangedLine === undefined ? "" : ` near line ${String(firstChangedLine)}`;
   return (
     `This edit introduced a syntax error${at}: the file parsed before the patch and no longer does. ` +
     `It was applied exactly as written, so a line number or range endpoint is likely wrong — ` +
@@ -451,7 +453,7 @@ export function emptyRegisterSpanPasteMessage(name: string, known: readonly stri
 /** Unlabeled paste with two or more unlabeled cuts pending. */
 export function ambiguousAnonymousPasteMessage(pending: readonly string[]): string {
   return (
-    `${pending.length} unlabeled \`CUT\`s are pending (${pending.join(", ")}) — an unlabeled paste cannot tell which one you meant. ` +
+    `${String(pending.length)} unlabeled \`CUT\`s are pending (${pending.join(", ")}) — an unlabeled paste cannot tell which one you meant. ` +
     "Label the moves (`CUT … @name` → `PUT … @name`), or keep at most one unlabeled `CUT` before each unlabeled paste."
   );
 }
@@ -478,7 +480,7 @@ export function afterInsertLandingShiftWarning(
   landingLine: number,
   crossed: number,
 ): string {
-  return `PUT >${anchorLine}: body indented shallower than the anchor, so the landing moved past ${crossed} closing line${crossed === 1 ? "" : "s"} to after line ${landingLine}. For the deeper position inside the block, re-issue with the body indented to match.`;
+  return `PUT >${String(anchorLine)}: body indented shallower than the anchor, so the landing moved past ${String(crossed)} closing line${crossed === 1 ? "" : "s"} to after line ${String(landingLine)}. For the deeper position inside the block, re-issue with the body indented to match.`;
 }
 
 /**
@@ -491,7 +493,7 @@ export function blockInsertLandingShiftWarning(
   closerLine: number,
   landingLine: number,
 ): string {
-  return `PUT >${blockStart}*: body indented deeper than closing line ${closerLine}, so it was placed inside the block, after line ${landingLine}. \`PUT >N*\` lands AFTER the block at sibling depth — if inside was intended, use plain \`PUT >${closerLine}:\`.`;
+  return `PUT >${String(blockStart)}*: body indented deeper than closing line ${String(closerLine)}, so it was placed inside the block, after line ${String(landingLine)}. \`PUT >N*\` lands AFTER the block at sibling depth — if inside was intended, use plain \`PUT >${String(closerLine)}:\`.`;
 }
 
 /** `Recovery`: an external write matched a cached snapshot. */
@@ -563,15 +565,17 @@ function formatLineRanges(lines: readonly number[]): string {
   const sorted = [...new Set(lines)].sort((a, b) => a - b);
   if (sorted.length === 0) return "";
   const parts: string[] = [];
-  let start = sorted[0];
-  let prev = sorted[0];
+  const first = sorted[0];
+  if (first === undefined) return "";
+  let start = first;
+  let prev = first;
   for (let i = 1; i <= sorted.length; i++) {
-    const current = sorted[i];
+    const current = sorted[i] ?? NaN;
     if (current === prev + 1) {
       prev = current;
       continue;
     }
-    parts.push(start === prev ? `${start}` : `${start}-${prev}`);
+    parts.push(start === prev ? String(start) : `${String(start)}-${String(prev)}`);
     start = current;
     prev = current;
   }
@@ -606,14 +610,16 @@ export interface UnseenLinesReveal {
  * same `[path#tag]` header; when the reveal is empty or truncated, the
  * message falls back to instructing a range re-read.
  */
+const EMPTY_UNSEEN_LINES_REVEAL: UnseenLinesReveal = { lines: [], truncated: false };
+
 export function unseenLinesMessage(
   sectionPath: string,
   unseenLines: readonly number[],
   tag: string,
-  reveal: UnseenLinesReveal = { lines: [], truncated: false },
+  reveal: UnseenLinesReveal = EMPTY_UNSEEN_LINES_REVEAL,
 ): string {
   const ranges = formatLineRanges(unseenLines);
-  const selector = ranges.replace(/, /g, ",");
+  const selector = ranges.replaceAll(", ", ",");
   const header =
     `This edit anchors to lines ${ranges} of ${sectionPath} that ` +
     `${HL_FILE_PREFIX}${sectionPath}${HL_FILE_HASH_SEP}${tag}${HL_FILE_SUFFIX} never displayed (it showed a ` +
@@ -630,7 +636,7 @@ export function unseenLinesMessage(
     .join("\n");
   if (reveal.truncated) {
     return (
-      `${header} Preview of the actual file content at the first ${reveal.lines.length} unseen line(s):\n${preview}\n` +
+      `${header} Preview of the actual file content at the first ${String(reveal.lines.length)} unseen line(s):\n${preview}\n` +
       `The range exceeds the inline preview cap — re-read the remainder with \`${sectionPath}:${selector}\` before ` +
       `re-issuing the edit.`
     );
@@ -651,10 +657,13 @@ const BLOCK_OP_FORMS: Record<
   BlockOp,
   { form: (line: number) => string; plain: (line: number) => string }
 > = {
-  replace: { form: (line) => `PUT ${line}*:`, plain: (line) => `PUT ${line}:` },
-  insert_after: { form: (line) => `PUT >${line}*:`, plain: (line) => `PUT >${line}:` },
-  cut: { form: (line) => `CUT ${line}*`, plain: (line) => `CUT ${line}` },
-  paste_after: { form: (line) => `PUT >${line}*`, plain: (line) => `PUT >${line}` },
+  replace: { form: (line) => `PUT ${String(line)}*:`, plain: (line) => `PUT ${String(line)}:` },
+  insert_after: {
+    form: (line) => `PUT >${String(line)}*:`,
+    plain: (line) => `PUT >${String(line)}:`,
+  },
+  cut: { form: (line) => `CUT ${String(line)}*`, plain: (line) => `CUT ${String(line)}` },
+  paste_after: { form: (line) => `PUT >${String(line)}*`, plain: (line) => `PUT >${String(line)}` },
 };
 
 /**
@@ -670,12 +679,12 @@ export function blockSingleLineMessage(
   const forms = BLOCK_OP_FORMS[op];
   const plainForm = forms.plain(line);
   let message =
-    `\`${forms.form(line)}\` resolved a single-line block — line ${line} is a bare statement, not the opening line ` +
+    `\`${forms.form(line)}\` resolved a single-line block — line ${String(line)} is a bare statement, not the opening line ` +
     `of a multi-line construct. For only this statement use \`${plainForm}\`.`;
   if (enclosingBlock) {
     message +=
-      ` The nearest enclosing multi-line block begins at line ${enclosingBlock.start} ` +
-      `and ends at line ${enclosingBlock.end}; use \`${forms.form(enclosingBlock.start)}\` to target it.`;
+      ` The nearest enclosing multi-line block begins at line ${String(enclosingBlock.start)} ` +
+      `and ends at line ${String(enclosingBlock.end)}; use \`${forms.form(enclosingBlock.start)}\` to target it.`;
   }
   return message;
 }

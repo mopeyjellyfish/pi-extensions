@@ -57,21 +57,21 @@ export const HL_LINE_CAPTURE_RE_RAW = `(${HL_LINE_RE_RAW})`;
 
 /** Format a concrete replacement hunk header (`PUT 5.=9:`). */
 export function formatReplaceHeader(start: number, end: number): string {
-  return `${HL_PUT_KEYWORD} ${start}${HL_RANGE_SEP}${end}${HL_HEADER_COLON}`;
+  return `${HL_PUT_KEYWORD} ${String(start)}${HL_RANGE_SEP}${String(end)}${HL_HEADER_COLON}`;
 }
 
 /** Format a concrete cut hunk header (`CUT 5.=9`). */
 export function formatCutHeader(start: number, end = start): string {
-  return `${HL_CUT_KEYWORD} ${start}${HL_RANGE_SEP}${end}`;
+  return `${HL_CUT_KEYWORD} ${String(start)}${HL_RANGE_SEP}${String(end)}`;
 }
 
 /** Format a gap locator for a cursor position (`<5`, `>5`, `<1`, `>$`). */
 export function formatGapLocator(cursor: Cursor): string {
   switch (cursor.kind) {
     case "before_anchor":
-      return `${HL_GAP_BEFORE}${cursor.anchor.line}`;
+      return `${HL_GAP_BEFORE}${String(cursor.anchor.line)}`;
     case "after_anchor":
-      return `${HL_GAP_AFTER}${cursor.anchor.line}`;
+      return `${HL_GAP_AFTER}${String(cursor.anchor.line)}`;
     case "bof":
       return `${HL_GAP_BEFORE}1`;
     case "eof":
@@ -92,7 +92,7 @@ export function formatRegister(name: string): string {
 /** Number of hex characters in a content-derived file-hash tag. */
 export const HL_FILE_HASH_LENGTH = 4;
 /** Canonical uppercase hexadecimal content-hash tag carried by a hashline section header. */
-export const HL_FILE_HASH_RE_RAW = `[0-9A-F]{${HL_FILE_HASH_LENGTH}}`;
+export const HL_FILE_HASH_RE_RAW = `[0-9A-F]{${String(HL_FILE_HASH_LENGTH)}}`;
 /** Capture-group form of {@link HL_FILE_HASH_RE_RAW}. */
 export const HL_FILE_HASH_CAPTURE_RE_RAW = `(${HL_FILE_HASH_RE_RAW})`;
 /** Regex-escaped form of {@link HL_LINE_BODY_SEP}, safe for embedding inside a regex. */
@@ -108,7 +108,7 @@ export const HL_FILE_HASH_EXAMPLES = ["1A2B", "3C4D", "9F3E"] as const;
  * do not invalidate a tag.
  */
 function normalizeFileHashText(text: string): string {
-  return text.replace(/[ \t\r]+(?=\n|$)/g, "");
+  return text.replaceAll(/[ \t\r]+(?=\n|$)/g, "");
 }
 /**
  * Compute the content-derived hash tag carried by a hashline section header.
@@ -141,7 +141,7 @@ export function formatHashlineHeader(filePath: string, fileHash: string): string
 
 /** Formats a single numbered line as `LINE:TEXT`. */
 export function formatNumberedLine(lineNumber: number, line: string): string {
-  return `${lineNumber}${HL_LINE_BODY_SEP}${line}`;
+  return `${String(lineNumber)}${HL_LINE_BODY_SEP}${line}`;
 }
 
 /**
@@ -150,7 +150,7 @@ export function formatNumberedLine(lineNumber: number, line: string): string {
  */
 export function splitAddressableFileLines(text: string): string[] {
   const lines = text.split("\n");
-  if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+  if (lines.length > 1 && lines.at(-1) === "") lines.pop();
   return lines;
 }
 

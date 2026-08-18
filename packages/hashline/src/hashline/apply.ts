@@ -24,6 +24,7 @@ import {
 } from "./messages.ts";
 import { enclosingBoundaries, parsesCleanly } from "./syntax.ts";
 import { cloneCursor } from "./tokenizer.ts";
+
 import type { Anchor, ApplyResult, Clipboard, Cursor, Edit } from "./types.ts";
 
 type LineOrigin = "original" | "insert" | "replacement";
@@ -32,9 +33,15 @@ type InsertEdit = Extract<Edit, { kind: "insert" }>;
 type DeleteEdit = Extract<Edit, { kind: "delete" }>;
 type AppliedEdit = InsertEdit | DeleteEdit;
 
+function appliedEditAt(edits: readonly AppliedEdit[], index: number): AppliedEdit {
+  const edit = edits.at(index);
+  if (edit === undefined) throw new Error(`internal error: missing edit at index ${String(index)}`);
+  return edit;
+}
+
 function insertEditAt(edits: readonly AppliedEdit[], index: number): InsertEdit {
-  const edit = edits[index];
-  if (edit?.kind !== "insert") {
+  const edit = appliedEditAt(edits, index);
+  if (edit.kind !== "insert") {
     throw new Error("internal error: after-insert group contains a non-insert edit");
   }
   return edit;
@@ -64,7 +71,7 @@ function trailingPhantomLine(fileLines: readonly string[]): number {
   // content. Deleting it only strips the file's final newline, so ignore delete
   // edits that land there; inclusive ranges ending at EOF then do the intended
   // thing and delete through the last concrete line.
-  return fileLines.length > 1 && fileLines[fileLines.length - 1] === "" ? fileLines.length : 0;
+  return fileLines.length > 1 && fileLines.at(-1) === "" ? fileLines.length : 0;
 }
 
 function dropTrailingPhantomDeletes(
@@ -84,7 +91,9 @@ function validateLineBounds(edits: readonly AppliedEdit[], fileLines: readonly s
   for (const edit of edits) {
     for (const anchor of getEditAnchors(edit)) {
       if (anchor.line < 1 || anchor.line > fileLines.length) {
-        throw new Error(`Line ${anchor.line} does not exist (file has ${fileLines.length} lines)`);
+        throw new Error(
+          `Line ${String(anchor.line)} does not exist (file has ${String(fileLines.length)} lines)`,
+        );
       }
     }
   }
@@ -119,7 +128,7 @@ function insertAtEnd(
     lineOrigins.splice(0, 1, ...origins);
     return 1;
   }
-  const hasTrailingNewline = fileLines.length > 0 && fileLines[fileLines.length - 1] === "";
+  const hasTrailingNewline = fileLines.length > 0 && fileLines.at(-1) === "";
   const insertIndex = hasTrailingNewline ? fileLines.length - 1 : fileLines.length;
   fileLines.splice(insertIndex, 0, ...lines);
   lineOrigins.splice(insertIndex, 0, ...origins);
@@ -172,6 +181,34 @@ interface ReplacementGroup {
   endLine: number;
 }
 
+function isBeforeReplacementInsert(edit: AppliedEdit | undefined): edit is InsertEdit & {
+  mode: "replacement";
+  cursor: Extract<Cursor, { kind: "before_anchor" }>;
+} {
+  return (
+    edit?.kind === "insert" && edit.mode === "replacement" && edit.cursor.kind === "before_anchor"
+  );
+}
+
+function continuesReplacementInsert(
+  edit: AppliedEdit,
+  lineNum: number,
+  anchorLine: number,
+): edit is InsertEdit & {
+  mode: "replacement";
+  cursor: Extract<Cursor, { kind: "before_anchor" }>;
+} {
+  return (
+    isBeforeReplacementInsert(edit) &&
+    edit.lineNum === lineNum &&
+    edit.cursor.anchor.line === anchorLine
+  );
+}
+
+function isReplacementDelete(edit: AppliedEdit, lineNum: number, expectedLine: number): boolean {
+  return edit.kind === "delete" && edit.lineNum === lineNum && edit.anchor.line === expectedLine;
+}
+
 /**
  * Detect a replacement group starting at `start`: a run of `before_anchor`
  * replacement inserts sharing one source op line, immediately followed by the
@@ -183,13 +220,7 @@ function findReplacementGroup(
   start: number,
 ): ReplacementGroup | undefined {
   const first = edits[start];
-  if (
-    first?.kind !== "insert" ||
-    first.mode !== "replacement" ||
-    first.cursor.kind !== "before_anchor"
-  ) {
-    return undefined;
-  }
+  if (!isBeforeReplacementInsert(first)) return undefined;
   const { lineNum } = first;
   const anchorLine = first.cursor.anchor.line;
   const insertIndices: number[] = [];
@@ -197,8 +228,7 @@ function findReplacementGroup(
   let i = start;
   for (; i < edits.length; i++) {
     const edit = edits[i];
-    if (edit.kind !== "insert" || edit.mode !== "replacement" || edit.lineNum !== lineNum) break;
-    if (edit.cursor.kind !== "before_anchor" || edit.cursor.anchor.line !== anchorLine) break;
+    if (edit === undefined || !continuesReplacementInsert(edit, lineNum, anchorLine)) break;
     insertIndices.push(i);
     payload.push(edit.text);
   }
@@ -206,8 +236,7 @@ function findReplacementGroup(
   let expectedLine = anchorLine;
   for (; i < edits.length; i++) {
     const edit = edits[i];
-    if (edit.kind !== "delete" || edit.lineNum !== lineNum || edit.anchor.line !== expectedLine)
-      break;
+    if (edit === undefined || !isReplacementDelete(edit, lineNum, expectedLine)) break;
     deleteIndices.push(i);
     expectedLine++;
   }
@@ -226,6 +255,44 @@ function findReplacementGroup(
  * a surviving `{` opener immediately above the replacement. Matching unchanged
  * rows then prove the uniform shift; ordinary indentation-only edits stay exact.
  */
+function canRepairReplacementIndentation(
+  group: ReplacementGroup,
+  fileLines: readonly string[],
+): boolean {
+  if (group.payload.length !== group.deleteIndices.length) return false;
+  const preceding = fileLines[group.startLine - 2] ?? "";
+  const sourceFirst = fileLines[group.startLine - 1] ?? "";
+  const payloadFirst = group.payload[0] ?? "";
+  return (
+    preceding.trimEnd().endsWith("{") &&
+    isIndentDeeper(leadingIndent(sourceFirst), leadingIndent(preceding)) &&
+    !isIndentDeeper(leadingIndent(payloadFirst), leadingIndent(preceding))
+  );
+}
+
+function replacementIndentationShift(
+  group: ReplacementGroup,
+  fileLines: readonly string[],
+): string | undefined {
+  if (!canRepairReplacementIndentation(group, fileLines)) return undefined;
+  let shift: string | undefined;
+  let matches = 0;
+  for (let offset = 0; offset < group.payload.length; offset++) {
+    const source = fileLines[group.startLine - 1 + offset] ?? "";
+    const payload = group.payload[offset];
+    if (payload === undefined) return undefined;
+    if (source.trim().length === 0 || source.trimStart() !== payload.trimStart()) continue;
+    const sourceIndent = leadingIndent(source);
+    const payloadIndent = leadingIndent(payload);
+    if (!sourceIndent.endsWith(payloadIndent)) return undefined;
+    const candidate = sourceIndent.slice(0, sourceIndent.length - payloadIndent.length);
+    if (shift === undefined) shift = candidate;
+    else if (shift !== candidate) return undefined;
+    matches++;
+  }
+  return shift && matches >= 2 && matches * 2 > group.payload.length ? shift : undefined;
+}
+
 function repairReplacementIndentation(
   edits: AppliedEdit[],
   fileLines: readonly string[],
@@ -238,46 +305,17 @@ function repairReplacementIndentation(
       continue;
     }
     const lastDeleteIndex = group.deleteIndices.at(-1);
-    if (lastDeleteIndex === undefined) continue;
-    start = lastDeleteIndex + 1;
-    if (group.payload.length !== group.deleteIndices.length) continue;
-    const preceding = fileLines[group.startLine - 2] ?? "";
-    const sourceFirst = fileLines[group.startLine - 1] ?? "";
-    const payloadFirst = group.payload[0] ?? "";
-    if (
-      !preceding.trimEnd().endsWith("{") ||
-      !isIndentDeeper(leadingIndent(sourceFirst), leadingIndent(preceding)) ||
-      isIndentDeeper(leadingIndent(payloadFirst), leadingIndent(preceding))
-    ) {
+    if (lastDeleteIndex === undefined) {
+      start++;
       continue;
     }
-
-    let shift: string | undefined;
-    let matches = 0;
-    let consistent = true;
-    for (let offset = 0; offset < group.payload.length; offset++) {
-      const source = fileLines[group.startLine - 1 + offset] ?? "";
-      const payload = group.payload[offset];
-      if (source.trim().length === 0 || source.trimStart() !== payload.trimStart()) continue;
-      const sourceIndent = leadingIndent(source);
-      const payloadIndent = leadingIndent(payload);
-      if (!sourceIndent.endsWith(payloadIndent)) {
-        consistent = false;
-        break;
-      }
-      const candidate = sourceIndent.slice(0, sourceIndent.length - payloadIndent.length);
-      if (shift === undefined) shift = candidate;
-      else if (shift !== candidate) {
-        consistent = false;
-        break;
-      }
-      matches++;
-    }
-    if (!consistent || !shift || matches < 2 || matches * 2 <= group.payload.length) continue;
+    start = lastDeleteIndex + 1;
+    const shift = replacementIndentationShift(group, fileLines);
+    if (shift === undefined) continue;
     for (const index of group.insertIndices) {
       const edit = edits[index];
-      if (edit.kind !== "insert" || edit.text.trim().length === 0) continue;
-      edits[index] = { ...edit, text: `${shift}${edit.text}` };
+      if (edit?.kind === "insert" && edit.text.trim().length > 0)
+        edits[index] = { ...edit, text: `${shift}${edit.text}` };
     }
     repaired = true;
   }
@@ -286,7 +324,7 @@ function repairReplacementIndentation(
 
 function hasNonWhitespace(text: string): boolean {
   for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
+    const code = text.codePointAt(i);
     if (code !== 9 && code !== 10 && code !== 11 && code !== 12 && code !== 13 && code !== 32)
       return true;
   }
@@ -304,7 +342,7 @@ function countDuplicateLeadingBoundaryLines(
     let hasContent = false;
     for (let offset = 0; offset < count; offset++) {
       const line = payload[offset];
-      if (line !== fileLines[startLine - 1 - count + offset]) {
+      if (line === undefined || line !== fileLines[startLine - 1 - count + offset]) {
         matches = false;
         break;
       }
@@ -326,7 +364,7 @@ function countDuplicateTrailingBoundaryLines(
     let hasContent = false;
     for (let offset = 0; offset < count; offset++) {
       const line = payload[payload.length - count + offset];
-      if (line !== fileLines[endLine + offset]) {
+      if (line === undefined || line !== fileLines[endLine + offset]) {
         matches = false;
         break;
       }
@@ -359,6 +397,45 @@ interface TextualBoundaryNormalization {
  * search gets first chance to resolve it, then rejected rather than silently
  * dropping unique range content.
  */
+function boundaryEchoDisposition(
+  group: ReplacementGroup,
+  leading: number,
+  trailing: number,
+): { dropLeading: number; dropTrailing: number; ambiguity?: TextualBoundaryAmbiguity } {
+  const rangeLength = group.deleteIndices.length;
+  if (leading > 0 && trailing > 0 && group.payload.length - leading - trailing === rangeLength)
+    return { dropLeading: leading, dropTrailing: trailing };
+  if (leading > 0 && trailing === 0 && rangeLength > 1) {
+    return group.payload.length - leading >= rangeLength
+      ? { dropLeading: leading, dropTrailing: 0 }
+      : {
+          dropLeading: 0,
+          dropTrailing: 0,
+          ambiguity: {
+            startLine: group.startLine,
+            endLine: group.endLine,
+            side: "leading",
+            count: leading,
+          },
+        };
+  }
+  if (trailing > 0 && leading === 0 && rangeLength > 1) {
+    return group.payload.length - trailing >= rangeLength
+      ? { dropLeading: 0, dropTrailing: trailing }
+      : {
+          dropLeading: 0,
+          dropTrailing: 0,
+          ambiguity: {
+            startLine: group.startLine,
+            endLine: group.endLine,
+            side: "trailing",
+            count: trailing,
+          },
+        };
+  }
+  return { dropLeading: 0, dropTrailing: 0 };
+}
+
 function normalizeTextualBoundaryEchoes(
   edits: readonly AppliedEdit[],
   fileLines: readonly string[],
@@ -370,7 +447,7 @@ function normalizeTextualBoundaryEchoes(
   while (i < edits.length) {
     const group = findReplacementGroup(edits, i);
     if (!group) {
-      out.push(cloneAppliedEdit(edits[i], i));
+      out.push(cloneAppliedEdit(appliedEditAt(edits, i), i));
       i++;
       continue;
     }
@@ -378,45 +455,25 @@ function normalizeTextualBoundaryEchoes(
     const deletes = replacementDeletes(group, edits);
     const leading = countDuplicateLeadingBoundaryLines(group, fileLines);
     const trailing = countDuplicateTrailingBoundaryLines(group, fileLines);
-    const rangeLength = group.deleteIndices.length;
-    let dropLeading = 0;
-    let dropTrailing = 0;
-    if (leading > 0 && trailing > 0) {
-      if (group.payload.length - leading - trailing === rangeLength) {
-        dropLeading = leading;
-        dropTrailing = trailing;
-      }
-    } else if (leading > 0 && rangeLength > 1) {
-      if (group.payload.length - leading >= rangeLength) {
-        dropLeading = leading;
-      } else {
-        ambiguities.push({
-          startLine: group.startLine,
-          endLine: group.endLine,
-          side: "leading",
-          count: leading,
-        });
-      }
-    } else if (trailing > 0 && rangeLength > 1) {
-      if (group.payload.length - trailing >= rangeLength) {
-        dropTrailing = trailing;
-      } else {
-        ambiguities.push({
-          startLine: group.startLine,
-          endLine: group.endLine,
-          side: "trailing",
-          count: trailing,
-        });
-      }
-    }
+    const { dropLeading, dropTrailing, ambiguity } = boundaryEchoDisposition(
+      group,
+      leading,
+      trailing,
+    );
+    if (ambiguity !== undefined) ambiguities.push(ambiguity);
     if (dropLeading > 0 || dropTrailing > 0) {
       out.push(...inserts.slice(dropLeading, inserts.length - dropTrailing), ...deletes);
       warnings.push(textualBoundaryEchoWarning(group.startLine, dropLeading, dropTrailing));
     } else {
-      for (const idx of group.insertIndices) out.push(cloneAppliedEdit(edits[idx], idx));
-      for (const idx of group.deleteIndices) out.push(cloneAppliedEdit(edits[idx], idx));
+      for (const idx of group.insertIndices)
+        out.push(cloneAppliedEdit(appliedEditAt(edits, idx), idx));
+      for (const idx of group.deleteIndices)
+        out.push(cloneAppliedEdit(appliedEditAt(edits, idx), idx));
     }
-    i = group.deleteIndices[group.deleteIndices.length - 1] + 1;
+    const lastDeleteIndex = group.deleteIndices.at(-1);
+    if (lastDeleteIndex === undefined)
+      throw new Error("Replacement group is missing a delete index.");
+    i = lastDeleteIndex + 1;
   }
   return { edits: out, warnings, ambiguities };
 }
@@ -445,7 +502,7 @@ const INDENT_TAB_WIDTH = 4;
 function indentColumns(line: string): number {
   let column = 0;
   for (let i = 0; i < line.length; i++) {
-    const code = line.charCodeAt(i);
+    const code = line.codePointAt(i);
     if (code === 32) {
       column++;
     } else if (code === 9) {
@@ -486,8 +543,8 @@ function payloadEdge(payload: readonly string[], side: "leading" | "trailing"): 
 function replacementInserts(group: ReplacementGroup, edits: readonly AppliedEdit[]): InsertEdit[] {
   const inserts: InsertEdit[] = [];
   for (const index of group.insertIndices) {
-    const edit = edits[index];
-    if (edit?.kind === "insert") inserts.push(edit);
+    const edit = appliedEditAt(edits, index);
+    if (edit.kind === "insert") inserts.push(edit);
   }
   return inserts;
 }
@@ -495,8 +552,8 @@ function replacementInserts(group: ReplacementGroup, edits: readonly AppliedEdit
 function replacementDeletes(group: ReplacementGroup, edits: readonly AppliedEdit[]): DeleteEdit[] {
   const deletes: DeleteEdit[] = [];
   for (const index of group.deleteIndices) {
-    const edit = edits[index];
-    if (edit?.kind === "delete") deletes.push(edit);
+    const edit = appliedEditAt(edits, index);
+    if (edit.kind === "delete") deletes.push(edit);
   }
   return deletes;
 }
@@ -574,6 +631,197 @@ function edgeEvidence(
  * On a valid baseline, deleting the row must break syntax; every candidate
  * must also satisfy source-range structure or indentation evidence.
  */
+interface KeepPlanInputs {
+  plans: KeepPlan[];
+  leadingIndent: number;
+  trailingIndent: number;
+  firstIndent: number;
+  lastIndent: number;
+}
+
+function keepPlanInputs(
+  group: ReplacementGroup,
+  trailingLine: number,
+  payload: readonly string[],
+  fileLines: readonly string[],
+): KeepPlanInputs | undefined {
+  const leadingPayload = payloadEdge(payload, "leading");
+  const trailingPayload = payloadEdge(payload, "trailing");
+  if (leadingPayload === undefined || trailingPayload === undefined) return undefined;
+  return {
+    plans: [{ kept: 0 }],
+    leadingIndent: indentColumns(leadingPayload),
+    trailingIndent: indentColumns(trailingPayload),
+    firstIndent: indentColumns(fileLines[group.startLine - 1] ?? ""),
+    lastIndent: indentColumns(fileLines[trailingLine - 1] ?? ""),
+  };
+}
+
+function buildSingleLineKeepPlans(
+  group: ReplacementGroup,
+  inputs: KeepPlanInputs,
+  fileLines: readonly string[],
+  evidence: EdgeEvidence,
+  baselineParses: boolean,
+): { plans: KeepPlan[]; ambiguous: boolean } {
+  const previous = nearestContentLine(fileLines, group.startLine - 2, -1);
+  const fitsBefore = previous === undefined || indentColumns(previous) === inputs.trailingIndent;
+  if (evidence.first && fitsBefore && inputs.trailingIndent > inputs.firstIndent)
+    inputs.plans.push({ afterLine: group.startLine, kept: 1 });
+  return {
+    plans: inputs.plans,
+    ambiguous: baselineParses && evidence.first && inputs.trailingIndent === inputs.firstIndent,
+  };
+}
+
+interface MultiLineKeepDecision {
+  keepsLeading: boolean;
+  keepsTrailing: boolean;
+  ambiguous: boolean;
+}
+
+function structuralKeepEvidence(
+  group: ReplacementGroup,
+  trailingLine: number,
+  payload: readonly string[],
+  fileLines: readonly string[],
+  evidence: EdgeEvidence,
+  path: string,
+  inputs: KeepPlanInputs,
+): { leadingEvidence: boolean; structuralEdge: boolean; underfilledEdge: boolean } {
+  const selectedLeadingBoundary = enclosingBoundaries(
+    fileLines,
+    path,
+    group.startLine + 1,
+    group.endLine,
+  ).includes(group.startLine);
+  const firstText = (fileLines[group.startLine - 1] ?? "").trim();
+  const structuralEdge =
+    STRUCTURAL_CLOSER_RE.test(firstText) &&
+    inputs.firstIndent === inputs.leadingIndent &&
+    inputs.firstIndent === indentColumns(fileLines[group.endLine - 1] ?? "");
+  const underfilledEdge =
+    trailingLine < group.endLine && payload.length < group.endLine - group.startLine + 1;
+  return {
+    leadingEvidence:
+      evidence.leadingStructure || selectedLeadingBoundary || structuralEdge || underfilledEdge,
+    structuralEdge,
+    underfilledEdge,
+  };
+}
+
+function canKeepLeading(
+  evidence: EdgeEvidence,
+  next: string | undefined,
+  structuralEdge: boolean,
+  leadingEvidence: boolean,
+  inputs: KeepPlanInputs,
+): boolean {
+  const indentFits =
+    next === undefined || structuralEdge
+      ? inputs.leadingIndent >= inputs.firstIndent
+      : indentColumns(next) === inputs.leadingIndent;
+  return evidence.first && leadingEvidence && indentFits;
+}
+
+function canKeepTrailing(
+  evidence: EdgeEvidence,
+  previous: string | undefined,
+  underfilledEdge: boolean,
+  keepsLeading: boolean,
+  inputs: KeepPlanInputs,
+): boolean {
+  const indentFits = previous === undefined || indentColumns(previous) === inputs.trailingIndent;
+  return (
+    (evidence.last || underfilledEdge) &&
+    !keepsLeading &&
+    inputs.trailingIndent > inputs.lastIndent &&
+    indentFits
+  );
+}
+
+function hasAmbiguousMultiLinePlacement(
+  evidence: EdgeEvidence,
+  beforeFirst: string | undefined,
+  baselineParses: boolean,
+  inputs: KeepPlanInputs,
+): boolean {
+  return (
+    baselineParses &&
+    evidence.first &&
+    beforeFirst !== undefined &&
+    inputs.firstIndent < indentColumns(beforeFirst) &&
+    inputs.leadingIndent > inputs.firstIndent
+  );
+}
+
+function multiLineKeepDecision(
+  group: ReplacementGroup,
+  trailingLine: number,
+  payload: readonly string[],
+  fileLines: readonly string[],
+  evidence: EdgeEvidence,
+  path: string,
+  baselineParses: boolean,
+  inputs: KeepPlanInputs,
+): MultiLineKeepDecision {
+  const next = nearestContentLine(fileLines, group.startLine, 1);
+  const previous = nearestContentLine(fileLines, trailingLine - 2, -1);
+  const beforeFirst = nearestContentLine(fileLines, group.startLine - 2, -1);
+  const structural = structuralKeepEvidence(
+    group,
+    trailingLine,
+    payload,
+    fileLines,
+    evidence,
+    path,
+    inputs,
+  );
+  const keepsLeading = canKeepLeading(
+    evidence,
+    next,
+    structural.structuralEdge,
+    structural.leadingEvidence,
+    inputs,
+  );
+  return {
+    keepsLeading,
+    keepsTrailing: canKeepTrailing(
+      evidence,
+      previous,
+      structural.underfilledEdge,
+      keepsLeading,
+      inputs,
+    ),
+    ambiguous: hasAmbiguousMultiLinePlacement(evidence, beforeFirst, baselineParses, inputs),
+  };
+}
+
+function buildMultiLineKeepPlans(
+  group: ReplacementGroup,
+  trailingLine: number,
+  payload: readonly string[],
+  fileLines: readonly string[],
+  evidence: EdgeEvidence,
+  path: string,
+  baselineParses: boolean,
+  inputs: KeepPlanInputs,
+): { plans: KeepPlan[]; ambiguous: boolean } {
+  const decision = multiLineKeepDecision(
+    group,
+    trailingLine,
+    payload,
+    fileLines,
+    evidence,
+    path,
+    baselineParses,
+    inputs,
+  );
+  if (decision.keepsLeading) inputs.plans.push({ beforeLine: group.startLine, kept: 1 });
+  if (decision.keepsTrailing) inputs.plans.push({ afterLine: trailingLine, kept: 1 });
+  return { plans: inputs.plans, ambiguous: decision.ambiguous };
+}
+
 function buildKeepPlans(
   group: ReplacementGroup,
   trailingLine: number,
@@ -583,75 +831,20 @@ function buildKeepPlans(
   path: string,
   baselineParses: boolean,
 ): { plans: KeepPlan[]; ambiguous: boolean } {
-  const leadingPayload = payloadEdge(payload, "leading");
-  const trailingPayload = payloadEdge(payload, "trailing");
-  const plans: KeepPlan[] = [{ kept: 0 }];
-  if (leadingPayload === undefined || trailingPayload === undefined)
-    return { plans, ambiguous: false };
-
-  const first = fileLines[group.startLine - 1] ?? "";
-  const last = fileLines[trailingLine - 1] ?? "";
-  const leadingIndent = indentColumns(leadingPayload);
-  const trailingIndent = indentColumns(trailingPayload);
-  const firstIndent = indentColumns(first);
-  const lastIndent = indentColumns(last);
-  let ambiguous = false;
-
-  if (group.startLine === trailingLine) {
-    const previous = nearestContentLine(fileLines, group.startLine - 2, -1);
-    const fitsBefore = previous === undefined || indentColumns(previous) === trailingIndent;
-    if (evidence.first && fitsBefore && trailingIndent > firstIndent) {
-      plans.push({ afterLine: group.startLine, kept: 1 });
-    } else if (baselineParses && evidence.first && trailingIndent === firstIndent) {
-      ambiguous = true;
-    }
-    return { plans, ambiguous };
-  }
-
-  const next = nearestContentLine(fileLines, group.startLine, 1);
-  const previous = nearestContentLine(fileLines, trailingLine - 2, -1);
-  const beforeFirst = nearestContentLine(fileLines, group.startLine - 2, -1);
-  const selectedLeadingBoundary = enclosingBoundaries(
+  const inputs = keepPlanInputs(group, trailingLine, payload, fileLines);
+  if (inputs === undefined) return { plans: [{ kept: 0 }], ambiguous: false };
+  if (group.startLine === trailingLine)
+    return buildSingleLineKeepPlans(group, inputs, fileLines, evidence, baselineParses);
+  return buildMultiLineKeepPlans(
+    group,
+    trailingLine,
+    payload,
     fileLines,
+    evidence,
     path,
-    group.startLine + 1,
-    group.endLine,
-  ).includes(group.startLine);
-  const firstText = (fileLines[group.startLine - 1] ?? "").trim();
-  const selectedStructuralEdge =
-    STRUCTURAL_CLOSER_RE.test(firstText) &&
-    firstIndent === leadingIndent &&
-    firstIndent === indentColumns(fileLines[group.endLine - 1] ?? "");
-  const underfilledEffectiveEdge =
-    trailingLine < group.endLine && payload.length < group.endLine - group.startLine + 1;
-  const keepsLeading =
-    evidence.first &&
-    (evidence.leadingStructure ||
-      selectedLeadingBoundary ||
-      selectedStructuralEdge ||
-      underfilledEffectiveEdge) &&
-    (next === undefined || selectedStructuralEdge
-      ? leadingIndent >= firstIndent
-      : indentColumns(next) === leadingIndent);
-  const keepsTrailing =
-    (evidence.last || underfilledEffectiveEdge) &&
-    !keepsLeading &&
-    trailingIndent > lastIndent &&
-    (previous === undefined || indentColumns(previous) === trailingIndent);
-  if (keepsLeading) plans.push({ beforeLine: group.startLine, kept: 1 });
-  if (keepsTrailing) plans.push({ afterLine: trailingLine, kept: 1 });
-  // Retaining both edges can silently resurrect an intentionally removed
-  // wrapper or signature; parsing cannot distinguish that from omission.
-  if (
-    baselineParses &&
-    evidence.first &&
-    beforeFirst !== undefined &&
-    firstIndent < indentColumns(beforeFirst) &&
-    leadingIndent > firstIndent
-  ) {
-    ambiguous = true;
-  }
-  return { plans, ambiguous };
+    baselineParses,
+    inputs,
+  );
 }
 
 /**
@@ -770,6 +963,57 @@ function compareBoundaryCombo(a: BoundaryCombo, b: BoundaryCombo): number {
  * then exact echo drops. Different texts tied at that full cost are not
  * guessed.
  */
+interface BoundaryGroup {
+  group: ReplacementGroup;
+  variants: GroupVariant[];
+}
+
+function collectBoundaryGroups(
+  edits: readonly AppliedEdit[],
+  fileLines: readonly string[],
+  path: string,
+  baselineParses: boolean,
+): { groups: BoundaryGroup[]; ambiguous?: ReplacementGroup } {
+  const groups: BoundaryGroup[] = [];
+  let ambiguous: ReplacementGroup | undefined;
+  for (let index = 0; index < edits.length;) {
+    const group = findReplacementGroup(edits, index);
+    if (group === undefined) {
+      index++;
+      continue;
+    }
+    const built = buildGroupVariants(group, edits, fileLines, path, baselineParses);
+    if (built.ambiguous && ambiguous === undefined) ambiguous = group;
+    if (built.variants.length > 0) groups.push({ group, variants: built.variants });
+    const lastDelete = group.deleteIndices.at(-1);
+    if (lastDelete === undefined) throw new Error("Replacement group is missing a delete index.");
+    index = lastDelete + 1;
+  }
+  return ambiguous === undefined ? { groups } : { groups, ambiguous };
+}
+
+function buildBoundaryCombos(groups: readonly BoundaryGroup[]): BoundaryCombo[] {
+  let combos: BoundaryCombo[] = [{ variants: [], touched: 0, kept: 0, dropped: 0 }];
+  for (const { variants } of groups) {
+    const next = combos.flatMap((combo) => [
+      { ...combo, variants: [...combo.variants, null] },
+      ...variants.map((variant) => ({
+        variants: [...combo.variants, variant],
+        touched: combo.touched + 1,
+        kept: combo.kept + variant.kept,
+        dropped: combo.dropped + variant.dropped,
+      })),
+    ]);
+    combos = next.sort(compareBoundaryCombo).slice(0, MAX_BOUNDARY_COMBOS);
+  }
+  return combos;
+}
+
+function throwAmbiguousBoundary(group: ReplacementGroup | undefined): void {
+  if (group !== undefined)
+    throw new Error(ambiguousBoundaryPlacementMessage(group.startLine, group.endLine));
+}
+
 function repairBoundaryVariants(
   edits: readonly AppliedEdit[],
   fileLines: readonly string[],
@@ -777,60 +1021,25 @@ function repairBoundaryVariants(
   baselineParses: boolean,
 ): { edits: AppliedEdit[]; warnings: string[] } | undefined {
   if (path === undefined) return undefined;
-
-  const groups: { group: ReplacementGroup; variants: GroupVariant[] }[] = [];
-  let ambiguousGroup: ReplacementGroup | undefined;
-  let i = 0;
-  while (i < edits.length) {
-    const group = findReplacementGroup(edits, i);
-    if (group) {
-      const built = buildGroupVariants(group, edits, fileLines, path, baselineParses);
-      if (built.ambiguous && ambiguousGroup === undefined) ambiguousGroup = group;
-      if (built.variants.length > 0) groups.push({ group, variants: built.variants });
-      i = group.deleteIndices[group.deleteIndices.length - 1] + 1;
-    } else {
-      i++;
-    }
-  }
-  if (groups.length === 0) {
-    if (ambiguousGroup) {
-      throw new Error(
-        ambiguousBoundaryPlacementMessage(ambiguousGroup.startLine, ambiguousGroup.endLine),
-      );
-    }
+  const collected = collectBoundaryGroups(edits, fileLines, path, baselineParses);
+  if (collected.groups.length === 0) {
+    throwAmbiguousBoundary(collected.ambiguous);
     return undefined;
   }
-
-  let combos: BoundaryCombo[] = [{ variants: [], touched: 0, kept: 0, dropped: 0 }];
-  for (const { variants } of groups) {
-    const next: BoundaryCombo[] = [];
-    for (const combo of combos) {
-      next.push({ ...combo, variants: [...combo.variants, null] });
-      for (const variant of variants) {
-        next.push({
-          variants: [...combo.variants, variant],
-          touched: combo.touched + 1,
-          kept: combo.kept + variant.kept,
-          dropped: combo.dropped + variant.dropped,
-        });
-      }
-    }
-    next.sort(compareBoundaryCombo);
-    combos = next.slice(0, MAX_BOUNDARY_COMBOS);
-  }
-
   const authored = materializeEdits(
     fileLines,
     edits.map((edit, index) => cloneAppliedEdit(edit, index)),
   ).text;
-  const candidates = combos.filter((combo) => combo.touched > 0).sort(compareBoundaryCombo);
-
   let bestText: string | undefined;
   let bestCombo: BoundaryCombo | undefined;
-  for (const combo of candidates) {
+  for (const combo of buildBoundaryCombos(collected.groups)
+    .filter((item) => item.touched > 0)
+    .sort(compareBoundaryCombo)) {
     if (bestCombo !== undefined && compareBoundaryCombo(combo, bestCombo) > 0) break;
-    const candidate = spliceBoundaryCombo(edits, groups, combo);
-    const text = materializeEdits(fileLines, candidate).text;
+    const text = materializeEdits(
+      fileLines,
+      spliceBoundaryCombo(edits, collected.groups, combo),
+    ).text;
     if (text === authored || !parsesCleanly(path, text)) continue;
     if (bestCombo === undefined) {
       bestCombo = combo;
@@ -838,32 +1047,23 @@ function repairBoundaryVariants(
       continue;
     }
     if (text !== bestText) {
-      if (ambiguousGroup) {
-        throw new Error(
-          ambiguousBoundaryPlacementMessage(ambiguousGroup.startLine, ambiguousGroup.endLine),
-        );
-      }
+      throwAmbiguousBoundary(collected.ambiguous);
       return undefined;
     }
   }
   if (bestCombo === undefined) {
-    if (ambiguousGroup) {
-      throw new Error(
-        ambiguousBoundaryPlacementMessage(ambiguousGroup.startLine, ambiguousGroup.endLine),
-      );
-    }
+    throwAmbiguousBoundary(collected.ambiguous);
     return undefined;
   }
-
-  const warnings: string[] = [];
-  groups.forEach((entry, index) => {
+  const warnings = collected.groups.flatMap((entry, index) => {
     const variant = bestCombo.variants[index];
-    if (variant)
-      warnings.push(
-        boundaryVariantRepairWarning(entry.group.startLine, variant.kept, variant.dropped),
-      );
+    if (variant === undefined)
+      throw new Error(`internal error: missing boundary variant at index ${String(index)}`);
+    return variant === null
+      ? []
+      : [boundaryVariantRepairWarning(entry.group.startLine, variant.kept, variant.dropped)];
   });
-  return { edits: spliceBoundaryCombo(edits, groups, bestCombo), warnings };
+  return { edits: spliceBoundaryCombo(edits, collected.groups, bestCombo), warnings };
 }
 
 /** Replace each group's authored edits with its combo variant (or the authored
@@ -876,27 +1076,38 @@ function spliceBoundaryCombo(
   combo: BoundaryCombo,
 ): AppliedEdit[] {
   const chosen = new Map<number, GroupVariant>();
-  groups.forEach((entry, idx) => {
+  for (const [idx, entry] of groups.entries()) {
     const variant = combo.variants[idx];
-    if (variant) chosen.set(entry.group.insertIndices[0], variant);
-  });
+    const firstInsertIndex = entry.group.insertIndices[0];
+    if (firstInsertIndex === undefined)
+      throw new Error("internal error: replacement group is missing an insert index");
+    if (variant) chosen.set(firstInsertIndex, variant);
+  }
   const out: AppliedEdit[] = [];
   let i = 0;
   while (i < edits.length) {
     const group = findReplacementGroup(edits, i);
     if (!group) {
-      out.push(cloneAppliedEdit(edits[i], i));
+      out.push(cloneAppliedEdit(appliedEditAt(edits, i), i));
       i++;
       continue;
     }
-    const variant = chosen.get(group.insertIndices[0]);
+    const firstInsertIndex = group.insertIndices[0];
+    if (firstInsertIndex === undefined)
+      throw new Error("internal error: replacement group is missing an insert index");
+    const variant = chosen.get(firstInsertIndex);
     if (variant) {
       out.push(...variant.edits);
     } else {
-      for (const idx of group.insertIndices) out.push(cloneAppliedEdit(edits[idx], idx));
-      for (const idx of group.deleteIndices) out.push(cloneAppliedEdit(edits[idx], idx));
+      for (const idx of group.insertIndices)
+        out.push(cloneAppliedEdit(appliedEditAt(edits, idx), idx));
+      for (const idx of group.deleteIndices)
+        out.push(cloneAppliedEdit(appliedEditAt(edits, idx), idx));
     }
-    i = group.deleteIndices[group.deleteIndices.length - 1] + 1;
+    const lastDeleteIndex = group.deleteIndices.at(-1);
+    if (lastDeleteIndex === undefined)
+      throw new Error("Replacement group is missing a delete index.");
+    i = lastDeleteIndex + 1;
   }
   return out;
 }
@@ -937,7 +1148,7 @@ function spliceBoundaryCombo(
 function leadingIndent(line: string): string {
   let end = 0;
   while (end < line.length) {
-    const code = line.charCodeAt(end);
+    const code = line.codePointAt(end);
     if (code !== 9 && code !== 32) break;
     end++;
   }
@@ -1059,47 +1270,57 @@ function resolveInwardLanding(
  * the block's closing line. Returns the corrected edit list plus one warning
  * per shifted hunk.
  */
-function repairAfterInsertLandings(
-  edits: readonly AppliedEdit[],
-  fileLines: readonly string[],
-): { edits: readonly AppliedEdit[]; warnings: string[] } {
-  // Group plain (non-replacement) after-anchor inserts per authored hunk:
-  // rows of one hunk share the anchor line and the patch header line.
+function collectAfterInsertGroups(edits: readonly AppliedEdit[]): Map<string, AfterInsertGroup> {
   const groups = new Map<string, AfterInsertGroup>();
-  edits.forEach((edit, idx) => {
-    if (edit.kind !== "insert" || edit.mode === "replacement") return;
-    if (edit.cursor.kind !== "after_anchor") return;
-    const key = `${edit.cursor.anchor.line}:${edit.lineNum}`;
+  for (const [index, edit] of edits.entries()) {
+    if (
+      edit.kind !== "insert" ||
+      edit.mode === "replacement" ||
+      edit.cursor.kind !== "after_anchor"
+    )
+      continue;
+    const key = `${String(edit.cursor.anchor.line)}:${String(edit.lineNum)}`;
     const group = groups.get(key);
     if (group === undefined)
       groups.set(key, {
         anchor: edit.cursor.anchor.line,
-        members: [idx],
-        blockStart: edit.blockStart,
+        members: [index],
+        ...(edit.blockStart === undefined ? {} : { blockStart: edit.blockStart }),
       });
-    else group.members.push(idx);
-  });
-  if (groups.size === 0) return { edits, warnings: [] };
-
-  // Lines explicitly targeted by any edit; a shift never crosses them.
-  const targetedLines = new Set<number>();
-  for (const edit of edits) {
-    if (edit.kind === "delete") targetedLines.add(edit.anchor.line);
-    else if (edit.cursor.kind === "before_anchor" || edit.cursor.kind === "after_anchor")
-      targetedLines.add(edit.cursor.anchor.line);
+    else group.members.push(index);
   }
+  return groups;
+}
 
+function targetedAnchorLines(edits: readonly AppliedEdit[]): Set<number> {
+  const lines = new Set<number>();
+  for (const edit of edits) {
+    if (edit.kind === "delete") lines.add(edit.anchor.line);
+    else if (edit.cursor.kind === "before_anchor" || edit.cursor.kind === "after_anchor")
+      lines.add(edit.cursor.anchor.line);
+  }
+  return lines;
+}
+
+function repairAfterInsertLandings(
+  edits: readonly AppliedEdit[],
+  fileLines: readonly string[],
+): { edits: readonly AppliedEdit[]; warnings: string[] } {
+  const groups = collectAfterInsertGroups(edits);
+  if (groups.size === 0) return { edits, warnings: [] };
+  const targetedLines = targetedAnchorLines(edits);
   let out: AppliedEdit[] | undefined;
   const warnings: string[] = [];
   const retarget = (group: AfterInsertGroup, line: number): void => {
     out ??= [...edits];
-    for (const idx of group.members) {
-      const edit = insertEditAt(out, idx);
-      out[idx] = { ...edit, cursor: { kind: "after_anchor", anchor: { line } } };
-    }
+    for (const index of group.members)
+      out[index] = {
+        ...insertEditAt(out, index),
+        cursor: { kind: "after_anchor", anchor: { line } },
+      };
   };
   for (const group of groups.values()) {
-    const target = bodyTargetIndent(group.members.map((idx) => insertEditAt(edits, idx).text));
+    const target = bodyTargetIndent(group.members.map((index) => insertEditAt(edits, index).text));
     if (target === undefined) continue;
     const outward = resolveShiftedLanding(group, target, fileLines, targetedLines);
     if (outward !== undefined) {
@@ -1109,9 +1330,10 @@ function repairAfterInsertLandings(
     }
     if (group.blockStart === undefined) continue;
     const inward = resolveInwardLanding(group, target, group.blockStart, fileLines, targetedLines);
-    if (inward === undefined) continue;
-    retarget(group, inward);
-    warnings.push(blockInsertLandingShiftWarning(group.blockStart, group.anchor, inward));
+    if (inward !== undefined) {
+      retarget(group, inward);
+      warnings.push(blockInsertLandingShiftWarning(group.blockStart, group.anchor, inward));
+    }
   }
   return { edits: out ?? edits, warnings };
 }
@@ -1133,6 +1355,49 @@ export interface ApplyEditsOptions {
    * evidence-complete rejections run.
    */
   path?: string;
+}
+
+function applyAnchorBucket(
+  fileLines: string[],
+  lineOrigins: LineOrigin[],
+  line: number,
+  bucket: IndexedEdit[],
+): boolean {
+  bucket.sort((a, b) => a.idx - b.idx);
+  const before: string[] = [];
+  const after: string[] = [];
+  const replacement: string[] = [];
+  let deletes = false;
+  for (const { edit } of bucket) {
+    if (isReplacementInsert(edit)) replacement.push(edit.text);
+    else if (edit.kind === "insert" && edit.cursor.kind === "after_anchor") after.push(edit.text);
+    else if (edit.kind === "insert") before.push(edit.text);
+    else deletes = true;
+  }
+  if (before.length === 0 && replacement.length === 0 && after.length === 0 && !deletes)
+    return false;
+  const index = line - 1;
+  const current = fileLines[index];
+  if (current === undefined) throw new Error(`internal error: missing line ${String(line)}`);
+  const insertedOrigins: LineOrigin[] = Array.from({ length: before.length }, () => "insert");
+  const replacementOrigins: LineOrigin[] = Array.from({ length: replacement.length }, () =>
+    deletes ? "replacement" : "insert",
+  );
+  const afterOrigins: LineOrigin[] = Array.from({ length: after.length }, () => "insert");
+  const text = deletes
+    ? [...before, ...replacement, ...after]
+    : [...before, ...replacement, current, ...after];
+  const origins = deletes
+    ? [...insertedOrigins, ...replacementOrigins, ...afterOrigins]
+    : [
+        ...insertedOrigins,
+        ...replacementOrigins,
+        lineOrigins[index] ?? "original",
+        ...afterOrigins,
+      ];
+  fileLines.splice(index, 1, ...text);
+  lineOrigins.splice(index, 1, ...origins);
+  return true;
 }
 
 interface Materialized {
@@ -1164,7 +1429,7 @@ function materializeEdits(
   const bofLines: string[] = [];
   const eofLines: string[] = [];
   const anchorEdits: IndexedEdit[] = [];
-  landed.forEach((edit, idx) => {
+  for (const [idx, edit] of landed.entries()) {
     if (edit.kind === "insert" && edit.cursor.kind === "bof") {
       bofLines.push(edit.text);
     } else if (edit.kind === "insert" && edit.cursor.kind === "eof") {
@@ -1172,54 +1437,14 @@ function materializeEdits(
     } else {
       anchorEdits.push({ edit, idx });
     }
-  });
+  }
 
   // Apply per-line buckets bottom-up so earlier indices stay valid.
   const byLine = bucketAnchorEditsByLine(anchorEdits);
   for (const line of [...byLine.keys()].sort((a, b) => b - a)) {
     const bucket = byLine.get(line);
-    if (!bucket) continue;
-    bucket.sort((a, b) => a.idx - b.idx);
-
-    const idx = line - 1;
-    const currentLine = fileLines[idx] ?? "";
-    const beforeInsertLines: string[] = [];
-    const afterInsertLines: string[] = [];
-    const replacementLines: string[] = [];
-    let deleteLine = false;
-
-    for (const { edit } of bucket) {
-      if (isReplacementInsert(edit)) {
-        replacementLines.push(edit.text);
-      } else if (edit.kind === "insert" && edit.cursor.kind === "after_anchor") {
-        afterInsertLines.push(edit.text);
-      } else if (edit.kind === "insert") {
-        beforeInsertLines.push(edit.text);
-      } else if (edit.kind === "delete") {
-        deleteLine = true;
-      }
-    }
-    if (
-      beforeInsertLines.length === 0 &&
-      replacementLines.length === 0 &&
-      afterInsertLines.length === 0 &&
-      !deleteLine
-    )
-      continue;
-
-    const replacement = deleteLine
-      ? [...beforeInsertLines, ...replacementLines, ...afterInsertLines]
-      : [...beforeInsertLines, ...replacementLines, currentLine, ...afterInsertLines];
-    const origins: LineOrigin[] = [];
-    for (let i = 0; i < beforeInsertLines.length; i++) origins.push("insert");
-    for (let i = 0; i < replacementLines.length; i++)
-      origins.push(deleteLine ? "replacement" : "insert");
-    if (!deleteLine) origins.push(lineOrigins[idx] ?? "original");
-    for (let i = 0; i < afterInsertLines.length; i++) origins.push("insert");
-
-    fileLines.splice(idx, 1, ...replacement);
-    lineOrigins.splice(idx, 1, ...origins);
-    trackFirstChanged(line);
+    if (bucket === undefined) continue;
+    if (applyAnchorBucket(fileLines, lineOrigins, line, bucket)) trackFirstChanged(line);
   }
 
   if (bofLines.length > 0) {
@@ -1249,7 +1474,7 @@ export function applyEdits(
   edits: readonly Edit[],
   options: ApplyEditsOptions = {},
 ): ApplyResult {
-  if (edits.length === 0) return { text, firstChangedLine: undefined };
+  if (edits.length === 0) return { text };
 
   const fileLines = text.split("\n");
 
@@ -1293,11 +1518,13 @@ export function applyEdits(
     }
     return {
       text: result.text,
-      firstChangedLine: result.firstChangedLine,
+      ...(result.firstChangedLine === undefined
+        ? {}
+        : { firstChangedLine: result.firstChangedLine }),
       ...(merged.length > 0 ? { warnings: merged } : {}),
     };
   };
-  const ambiguity = normalized.ambiguities[0];
+  const ambiguity = normalized.ambiguities.at(0);
   // Exact-text normalization is evidence-complete. If it leaves a parsing
   // result, no speculative keep/drop variant may second-guess it.
   if (authoredParses) {

@@ -14,10 +14,12 @@ export default {
   ],
   globs: [
     "**/*.md",
-    "!node_modules/**",
+    "!**/node_modules/**",
     "!coverage/**",
     "!.pi-subagents/**",
     "!.pi/subagents/**",
     "!packages/*/CHANGELOG.md",
+    "!packages/*/UPSTREAM_*.md",
+    "!packages/*/src/hashline/prompt.md",
   ],
 };

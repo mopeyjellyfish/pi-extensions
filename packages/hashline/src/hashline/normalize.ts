@@ -17,12 +17,12 @@ export function detectLineEnding(content: string): LineEnding {
 
 /** Normalize every line ending to LF. */
 export function normalizeToLF(text: string): string {
-  return text.replace(/\r\n?/g, "\n");
+  return text.replaceAll(/\r\n?/g, "\n");
 }
 
 /** Re-encode LF text with the requested line ending. */
 export function restoreLineEndings(text: string, ending: LineEnding): string {
-  return ending === "\r\n" ? text.replace(/\n/g, "\r\n") : text;
+  return ending === "\r\n" ? text.replaceAll("\n", "\r\n") : text;
 }
 
 export interface BomResult {
@@ -34,7 +34,7 @@ export interface BomResult {
 
 /** Strip a UTF-8 BOM if present and return both the BOM and the trailing text. */
 export function stripBom(content: string): BomResult {
-  return content.startsWith("\uFEFF")
-    ? { bom: "\uFEFF", text: content.slice(1) }
+  return content.startsWith("\u{FEFF}")
+    ? { bom: "\u{FEFF}", text: content.slice(1) }
     : { bom: "", text: content };
 }

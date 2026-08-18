@@ -7,12 +7,14 @@
  * patcher then returns a mismatch with fresh context instead of guessing.
  */
 import { diffLines } from "diff";
+
 import { applyEdits } from "./apply.ts";
 import {
   RECOVERY_EXTERNAL_WARNING,
   RECOVERY_LINE_REMAP_WARNING,
   RECOVERY_SESSION_CHAIN_WARNING,
 } from "./messages.ts";
+
 import type { SnapshotStore } from "./snapshots.ts";
 import type { Anchor, ApplyResult, Clipboard, Edit } from "./types.ts";
 
@@ -128,12 +130,16 @@ function computeAnchorNeighbors(
   const neighbors = new Map<number, AnchorNeighbors>();
   for (let i = 0; i < sorted.length;) {
     let j = i;
-    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
+    while (j + 1 < sorted.length && (sorted[j + 1] ?? NaN) === (sorted[j] ?? NaN) + 1) j++;
     const start = sorted[i];
     const end = sorted[j];
+    if (start === undefined || end === undefined) break;
     const before = start - 1 >= 1 && start - 1 <= lineCount ? start - 1 : undefined;
     const after = end + 1 <= lineCount ? end + 1 : undefined;
-    for (let k = i; k <= j; k++) neighbors.set(sorted[k], { before, after });
+    for (let k = i; k <= j; k++) {
+      const line = sorted[k];
+      if (line !== undefined) neighbors.set(line, { before, after });
+    }
     i = j + 1;
   }
   return neighbors;
@@ -191,10 +197,10 @@ function validateRemappedAnchorContext(
   for (const [line, neighbors] of anchorNeighbors) {
     const mapped = lineMap.get(line);
     if (mapped === undefined) return false;
-    if (
-      !duplicatedPrevious.has(previousLines[line - 1]) &&
-      !duplicatedCurrent.has(currentLines[mapped - 1])
-    ) {
+    const previousLine = previousLines[line - 1];
+    const currentLine = currentLines[mapped - 1];
+    if (previousLine === undefined || currentLine === undefined) return false;
+    if (!duplicatedPrevious.has(previousLine) && !duplicatedCurrent.has(currentLine)) {
       if (!validateUniqueAnchorContext(line, mapped, neighbors, lineMap)) {
         return false;
       }
@@ -213,6 +219,76 @@ interface RemappedEdits {
   offset: number;
 }
 
+type LineMapper = (line: number) => number | null;
+
+function remapRange(range: { start: Anchor; end: Anchor }, mapLine: LineMapper) {
+  // Map every captured line; an unmapped interior means the content drifted
+  // and cannot move safely. Anchor-context validation elsewhere proves the
+  // interior mapping is contiguous; this loop captures only its endpoints.
+  let start: number | null = null;
+  let end: number | null = null;
+  for (let line = range.start.line; line <= range.end.line; line++) {
+    const mapped = mapLine(line);
+    if (mapped === null) return null;
+    start ??= mapped;
+    end = mapped;
+  }
+  return start === null || end === null ? null : { start: { line: start }, end: { line: end } };
+}
+
+function remapBlockStart(
+  blockStart: number | undefined,
+  mapLine: LineMapper,
+): number | null | undefined {
+  return blockStart === undefined ? undefined : mapLine(blockStart);
+}
+
+function remapAnchoredCursor(
+  cursor: Extract<Edit, { kind: "insert" }>["cursor"],
+  mapLine: LineMapper,
+) {
+  if (cursor.kind !== "before_anchor" && cursor.kind !== "after_anchor") return cursor;
+  const line = mapLine(cursor.anchor.line);
+  return line === null ? null : { kind: cursor.kind, anchor: { line } };
+}
+
+function remapEdit(edit: Edit, mapLine: LineMapper): Edit | null {
+  if (edit.kind === "delete" || edit.kind === "block") {
+    const line = mapLine(edit.anchor.line);
+    return line === null ? null : { ...edit, anchor: { line } };
+  }
+  if (edit.kind === "cut") {
+    const range = remapRange(edit.range, mapLine);
+    return range === null ? null : { ...edit, range };
+  }
+  const blockStart = remapBlockStart(edit.blockStart, mapLine);
+  if (blockStart === null) return null;
+  if (edit.kind === "paste") {
+    if (edit.at.kind === "span") {
+      const range = remapRange(edit.at.range, mapLine);
+      return range === null
+        ? null
+        : {
+            ...edit,
+            at: { kind: "span", range },
+            ...(blockStart === undefined ? {} : { blockStart }),
+          };
+    }
+    const cursor = remapAnchoredCursor(edit.at.cursor, mapLine);
+    return cursor === null
+      ? null
+      : {
+          ...edit,
+          at: { kind: "gap", cursor },
+          ...(blockStart === undefined ? {} : { blockStart }),
+        };
+  }
+  const cursor = remapAnchoredCursor(edit.cursor, mapLine);
+  return cursor === null
+    ? null
+    : { ...edit, cursor, ...(blockStart === undefined ? {} : { blockStart }) };
+}
+
 function remapEditsToCurrent(
   previousText: string,
   currentText: string,
@@ -229,98 +305,17 @@ function remapEditsToCurrent(
     return mapped;
   };
 
-  const mapAnchor = (anchor: Anchor): Anchor | null => {
-    const line = mapLine(anchor.line);
-    return line === null ? null : { line };
-  };
-
   const remapped: Edit[] = [];
   for (const edit of edits) {
-    if (edit.kind === "delete") {
-      const anchor = mapAnchor(edit.anchor);
-      if (anchor === null) return null;
-      remapped.push({ ...edit, anchor });
-      continue;
-    }
-    if (edit.kind === "block") {
-      const anchor = mapAnchor(edit.anchor);
-      if (anchor === null) return null;
-      remapped.push({ ...edit, anchor });
-      continue;
-    }
-    if (edit.kind === "cut") {
-      // Map every captured line; an unmapped interior line means the
-      // content drifted and cannot be moved safely. Uniform offsets keep
-      // the mapped range contiguous.
-      const start = mapLine(edit.range.start.line);
-      if (start === null) return null;
-      let end = start;
-      for (let line = edit.range.start.line + 1; line <= edit.range.end.line; line++) {
-        const mapped = mapLine(line);
-        if (mapped === null) return null;
-        end = mapped;
-      }
-      remapped.push({ ...edit, range: { start: { line: start }, end: { line: end } } });
-      continue;
-    }
-    if (edit.kind === "paste") {
-      let blockStart = edit.blockStart;
-      if (blockStart !== undefined) {
-        const mappedBlockStart = mapLine(blockStart);
-        if (mappedBlockStart === null) return null;
-        blockStart = mappedBlockStart;
-      }
-      if (edit.at.kind === "span") {
-        const start = mapLine(edit.at.range.start.line);
-        if (start === null) return null;
-        let end = start;
-        for (let line = edit.at.range.start.line + 1; line <= edit.at.range.end.line; line++) {
-          const mapped = mapLine(line);
-          if (mapped === null) return null;
-          end = mapped;
-        }
-        remapped.push({
-          ...edit,
-          at: { kind: "span", range: { start: { line: start }, end: { line: end } } },
-          blockStart,
-        });
-        continue;
-      }
-      const cursor = edit.at.cursor;
-      if (cursor.kind !== "before_anchor" && cursor.kind !== "after_anchor") {
-        remapped.push(blockStart === edit.blockStart ? edit : { ...edit, blockStart });
-        continue;
-      }
-      const anchor = mapAnchor(cursor.anchor);
-      if (anchor === null) return null;
-      remapped.push({
-        ...edit,
-        at: { kind: "gap", cursor: { kind: cursor.kind, anchor } },
-        blockStart,
-      });
-      continue;
-    }
-    if (edit.kind === "insert") {
-      let blockStart = edit.blockStart;
-      if (blockStart !== undefined) {
-        const mappedBlockStart = mapLine(blockStart);
-        if (mappedBlockStart === null) return null;
-        blockStart = mappedBlockStart;
-      }
-      const cursor = edit.cursor;
-      if (cursor.kind !== "before_anchor" && cursor.kind !== "after_anchor") {
-        remapped.push(blockStart === edit.blockStart ? edit : { ...edit, blockStart });
-        continue;
-      }
-      const anchor = mapAnchor(cursor.anchor);
-      if (anchor === null) return null;
-      remapped.push({ ...edit, cursor: { kind: cursor.kind, anchor }, blockStart });
-    }
+    const next = remapEdit(edit, mapLine);
+    if (next === null) return null;
+    remapped.push(next);
   }
 
   if (offsets.length === 0) return null;
   const firstOffset = offsets[0];
-  if (!offsets.every((offset) => offset === firstOffset)) return null;
+  if (firstOffset === undefined) return null;
+  if (offsets.some((offset) => offset !== firstOffset)) return null;
   return { edits: remapped, offset: firstOffset };
 }
 
@@ -364,7 +359,11 @@ function replayRemappedAnchorsOnCurrent(
  * caller can surface a {@link MismatchError} with current context.
  */
 export class Recovery {
-  constructor(readonly store: SnapshotStore) {}
+  readonly store: SnapshotStore;
+
+  constructor(store: SnapshotStore) {
+    this.store = store;
+  }
   /**
    * Attempt recovery. Returns `null` when no path forward is found — the
    * caller should then surface a {@link MismatchError}.

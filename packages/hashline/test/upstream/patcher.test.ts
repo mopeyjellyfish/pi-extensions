@@ -1,7 +1,9 @@
-import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+
+import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   computeFileHash,
   formatHashlineHeader,
@@ -12,13 +14,44 @@ import {
   NodeFilesystem,
   Patch,
   Patcher,
+  type PatchSectionResult,
   type WriteResult,
-} from "@oh-my-pi/hashline";
+  initializeSyntax,
+} from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 const PATH = "a.ts";
 
+async function rejectionOf<T>(promise: Promise<T>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+  return new Error("expected rejection");
+}
+
+function expectSection(section: PatchSectionResult | undefined): PatchSectionResult {
+  if (section === undefined) throw new Error("expected one patch result section");
+  return section;
+}
+
+function nodeHashCollision(): readonly [string, string] {
+  const byTag = new Map<string, string>();
+  for (let index = 0; index < 100_000; index++) {
+    const text = `node-hash-collision-${String(index)}\nsecond-${String(index * 17)}\n`;
+    const tag = computeFileHash(text);
+    const previous = byTag.get(tag);
+    if (previous !== undefined && previous !== text) return [previous, text];
+    byTag.set(tag, text);
+  }
+  throw new Error("Expected a 16-bit Hashline tag collision.");
+}
+
 describe("Patcher snapshot tag integrity", () => {
   it("requires a snapshot store at construction", () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem();
     const options = { fs } as unknown as {
       fs: InMemoryFilesystem;
@@ -29,6 +62,7 @@ describe("Patcher snapshot tag integrity", () => {
   });
 
   it("applies when the section tag is the live file's content hash", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, "before\n"]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, "before\n");
@@ -43,11 +77,12 @@ describe("Patcher snapshot tag integrity", () => {
   });
 
   it("restores a UTF-8 BOM hidden by Bun text decoding", async () => {
+    expect.hasAssertions();
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hashline-bom-"));
     try {
       const filePath = path.join(tempDir, "Program.cs");
       const source = "using A;\n";
-      await Bun.write(
+      await fs.writeFile(
         filePath,
         new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(source)]),
       );
@@ -68,6 +103,7 @@ describe("Patcher snapshot tag integrity", () => {
   });
 
   it("validates any anchor purely from the content hash, even with no recorded snapshot", async () => {
+    expect.hasAssertions();
     // The core fix: the tag fingerprints the WHOLE file. An edit anchored at
     // a line the model never saw recorded applies whenever the live file
     // still hashes to the tag — no stored snapshot is consulted.
@@ -86,33 +122,35 @@ describe("Patcher snapshot tag integrity", () => {
   });
 
   it("normalizes lowercase section tags while parsing", () => {
+    expect.hasAssertions();
     const section = Patch.parseSingle(`[${PATH}#1a2b]\nPUT 1-1:\n+after`);
 
     expect(section.fileHash).toBe("1A2B");
   });
 
   it("refuses with mismatch when the recorded version no longer matches live content", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, "drifted\n"]]);
     const snapshots = new InMemorySnapshotStore();
     // Tag was minted from "before\n" but the live file is "drifted\n".
     const tag = snapshots.record(PATH, "before\n");
     const patcher = new Patcher({ fs, snapshots });
 
-    try {
-      await patcher.apply(Patch.parse(`[${PATH}#${tag}]\nPUT 1-1:\n+after`));
-      throw new Error("expected MismatchError");
-    } catch (error) {
-      expect(error).toBeInstanceOf(MismatchError);
-      const message = (error as MismatchError).displayMessage;
-      // Hash WAS observed for this path, so we land on the "file changed" branch.
-      expect(message).toMatch(/file changed between read and edit/);
-      expect(message).toMatch(/Section is bound to #/);
-    }
+    const error = await rejectionOf(
+      patcher.apply(Patch.parse(`[${PATH}#${tag}]\nPUT 1-1:\n+after`)),
+    );
+    expect(error).toBeInstanceOf(MismatchError);
+    if (!(error instanceof MismatchError)) throw new Error("expected MismatchError");
+    const message = error.displayMessage;
+    // Hash WAS observed for this path, so we land on the "file changed" branch.
+    expect(message).toMatch(/file changed between read and edit/);
+    expect(message).toMatch(/Section is bound to #/);
     // Disk untouched — refusal must never leave a partial write.
     expect(fs.get(PATH)).toBe("drifted\n");
   });
 
   it("refuses with a 'not from this session' diagnostic when the tag was never recorded for this path", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, "current\n"]]);
     const snapshots = new InMemorySnapshotStore();
     const patcher = new Patcher({ fs, snapshots });
@@ -122,17 +160,16 @@ describe("Patcher snapshot tag integrity", () => {
     const live = computeFileHash("current\n");
     const bogus = live === "FFFF" ? "0000" : "FFFF";
 
-    try {
-      await patcher.apply(Patch.parse(`[${PATH}#${bogus}]\nPUT 1-1:\n+after`));
-      throw new Error("expected MismatchError");
-    } catch (error) {
-      expect(error).toBeInstanceOf(MismatchError);
-      const message = (error as MismatchError).displayMessage;
-      expect(message).toMatch(new RegExp(`hash #${bogus} is not from this session`));
-      expect(message).toMatch(/never invent the tag/);
-      // Still surfaces the current hash so the model can pivot to a re-read.
-      expect(message).toMatch(/current file hashes to #[0-9A-F]{4}/);
-    }
+    const error = await rejectionOf(
+      patcher.apply(Patch.parse(`[${PATH}#${bogus}]\nPUT 1-1:\n+after`)),
+    );
+    expect(error).toBeInstanceOf(MismatchError);
+    if (!(error instanceof MismatchError)) throw new Error("expected MismatchError");
+    const message = error.displayMessage;
+    expect(message).toMatch(new RegExp(`hash #${bogus} is not from this session`));
+    expect(message).toMatch(/never invent the tag/);
+    // Still surfaces the current hash so the model can pivot to a re-read.
+    expect(message).toMatch(/current file hashes to #[0-9A-F]{4}/);
     expect(fs.get(PATH)).toBe("current\n");
   });
 
@@ -141,9 +178,8 @@ describe("Patcher snapshot tag integrity", () => {
   // wrong, and a forced re-read would mint the very same tag. Line anchors
   // therefore index the live text, colliding retained snapshots notwithstanding.
   it("applies onto live content when the tag matches, even against a retained colliding snapshot", async () => {
-    // These two texts both hash to `1D84`.
-    const SNAPSHOT_TEXT = "line one 263\nline two 4471\n";
-    const LIVE_TEXT = "line one 410\nline two 6970\n";
+    expect.hasAssertions();
+    const [SNAPSHOT_TEXT, LIVE_TEXT] = nodeHashCollision();
     expect(computeFileHash(SNAPSHOT_TEXT)).toBe(computeFileHash(LIVE_TEXT));
 
     const fs = new InMemoryFilesystem([[PATH, LIVE_TEXT]]);
@@ -153,7 +189,7 @@ describe("Patcher snapshot tag integrity", () => {
 
     const patcher = new Patcher({ fs, snapshots });
     await patcher.apply(Patch.parse(`[${PATH}#${tag}]\nPUT 2-2:\n+edited live`));
-    expect(fs.get(PATH)).toBe("line one 410\nedited live\n");
+    expect(fs.get(PATH)).toBe(`${LIVE_TEXT.split("\n", 1)[0] ?? ""}\nedited live\n`);
   });
 });
 
@@ -167,7 +203,7 @@ describe("Patcher snapshot tag integrity", () => {
 // turned into tabs, exactly the corruption reported against the ACP bridge.
 class DriftingFilesystem extends InMemoryFilesystem {
   override async writeText(path: string, content: string): Promise<WriteResult> {
-    const drifted = content.replace(/^ {4}/gm, "\t");
+    const drifted = content.replaceAll(/^ {4}/gm, "\t");
     await super.writeText(path, drifted);
     return { text: drifted };
   }
@@ -175,6 +211,7 @@ class DriftingFilesystem extends InMemoryFilesystem {
 
 describe("Patcher snapshot tag stays honest across a write-time content transform", () => {
   it("keys the returned snapshot tag on what the Filesystem actually persisted, not the pre-write content", async () => {
+    expect.hasAssertions();
     const original = "function f() {\n    return 1;\n}\n";
     const fs = new DriftingFilesystem([[PATH, original]]);
     const snapshots = new InMemorySnapshotStore();
@@ -182,25 +219,25 @@ describe("Patcher snapshot tag stays honest across a write-time content transfor
     const patcher = new Patcher({ fs, snapshots });
 
     const result = await patcher.apply(Patch.parse(`[${PATH}#${tag}]\nPUT 2-2:\n+    return 2;`));
-    const section = result.sections[0];
-    if (!section) throw new Error("expected one section result");
+    const section = expectSection(result.sections[0]);
 
     // Ground truth: the Filesystem drifted the untouched line's indentation
     // to tabs on write, exactly like a hostile format-on-save would.
     const onDisk = fs.get(PATH);
     expect(onDisk).toBe("function f() {\n\treturn 2;\n}\n");
+    if (onDisk === undefined) throw new Error("expected persisted content");
 
     // The returned tag MUST hash the drifted (real) content, not the
     // pre-write text the patcher computed — otherwise the very next edit's
     // tag validation is checked against content the file no longer has.
-    expect(section.fileHash).toBe(computeFileHash(onDisk ?? ""));
-    expect(section.header).toBe(formatHashlineHeader(PATH, computeFileHash(onDisk ?? "")));
+    expect(section.fileHash).toBe(computeFileHash(onDisk));
+    expect(section.header).toBe(formatHashlineHeader(PATH, computeFileHash(onDisk)));
 
     // The drift is surfaced, not swallowed: silent divergence is exactly
     // what turned a one-line edit into unexplained whole-file corruption.
-    expect(section.warnings.some((w) => w.includes(PATH) && /reformatted it on save/.test(w))).toBe(
-      true,
-    );
+    expect(
+      section.warnings.some((w) => w.includes(PATH) && w.includes("reformatted it on save")),
+    ).toBe(true);
 
     // A follow-up edit anchored on the returned tag must succeed against
     // the real (drifted) file instead of failing a stale-tag mismatch.
@@ -211,6 +248,7 @@ describe("Patcher snapshot tag stays honest across a write-time content transfor
 
 describe("Patcher mandatory snapshot tag policy", () => {
   it("rejects a hashless head/tail insert — the tag is required on every section", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, "a\nb\n"]]);
     const snapshots = new InMemorySnapshotStore();
     const patcher = new Patcher({ fs, snapshots });
@@ -222,6 +260,7 @@ describe("Patcher mandatory snapshot tag policy", () => {
   });
 
   it("still hard-rejects an anchored edit that omits the snapshot tag", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, "a\nb\n"]]);
     const snapshots = new InMemorySnapshotStore();
     const patcher = new Patcher({ fs, snapshots });
@@ -232,6 +271,7 @@ describe("Patcher mandatory snapshot tag policy", () => {
   });
 
   it("rejects a tagged edit whose target file does not exist (create with write instead)", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem();
     const snapshots = new InMemorySnapshotStore();
     const patcher = new Patcher({ fs, snapshots });
@@ -242,6 +282,7 @@ describe("Patcher mandatory snapshot tag policy", () => {
   });
 
   it("applies a head/tail insert with a stale tag and warns instead of hard-failing", async () => {
+    expect.hasAssertions();
     const content = "a\nb\n";
     const fs = new InMemoryFilesystem([[PATH, content]]);
     const snapshots = new InMemorySnapshotStore();
@@ -251,13 +292,14 @@ describe("Patcher mandatory snapshot tag policy", () => {
 
     const result = await patcher.apply(Patch.parse(`[${PATH}#${stale}]\nPUT >$:\n+c`));
 
-    const section = result.sections[0];
-    expect(section?.op).toBe("update");
+    const section = expectSection(result.sections[0]);
+    expect(section.op).toBe("update");
     expect(fs.get(PATH)).toBe("a\nb\nc\n");
-    expect(section?.warnings).toContain(HEADTAIL_DRIFT_WARNING);
+    expect(section.warnings).toContain(HEADTAIL_DRIFT_WARNING);
   });
 
   it("does not warn when a head/tail insert carries the live tag", async () => {
+    expect.hasAssertions();
     const content = "a\nb\n";
     const fs = new InMemoryFilesystem([[PATH, content]]);
     const snapshots = new InMemorySnapshotStore();
@@ -266,9 +308,9 @@ describe("Patcher mandatory snapshot tag policy", () => {
 
     const result = await patcher.apply(Patch.parse(`[${PATH}#${tag}]\nPUT >$:\n+c`));
 
-    const section = result.sections[0];
-    expect(section?.op).toBe("update");
-    expect(section?.warnings ?? []).not.toContain(HEADTAIL_DRIFT_WARNING);
+    const section = expectSection(result.sections[0]);
+    expect(section.op).toBe("update");
+    expect(section.warnings).not.toContain(HEADTAIL_DRIFT_WARNING);
   });
 });
 
@@ -276,6 +318,7 @@ describe("Patcher seen-line provenance", () => {
   const CONTENT = "l1\nl2\nl3\nl4\nl5\n";
 
   it("rejects an edit anchored on a line the read never displayed", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     // A partial read displayed only lines 1-2 under this tag.
@@ -289,6 +332,7 @@ describe("Patcher seen-line provenance", () => {
   });
 
   it("applies an edit anchored on a displayed line", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, CONTENT, [1, 2]);
@@ -301,6 +345,7 @@ describe("Patcher seen-line provenance", () => {
   });
 
   it("widens coverage when more of the same content is re-read (read fusion)", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, CONTENT, [1, 2]);
@@ -315,6 +360,7 @@ describe("Patcher seen-line provenance", () => {
   });
 
   it("reveals the actual line content in the rejection and unblocks a same-tag retry", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     // Read only surfaced lines 1-2; anchor line 4 is unseen.
@@ -340,14 +386,15 @@ describe("Patcher seen-line provenance", () => {
   });
 
   it("truncates the reveal at the cap and directs the tail back to a range re-read", async () => {
-    const bigContent = `${Array.from({ length: 200 }, (_, i) => `l${i + 1}`).join("\n")}\n`;
+    expect.hasAssertions();
+    const bigContent = `${Array.from({ length: 200 }, (_, i) => `l${String(i + 1)}`).join("\n")}\n`;
     const fs = new InMemoryFilesystem([[PATH, bigContent]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, bigContent, [1]);
     const patcher = new Patcher({ fs, snapshots });
 
     // Anchor 60 unseen lines — over the 40-line inline reveal cap.
-    const dels = Array.from({ length: 60 }, (_, i) => `CUT ${100 + i}`).join("\n");
+    const dels = Array.from({ length: 60 }, (_, i) => `CUT ${String(100 + i)}`).join("\n");
     let message: string | undefined;
     try {
       await patcher.apply(Patch.parse(`[${PATH}#${tag}]\n${dels}`));
@@ -382,6 +429,7 @@ describe("Patcher seen-line provenance", () => {
   });
 
   it("column-clips wide revealed lines, keeps the merge gate closed, and stays anchored across retries", async () => {
+    expect.hasAssertions();
     // Minified-bundle-style single wide line at anchor 2. Anchor 3 is a
     // short line so we can see the width truncation applied only where
     // needed. The 4KB cap is comfortably over SEEN_LINE_REVEAL_MAX_COLUMNS.
@@ -427,6 +475,7 @@ describe("Patcher seen-line provenance", () => {
   });
 
   it("skips the check when no seen lines were recorded (absent → allow)", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[PATH, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(PATH, CONTENT);
@@ -443,6 +492,7 @@ describe("Patcher tag-based path recovery", () => {
   const CONTENT = "one\ntwo\nthree\n";
 
   it("redirects a bare filename to the full path of the file its tag names", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[NESTED, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(NESTED, CONTENT);
@@ -451,19 +501,20 @@ describe("Patcher tag-based path recovery", () => {
     // The header carries only the basename — the model dropped the directory.
     const result = await patcher.apply(Patch.parse(`[file.ts#${tag}]\nPUT 2-2:\n+TWO`));
 
-    const section = result.sections[0];
-    expect(section?.op).toBe("update");
+    const section = expectSection(result.sections[0]);
+    expect(section.op).toBe("update");
     // The edit landed on the real nested file; the result reports its full path.
-    expect(section?.path).toBe(NESTED);
+    expect(section.path).toBe(NESTED);
     expect(fs.get(NESTED)).toBe("one\nTWO\nthree\n");
     expect(
-      section?.warnings.some(
+      section.warnings.some(
         (warning) => warning.includes("does not exist") && warning.includes(NESTED),
       ),
     ).toBe(true);
   });
 
   it("declines recovery when the filename does not match the recorded file", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[NESTED, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(NESTED, CONTENT);
@@ -476,6 +527,7 @@ describe("Patcher tag-based path recovery", () => {
   });
 
   it("declines recovery when the tag matches no retained snapshot", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([[NESTED, CONTENT]]);
     const snapshots = new InMemorySnapshotStore();
     const tag = snapshots.record(NESTED, CONTENT);
@@ -488,6 +540,7 @@ describe("Patcher tag-based path recovery", () => {
   });
 
   it("declines recovery when two retained files share the filename and tag", async () => {
+    expect.hasAssertions();
     const fs = new InMemoryFilesystem([
       ["a/file.ts", CONTENT],
       ["b/file.ts", CONTENT],
@@ -505,6 +558,7 @@ describe("Patcher tag-based path recovery", () => {
   });
 
   it("respects a filesystem that refuses path recovery", async () => {
+    expect.hasAssertions();
     class NoRecoveryFs extends InMemoryFilesystem {
       override allowTagPathRecovery(): boolean {
         return false;
@@ -522,12 +576,14 @@ describe("Patcher tag-based path recovery", () => {
   });
 
   it("runs the write gate on the recovered path, not the authored bare path", async () => {
+    expect.hasAssertions();
     // A gate that refuses the bare authored path but allows the recovered full
     // path. Mirrors plan mode rejecting a bare cwd path before tag recovery
     // rebinds it to its real (writable) location; recovery must precede the gate.
     class GatedFs extends InMemoryFilesystem {
-      override async preflightWrite(p: string): Promise<void> {
+      override preflightWrite(p: string): Promise<void> {
         if (p === "file.ts") throw new Error("write gate: read-only");
+        return Promise.resolve();
       }
     }
     const fs = new GatedFs([[NESTED, CONTENT]]);
@@ -541,10 +597,11 @@ describe("Patcher tag-based path recovery", () => {
   });
 
   it("runs the write gate on an unrecoverable authored path (gate wins over not-found)", async () => {
+    expect.hasAssertions();
     // No snapshot for the bare name → no recovery; the gate still runs on the
     // authored path and its rejection wins over the file-not-found error.
     class GatedFs extends InMemoryFilesystem {
-      override async preflightWrite(): Promise<void> {
+      override preflightWrite(): Promise<void> {
         throw new Error("write gate: read-only");
       }
     }

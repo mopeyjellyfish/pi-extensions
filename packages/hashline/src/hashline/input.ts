@@ -8,6 +8,7 @@
  * actually exists. That's the patcher's job.
  */
 import * as path from "node:path";
+
 import { applyEdits } from "./apply.ts";
 import { resolveBlockEdits } from "./block.ts";
 import { hasClipboardEdit } from "./clipboard.ts";
@@ -21,6 +22,7 @@ import {
 import { CLIPBOARD_INTERLEAVED_SECTIONS } from "./messages.ts";
 import { parsePatch, parsePatchStreaming } from "./parser.ts";
 import { Tokenizer } from "./tokenizer.ts";
+
 import type { ApplyResult, BlockResolver, Clipboard, Edit, FileOp, SplitOptions } from "./types.ts";
 
 // Pure classification — single shared tokenizer is safe.
@@ -29,7 +31,7 @@ const TOKENIZER = new Tokenizer();
 function unquoteHashlinePath(pathText: string): string {
   if (pathText.length < 2) return pathText;
   const first = pathText[0];
-  const last = pathText[pathText.length - 1];
+  const last = pathText.at(-1);
   if ((first === '"' || first === "'") && first === last) return pathText.slice(1, -1);
   return pathText;
 }
@@ -48,7 +50,7 @@ function unquoteHashlinePath(pathText: string): string {
  * keyword block, case-insensitive. The remaining text is the real path.
  */
 const APPLY_PATCH_PATH_NOISE_RE =
-  /^\*{0,3}\s*(?:(?:update|add|delete|move)[^A-Za-z0-9]*(?:file|to)?[^A-Za-z0-9]*:)?\s*\*{0,3}\s*/i;
+  /^\*{0,3}\s*(?:(?:update|add|delete|move)[^A-Z0-9]*(?:(?:file|to)[^A-Z0-9]*)?:)?\s*\*{0,3}\s*/i;
 
 function stripApplyPatchPathNoise(pathText: string): string {
   return pathText.replace(APPLY_PATCH_PATH_NOISE_RE, "");
@@ -72,14 +74,16 @@ function tryParseRecoveryHeader(line: string, cwd?: string): RawSection | null {
   // path may contain whitespace (Windows OneDrive folders, Program Files,
   // etc.), so we anchor the tag at end-of-body rather than scanning
   // forward and stopping at the first space.
-  const trailing = new RegExp(`#([0-9A-Fa-f]{${HL_FILE_HASH_LENGTH}})\\s*$`).exec(body);
+  const trailing = new RegExp(`#([0-9A-Fa-f]{${String(HL_FILE_HASH_LENGTH)}})\\s*$`).exec(body);
   let pathText: string;
   let fileHash: string | undefined;
-  if (trailing !== null) {
-    pathText = body.slice(0, trailing.index);
-    fileHash = trailing[1].toUpperCase();
-  } else {
+  if (trailing === null) {
     pathText = body.replace(/\s+$/, "");
+  } else {
+    pathText = body.slice(0, trailing.index);
+    const capturedHash = trailing[1];
+    if (capturedHash === undefined) return null;
+    fileHash = capturedHash.toUpperCase();
   }
 
   // Same rule as the strict tokenizer: the hashline header grammar uses
@@ -91,7 +95,7 @@ function tryParseRecoveryHeader(line: string, cwd?: string): RawSection | null {
 
   const path = normalizeHashlinePath(pathText, cwd);
   if (path.length === 0) return null;
-  return fileHash !== undefined ? { path, fileHash, diff: "" } : { path, diff: "" };
+  return fileHash === undefined ? { path, diff: "" } : { path, fileHash, diff: "" };
 }
 
 function normalizeHashlinePath(rawPath: string, cwd?: string): string {
@@ -135,7 +139,7 @@ function parseHashlineHeaderLine(line: string, cwd?: string): RawSection | null 
     const recovered = tryParseRecoveryHeader(trimmed, cwd);
     if (recovered !== null) return recovered;
     throw new Error(
-      `Input header must be ${HL_FILE_PREFIX}PATH${HL_FILE_SUFFIX} or ${HL_FILE_PREFIX}PATH${HL_FILE_HASH_SEP}TAG${HL_FILE_SUFFIX} with a ${HL_FILE_HASH_LENGTH}-hex content-hash tag; got ${JSON.stringify(trimmed)}.`,
+      `Input header must be ${HL_FILE_PREFIX}PATH${HL_FILE_SUFFIX} or ${HL_FILE_PREFIX}PATH${HL_FILE_HASH_SEP}TAG${HL_FILE_SUFFIX} with a ${String(HL_FILE_HASH_LENGTH)}-hex content-hash tag; got ${JSON.stringify(trimmed)}.`,
     );
   }
 
@@ -145,17 +149,21 @@ function parseHashlineHeaderLine(line: string, cwd?: string): RawSection | null 
       `Input header "${HL_FILE_PREFIX}${HL_FILE_SUFFIX}" is empty; provide a file path.`,
     );
   }
-  return token.fileHash !== undefined
-    ? { path: parsedPath, fileHash: token.fileHash, diff: "" }
-    : { path: parsedPath, diff: "" };
+  return token.fileHash === undefined
+    ? { path: parsedPath, diff: "" }
+    : { path: parsedPath, fileHash: token.fileHash, diff: "" };
 }
 
 function stripLeadingBlankLines(input: string): string {
-  const stripped = input.startsWith("\uFEFF") ? input.slice(1) : input;
+  const stripped = input.startsWith("\u{FEFF}") ? input.slice(1) : input;
   const lines = stripped.split("\n");
   while (lines.length > 0) {
-    const head = lines[0].replace(/\r$/, "");
-    if (head.trim().length === 0 || TOKENIZER.tokenize(head).kind === "envelope-begin") {
+    const head = lines[0] ?? "";
+    const normalizedHead = head.replace(/\r$/, "");
+    if (
+      normalizedHead.trim().length === 0 ||
+      TOKENIZER.tokenize(normalizedHead).kind === "envelope-begin"
+    ) {
       lines.shift();
       continue;
     }
@@ -177,7 +185,7 @@ export function containsRecognizableHashlineOperations(input: string): boolean {
 }
 
 function normalizeFallbackInput(input: string, options: SplitOptions): string {
-  const stripped = input.startsWith("\uFEFF") ? input.slice(1) : input;
+  const stripped = input.startsWith("\u{FEFF}") ? input.slice(1) : input;
   const hasExplicitHeader = stripped
     .split(/\r?\n/)
     .some((rawLine) => parseHashlineHeaderLine(rawLine, options.cwd) !== null);
@@ -259,7 +267,7 @@ export class PatchSection {
   readonly diff: string;
   #parsed: { edits: Edit[]; fileOp?: FileOp; warnings: string[] } | undefined;
 
-  #interleavedMerge: boolean;
+  readonly #interleavedMerge: boolean;
 
   constructor(raw: RawSection) {
     this.path = raw.path;
@@ -385,7 +393,12 @@ export class PatchSection {
     const merged = [...warnings, ...resolveWarnings, ...(result.warnings ?? [])];
     return merged.length > 0
       ? { ...result, warnings: merged }
-      : { text: result.text, firstChangedLine: result.firstChangedLine };
+      : {
+          text: result.text,
+          ...(result.firstChangedLine === undefined
+            ? {}
+            : { firstChangedLine: result.firstChangedLine }),
+        };
   }
 
   /**
@@ -414,7 +427,12 @@ export class PatchSection {
     const merged = [...warnings, ...resolveWarnings, ...(result.warnings ?? [])];
     return merged.length > 0
       ? { ...result, warnings: merged }
-      : { text: result.text, firstChangedLine: result.firstChangedLine };
+      : {
+          text: result.text,
+          ...(result.firstChangedLine === undefined
+            ? {}
+            : { firstChangedLine: result.firstChangedLine }),
+        };
   }
 
   /**
@@ -426,7 +444,7 @@ export class PatchSection {
   withPath(path: string): PatchSection {
     const next = new PatchSection({
       path,
-      ...(this.fileHash !== undefined ? { fileHash: this.fileHash } : {}),
+      ...(this.fileHash === undefined ? {} : { fileHash: this.fileHash }),
       diff: this.diff,
       ...(this.#interleavedMerge ? { interleaved: true } : {}),
     });
@@ -473,9 +491,10 @@ export class Patch {
    */
   static parseSingle(input: string, options: SplitOptions = {}): PatchSection {
     const patch = Patch.parse(input, options);
-    const first = patch.sections[0];
-    if (!first) throw new Error("Patch input did not produce any sections.");
-    return first;
+    if (patch.sections.length === 0) throw new Error("Patch input did not produce any sections.");
+    const section = patch.sections[0];
+    if (section === undefined) throw new Error("Patch input did not produce a section.");
+    return section;
   }
 }
 
@@ -511,7 +530,7 @@ function mergeSamePathSections(sections: RawSection[]): RawSection[] {
       continue;
     }
     byPath.set(section.path, {
-      ...(section.fileHash !== undefined ? { fileHash: section.fileHash } : {}),
+      ...(section.fileHash === undefined ? {} : { fileHash: section.fileHash }),
       diffs: [section.diff],
       interleaved: false,
     });
@@ -519,7 +538,7 @@ function mergeSamePathSections(sections: RawSection[]): RawSection[] {
   }
   return Array.from(byPath, ([sectionPath, entry]) => ({
     path: sectionPath,
-    ...(entry.fileHash !== undefined ? { fileHash: entry.fileHash } : {}),
+    ...(entry.fileHash === undefined ? {} : { fileHash: entry.fileHash }),
     diff: entry.diffs.join("\n"),
     ...(entry.interleaved ? { interleaved: true } : {}),
   }));

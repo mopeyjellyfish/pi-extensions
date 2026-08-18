@@ -77,7 +77,8 @@ export abstract class SnapshotStore {
    * The base returns no matches (recovery disabled); stores that can
    * enumerate their contents override it to enable tag-based path recovery.
    */
-  findByHash(_hash: string): Snapshot[] {
+  findByHash(hash: string): Snapshot[] {
+    void hash;
     return [];
   }
 
@@ -118,7 +119,7 @@ const DEFAULT_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
 /** Union `lines` into `snapshot.seenLines`, lazily creating the set. */
 function mergeSeenLines(snapshot: Snapshot, lines: Iterable<number> | undefined): void {
   if (lines === undefined) return;
-  if (snapshot.seenLines === undefined) snapshot.seenLines = new Set<number>();
+  snapshot.seenLines ??= new Set<number>();
   for (const line of lines) snapshot.seenLines.add(line);
 }
 

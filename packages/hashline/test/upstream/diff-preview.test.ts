@@ -1,8 +1,21 @@
-import { describe, expect, it } from "bun:test";
-import { buildCompactDiffPreview } from "@oh-my-pi/hashline";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import { buildCompactDiffPreview, initializeSyntax } from "../../src/hashline/index.ts";
+
+beforeAll(async () => initializeSyntax());
 
 describe("buildCompactDiffPreview", () => {
+  it("compacts Pi generateDiffString rows and counts additions and removals", () => {
+    expect.hasAssertions();
+    expect(buildCompactDiffPreview(" 1 a\n-2 b\n+2 X\n 3 c\n+4 D")).toEqual({
+      preview: "1:a\n2:X\n3:c\n4:D",
+      addedLines: 2,
+      removedLines: 1,
+    });
+  });
+
   it("renders current lines and omits removed content while preserving counts", () => {
+    expect.hasAssertions();
     const preview = buildCompactDiffPreview(
       [" 1|alpha", "-2|beta", "+2|DELTA", "+3|EPSILON", " 3|gamma"].join("\n"),
     );
@@ -15,6 +28,7 @@ describe("buildCompactDiffPreview", () => {
   });
 
   it("renumbers context lines against the post-edit file after range expansion", () => {
+    expect.hasAssertions();
     const diff = [
       " 1|a1",
       " 2|a2",
@@ -42,9 +56,11 @@ describe("buildCompactDiffPreview", () => {
     ]);
   });
   it("collapses long contiguous added runs to head, marker, and tail", () => {
-    const diff = Array.from({ length: 7 }, (_, index) => `+${10 + index}|line ${index + 1}`).join(
-      "\n",
-    );
+    expect.hasAssertions();
+    const diff = Array.from(
+      { length: 7 },
+      (_, index) => `+${String(10 + index)}|line ${String(index + 1)}`,
+    ).join("\n");
 
     const preview = buildCompactDiffPreview(diff);
 
@@ -55,15 +71,48 @@ describe("buildCompactDiffPreview", () => {
     expect(preview.removedLines).toBe(0);
   });
 
-  it("normalizes adjacent elision markers to one unicode marker", () => {
+  it("parses padded Pi rows and elisions into uniform post-edit rows", () => {
+    expect.hasAssertions();
     const preview = buildCompactDiffPreview(
-      [" 1|alpha", "...", "...", "…", " 20|omega"].join("\n"),
+      [
+        "  1 line1",
+        "  2 line2",
+        "- 3 line3",
+        "+ 3 LINE3",
+        "    ...",
+        "- 8 line8",
+        "+ 8 first-added",
+        "+ 9 second-added",
+        "+10 third-added",
+        "+11 fourth-added",
+        "+12 fifth-added",
+        "+13 sixth-added",
+        "  9 line9",
+        " 10 line10",
+      ].join("\n"),
     );
 
-    expect(preview.preview).toBe(["1:alpha", "…", "20:omega"].join("\n"));
+    expect(preview).toEqual({
+      preview: [
+        "1:line1",
+        "2:line2",
+        "3:LINE3",
+        "…",
+        "8:first-added",
+        "9:second-added",
+        "…",
+        "12:fifth-added",
+        "13:sixth-added",
+        "14:line9",
+        "15:line10",
+      ].join("\n"),
+      addedLines: 7,
+      removedLines: 2,
+    });
   });
 
   it("dedupes blank gap rows left adjacent by omitted removed lines and trims edge separators", () => {
+    expect.hasAssertions();
     const diff = ["", " 1|alpha", "", "-5|beta", "", " 9|gamma", "", "-12|omitted"].join("\n");
 
     const preview = buildCompactDiffPreview(diff);
