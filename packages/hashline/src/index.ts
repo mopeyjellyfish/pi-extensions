@@ -30,6 +30,7 @@ import {
   stripBom,
 } from "./hashline/index.ts";
 import { absolutePath, resolvePiReadPath } from "./paths.ts";
+import { renderHashlineCall, renderHashlineResult } from "./render.ts";
 import { detailsFor, restoreState, type HashlineToolDetails } from "./state.ts";
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -119,22 +120,29 @@ function compareCodePoints(left: string, right: string): number {
   return Number(left > right) - Number(left < right);
 }
 
-const OUTPUT_TRUNCATION = "[Hashline output truncated at Pi's 2,000-line/50-KB limit.]";
+const OUTPUT_TRUNCATION = "[Hashline output truncated to fit Pi's tool limits.]";
 
-function boundedToolText(text: string): string {
+interface TextBounds {
+  readonly maxBytes?: number;
+  readonly maxLines?: number;
+}
+
+function boundedToolText(text: string, bounds: TextBounds = {}): string {
+  const maxBytes = bounds.maxBytes ?? DEFAULT_MAX_BYTES;
+  const maxLines = bounds.maxLines ?? DEFAULT_MAX_LINES;
   const output: string[] = [];
   let bytes = 0;
   for (const line of text.split("\n")) {
     const separator = output.length === 0 ? "" : "\n";
     const nextBytes = Buffer.byteLength(`${separator}${line}`, "utf8");
-    if (output.length + 1 > DEFAULT_MAX_LINES || bytes + nextBytes > DEFAULT_MAX_BYTES) {
+    if (output.length + 1 > maxLines || bytes + nextBytes > maxBytes) {
       const markerBytes = Buffer.byteLength(
         `${output.length === 0 ? "" : "\n"}${OUTPUT_TRUNCATION}`,
         "utf8",
       );
       while (
         output.length > 0 &&
-        (output.length + 1 > DEFAULT_MAX_LINES || bytes + markerBytes > DEFAULT_MAX_BYTES)
+        (output.length + 1 > maxLines || bytes + markerBytes > maxBytes)
       ) {
         const removed = output.pop() ?? "";
         bytes -= Buffer.byteLength(`${output.length === 0 ? "" : "\n"}${removed}`, "utf8");
@@ -287,6 +295,13 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
         "Use edit only with a [PATH#TAG] returned by read; use write for new files.",
       ],
       parameters: editParameters,
+      renderShell: "default",
+      renderCall(input, theme) {
+        return renderHashlineCall(input, theme);
+      },
+      renderResult(result, options, theme, context) {
+        return renderHashlineResult(result, options, theme, context.isError);
+      },
       async execute(_id, { input }, signal, _update, ctx) {
         const patch = Patch.parse(input, { cwd: ctx.cwd });
         const filesystem = new PiFilesystem(ctx.cwd, signal);
@@ -310,13 +325,23 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
             snapshots,
             clipboard,
           }).apply(patch);
-          const preview = result.sections
-            .map(
-              (section) =>
-                buildCompactDiffPreview(generateDiffString(section.before, section.after).diff)
-                  .preview,
-            )
-            .join("\n");
+          const sectionCount = Math.max(1, result.sections.length);
+          const sectionMaxBytes = Math.max(
+            Buffer.byteLength(OUTPUT_TRUNCATION, "utf8"),
+            Math.floor(DEFAULT_MAX_BYTES / sectionCount) - 256,
+          );
+          const sectionMaxLines = Math.max(1, Math.floor(DEFAULT_MAX_LINES / sectionCount) - 2);
+          const renderedSections = result.sections.map((section) => ({
+            header: section.header,
+            path: section.path,
+            preview: boundedToolText(
+              buildCompactDiffPreview(generateDiffString(section.before, section.after).diff)
+                .preview,
+              { maxBytes: sectionMaxBytes, maxLines: sectionMaxLines },
+            ),
+            warnings: section.warnings,
+          }));
+          const preview = renderedSections.map((section) => section.preview).join("\n");
           const warnings = result.sections.flatMap((section) =>
             section.warnings.map((warning) => `warning: ${warning}`),
           );
@@ -333,11 +358,7 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
             details: {
               diff: boundedPreview,
               patch: input,
-              hashlineSections: result.sections.map((section) => ({
-                header: section.header,
-                path: section.path,
-                warnings: section.warnings,
-              })),
+              hashlineSections: renderedSections,
               ...detailsFor(
                 snapshots,
                 clipboard,
