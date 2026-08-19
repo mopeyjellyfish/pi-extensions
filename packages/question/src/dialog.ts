@@ -68,8 +68,8 @@ function wrapped(text: string, width: number): string[] {
   return wrapTextWithAnsi(text, Math.max(1, width)).map((line) => truncateToWidth(line, width, ""));
 }
 
-function padDialogLines(lines: readonly string[], rows: number, enabled: boolean): string[] {
-  if (!enabled || lines.length >= rows) return [...lines];
+function padDialogLines(lines: readonly string[], rows: number): string[] {
+  if (lines.length >= rows) return [...lines];
   return [
     ...lines.slice(0, -STICKY_BOTTOM_ROWS),
     ...Array.from({ length: rows - lines.length }, () => ""),
@@ -669,7 +669,7 @@ export class QuestionDialog implements Component, Focusable {
       focusStart: editFocus ?? top.length + body.focusStart,
       focusEnd: editFocus ?? top.length + body.focusEnd,
     });
-    const padded = padDialogLines(fitted, rows, Boolean(question?.document));
+    const padded = padDialogLines(fitted, rows);
     return padded.map((line) => {
       const truncated = truncateToWidth(line, safeWidth, "");
       return `${truncated}${" ".repeat(Math.max(0, safeWidth - visibleWidth(truncated)))}`;

@@ -53,10 +53,10 @@ export {
 export { applyAction, createInitialState, firstUnansweredTab } from "./state.ts";
 export type * from "./types.ts";
 
-const OVERLAY_WIDTH = "90%";
-const OVERLAY_MAX_HEIGHT = "80%";
+const OVERLAY_WIDTH = "100%";
+const OVERLAY_MAX_HEIGHT = "100%";
 const OVERLAY_HEIGHT_RATIO = Number(OVERLAY_MAX_HEIGHT.slice(0, -1)) / 100;
-const OVERLAY_MARGIN = 1;
+const OVERLAY_MARGIN = 0;
 const QUESTION_OVERLAY_OPTIONS = {
   width: OVERLAY_WIDTH,
   maxHeight: OVERLAY_MAX_HEIGHT,
