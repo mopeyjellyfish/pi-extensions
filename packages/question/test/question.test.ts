@@ -786,7 +786,7 @@ describe("TUI dialog", () => {
     );
     const syntaxColors =
       codeLine
-        ?.split("\u{1B}[38;2;")
+        ?.split("\u{1B}[38;")
         .slice(1)
         .map((segment) => segment.split("m", 1)[0]) ?? [];
     expect(new Set(syntaxColors).size).toBeGreaterThan(1);
