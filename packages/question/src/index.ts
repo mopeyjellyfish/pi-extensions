@@ -53,6 +53,22 @@ export {
 export { applyAction, createInitialState, firstUnansweredTab } from "./state.ts";
 export type * from "./types.ts";
 
+const OVERLAY_WIDTH = "90%";
+const OVERLAY_MAX_HEIGHT = "80%";
+const OVERLAY_HEIGHT_RATIO = Number(OVERLAY_MAX_HEIGHT.slice(0, -1)) / 100;
+const OVERLAY_MARGIN = 1;
+const QUESTION_OVERLAY_OPTIONS = {
+  width: OVERLAY_WIDTH,
+  maxHeight: OVERLAY_MAX_HEIGHT,
+  margin: OVERLAY_MARGIN,
+} as const;
+
+function questionOverlayRows(terminalRows: number): number {
+  const rowsWithinMargins = terminalRows - OVERLAY_MARGIN * 2;
+  const rowsWithinHeight = Math.floor(terminalRows * OVERLAY_HEIGHT_RATIO);
+  return Math.max(1, Math.min(rowsWithinMargins, rowsWithinHeight));
+}
+
 function initialState(
   input: QuestionInput,
   ctx: ExtensionContext,
@@ -119,11 +135,16 @@ async function runTui(
   const abort = () => dialog?.cancelAbort();
   signal?.addEventListener("abort", abort, { once: true });
   try {
-    return await ctx.ui.custom<DialogOutcome>((tui, theme, keybindings, done) => {
-      dialog = new QuestionDialog(tui, theme, keybindings, questions, state, done);
-      if (signal?.aborted) queueMicrotask(() => dialog?.cancelAbort());
-      return dialog;
-    });
+    return await ctx.ui.custom<DialogOutcome>(
+      (tui, theme, keybindings, done) => {
+        dialog = new QuestionDialog(tui, theme, keybindings, questions, state, done, () =>
+          questionOverlayRows(tui.terminal.rows),
+        );
+        if (signal?.aborted) queueMicrotask(() => dialog?.cancelAbort());
+        return dialog;
+      },
+      { overlay: true, overlayOptions: QUESTION_OVERLAY_OPTIONS },
+    );
   } finally {
     signal?.removeEventListener("abort", abort);
   }

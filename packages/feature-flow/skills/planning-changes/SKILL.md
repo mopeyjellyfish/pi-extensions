@@ -71,7 +71,8 @@ When a slice changes module shape, use `codebase-design` vocabulary when
 available. Otherwise use a direct-parent evidence-based fallback: current and
 proposed boundaries, seams, dependencies, and test surface.
 
-Show the whole plan document, not a summary or link, with:
+Show the whole plan document through the question document field with
+`format: "md"` when available, not a summary or link, with:
 
 1. **Approve and implement**
 2. **Revise**

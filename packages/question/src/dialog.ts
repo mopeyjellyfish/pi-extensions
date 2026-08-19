@@ -12,6 +12,7 @@ import {
   Markdown,
   matchesKey,
   truncateToWidth,
+  visibleWidth,
   wrapTextWithAnsi,
   type Component,
   type Focusable,
@@ -47,6 +48,8 @@ interface RenderedBody {
   readonly focusEnd: number;
 }
 
+const STICKY_BOTTOM_ROWS = 2;
+
 function editorTheme(theme: Theme): EditorTheme {
   const color = (value: string) => theme.fg("accent", value);
   return {
@@ -63,6 +66,15 @@ function editorTheme(theme: Theme): EditorTheme {
 
 function wrapped(text: string, width: number): string[] {
   return wrapTextWithAnsi(text, Math.max(1, width)).map((line) => truncateToWidth(line, width, ""));
+}
+
+function padDialogLines(lines: readonly string[], rows: number, enabled: boolean): string[] {
+  if (!enabled || lines.length >= rows) return [...lines];
+  return [
+    ...lines.slice(0, -STICKY_BOTTOM_ROWS),
+    ...Array.from({ length: rows - lines.length }, () => ""),
+    ...lines.slice(-STICKY_BOTTOM_ROWS),
+  ];
 }
 
 interface TuiLike {
@@ -89,6 +101,7 @@ export class QuestionDialog implements Component, Focusable {
   private readonly theme: Theme;
   private readonly keybindings: KeybindingsManager;
   private readonly questions: readonly QuestionDefinition[];
+  private readonly rowBudget: () => number;
   private readonly done: (outcome: DialogOutcome) => void;
 
   constructor(
@@ -98,12 +111,14 @@ export class QuestionDialog implements Component, Focusable {
     questions: readonly QuestionDefinition[],
     initialState: QuestionnaireState,
     done: (outcome: DialogOutcome) => void,
+    rowBudget: () => number = () => tui.terminal.rows,
   ) {
     this.tui = tui;
     this.theme = theme;
     this.keybindings = keybindings as KeybindingsManager;
     this.questions = questions;
     this.done = done;
+    this.rowBudget = rowBudget;
     this.state = initialState;
     this.editor = new Editor(tui as unknown as TUI, editorTheme(theme));
     this.editor.onSubmit = (value) => {
@@ -273,8 +288,9 @@ export class QuestionDialog implements Component, Focusable {
     else if (matchesKey(data, Key.home)) next = 0;
     else if (matchesKey(data, Key.end)) next = maximum;
     if (next === undefined) return;
-
-    this.documentOffsets.set(question.id, Math.max(0, Math.min(next, maximum)));
+    const bounded = Math.max(0, Math.min(next, maximum));
+    if (bounded === current) return;
+    this.documentOffsets.set(question.id, bounded);
     this.refresh();
   }
 
@@ -613,7 +629,7 @@ export class QuestionDialog implements Component, Focusable {
 
   render(width: number): string[] {
     const safeWidth = Math.max(1, width);
-    const rows = Math.max(1, this.tui.terminal.rows);
+    const rows = Math.max(1, this.rowBudget());
     const border = this.theme.fg("accent", "─".repeat(safeWidth));
     const tabs = this.renderTabs(safeWidth);
     const question = this.questions[this.state.tab];
@@ -649,10 +665,14 @@ export class QuestionDialog implements Component, Focusable {
     const fitted = fitDialogToRows(all, {
       rows,
       topRows: top.length,
-      bottomRows: 2,
+      bottomRows: STICKY_BOTTOM_ROWS,
       focusStart: editFocus ?? top.length + body.focusStart,
       focusEnd: editFocus ?? top.length + body.focusEnd,
     });
-    return fitted.map((line) => truncateToWidth(line, safeWidth, ""));
+    const padded = padDialogLines(fitted, rows, Boolean(question?.document));
+    return padded.map((line) => {
+      const truncated = truncateToWidth(line, safeWidth, "");
+      return `${truncated}${" ".repeat(Math.max(0, safeWidth - visibleWidth(truncated)))}`;
+    });
   }
 }

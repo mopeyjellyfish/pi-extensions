@@ -4,10 +4,10 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 
 ## Features
 
-- One to four questions in a tabbed bottom dialog.
+- One to four questions in a capturing, responsive overlay.
 - Single- and multi-select options with persistent selections.
-- Responsive Markdown previews, stacked below 100 columns and side-by-side at wider widths.
-- Optional full-document review with persistent, independently scrollable Markdown, YAML, JSON, XML, or text rendering.
+- Responsive Markdown previews, stacked below 100 overlay columns and side-by-side at wider overlay widths.
+- Optional full-document review with persistent, independently scrollable Markdown, YAML, JSON, XML, or text rendering in a stable full-width viewport.
 - Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
 - Immediate submission after a single question is answered, without a redundant review step.
 - **Chat about this…** redirects the conversation, then lets the model reopen revised questions with an opaque continuation ID while preserving compatible draft answers.
@@ -76,7 +76,7 @@ question({
 });
 ```
 
-`document.format` is `md`, `yml`, `json`, `xml`, or `txt`. Markdown renders as formatted Markdown; structured text uses Pi's syntax highlighter. The document remains visible beside the options at 100 columns or wider and stacks below them on narrower terminals. Per-option previews still work and appear with the focused option.
+`document.format` is `md`, `yml`, `json`, `xml`, or `txt`. Markdown uses Pi's formatted Markdown renderer, including fenced-code highlighting; structured text uses Pi's syntax highlighter. The capturing overlay keeps document rows full-width and stable while scrolling. At 100 overlay columns or wider, the document remains visible beside the options; it stacks below them at narrower overlay widths. Per-option previews still work and appear with the focused option.
 
 A redirected result contains `continuationId`, the bounded clarification, structured answers, and a compact continuation snapshot in tool details. The snapshot stores stable IDs plus SHA-256 semantic hashes for question text/selection mode and option labels/descriptions; it does not duplicate those strings, raw UI state, or previews. After addressing the clarification, call `question` again with that ID and the revised questions. Drafts are restored only from `question` results on the current session branch. Each continuation ID is one-use: the consuming result records `continuedFrom`, and later reuse fails as stale. Rewritten questions, changed selection modes, or changed option labels/descriptions clear affected selections and notes; preview-only changes do not. Removed options and their notes are dropped.
 

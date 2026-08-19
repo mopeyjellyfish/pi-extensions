@@ -34,7 +34,7 @@ Invalidation map:
 
 Pause and return for re-shaping if the package-local overlay and component seams cannot prevent the observed artifacts without changing Pi core or `@earendil-works/pi-tui`.
 
-## [ ] 001 — Review a rendered document in a stable question modal
+## [x] 001 — Review a rendered document in a stable question modal
 
 ### Outcome and requirement trace
 
