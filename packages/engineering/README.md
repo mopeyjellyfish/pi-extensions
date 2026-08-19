@@ -27,10 +27,14 @@ Worker and QA repeat while failure signatures, diagnostic counts, or coverage
 gaps show measurable progress. They stop on repeated evidence, a non-completed
 Worker result, or scope variance rather than on a fixed iteration count.
 
-All configured child handoffs start with fresh context. Before any write, every
-mutation-capable skill requires an isolated linked worktree and never edits the
-main-branch checkout. `implement` reuses the task worktree that contains the
-accepted pitch and plan, or creates one for a plan-less bounded request when
+All configured child handoffs start with fresh context. Fixed Worker launches are
+foreground launches that omit per-run mode, model, and thinking fields so the
+agent profile remains authoritative. When Pi supplies that capability through
+its `subagent` tool, the skills provide the direct argument contract without
+making the independent package depend on that extension. Before any write,
+every mutation-capable skill requires an isolated linked worktree and never
+edits the main-branch checkout. `implement` reuses the task worktree that
+contains the accepted pitch and plan, or creates one for a plan-less bounded request when
 safe worktree tooling is available. Direct diagnosis, TDD, and domain-modeling
 work applies the same guard. When safe tooling is unavailable, the skill stops
 before writing and asks the human to provide a worktree.

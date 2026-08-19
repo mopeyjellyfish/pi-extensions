@@ -51,9 +51,21 @@ outcome may proceed as one unit.
 When the configured `worker` capability is available, it is the only configured
 implementation child. Launch one fresh foreground `worker` for one worker
 attempt on standard work, plan-less bounded requests, confirmed bugs, and
-accepted hard work. A trivial bounded change — one obvious fix with one obvious
-focused check — may remain directly as the parent. If Worker is unavailable,
-the direct parent executes the unit.
+accepted hard work. When Pi's `subagent` tool supplies the capability, send this
+argument object directly rather than putting it in `workflowScript`:
+
+```text
+agent: "worker"
+task: "<rendered Worker task contract>"
+cwd: "<active task worktree>"
+async: false
+```
+
+Other hosts use their equivalent fixed-role foreground launch. Do not pass
+`mode`, `model`, or `thinking` for this fixed-role launch; the agent profile owns
+its tools, model, thinking level, and fresh-context default. A trivial bounded
+change — one obvious fix with one obvious focused check — may remain directly as
+the parent. If Worker is unavailable, the direct parent executes the unit.
 
 Keep the Worker task compact. Reference durable accepted intent instead of
 copying the conversation, and use only this contract:
