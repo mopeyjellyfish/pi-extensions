@@ -407,7 +407,7 @@ describe("TUI dialog", () => {
     },
   ];
 
-  it("opens content-sized TUI questions in a bounded capturing overlay", async () => {
+  it("opens TUI questions in a full-screen capturing overlay", async () => {
     expect.hasAssertions();
     let options: unknown;
     const ctx = context("tui", {
@@ -426,7 +426,7 @@ describe("TUI dialog", () => {
               { matches: () => false },
               resolve,
             ) as { cancelAbort(): void; render(width: number): string[] };
-            expect(component.render(60)).toHaveLength(12);
+            expect(component.render(60)).toHaveLength(24);
             component.cancelAbort();
           });
         },
@@ -436,7 +436,7 @@ describe("TUI dialog", () => {
     await register().execute("id", { questions: single }, undefined, undefined, ctx);
     expect(options).toEqual({
       overlay: true,
-      overlayOptions: { width: "90%", maxHeight: "80%", margin: 1 },
+      overlayOptions: { width: "100%", maxHeight: "100%", margin: 0 },
     });
   });
 
@@ -690,14 +690,21 @@ describe("TUI dialog", () => {
       },
     );
     const markdownRender = vi.spyOn(Markdown.prototype, "render");
-    const initial = dialog.render(120);
+    const frames = [dialog.render(120)];
     dialog.handleInput("d");
+    frames.push(dialog.render(120));
     dialog.handleInput("UP");
+    frames.push(dialog.render(120));
     dialog.handleInput("DOWN");
+    frames.push(dialog.render(120));
     dialog.handleInput("PAGE_DOWN");
+    frames.push(dialog.render(120));
     dialog.handleInput("\u{1B}[H");
+    frames.push(dialog.render(120));
     dialog.handleInput("\u{1B}[F");
-    const final = dialog.render(120);
+    frames.push(dialog.render(120));
+    const initial = frames[0] ?? [];
+    const final = frames.at(-1) ?? [];
 
     expect(stripVTControlCharacters(initial.join("\n"))).toContain("Plan");
     expect(stripVTControlCharacters(initial.join("\n"))).not.toContain("# Plan");
@@ -705,9 +712,8 @@ describe("TUI dialog", () => {
       stripVTControlCharacters(line).includes("const stable"),
     );
     expect(codeLine).toContain("\u{1B}[");
-    expect(initial).toHaveLength(final.length);
-    expect(final).toHaveLength(14);
-    expect(final.every((line) => visibleWidth(line) === 120)).toBe(true);
+    expect(frames.every((frame) => frame.length === 14)).toBe(true);
+    expect(frames.every((frame) => frame.every((line) => visibleWidth(line) === 120))).toBe(true);
     expect(stripVTControlCharacters(final.join("\n"))).toContain("[x] A");
     expect(stripVTControlCharacters(final.at(-2) ?? "")).toContain("Document:");
     expect(stripVTControlCharacters(final.at(-1) ?? "")).toMatch(/^─+$/u);
