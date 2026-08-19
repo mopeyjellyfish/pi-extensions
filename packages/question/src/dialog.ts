@@ -68,6 +68,14 @@ function wrapped(text: string, width: number): string[] {
   return wrapTextWithAnsi(text, Math.max(1, width)).map((line) => truncateToWidth(line, width, ""));
 }
 
+function documentMarkdownTheme(): ReturnType<typeof getMarkdownTheme> {
+  const markdownTheme = getMarkdownTheme();
+  return {
+    ...markdownTheme,
+    listBullet: (marker) => markdownTheme.listBullet(marker.replace(/^[-+*] /u, "• ")),
+  };
+}
+
 function padDialogLines(lines: readonly string[], rows: number): string[] {
   if (lines.length >= rows) return [...lines];
   return [
@@ -483,7 +491,7 @@ export class QuestionDialog implements Component, Focusable {
     const content = sanitizeText(document.content).replaceAll("\t", " ".repeat(3));
     let lines: string[];
     if (document.format === "md") {
-      lines = new Markdown(content, 0, 0, getMarkdownTheme()).render(width);
+      lines = new Markdown(content, 0, 0, documentMarkdownTheme()).render(width);
     } else {
       const language = getLanguageFromPath(`document.${document.format}`);
       const highlighted = language
