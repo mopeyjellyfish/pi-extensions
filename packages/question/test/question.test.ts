@@ -722,6 +722,76 @@ describe("TUI dialog", () => {
     markdownRender.mockRestore();
   });
 
+  it("renders Markdown lists, spacing, rules, and language-highlighted code", () => {
+    expect.hasAssertions();
+    const markdownQuestion: QuestionDefinition = {
+      ...scopeQuestion,
+      document: {
+        name: "rendering.md",
+        format: "md",
+        content: [
+          "# Rendering",
+          "",
+          "- Parent bullet",
+          "  - Nested bullet",
+          "",
+          "1. First step",
+          "2. Second step",
+          "",
+          "First paragraph.",
+          "",
+          "Second paragraph.",
+          "",
+          "---",
+          "",
+          "```typescript",
+          "const answer: number = 42;",
+          "```",
+        ].join("\n"),
+      },
+    };
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 40 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      { matches: () => false },
+      [markdownQuestion],
+      createInitialState([markdownQuestion]),
+      () => {
+        return;
+      },
+    );
+
+    const rendered = dialog.render(120);
+    const plain = rendered.map((line) => stripVTControlCharacters(line));
+    const parent = plain.find((line) => line.includes("Parent bullet"));
+    const nested = plain.find((line) => line.includes("Nested bullet"));
+    expect(parent).toContain("• Parent bullet");
+    expect(nested).toContain("• Nested bullet");
+    expect(nested?.indexOf("•")).toBeGreaterThan(parent?.indexOf("•") ?? Number.MAX_SAFE_INTEGER);
+    expect(plain.some((line) => line.includes("1. First step"))).toBe(true);
+    expect(plain.some((line) => line.includes("2. Second step"))).toBe(true);
+    const firstParagraph = plain.findIndex((line) => line.includes("First paragraph."));
+    const secondParagraph = plain.findIndex((line) => line.includes("Second paragraph."));
+    expect(secondParagraph - firstParagraph).toBeGreaterThan(1);
+    expect(plain.some((line) => /^\s+─{10,}\s*$/u.test(line) && line.trim().length < 120)).toBe(
+      true,
+    );
+    const codeLine = rendered.find((line) =>
+      stripVTControlCharacters(line).includes("const answer"),
+    );
+    const syntaxColors =
+      codeLine
+        ?.split("\u{1B}[38;2;")
+        .slice(1)
+        .map((segment) => segment.split("m", 1)[0]) ?? [];
+    expect(new Set(syntaxColors).size).toBeGreaterThan(1);
+  });
+
   it.each([
     ["md", "# Plan"],
     ["yml", "enabled: true"],

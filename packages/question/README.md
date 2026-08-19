@@ -7,7 +7,7 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 - One to four questions in a capturing full-screen overlay that uses every terminal row and column.
 - Single- and multi-select options with persistent selections.
 - Responsive Markdown previews, stacked below 100 terminal columns and side-by-side at wider terminal widths.
-- Optional full-document review with persistent, independently scrollable Markdown, YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
+- Optional full-document review with persistent, independently scrollable Markdown (including bulleted and numbered nested lists, spacing, rules, and language-highlighted fences), YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
 - Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
 - Immediate submission after a single question is answered, without a redundant review step.
 - **Chat about this…** redirects the conversation, then lets the model reopen revised questions with an opaque continuation ID while preserving compatible draft answers.
