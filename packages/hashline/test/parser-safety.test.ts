@@ -55,6 +55,9 @@ describe("Hashline public parsing edge cases", () => {
     ] as const) {
       expect(() => parsePatch(patch)).toThrow(message);
     }
+    expect(() => parsePatch("PUT 119*=:\n+replacement")).toThrow(
+      /Malformed block header.*PUT 119\*:/iu,
+    );
     expect(parsePatch("# explanation\nPUT 1:\n+replacement").edits).toHaveLength(2);
     expect(parsePatch("CUT 1:").warnings).toContain(
       "Ignored a trailing `:` on bodyless `CUT`. Prefer `CUT N.=M` / `CUT N*` without a colon.",
