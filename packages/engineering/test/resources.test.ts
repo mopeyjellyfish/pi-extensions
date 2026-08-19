@@ -65,6 +65,32 @@ describe("engineering resources", () => {
     }
   });
 
+  it("pins fixed-role launch controls to agent profiles", async () => {
+    expect.hasAssertions();
+    const [implement, justDoIt, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("skills/just-do-it/SKILL.md"),
+      read("README.md"),
+    ]);
+    const fixedWorkerArguments = [
+      'agent: "worker"',
+      'task: "<rendered Worker task contract>"',
+      'cwd: "<active task worktree>"',
+      "async: false",
+    ].join("\n");
+
+    for (const resource of [implement, justDoIt]) {
+      expect(resource).toContain(fixedWorkerArguments);
+      expect(resource).toMatch(/Pi's `subagent` tool[^.]*argument\s+object[^.]*workflowScript/iu);
+      expect(resource).toMatch(
+        /do not pass[^.]*`mode`[^.]*`model`[^.]*`thinking`[^.]*agent profile/iu,
+      );
+    }
+    expect(readme).toMatch(
+      /fixed Worker[^.]*foreground[^.]*omit[^.]*mode[^.]*model[^.]*thinking[^.]*agent profile/iu,
+    );
+  });
+
   it("bounds implementation delegation, validation, and reporting without runtime caps", async () => {
     expect.hasAssertions();
     const [implementText, readmeText] = await Promise.all([

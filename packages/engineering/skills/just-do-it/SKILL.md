@@ -26,7 +26,19 @@ design questions.
 ## Immediate handoff
 
 Immediately launch **exactly one fresh `worker`** when that Worker capability is
-available. Give it:
+available. When Pi's `subagent` tool supplies the capability, send this argument
+object directly rather than putting it in `workflowScript`:
+
+```text
+agent: "worker"
+task: "<rendered Worker task contract>"
+cwd: "<active task worktree>"
+async: false
+```
+
+Other hosts use their equivalent fixed-role foreground launch. Do not pass
+`mode`, `model`, or `thinking` for this fixed-role launch; the agent profile owns
+its tools, model, thinking level, and fresh-context default. Give it:
 
 - the exact mechanical scope and exclusions;
 - bounded implementation, commit, push, and pull request authority for the
