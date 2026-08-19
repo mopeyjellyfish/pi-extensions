@@ -16,6 +16,7 @@ import hashlineExtension from "../src/index.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 interface Tool {
+  readonly description?: string;
   readonly name: string;
   execute(
     id: string,
@@ -77,6 +78,20 @@ function context(cwd: string): ExtensionContext {
 }
 
 describe("Hashline extension", () => {
+  it("exposes the complete packaged Hashline grammar to the model", () => {
+    expect.hasAssertions();
+    const edit = register().get("edit");
+    if (edit === undefined) throw new Error("Hashline edit tool was not registered.");
+    const prompt = readFileSync(
+      new URL("../src/hashline/prompt.md", import.meta.url),
+      "utf8",
+    ).trim();
+    expect(edit.description).toBe(prompt);
+    expect(edit.description).toContain("PUT N.=M:");
+    expect(edit.description).toContain("Named registers persist across edit calls.");
+    expect(edit.description).toContain("RE-GROUND AFTER EVERY EDIT");
+  });
+
   it("keeps Pi write definition metadata and rendering while adding Hashline details", async () => {
     expect.hasAssertions();
     const directory = await mkdtemp(join(tmpdir(), "pi-hashline-"));

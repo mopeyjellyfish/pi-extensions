@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -32,6 +33,11 @@ import { absolutePath, resolvePiReadPath } from "./paths.ts";
 import { detailsFor, restoreState, type HashlineToolDetails } from "./state.ts";
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
+const hashlineDescription = readFileSync(
+  new URL("hashline/prompt.md", import.meta.url),
+  "utf8",
+).trim();
 
 const editParameters = Type.Object(
   { input: Type.String({ description: "Hashline patch input headed by [PATH#TAG]." }) },
@@ -274,7 +280,7 @@ export default function hashlineExtension(pi: ExtensionAPI): void {
     defineTool({
       name: "edit",
       label: "edit",
-      description: "Apply a Hashline patch to an observed file using its [PATH#TAG] anchor.",
+      description: hashlineDescription,
       executionMode: "sequential",
       promptSnippet: "Apply an anchored Hashline edit to an existing file",
       promptGuidelines: [
