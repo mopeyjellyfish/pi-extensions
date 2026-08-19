@@ -7,17 +7,21 @@ import { pathToFileURL } from "node:url";
 import {
   createReadToolDefinition,
   createWriteToolDefinition,
+  highlightCode,
+  initTheme,
   withFileMutationQueue,
 } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 
 import hashlineExtension from "../src/index.ts";
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
+import type { Component } from "@earendil-works/pi-tui";
 
 interface Tool {
   readonly description?: string;
   readonly name: string;
+  readonly renderShell?: string;
   execute(
     id: string,
     input: Record<string, unknown>,
@@ -33,6 +37,16 @@ interface Tool {
     }[];
     readonly details?: unknown;
   }>;
+  renderCall?(input: Record<string, unknown>, theme: Theme): Component;
+  renderResult?(
+    result: {
+      readonly content: readonly { readonly text?: string; readonly type: string }[];
+      readonly details?: unknown;
+    },
+    options: { readonly expanded: boolean; readonly isPartial: boolean },
+    theme: Theme,
+    context: { readonly isError: boolean },
+  ): Component;
 }
 
 interface LifecycleHandlers {
@@ -77,6 +91,13 @@ function context(cwd: string): ExtensionContext {
   } as unknown as ExtensionContext;
 }
 
+function renderingTheme(): Theme {
+  return {
+    bold: (text: string) => text,
+    fg: (_color: string, text: string) => text,
+  } as Theme;
+}
+
 describe("Hashline extension", () => {
   it("exposes the complete packaged Hashline grammar to the model", () => {
     expect.hasAssertions();
@@ -90,6 +111,123 @@ describe("Hashline extension", () => {
     expect(edit.description).toContain("PUT N.=M:");
     expect(edit.description).toContain("Named registers persist across edit calls.");
     expect(edit.description).toContain("RE-GROUND AFTER EVERY EDIT");
+  });
+
+  it("syntax-highlights edited source inside Markdown fences", () => {
+    expect.hasAssertions();
+    initTheme("dark", false);
+    const theme = renderingTheme();
+    const edit = register().get("edit");
+    if (edit?.renderResult === undefined) throw new Error("Hashline edit renderer is unavailable.");
+
+    const rendered = edit
+      .renderResult(
+        {
+          content: [{ type: "text", text: "Applied Hashline edit." }],
+          details: {
+            hashlineSections: [
+              {
+                path: "/project/README.md",
+                preview: "75:```ts\n76:const feature = { maxSteps: 3 };\n77:```",
+                warnings: [],
+              },
+            ],
+          },
+        },
+        { expanded: false, isPartial: false },
+        theme,
+        { isError: false },
+      )
+      .render(200)
+      .join("\n");
+
+    expect(rendered).toContain("README.md");
+    expect(rendered).toContain("76:");
+    const highlightedKeyword = highlightCode("const feature = { maxSteps: 3 };", "typescript")[0];
+    expect(highlightedKeyword).toBeDefined();
+    expect(rendered).toContain(highlightedKeyword ?? "missing highlighted keyword");
+  });
+
+  it("renders edit lifecycle states and filters malformed preview details", () => {
+    expect.hasAssertions();
+    initTheme("dark", false);
+    const theme = renderingTheme();
+    const edit = register().get("edit");
+    if (edit?.renderCall === undefined || edit.renderResult === undefined)
+      throw new Error("Hashline edit renderers are unavailable.");
+    const renderResult = edit.renderResult.bind(edit);
+    const render = (
+      content: readonly { readonly text?: string; readonly type: string }[],
+      details: unknown,
+      isPartial = false,
+      isError = false,
+      expanded = false,
+    ) =>
+      renderResult({ content, details }, { expanded, isPartial }, theme, { isError })
+        .render(200)
+        .join("\n");
+
+    expect(edit.renderShell).toBe("default");
+    expect(
+      edit
+        .renderCall({ input: "[/project/example.ts#ABCD]\nPUT 1.=1:\n+value" }, theme)
+        .render(80)
+        .join("\n"),
+    ).toContain("example.ts");
+    expect(render([], undefined, true)).toContain("Applying Hashline edit");
+    expect(
+      render(
+        [{ type: "image" }, { type: "text", text: "invalid block header" }, { type: "text" }],
+        undefined,
+        false,
+        true,
+      ),
+    ).toContain("invalid block header");
+    expect(render([{ type: "text", text: "plain fallback" }], null)).toContain("plain fallback");
+
+    const mixed = render([{ type: "text", text: "applied" }], {
+      hashlineSections: [
+        null,
+        { path: 1, preview: "", warnings: [] },
+        { path: "bad.ts", preview: 1, warnings: [] },
+        { path: "bad.ts", preview: "", warnings: "bad" },
+        { path: "bad.ts", preview: "", warnings: [1] },
+        {
+          path: "/project/example.ts",
+          preview: "1:const value = 1;\n…\n3:return value;",
+          warnings: ["check this"],
+        },
+        {
+          path: "/project/README.md",
+          preview:
+            "1:~~~typescript\n2:const fenced = true;\n3:~~~\n4:plain text\n5:```\n6:untyped\n7:```",
+          warnings: [],
+        },
+        { path: "/project/unknown.filetype", preview: "metadata\n1:value", warnings: [] },
+      ],
+    });
+    expect(mixed).toContain("example.ts");
+    expect(mixed).toContain("warning: check this");
+    expect(mixed).toContain("README.md");
+    expect(mixed).toContain("unknown.filetype");
+    expect(mixed).not.toContain("bad.ts");
+    const longDetails = {
+      hashlineSections: [
+        {
+          path: "/project/long.ts",
+          preview: Array.from({ length: 20 }, (_, index) => `${String(index + 1)}:value`).join(
+            "\n",
+          ),
+          warnings: [],
+        },
+      ],
+    };
+    expect(render([{ type: "text", text: "applied" }], longDetails)).toContain(
+      "expand for full preview",
+    );
+    expect(
+      render([{ type: "text", text: "applied" }], longDetails, false, false, true),
+    ).not.toContain("expand for full preview");
   });
 
   it("keeps Pi write definition metadata and rendering while adding Hashline details", async () => {
@@ -843,6 +981,18 @@ describe("Hashline extension", () => {
       const text = result.content[0]?.text ?? "";
       expect(text).toContain("Hashline output truncated");
       expect(text.split("\n").length).toBeLessThanOrEqual(2000);
+      const details = result.details as {
+        readonly hashlineSections: readonly { readonly preview: string }[];
+      };
+      expect(details.hashlineSections).toHaveLength(2);
+      expect(
+        details.hashlineSections.every(
+          (section) =>
+            section.preview.includes("Hashline output truncated") &&
+            section.preview.split("\n").length <= 1000 &&
+            Buffer.byteLength(section.preview, "utf8") <= 25_600,
+        ),
+      ).toBe(true);
     } finally {
       await rm(directory, { force: true, recursive: true });
     }
@@ -1114,11 +1264,19 @@ describe("Hashline extension", () => {
       const text = result.content[0]?.text ?? "";
       expect(text).toMatch(/\[a\.ts#[0-9A-F]{4}\]/u);
       expect(text).toMatch(/\[b\.ts#[0-9A-F]{4}\]/u);
-      const details = result.details as { readonly diff: string; readonly patch: string };
+      const details = result.details as {
+        readonly diff: string;
+        readonly hashlineSections: readonly { readonly path: string; readonly preview: string }[];
+        readonly patch: string;
+      };
       expect(details.diff).toContain("1:A");
       expect(details.diff).toContain("1:B");
       expect(details.diff).not.toContain("+1 A");
       expect(Buffer.byteLength(details.diff, "utf8")).toBeLessThan(4096);
+      expect(details.hashlineSections).toMatchObject([
+        { path: "a.ts", preview: "1:A" },
+        { path: "b.ts", preview: "1:B" },
+      ]);
       expect(Buffer.byteLength(text, "utf8")).toBeLessThan(4096);
     } finally {
       await rm(directory, { force: true, recursive: true });

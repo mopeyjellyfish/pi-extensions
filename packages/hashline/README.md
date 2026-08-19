@@ -8,6 +8,10 @@ edits. Pi restores only bounded snapshot and register metadata from the active
 session branch after reload, resume, or fork, and revalidates every restored tag
 against the current file before accepting it.
 
+Interactive edit results keep their reusable Hashline line numbers and apply Pi's
+path-aware syntax highlighting. Markdown previews also highlight code inside
+fenced blocks from the fence language.
+
 Library consumers using parser-backed block operations must call and await
 `initializeSyntax()` from `@mopeyjellyfish/pi-hashline` before using the
 synchronous resolver or patcher. The Pi `edit` tool does this automatically.
