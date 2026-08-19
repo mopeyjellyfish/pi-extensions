@@ -196,6 +196,14 @@ function detectApplyPatchContamination(text: string): string | null {
       `Drop the \`@@ ... @@\` brackets and write a header such as \`PUT N${HL_RANGE_SEP}M:\`.`
     );
   }
+  const malformedBlock = /^PUT\s+([1-9]\d*)\*=\s*:\s*$/.exec(trimmed);
+  if (malformedBlock !== null) {
+    const line = malformedBlock[1] ?? "N";
+    return (
+      `Malformed block header ${JSON.stringify(trimmed)}: \`*\` is the complete block locator and is never followed by \`=\`. ` +
+      `Use \`PUT ${line}*:\` to replace the syntactic block beginning on line ${line}.`
+    );
+  }
   if (/^[1-9]\d*\s*$/.test(trimmed)) {
     return `hunk headers need a verb and both endpoints. Use \`PUT ${trimmed}${HL_RANGE_SEP}${trimmed}:\` to replace, or \`CUT ${trimmed}${HL_RANGE_SEP}${trimmed}\` to delete.`;
   }
