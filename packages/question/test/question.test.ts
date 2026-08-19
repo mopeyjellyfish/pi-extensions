@@ -1,9 +1,9 @@
 import { stripVTControlCharacters } from "node:util";
 
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { Markdown, visibleWidth } from "@earendil-works/pi-tui";
 import { Compile } from "typebox/compile";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import questionExtension, {
   QuestionDialog,
@@ -407,6 +407,39 @@ describe("TUI dialog", () => {
     },
   ];
 
+  it("opens content-sized TUI questions in a bounded capturing overlay", async () => {
+    expect.hasAssertions();
+    let options: unknown;
+    const ctx = context("tui", {
+      ui: {
+        custom(factory: (...arguments_: unknown[]) => unknown, customOptions: unknown) {
+          options = customOptions;
+          return new Promise((resolve) => {
+            const component = factory(
+              {
+                terminal: { rows: 24 },
+                requestRender() {
+                  return;
+                },
+              },
+              theme,
+              { matches: () => false },
+              resolve,
+            ) as { cancelAbort(): void; render(width: number): string[] };
+            expect(component.render(60)).toHaveLength(12);
+            component.cancelAbort();
+          });
+        },
+      },
+    } as unknown as Partial<ExtensionContext>);
+
+    await register().execute("id", { questions: single }, undefined, undefined, ctx);
+    expect(options).toEqual({
+      overlay: true,
+      overlayOptions: { width: "90%", maxHeight: "80%", margin: 1 },
+    });
+  });
+
   it("submits through custom UI and bounds every line", async () => {
     expect.hasAssertions();
     const ctx = context("tui", {
@@ -601,18 +634,104 @@ describe("TUI dialog", () => {
       state: { drafts: { scope: { selectedIds: ["small"] } } },
     });
   });
+  it("keeps a full-width rendered Markdown viewport stable while scrolling", () => {
+    expect.hasAssertions();
+    const markdownQuestion: QuestionDefinition = {
+      ...scopeQuestion,
+      multiSelect: true,
+      options: [
+        { id: "a", label: "A", description: "First" },
+        { id: "b", label: "B", description: "Second" },
+      ],
+      document: {
+        name: "plan.md",
+        format: "md",
+        content: [
+          "# Plan",
+          "",
+          "- *Read* [details](https://example.com)",
+          "",
+          "```ts",
+          "const stable = true;",
+          "```",
+          "",
+          ...Array.from({ length: 30 }, (_, index) => `line ${String(index)}`),
+        ].join("\n"),
+      },
+    };
+    const selectedState = applyAction(
+      createInitialState([markdownQuestion]),
+      { kind: "toggle", optionId: "a" },
+      [markdownQuestion],
+    );
+    let renders = 0;
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 14 },
+        requestRender() {
+          renders++;
+        },
+      },
+      theme as never,
+      {
+        matches(data: string, id: string) {
+          return (
+            (id === "tui.select.up" && data === "UP") ||
+            (id === "tui.select.down" && data === "DOWN") ||
+            (id === "tui.select.pageDown" && data === "PAGE_DOWN") ||
+            (id === "tui.select.pageUp" && data === "PAGE_UP")
+          );
+        },
+      },
+      [markdownQuestion],
+      selectedState,
+      () => {
+        return;
+      },
+    );
+    const markdownRender = vi.spyOn(Markdown.prototype, "render");
+    const initial = dialog.render(120);
+    dialog.handleInput("d");
+    dialog.handleInput("UP");
+    dialog.handleInput("DOWN");
+    dialog.handleInput("PAGE_DOWN");
+    dialog.handleInput("\u{1B}[H");
+    dialog.handleInput("\u{1B}[F");
+    const final = dialog.render(120);
+
+    expect(stripVTControlCharacters(initial.join("\n"))).toContain("Plan");
+    expect(stripVTControlCharacters(initial.join("\n"))).not.toContain("# Plan");
+    const codeLine = initial.find((line) =>
+      stripVTControlCharacters(line).includes("const stable"),
+    );
+    expect(codeLine).toContain("\u{1B}[");
+    expect(initial).toHaveLength(final.length);
+    expect(final).toHaveLength(14);
+    expect(final.every((line) => visibleWidth(line) === 120)).toBe(true);
+    expect(stripVTControlCharacters(final.join("\n"))).toContain("[x] A");
+    expect(stripVTControlCharacters(final.at(-2) ?? "")).toContain("Document:");
+    expect(stripVTControlCharacters(final.at(-1) ?? "")).toMatch(/^─+$/u);
+    expect(renders).toBe(5);
+    expect(markdownRender).toHaveBeenCalledTimes(1);
+    markdownRender.mockRestore();
+  });
 
   it.each([
     ["md", "# Plan"],
     ["yml", "enabled: true"],
     ["json", '{"enabled":true}'],
     ["xml", "<enabled>true</enabled>"],
-    ["txt", "plain text"],
+    ["txt", "# Literal **text**"],
   ] as const)("renders %s document content", (format, content) => {
     expect.hasAssertions();
     const formattedQuestion: QuestionDefinition = {
       ...scopeQuestion,
       document: { content, format, name: `plan.${format}` },
+      options: scopeQuestion.options.map(({ id, label, description }) => ({
+        id,
+        label,
+        description,
+      })),
     };
     const dialog = new QuestionDialog(
       {
@@ -629,9 +748,12 @@ describe("TUI dialog", () => {
         return;
       },
     );
+    const markdownRender = vi.spyOn(Markdown.prototype, "render");
     const rendered = stripVTControlCharacters(dialog.render(120).join("\n"));
     expect(rendered).toContain(format === "md" ? "Plan" : content);
     expect(dialog.render(120).every((line) => visibleWidth(line) <= 120)).toBe(true);
+    expect(markdownRender).toHaveBeenCalledTimes(format === "md" ? 1 : 0);
+    markdownRender.mockRestore();
   });
 
   it("handles multi-select Next, notes, incomplete Submit, and tab persistence", () => {

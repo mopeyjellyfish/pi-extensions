@@ -43,6 +43,8 @@ describe("feature-flow resources", () => {
     expect(shape).toMatch(/tool[^.]*unavailable[\s\S]*cancels[\s\S]*checkpointed[^.]*default/iu);
     expect(shape).toMatch(/preference[^.]*not[^.]*implementation authority/iu);
 
+    expect(shape).toMatch(/complete\s+pitch[^.]*document[^.]*format: "md"/iu);
+    expect(shape).toMatch(/document field[^.]*available/iu);
     expect(planning).toMatch(/explicit accepted intent|accepted Shape pitch/iu);
     expect(planning).toMatch(
       /first action[\s\S]*isolated[^.]*worktree[\s\S]*before[\s\S]*(instructions|contracts|tests)/iu,
@@ -82,6 +84,8 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(
       /whole-plan\s+approval\s+presentation[^.]*question[^.]*selected\s+execution\s+mode/iu,
     );
+    expect(planning).toMatch(/whole\s+plan[^.]*document[^.]*format: "md"/iu);
+    expect(planning).toMatch(/document field[^.]*available/iu);
 
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
     expect(pitch).toMatch(/## Problem and evidence/iu);
