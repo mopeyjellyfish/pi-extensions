@@ -7,7 +7,7 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 - One to four questions in a capturing full-screen overlay that uses every terminal row and column.
 - Single- and multi-select options with persistent selections.
 - Responsive Markdown previews, stacked below 100 terminal columns and side-by-side at wider terminal widths.
-- Optional full-document review with persistent, independently scrollable Markdown (including bulleted and numbered nested lists, spacing, rules, and language-highlighted fences), YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
+- Optional full-document review with persistent, independently scrollable Markdown (including bulleted and numbered nested lists, spacing, rules, and language-highlighted fenced code in theme-aware background blocks), YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
 - Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
 - Immediate submission after a single question is answered, without a redundant review step.
 - **Chat about this…** redirects the conversation, then lets the model reopen revised questions with an opaque continuation ID while preserving compatible draft answers.
@@ -76,7 +76,7 @@ question({
 });
 ```
 
-`document.format` is `md`, `yml`, `json`, `xml`, or `txt`. Markdown uses Pi's formatted Markdown renderer, including fenced-code highlighting; structured text uses Pi's syntax highlighter. The full-screen overlay keeps document rows stable while scrolling. At 100 terminal columns or wider, the document remains visible beside the options; it stacks below them at narrower terminal widths. Per-option previews still work and appear with the focused option.
+`document.format` is `md`, `yml`, `json`, `xml`, or `txt`. Markdown uses Pi's formatted Markdown renderer, including language-highlighted fenced code in padded theme-aware background blocks without fence labels; structured text uses Pi's syntax highlighter. The full-screen overlay keeps document rows stable while scrolling. At 100 terminal columns or wider, the document remains visible beside the options; it stacks below them at narrower terminal widths. Per-option previews still work and appear with the focused option.
 
 A redirected result contains `continuationId`, the bounded clarification, structured answers, and a compact continuation snapshot in tool details. The snapshot stores stable IDs plus SHA-256 semantic hashes for question text/selection mode and option labels/descriptions; it does not duplicate those strings, raw UI state, or previews. After addressing the clarification, call `question` again with that ID and the revised questions. Drafts are restored only from `question` results on the current session branch. Each continuation ID is one-use: the consuming result records `continuedFrom`, and later reuse fails as stale. Rewritten questions, changed selection modes, or changed option labels/descriptions clear affected selections and notes; preview-only changes do not. Removed options and their notes are dropped.
 
