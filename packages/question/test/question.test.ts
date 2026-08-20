@@ -1,7 +1,7 @@
 import { stripVTControlCharacters } from "node:util";
 
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { Markdown, visibleWidth } from "@earendil-works/pi-tui";
+import { Key, Markdown, visibleWidth } from "@earendil-works/pi-tui";
 import { Compile } from "typebox/compile";
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,6 +11,7 @@ import questionExtension, {
   RESERVED_LABELS,
   applyAction,
   buildResult,
+  columnWidths,
   continuationFromBranch,
   createInitialState,
   fitDialogToRows,
@@ -724,8 +725,23 @@ describe("TUI dialog", () => {
 
   it("renders Markdown lists, spacing, rules, and language-highlighted code", () => {
     expect.hasAssertions();
+    const codeBackgroundStart = "\u{1B}[48;5;236m";
+    const codeBackgroundEnd = "\u{1B}[49m";
+    const codeBackgroundTheme: Theme = {
+      ...theme,
+      bg(color, value) {
+        return color === "toolPendingBg"
+          ? `${codeBackgroundStart}${value}${codeBackgroundEnd}`
+          : value;
+      },
+    };
     const markdownQuestion: QuestionDefinition = {
       ...scopeQuestion,
+      options: scopeQuestion.options.map(({ id, label, description }) => ({
+        id,
+        label,
+        description,
+      })),
       document: {
         name: "rendering.md",
         format: "md",
@@ -747,17 +763,31 @@ describe("TUI dialog", () => {
           "```typescript",
           "const answer: number = 42;",
           "```",
+          "",
+          "```go",
+          "answer := 42",
+          "```",
+          "",
+          "```",
+          "plain code",
+          "```",
+          "",
+          "1. Nested code",
+          "",
+          "   ```typescript",
+          '   const nestedValue = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";',
+          "   ```",
         ].join("\n"),
       },
     };
     const dialog = new QuestionDialog(
       {
-        terminal: { rows: 40 },
+        terminal: { rows: 100 },
         requestRender() {
           return;
         },
       },
-      theme as never,
+      codeBackgroundTheme as never,
       { matches: () => false },
       [markdownQuestion],
       createInitialState([markdownQuestion]),
@@ -768,6 +798,15 @@ describe("TUI dialog", () => {
 
     const rendered = dialog.render(120);
     const plain = rendered.map((line) => stripVTControlCharacters(line));
+    expect(plain.join("\n")).not.toContain("```");
+    const backgroundRows = rendered.filter((line) => line.includes(codeBackgroundStart));
+    expect(backgroundRows.length).toBeGreaterThan(9);
+    for (const backgroundRow of backgroundRows) {
+      expect(backgroundRow).toContain(codeBackgroundEnd);
+      const content =
+        backgroundRow.split(codeBackgroundStart).at(-1)?.split(codeBackgroundEnd, 1)[0] ?? "";
+      expect(visibleWidth(content)).toBe(columnWidths(120).right);
+    }
     const parent = plain.find((line) => line.includes("Parent bullet"));
     const nested = plain.find((line) => line.includes("Nested bullet"));
     expect(parent).toContain("• Parent bullet");
@@ -784,12 +823,44 @@ describe("TUI dialog", () => {
     const codeLine = rendered.find((line) =>
       stripVTControlCharacters(line).includes("const answer"),
     );
+    expect(codeLine).toContain(codeBackgroundStart);
+    const backgroundContent =
+      codeLine?.split(codeBackgroundStart).at(-1)?.split(codeBackgroundEnd, 1)[0] ?? "";
+    expect(visibleWidth(backgroundContent)).toBe(columnWidths(120).right);
+    const goLine = rendered.find((line) => stripVTControlCharacters(line).includes("answer := 42"));
+    expect(goLine).toContain(codeBackgroundStart);
+    const plainCodeLine = rendered.find((line) =>
+      stripVTControlCharacters(line).includes("plain code"),
+    );
+    expect(plainCodeLine).toContain(codeBackgroundStart);
+    const nestedCodeLine = rendered.find((line) =>
+      stripVTControlCharacters(line).includes("const nestedValue"),
+    );
+    expect(nestedCodeLine).toContain(codeBackgroundStart);
+    const wrappedTailLine = rendered.find((line) =>
+      stripVTControlCharacters(line).includes("0123456789"),
+    );
+    expect(wrappedTailLine).toContain(codeBackgroundStart);
     const syntaxColors =
       codeLine
         ?.split("\u{1B}[38;")
         .slice(1)
         .map((segment) => segment.split("m", 1)[0]) ?? [];
     expect(new Set(syntaxColors).size).toBeGreaterThan(1);
+
+    dialog.render(80);
+    dialog.handleInput("d");
+    dialog.handleInput(Key.end);
+    const stacked = dialog.render(80);
+    const stackedTailLine = stacked.find((line) =>
+      stripVTControlCharacters(line).includes("0123456789"),
+    );
+    expect(stackedTailLine).toContain(codeBackgroundStart);
+    expect(stackedTailLine).toContain(codeBackgroundEnd);
+    const stackedBackgroundContent =
+      stackedTailLine?.split(codeBackgroundStart).at(-1)?.split(codeBackgroundEnd, 1)[0] ?? "";
+    expect(visibleWidth(stackedBackgroundContent)).toBe(80);
+    expect(stacked.every((line) => visibleWidth(line) <= 80)).toBe(true);
   });
 
   it.each([

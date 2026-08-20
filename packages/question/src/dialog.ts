@@ -10,6 +10,7 @@ import {
   type EditorTheme,
   Key,
   Markdown,
+  type MarkdownTheme,
   matchesKey,
   truncateToWidth,
   visibleWidth,
@@ -68,12 +69,38 @@ function wrapped(text: string, width: number): string[] {
   return wrapTextWithAnsi(text, Math.max(1, width)).map((line) => truncateToWidth(line, width, ""));
 }
 
-function documentMarkdownTheme(): ReturnType<typeof getMarkdownTheme> {
+const CODE_BLOCK_START = "\u{E000}";
+const CODE_BLOCK_END = "\u{E001}";
+
+function documentMarkdownTheme(): MarkdownTheme {
   const markdownTheme = getMarkdownTheme();
+  let nextCodeBlockBorder = CODE_BLOCK_START;
   return {
     ...markdownTheme,
+    codeBlockBorder: () => {
+      const border = nextCodeBlockBorder;
+      nextCodeBlockBorder =
+        nextCodeBlockBorder === CODE_BLOCK_START ? CODE_BLOCK_END : CODE_BLOCK_START;
+      return border;
+    },
     listBullet: (marker) => markdownTheme.listBullet(marker.replace(/^[-+*] /u, "• ")),
   };
+}
+
+function renderMarkdownDocument(content: string, width: number, theme: Theme): string[] {
+  let inCodeBlock = false;
+  return new Markdown(content, 0, 0, documentMarkdownTheme()).render(width).map((line) => {
+    if (line.includes(CODE_BLOCK_START)) {
+      inCodeBlock = true;
+      return theme.bg("toolPendingBg", line.replace(CODE_BLOCK_START, " "));
+    }
+    if (line.includes(CODE_BLOCK_END)) {
+      const paddedLine = theme.bg("toolPendingBg", line.replace(CODE_BLOCK_END, " "));
+      inCodeBlock = false;
+      return paddedLine;
+    }
+    return inCodeBlock ? theme.bg("toolPendingBg", line) : line;
+  });
 }
 
 function padDialogLines(lines: readonly string[], rows: number): string[] {
@@ -491,7 +518,7 @@ export class QuestionDialog implements Component, Focusable {
     const content = sanitizeText(document.content).replaceAll("\t", " ".repeat(3));
     let lines: string[];
     if (document.format === "md") {
-      lines = new Markdown(content, 0, 0, documentMarkdownTheme()).render(width);
+      lines = renderMarkdownDocument(content, width, this.theme);
     } else {
       const language = getLanguageFromPath(`document.${document.format}`);
       const highlighted = language
