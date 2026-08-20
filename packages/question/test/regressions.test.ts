@@ -1,3 +1,5 @@
+import { stripVTControlCharacters } from "node:util";
+
 import { initTheme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it } from "vitest";
@@ -197,6 +199,122 @@ describe("review regressions", () => {
     const columns = columnWidths(100);
     expect(columns.left).toBeGreaterThan(0);
     expect(columns.right).toBeGreaterThan(0);
+  });
+  it("gives the post-gap remainder to the wide content column", () => {
+    expect.hasAssertions();
+    expect(columnWidths(100)).toEqual({ left: 32, right: 66, gap: 2 });
+    expect(columnWidths(102)).toEqual({ left: 33, right: 67, gap: 2 });
+  });
+  it("keeps the wide left rail for documents, previews, blank content, and review", () => {
+    expect.hasAssertions();
+    const railOptions = [
+      {
+        id: alpha.id,
+        label: "LEFT-RAIL-OPTION-TEXT-THAT-MUST-NOT-EXPAND-INTO-THE-BLANK-CONTENT-PANE",
+        description: alpha.description,
+      },
+      beta,
+    ];
+    const documentQuestion: QuestionDefinition = {
+      ...question,
+      options: railOptions,
+      document: { content: "DOCUMENT-CONTENT", format: "txt", name: "plan.txt" },
+    };
+    const render = (
+      questions: readonly QuestionDefinition[],
+      state = createInitialState(questions),
+    ) =>
+      new QuestionDialog(
+        {
+          terminal: { rows: 20 },
+          requestRender() {
+            return;
+          },
+        },
+        theme as never,
+        { matches: () => false },
+        questions,
+        state,
+        () => {
+          return;
+        },
+      )
+        .render(100)
+        .map(stripVTControlCharacters);
+    const blankQuestion: QuestionDefinition = { ...question, options: railOptions };
+    const reviewQuestions: readonly QuestionDefinition[] = [
+      { ...blankQuestion, header: "First" },
+      { ...blankQuestion, id: "second", header: "Second" },
+    ];
+    let reviewState = applyAction(
+      createInitialState(reviewQuestions),
+      { kind: "select", optionId: "alpha" },
+      reviewQuestions,
+    );
+    reviewState = applyAction(reviewState, { kind: "tab", tab: 1 }, reviewQuestions);
+    reviewState = applyAction(reviewState, { kind: "select", optionId: "alpha" }, reviewQuestions);
+    reviewState = applyAction(reviewState, { kind: "tab", tab: 2 }, reviewQuestions);
+
+    const document = render([documentQuestion]);
+    expect(
+      document.find((line) => line.includes("DOCUMENT-CONTENT"))?.indexOf("DOCUMENT-CONTENT"),
+    ).toBe(34);
+    const documentRailLines = document.filter((line) => line.includes("LEFT-RAIL"));
+    expect(documentRailLines.length).toBeGreaterThan(0);
+    expect(documentRailLines.every((line) => line.slice(32, 34) === "  ")).toBe(true);
+    const preview = render([question]);
+    expect(preview.find((line) => line.includes("PREVIEW-LINE"))?.indexOf("PREVIEW-LINE")).toBe(34);
+    const blank = render([blankQuestion]);
+    const blankRailLines = blank.filter((line) => line.includes("LEFT-RAIL"));
+    expect(blankRailLines.length).toBeGreaterThan(0);
+    expect(blankRailLines.every((line) => line.slice(34).trim() === "")).toBe(true);
+    const review = render(reviewQuestions, reviewState);
+    const reviewRailLines = review.filter((line) => line.includes("LEFT-RAIL"));
+    expect(reviewRailLines.length).toBeGreaterThan(0);
+    expect(reviewRailLines.every((line) => line.slice(34).trim() === "")).toBe(true);
+    expect(
+      review
+        .find((line) => line.includes("Submit answers"))
+        ?.slice(34)
+        .trim(),
+    ).toBe("");
+  });
+
+  it("keeps document and preview content stacked at 99 columns", () => {
+    expect.hasAssertions();
+    const render = (questionToRender: QuestionDefinition) =>
+      new QuestionDialog(
+        {
+          terminal: { rows: 20 },
+          requestRender() {
+            return;
+          },
+        },
+        theme as never,
+        { matches: () => false },
+        [questionToRender],
+        createInitialState([questionToRender]),
+        () => {
+          return;
+        },
+      )
+        .render(99)
+        .map(stripVTControlCharacters);
+    const withDocument: QuestionDefinition = {
+      ...question,
+      document: { content: "DOCUMENT-STACKED", format: "txt", name: "plan.txt" },
+    };
+
+    expect(
+      render(question)
+        .find((line) => line.includes("PREVIEW-LINE"))
+        ?.indexOf("PREVIEW-LINE"),
+    ).toBe(0);
+    expect(
+      render(withDocument)
+        .find((line) => line.includes("DOCUMENT-STACKED"))
+        ?.indexOf("DOCUMENT-STACKED"),
+    ).toBe(0);
   });
 
   it("uses indicator rows without erasing focused content", () => {
