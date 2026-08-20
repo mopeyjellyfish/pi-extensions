@@ -11,7 +11,7 @@ export interface ColumnWidths {
 
 export function columnWidths(width: number): ColumnWidths {
   const gap = COLUMN_GAP;
-  const left = Math.max(20, Math.floor((width - gap) * 0.42));
+  const left = Math.max(20, Math.floor((width - gap) / 3));
   return { left, right: Math.max(1, width - left - gap), gap };
 }
 

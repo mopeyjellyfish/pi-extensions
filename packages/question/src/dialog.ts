@@ -603,21 +603,17 @@ export class QuestionDialog implements Component, Focusable {
   private renderQuestion(question: QuestionDefinition, width: number, rows: number): RenderedBody {
     if (question.document) return this.renderDocumentQuestion(question, width, rows);
 
+    if (!previewSideBySide(width)) return this.renderStackedQuestion(question, width);
+
     const focused = question.options[this.currentCursor()];
     const showPreview =
       focused?.preview && this.editMode?.kind !== "other" && this.editMode?.kind !== "chat";
-    if (!showPreview || !previewSideBySide(width)) {
-      return this.renderStackedQuestion(question, width);
-    }
 
     const columns = columnWidths(width);
     const options = this.optionRows(question, columns.left);
-    const previewLines = new Markdown(
-      sanitizeText(focused.preview),
-      0,
-      0,
-      getMarkdownTheme(),
-    ).render(columns.right);
+    const previewLines = showPreview
+      ? new Markdown(sanitizeText(focused.preview), 0, 0, getMarkdownTheme()).render(columns.right)
+      : [];
     const alignedPreview = [
       ...Array.from({ length: options.focusStart }, () => ""),
       ...previewLines,
@@ -630,6 +626,8 @@ export class QuestionDialog implements Component, Focusable {
   }
 
   private renderReview(width: number): RenderedBody {
+    const wide = previewSideBySide(width);
+    const contentWidth = wide ? columnWidths(width).left : width;
     const lines: string[] = [];
     for (const answer of answersFromState(this.questions, this.state)) {
       const question = this.questions.find((item) => item.id === answer.questionId);
@@ -644,13 +642,19 @@ export class QuestionDialog implements Component, Focusable {
         .filter(Boolean)
         .join("; ");
       lines.push(
-        ...wrapped(`${question?.header ?? answer.questionId}: ${value || "Unanswered"}`, width),
+        ...wrapped(
+          `${question?.header ?? answer.questionId}: ${value || "Unanswered"}`,
+          contentWidth,
+        ),
       );
     }
     const missing = firstUnansweredTab(this.state, this.questions);
     if (missing !== undefined) {
       lines.push(
-        ...wrapped(this.theme.fg("warning", "Answer every question before submitting."), width),
+        ...wrapped(
+          this.theme.fg("warning", "Answer every question before submitting."),
+          contentWidth,
+        ),
       );
     }
     const cursor = this.currentCursor();
@@ -659,7 +663,11 @@ export class QuestionDialog implements Component, Focusable {
       `${cursor === 0 ? "> " : "  "}${this.state.complete ? "Submit answers" : "Submit answers (disabled)"}`,
       `${cursor === 1 ? "> " : "  "}Chat about this…`,
     );
-    return { lines, focusStart: submitStart + cursor, focusEnd: submitStart + cursor };
+    return {
+      lines: wide ? joinColumns(lines, [], width) : lines,
+      focusStart: submitStart + cursor,
+      focusEnd: submitStart + cursor,
+    };
   }
 
   render(width: number): string[] {

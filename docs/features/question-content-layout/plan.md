@@ -43,7 +43,7 @@ Invalidation map:
 
 Pause and report a forecast variance if the persistent rail requires a schema or Pi TUI API change, if readable controls cannot fit in one-third at the current breakpoint, or if the work must be split into another delivery unit.
 
-## [ ] 001 — Keep controls in one-third and content in two-thirds
+## [x] 001 — Keep controls in one-third and content in two-thirds
 
 ### Outcome and requirement trace
 
