@@ -32,7 +32,7 @@ describe("frontend developer package resources", () => {
     ]);
     expect(workflow).toContain("frontend-design");
     expect(design).toMatch(
-      /Repository instructions and observed\s+product behavior take precedence over DESIGN\.md/,
+      /Repository instructions and observed\s+product behavior\s+take precedence over DESIGN\.md/,
     );
     expect(contract).toMatch(
       /Ask for approval before\s+creating or materially\s+rewriting DESIGN\.md/,
@@ -72,5 +72,67 @@ describe("frontend developer package resources", () => {
     await expect(access(resolve(packageRoot, "LICENSE"))).resolves.toBeUndefined();
     const releases = await readFile(resolve(root, "release-please-config.json"), "utf8");
     expect(releases).toContain('"packages/frontend-developer"');
+  });
+
+  it("ships the integrated, attributable app-interface method", async () => {
+    expect.hasAssertions();
+    const manifest = JSON.parse(await text("package.json")) as { files: string[] };
+    const [method, license, contract, template, router, workflow, prompt, readme] =
+      await Promise.all([
+        text("skills/interface-design/SKILL.md"),
+        text("skills/interface-design/LICENSE.txt"),
+        text("skills/frontend-design/references/design-contract.md"),
+        text("skills/frontend-design/assets/DESIGN.template.md"),
+        text("skills/frontend-design/SKILL.md"),
+        text("skills/frontend-development/SKILL.md"),
+        text("prompts/design-ui.md"),
+        text("README.md"),
+      ]);
+
+    expect(manifest.files).toContain("skills/");
+    expect(method).toMatch(/dashboards[\s\S]*admin panels[\s\S]*data interfaces/i);
+    expect(license).toMatch(/MIT License[\s\S]*Copyright \(c\) 2026 Damola Akinleye/i);
+    expect(method).toContain("2f9be3206855bcb2d1d0af262c8bae25cba6658d");
+    expect(method).toMatch(/modified derivative/i);
+    expect(`${method}\n${license}`).toMatch(/permission is hereby granted/i);
+
+    expect(router).toMatch(/mechanical[\s\S]*direct/i);
+    expect(router).toMatch(/non-trivial[\s\S]*app[\s\S]*interface-design/i);
+    expect(router).toMatch(/marketing-site-design[\s\S]*available/i);
+    expect(workflow).toMatch(/non-trivial[\s\S]*interface-design/i);
+    expect(prompt).toContain("interface-design");
+
+    expect(readme).toMatch(/interface-design/i);
+    expect(readme).toMatch(/non-trivial app/i);
+    expect(method).toMatch(/approval[\s\S]*(?:create|rewrite)[\s\S]*DESIGN\.md/i);
+    expect(method).not.toMatch(/\b(?:\.interface-design\/)?system\.md\b/i);
+    expect(contract).toMatch(
+      /Ask for approval before\s+creating or materially\s+rewriting DESIGN\.md/,
+    );
+    expect(template).toContain("## Visual thesis");
+    expect(method).toContain("[design contract](../frontend-design/references/design-contract.md)");
+    expect(method).toContain("[DESIGN template](../frontend-design/assets/DESIGN.template.md)");
+    expect(method).toMatch(/person[\s\S]*task[\s\S]*feel/i);
+    expect(method).toMatch(/domain[\s\S]*color world[\s\S]*signature[\s\S]*defaults/i);
+    expect(method).toMatch(/focal/i);
+    expect(method).toMatch(/typography/i);
+    expect(method).toMatch(/density/i);
+    expect(method).toMatch(/spatial rhythm/i);
+    expect(method).toMatch(/semantic tokens/i);
+    expect(method).toMatch(/depth strategy/i);
+    expect(method).toMatch(/existing accessible controls/i);
+    expect(method).toMatch(/swap test[\s\S]*squint test[\s\S]*signature test[\s\S]*token test/i);
+    expect(method).toMatch(/new or materially restyled component work/i);
+    expect(method).toMatch(/mechanical edit[\s\S]*direct\s+build path/i);
+    expect(method).toMatch(/## Visual Hierarchy & Composition[\s\S]*### One focal point per view/);
+
+    expect(method).toMatch(/image-generation[\s\S]*privacy[\s\S]*cost[\s\S]*consent/i);
+    expect(method).toMatch(
+      /coherent material[\s\S]*feedback[\s\S]*structured-question[\s\S]*fallback/i,
+    );
+    expect(method).toMatch(/target.*hot-reload[\s\S]*cleanup/i);
+    expect(method).toMatch(/framework-neutral[\s\S]*react-interface[\s\S]*React/i);
+    expect(method).toMatch(/visual-validation[\s\S]*unmet proof/i);
+    expect(readme).toContain("/generate-image");
   });
 });
