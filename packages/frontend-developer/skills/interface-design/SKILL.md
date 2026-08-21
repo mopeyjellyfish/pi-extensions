@@ -5,14 +5,6 @@ description: Craft-first interface design for dashboards, admin panels, SaaS app
 
 # Interface Design
 
-> **Modified source notice:** This is a modified derivative of Damola Akinleye’s
-> MIT-licensed `interface-design` skill from
-> `2f9be3206855bcb2d1d0af262c8bae25cba6658d`. Modified for Pi frontend
-> developer, it integrates this package’s framework-neutral repository, feedback,
-> implementation, and visual-proof workflow; it is not an unchanged vendored
-> snapshot. The original copyright and permission notice is in
-> [`LICENSE.txt`](LICENSE.txt).
-
 Build product interfaces with the craft of a top design team — Linear, Vercel, Stripe, Apple. The difference between those and generic output is not talent. It is that every decision was _decided_, the hierarchy is unmistakable, and a hundred small details are correct at once. This skill is how you get there.
 
 ## Scope

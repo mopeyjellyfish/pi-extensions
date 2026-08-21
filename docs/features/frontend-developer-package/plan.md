@@ -145,8 +145,9 @@ Extend `packages/frontend-developer/test/resources.test.ts` before adding the
 new skill. Capture a focused failure proving:
 
 - `interface-design` is absent from discovery and packed contents;
-- its packed MIT license, pinned source commit, and prominent modification
-  notice are absent;
+- its packed co-located MIT license lacks the complete notice, its package README
+  lacks the pinned source or prominent modification attribution, or the skill
+  contains attribution prose;
 - `frontend-design` does not route non-trivial app UI to the deep method, retain
   a direct path for a mechanical edit, or conditionally route marketing work;
 - the deep method does not replace `.interface-design/system.md` with the
@@ -182,9 +183,11 @@ npm run smoke:source
 Inspect `npm pack --dry-run --json` through package validation. Confirm the new
 skill and MIT license are packed. Compare the final skill with the pinned source:
 retain the complete substantive app-design discipline, remove every
-`.interface-design/system.md` instruction, mark the derivative as modified, and
-verify that integrations live inside `interface-design`, not only in router or
-README text.
+`.interface-design/system.md` instruction, and verify that integrations live
+inside `interface-design`, not only in router or README text. Verify the package
+README prominently identifies the modified derivative and pinned source, the
+packed co-located license retains the complete MIT notice, and
+`interface-design/SKILL.md` contains no attribution prose.
 
 For manual acceptance, load only this package from the current worktree in a
 deterministic Pi session and:
