@@ -82,7 +82,7 @@ Evidence is reused only while its covered surface is unchanged. Run the complete
 required gate once after the final diff freezes and again only when a repair
 invalidates it.
 
-## [ ] 005 — Deeply integrate the app-interface design method
+## [x] 005 — Deeply integrate the app-interface design method
 
 ### Outcome and requirement trace
 
