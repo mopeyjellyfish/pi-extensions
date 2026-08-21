@@ -1,7 +1,7 @@
 {
   "name": "@mopeyjellyfish/pi-frontend-developer",
   "version": "0.0.0",
-  "description": "Deliberate frontend design and React implementation workflow for Pi.",
+  "description": "Deliberate frontend design, React implementation, and visual validation workflow for Pi.",
   "license": "MIT",
   "type": "module",
   "engines": {
