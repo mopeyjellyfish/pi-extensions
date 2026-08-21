@@ -63,6 +63,8 @@ Before touching code, answer these. Keep it a compact working brief unless the d
 
 If the prompt is too vague to identify the person, task, and feel, ask one concise question (using a structured question capability when available). If context allows a responsible, reversible assumption, state it briefly and proceed. Keep unresolved questions in the design decision ledger; do not silently invent product behavior.
 
+For initial costly ambiguity, use Pi's `question` tool when available. Use it again before any external image request to confirm privacy exposure and billing consent for separately billed cost, and after each material group to confirm milestone direction. Offer 2–4 concrete choices with a recommendation; a cancellation is never approval.
+
 **Intent must be systemic.** Saying "warm" then using cold colors is not following through. If the intent is warm: surfaces, text, borders, accents, semantic colors, type — all warm. If dense: spacing, type size, information architecture — all dense. Check every token against the stated intent. For every choice — layout, color temperature, typeface, spacing scale, hierarchy — you must be able to say _why_. "It's common" or "it works" means you defaulted.
 
 ---
@@ -86,13 +88,14 @@ This is where defaults get caught — or don't. Generic path: Task type → visu
 
 For greenfield apps, major redesigns, or unresolved visual direction, consider
 an image-reference pass only when `image-generation` is available and useful.
-Before uploading any input or generating an image, obtain explicit consent for
+Use the `question` tool when available to obtain explicit consent for
 external-provider privacy exposure, separately billed cost, and available
-credentials. Use a direction board, UI reference, paintover, or raster asset as
-reference evidence, inspect every artifact, and get direction feedback before
-accepting it. Skip it for small changes, clear existing systems, sensitive
-inputs, unavailable credentials, or declined consent. Generated pixels never
-define hidden behavior or replace native accessible controls.
+credentials before uploading any input or generating an image. Use a direction
+board, UI reference, paintover, or raster asset as reference evidence, inspect
+every artifact, and get direction feedback before accepting it. Skip it for
+small changes, clear existing systems, sensitive inputs, unavailable
+credentials, or declined consent. Generated pixels never define hidden behavior
+or replace native accessible controls.
 
 ## Render It When You Can
 
@@ -205,9 +208,23 @@ The most common way AI degrades a codebase: it hand-rolls what already exists. A
 
 ### Controls: native → primitive → hand-roll
 
-1. **Native HTML first** where it works. A `<button>` is a button; an `<a>` is a link; `<input type="text">`, `<dialog>`, `<details>` exist. Never `<div onClick>` something the platform already provides — you lose focus, keyboard, and semantics for free.
-2. **A battle-tested headless primitive** for anything stateful and hard to get right — select, combobox, dialog, popover, tooltip, dropdown menu, tabs, date picker. These ship keyboard navigation, focus management, ARIA, and collision/positioning that take days to reproduce correctly. Reach for what the ecosystem already trusts (e.g. Radix UI, React Aria, Ark, Headless UI, Vaul, `cmdk` in React; the equivalent accessible primitive in other frameworks), then style it to your direction. "Build custom" means _compose and style a primitive_, not write the behavior from scratch.
-3. **Hand-roll only as a genuine last resort** — no primitive fits, or there's no dependency budget. Then you owe the complete behavior contract: keyboard nav (arrow keys, Enter, Escape), focus trap/return, full ARIA roles and state, click-outside, and scroll-lock for overlays. A styled control missing these is broken, however good it looks.
+1. **Native HTML controls first when they fit.** A `<button>` is a button; an
+   `<a>` is a link; `<input type="text">`, `<dialog>`, and `<details>` exist.
+   Never `<div onClick>` something the platform already provides — you lose
+   focus, keyboard, and semantics for free.
+2. **A battle-tested headless primitive** for anything stateful and hard to get
+   right — select, combobox, dialog, popover, tooltip, dropdown menu, tabs,
+   date picker. These ship keyboard navigation, focus management, ARIA, and
+   collision/positioning that take days to reproduce correctly. Reach for what
+   the ecosystem already trusts (e.g. Radix UI, React Aria, Ark, Headless UI,
+   Vaul, `cmdk` in React; the equivalent accessible primitive in other
+   frameworks), then style it to your direction. "Build custom" means _compose
+   and style a primitive_, not write the behavior from scratch.
+3. **Hand-roll only as a genuine last resort** — no primitive fits, or there's
+   no dependency budget. Then you owe the complete behavior contract: keyboard
+   nav (arrow keys, Enter, Escape), focus trap/return, full ARIA roles and
+   state, click-outside, and scroll-lock for overlays. A styled control missing
+   these is broken, however good it looks.
 
 ### Styling: system → component → token → utility
 
@@ -228,7 +245,7 @@ The token, spacing, and depth architecture beneath every craft decision.
 - **Padding.** Symmetrical — if one side has a value, the others match unless content genuinely demands asymmetry.
 - **Depth — choose ONE and commit.** Borders-only (clean, technical, dense tools) · subtle shadows (approachable) · layered shadows (premium, dimensional) · surface-color shifts (tints, no shadows). Don't mix strategies.
 - **Border radius — a scale.** Small for inputs/buttons, medium for cards, large for modals. Don't mix sharp and soft randomly.
-- **Control tokens.** Inputs/selects/checkboxes get dedicated background, border, and focus tokens — don't reuse surface tokens, so you can tune controls independently. Native `<select>`/`<input type="date">` can't be styled — compose a headless primitive instead of hand-rolling one (see "Use What Exists").
+- **Control tokens.** Inputs/selects/checkboxes get dedicated background, border, and focus tokens — don't reuse surface tokens, so you can tune controls independently. Native `<select>` and `<input type="date">` styling varies by browser; keep them when accepted requirements fit, and use an existing accessible repository primitive only for justified behavior or styling needs (see "Use What Exists").
 - **Dark mode.** Shadows are weak on dark — lean on borders. Desaturate semantic colors slightly. Same hierarchy system, inverted values. Keep one hue; shift only lightness across surfaces.
 
 ---
@@ -243,7 +260,7 @@ A hundred small details compound into "feels great." These are the highest-lever
 - **Tabular numbers.** Any dynamic number (counters, prices, timers, table columns) gets `font-variant-numeric: tabular-nums` to prevent layout shift.
 - **Optical alignment.** When geometric centering looks off, fix it optically — icon-side padding ≈ text-side − 2px; nudge play triangles ~2px right.
 - **States are not optional.** Every interactive element needs default, hover, active, focus, disabled. Data needs loading, empty, error. Missing states feel broken — they're the fastest tell of an unfinished interface.
-- **Hit areas — 44×44px (WCAG), 40 at minimum.** If the visible control is smaller (a 20px checkbox), extend with a pseudo-element. Never let two hit areas overlap.
+- **Hit areas.** WCAG 2.2 AA sets a 24px CSS minimum target size (with its spacing exception); WCAG 2.2 AAA is 44px. Prefer 44×44px when layout permits, and extend a smaller visible control without overlapping targets.
 - **Shadows over borders for elevation.** For cards/buttons/containers that lift, prefer a layered transparent `box-shadow` (it adapts to any background); keep real borders for dividers and input outlines. Light-mode lift stacks three layers — a 1px ring + two soft depths, e.g. `0 0 0 1px rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04)`; dark mode collapses to a single ring `0 0 0 1px rgba(255,255,255,.08)` (depth shadows don't read on dark).
 - **Text wrapping.** `text-wrap: balance` on headings; `text-wrap: pretty` on body/captions to kill orphans.
 - **Font smoothing.** `-webkit-font-smoothing: antialiased` on the root (macOS renders heavy otherwise).
@@ -298,8 +315,8 @@ Use this skill as a working discipline, not just advice. When editing UI:
 1. Inspect repository instructions, live product behavior, existing app, design tokens, component patterns, supplied evidence, and `DESIGN.md` if present; apply its accepted decisions only when they agree with live evidence.
 2. Make the domain exploration concrete before choosing layout, color, type, density, and navigation.
 3. For greenfield screens, major redesigns, or vague direction, run the authorized image-reference pass above if useful. Extract palette, density, proportions, and signature into real-code decisions; reject generic SaaS, illegible text, and off-domain palettes.
-4. For non-trivial UI implementation, the direct parent selects only relevant capabilities. When installed and applicable, load and follow `diagnosing-bugs` for unresolved reported broken behavior, `codebase-design` when an implementation seam needs design, `test-driven-development` for behavioral UI code, and `react-interface` only when the target uses React. Preserve target repository instructions and target framework, component system, styling conventions, content, navigation, and behavior. When a `worker` capability is available, the direct parent launches one fresh `worker` as the sole implementation writer; an already-designated implementation writer continues in that role and must not spawn another worker. Direct-parent implementation is the fallback only when that capability is unavailable. Reuse existing accessible controls before introducing primitives or hand-rolled behavior.
-5. For behavioral UI code, require the writer to load and follow `test-driven-development`: prove one intended failing test before the minimum passing implementation. Give the Worker task the goal, public seam, allowed scope, failing test, validation, success and stop conditions, and require evidence. The direct-parent fallback follows the same discipline.
+4. For non-trivial UI implementation, when `implement` or `developing-changes` is available, it alone owns Worker/TDD/QA/review orchestration; this skill supplies accepted design context and does not separately launch Workers or duplicate engineering orchestration. TDD remains required for behavioral UI code. Only when that general workflow is unavailable does the direct parent select relevant installed skills: `diagnosing-bugs` for unresolved reported broken behavior, `codebase-design` when an implementation seam needs design, `test-driven-development` for behavioral UI code, and `react-interface` only when the target uses React. Preserve target repository instructions and target framework, component system, styling conventions, content, navigation, and behavior. In that fallback, a direct parent with a `worker` capability launches one fresh Worker as the sole implementation writer; an already-designated implementation writer continues and must not spawn another Worker. Reuse existing accessible controls before introducing primitives or hand-rolled behavior.
+5. In either path, behavioral UI code requires the writer to load and follow `test-driven-development`: prove one intended failing test before the minimum passing implementation. Give the fallback Worker the goal, public seam, allowed scope, failing test, validation, success and stop conditions, and require evidence.
 6. Use only target-owned start and hot-reload commands. Do not leave a server, browser, watcher, or other resource running outside target command ownership; perform cleanup for every resource this work owns.
 7. Build and show coherent material groups (for example shell/navigation, focal workflow, and states), not isolated fragments. After each group, use Pi's `question` tool with 2–4 concrete choices and visibly mark the recommended option for feedback; only when that tool is unavailable, use one concise conversational fallback. A cancellation is not approval. Resolve feedback in the decision ledger before continuing, but do not interrupt a one-step mechanical fix with mood boards or repeated approvals.
 8. Run relevant target build, typecheck, and focused tests. After stable focused proof, for non-trivial UI invoke `visual-validation` when browser or screenshot capability exists at named desktop and mobile viewports. Exercise key interactions and states; fix evidenced shared causes. If proof cannot run, report the unmet proof honestly instead of claiming visual acceptance.
@@ -338,8 +355,9 @@ Run these against your output; if any fails, iterate before presenting.
 
 ## After Completing a Task
 
-When accepted design decisions should persist, ask: "Want me to save these
-patterns in DESIGN.md for future sessions?" Only after approval, create or
+When accepted design decisions should persist, use Pi's `question` tool when
+available to ask: "Want me to save these patterns in DESIGN.md for future
+sessions?" A cancellation is not approval. Only after approval, create or
 materially update `DESIGN.md` with the
 [DESIGN template](../frontend-design/assets/DESIGN.template.md) as a lean starting point:
 

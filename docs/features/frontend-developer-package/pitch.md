@@ -265,9 +265,10 @@ browser extension to be independently useful.
 - Mock-ups can contain unreadable text, impossible layouts, missing states, and
   inaccessible contrast. The workflow must preserve uncertainty and verify
   behavior rather than treating generated pixels as product truth.
-- Visual quality is partly judgment-based. Contract tests can prove resource
-  composition and safety rules; fixture applications and screenshot workflows
-  must provide behavioral evidence without encoding one preferred aesthetic.
+- Visual quality is partly judgment-based. Package validation and source/packed
+  smoke prove resource composition, while runtime tests, fixture applications,
+  and screenshot workflows provide behavioral evidence without encoding one
+  preferred aesthetic.
 - Provider requests can leak proprietary mock-ups. Documentation and tool
   output must make the external upload boundary and separate cost visible
   before use.
@@ -340,10 +341,11 @@ or unrelated remote changes.
   optional companion capabilities, `DESIGN.md` precedence, mock-up limitations,
   visual verification, image-upload privacy, API billing, configuration, and
   failure recovery.
-- **AC-014 — Verified delivery:** Focused skill/resource tests, mocked provider
-  transport tests, cancellation and failure tests, source and packed smoke,
-  security checks for the provider addition, the full repository check, final
-  diff inspection, and fixed-point review pass on the implementation worktree.
+- **AC-014 — Verified delivery:** Focused runtime/provider transport tests,
+  cancellation and failure tests, source and packed smoke, package validation,
+  Markdown lint, security checks for the provider addition, the full repository
+  check, final diff inspection, and fixed-point review pass on the implementation
+  worktree.
 - **AC-015 — App-interface scope and route:** The package discovers a standalone
   `interface-design` skill for dashboards, admin panels, tools, settings, data
   interfaces, and interactive product workflows. `frontend-design` routes

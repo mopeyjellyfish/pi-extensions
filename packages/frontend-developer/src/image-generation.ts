@@ -1,5 +1,5 @@
 import { mkdir, open, readFile, rm, stat } from "node:fs/promises";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, relative, resolve } from "node:path";
 
 import { withFileMutationQueue, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 
@@ -156,8 +156,197 @@ function decodeImage(value: unknown): Buffer {
   return bytes;
 }
 
+type OutputFormat = NonNullable<ImageInput["outputFormat"]>;
+
+function outputFormatFor(path: string): OutputFormat {
+  switch (extname(path).toLowerCase()) {
+    case ".png":
+      return "png";
+    case ".jpg":
+    case ".jpeg":
+      return "jpeg";
+    case ".webp":
+      return "webp";
+    default:
+      throw new Error("Image output paths must end in .png, .jpg, .jpeg, or .webp.");
+  }
+}
+
+function crc32(bytes: Buffer): number {
+  let crc = 0xff_ff_ff_ff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (-(crc & 1) & 0xed_b8_83_20);
+  }
+  return (crc ^ 0xff_ff_ff_ff) >>> 0;
+}
+
+function pngDimensions(bytes: Buffer): readonly [number, number] | undefined {
+  if (!bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return undefined;
+  }
+  let offset = 8;
+  let dimensions: readonly [number, number] | undefined;
+  let hasImageData = false;
+  while (offset + 12 <= bytes.length) {
+    const length = bytes.readUInt32BE(offset);
+    const end = offset + 12 + length;
+    if (end > bytes.length) return undefined;
+    if (crc32(bytes.subarray(offset + 4, end - 4)) !== bytes.readUInt32BE(end - 4))
+      return undefined;
+    const type = bytes.subarray(offset + 4, offset + 8).toString("ascii");
+    if (offset === 8) {
+      if (type !== "IHDR" || length !== 13) return undefined;
+      const width = bytes.readUInt32BE(offset + 8);
+      const height = bytes.readUInt32BE(offset + 12);
+      if (width === 0 || height === 0) return undefined;
+      dimensions = [width, height];
+    }
+    if (type === "IDAT") hasImageData = true;
+    if (type === "IEND")
+      return length === 0 && hasImageData && end === bytes.length ? dimensions : undefined;
+    offset = end;
+  }
+  return undefined;
+}
+
+const JPEG_SOF_MARKERS = new Set([
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
+]);
+
+function hasJpegEnvelope(bytes: Buffer): boolean {
+  return (
+    bytes.length >= 4 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes.at(-2) === 0xff &&
+    bytes.at(-1) === 0xd9
+  );
+}
+
+function isJpegStandaloneMarker(marker: number): boolean {
+  return marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7);
+}
+
+function jpegDimensions(bytes: Buffer): readonly [number, number] | undefined {
+  if (!hasJpegEnvelope(bytes)) return undefined;
+  let dimensions: readonly [number, number] | undefined;
+  for (let offset = 2; offset + 3 < bytes.length;) {
+    if (bytes[offset] !== 0xff) return undefined;
+    while (bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.length) return undefined;
+    const marker = bytes.readUInt8(offset);
+    if (marker === 0xd9) break;
+    if (isJpegStandaloneMarker(marker)) {
+      offset += 1;
+      continue;
+    }
+    const length = bytes.readUInt16BE(offset + 1);
+    const end = offset + 1 + length;
+    if (length < 2 || end > bytes.length) return undefined;
+    if (JPEG_SOF_MARKERS.has(marker)) {
+      if (length < 8) return undefined;
+      const height = bytes.readUInt16BE(offset + 4);
+      const width = bytes.readUInt16BE(offset + 6);
+      dimensions = width > 0 && height > 0 ? [width, height] : undefined;
+    }
+    if (marker === 0xda) return dimensions;
+    offset = end;
+  }
+  return undefined;
+}
+
+function webpChunkDimensions(
+  bytes: Buffer,
+  type: string,
+  data: number,
+  length: number,
+): readonly [number, number] | undefined {
+  if (type === "VP8L" && length >= 5 && bytes[data] === 0x2f) {
+    const packed = bytes.readUInt32LE(data + 1);
+    return [(packed & 0x3f_ff) + 1, ((packed >>> 14) & 0x3f_ff) + 1];
+  }
+  if (
+    type === "VP8 " &&
+    length >= 10 &&
+    bytes.subarray(data + 3, data + 6).equals(Buffer.from([0x9d, 0x01, 0x2a]))
+  ) {
+    const width = bytes.readUInt16LE(data + 6) & 0x3f_ff;
+    const height = bytes.readUInt16LE(data + 8) & 0x3f_ff;
+    return width > 0 && height > 0 ? [width, height] : undefined;
+  }
+  return undefined;
+}
+
+function webpDimensions(bytes: Buffer): readonly [number, number] | undefined {
+  if (
+    bytes.length < 20 ||
+    bytes.subarray(0, 4).toString("ascii") !== "RIFF" ||
+    bytes.readUInt32LE(4) !== bytes.length - 8 ||
+    bytes.subarray(8, 12).toString("ascii") !== "WEBP"
+  ) {
+    return undefined;
+  }
+  let canvas: readonly [number, number] | undefined;
+  for (let offset = 12; offset + 8 <= bytes.length;) {
+    const type = bytes.subarray(offset, offset + 4).toString("ascii");
+    const length = bytes.readUInt32LE(offset + 4);
+    const data = offset + 8;
+    const end = data + length;
+    if (end > bytes.length) return undefined;
+    if (type === "VP8X") {
+      if (length !== 10) return undefined;
+      canvas = [bytes.readUIntLE(data + 4, 3) + 1, bytes.readUIntLE(data + 7, 3) + 1];
+    } else {
+      const dimensions = webpChunkDimensions(bytes, type, data, length);
+      if (dimensions !== undefined) {
+        return canvas === undefined || (canvas[0] === dimensions[0] && canvas[1] === dimensions[1])
+          ? dimensions
+          : undefined;
+      }
+    }
+    offset = end + (length % 2);
+  }
+  return undefined;
+}
+
+function validateOutput(bytes: Buffer, input: ImageInput): void {
+  const requestedFormat = input.outputFormat ?? "png";
+  const dimensions =
+    requestedFormat === "png"
+      ? pngDimensions(bytes)
+      : requestedFormat === "jpeg"
+        ? jpegDimensions(bytes)
+        : webpDimensions(bytes);
+  if (dimensions === undefined) {
+    throw new Error(
+      `Provider returned an invalid ${requestedFormat.toUpperCase()} image artifact.`,
+    );
+  }
+  if (input.size !== undefined && dimensions.join("x") !== input.size) {
+    throw new Error(`Provider image dimensions must match requested size ${input.size}.`);
+  }
+}
+
 async function providerError(response: Response): Promise<Error> {
-  const text = (await response.text()).slice(0, MAX_ERROR_BYTES);
+  const body = response.body as ReadableStream<Uint8Array> | null;
+  if (body === null) return new Error(`Image generation failed (${String(response.status)}).`);
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const remaining = MAX_ERROR_BYTES - total;
+    if (value.byteLength >= remaining) {
+      chunks.push(value.subarray(0, remaining));
+      await reader.cancel();
+      break;
+    }
+    total += value.byteLength;
+    chunks.push(value);
+  }
+  const text = new TextDecoder().decode(Buffer.concat(chunks));
   return new Error(`Image generation failed (${String(response.status)}): ${text}`);
 }
 
@@ -211,6 +400,10 @@ export async function generateImage(
 ): Promise<ImageResult> {
   signal?.throwIfAborted();
   const outputPath = pathFrom(ctx.cwd, input.outputPath);
+  const outputFormat = input.outputFormat ?? "png";
+  if (outputFormatFor(outputPath) !== outputFormat) {
+    throw new Error(`Image output path extension must match requested ${outputFormat} format.`);
+  }
   return withFileMutationQueue(outputPath, async () => {
     try {
       await stat(outputPath);
@@ -234,6 +427,7 @@ export async function generateImage(
     if (!response.ok) throw await providerError(response);
     const payload = await responsePayload(response);
     const bytes = decodeImage(payload.data?.[0]?.b64_json);
+    validateOutput(bytes, input);
     await writeNew(outputPath, bytes);
     return {
       content: [{ text: `Saved generated image: ${outputPath}`, type: "text" }],
