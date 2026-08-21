@@ -11,7 +11,8 @@ sources; its absence does not block work. Creation or material rewrite requires
 human approval. Mock-ups are design evidence, not behavior specifications:
 interactive controls and meaningful content remain native accessible UI.
 
-React implementation methods are loaded only when they fit the target.
+React implementation and visual validation methods are loaded only when they
+fit the target.
 
 ## Workflow and focused skills
 
@@ -22,6 +23,10 @@ React implementation methods are loaded only when they fit the target.
 3. Use `react-interface` when the accepted target uses React. It preserves the
    existing stack and covers interaction, state, accessibility, and responsive
    behavior.
+4. Use `visual-validation` after implementation. It defines named routes,
+   states, and viewports and returns a mismatch ledger. Without an available
+   browser or screenshot capability it reports unmet proof instead of claiming
+   visual acceptance.
 Browser automation and general engineering, planning, Git, and review workflows
 are optional companion capabilities, not bundled dependencies. When they are
 absent, use target-repository commands and report any verification that could

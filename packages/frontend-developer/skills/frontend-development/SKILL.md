@@ -13,4 +13,6 @@ controls, navigation, forms, and meaningful content as native accessible UI.
 
 Choose only the methods the request and target technology require. Use
 `react-interface` for an existing React product or an explicitly accepted
-React greenfield surface. Continue honestly when a method or optional capability is unavailable.
+React greenfield surface. After a stable UI change, use `visual-validation` if
+the target offers browser or screenshot capability. Continue honestly when a
+method or optional capability is unavailable.

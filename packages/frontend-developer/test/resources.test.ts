@@ -49,7 +49,15 @@ describe("frontend developer package resources", () => {
     expect(react).toMatch(/loading.*empty.*error.*focus.*hover.*disabled.*responsive/i);
     expect(react).toMatch(/semantic|keyboard|reduced motion|contrast/i);
     expect(react).not.toMatch(/require.*Tailwind|require.*component library/i);
-
+    const visual = await text("skills/visual-validation/SKILL.md");
+    expect(visual).toMatch(/browser[\s\S]*capability[\s\S]*unmet proof/i);
+    expect(visual).toMatch(/desktop[\s\S]*mobile[\s\S]*viewport[\s\S]*state/i);
+    expect(visual).toMatch(
+      /mismatch ledger[\s\S]*severity[\s\S]*evidence[\s\S]*likely cause[\s\S]*recheck/i,
+    );
+    expect(visual).toMatch(
+      /keyboard[\s\S]*focus[\s\S]*reduced.motion[\s\S]*console[\s\S]*overflow/i,
+    );
 
     await expect(access(resolve(packageRoot, "README.md"))).resolves.toBeUndefined();
     await expect(access(resolve(packageRoot, "CHANGELOG.md"))).resolves.toBeUndefined();
