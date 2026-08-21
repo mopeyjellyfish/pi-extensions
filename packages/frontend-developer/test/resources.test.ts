@@ -92,9 +92,13 @@ describe("frontend developer package resources", () => {
     expect(manifest.files).toContain("skills/");
     expect(method).toMatch(/dashboards[\s\S]*admin panels[\s\S]*data interfaces/i);
     expect(license).toMatch(/MIT License[\s\S]*Copyright \(c\) 2026 Damola Akinleye/i);
-    expect(method).toContain("2f9be3206855bcb2d1d0af262c8bae25cba6658d");
-    expect(method).toMatch(/modified derivative/i);
-    expect(`${method}\n${license}`).toMatch(/permission is hereby granted/i);
+    expect(license).toMatch(/permission is hereby granted/i);
+    expect(readme).toMatch(/modified derivative/i);
+    expect(readme).toContain("2f9be3206855bcb2d1d0af262c8bae25cba6658d");
+    expect(readme).toMatch(/LICENSE\.txt/i);
+    expect(method).not.toMatch(
+      /Modified source notice|modified derivative|2f9be3206855bcb2d1d0af262c8bae25cba6658d/i,
+    );
 
     expect(router).toMatch(/mechanical[\s\S]*direct/i);
     expect(router).toMatch(/non-trivial[\s\S]*app[\s\S]*interface-design/i);
@@ -131,7 +135,8 @@ describe("frontend developer package resources", () => {
       /coherent material[\s\S]*feedback[\s\S]*structured-question[\s\S]*fallback/i,
     );
     expect(method).toMatch(/target.*hot-reload[\s\S]*cleanup/i);
-    expect(method).toMatch(/framework-neutral[\s\S]*react-interface[\s\S]*React/i);
+    expect(method).toMatch(/preserves the target framework/i);
+    expect(method).toMatch(/react-interface[\s\S]*target uses React/i);
     expect(method).toMatch(/visual-validation[\s\S]*unmet proof/i);
     expect(readme).toContain("/generate-image");
   });

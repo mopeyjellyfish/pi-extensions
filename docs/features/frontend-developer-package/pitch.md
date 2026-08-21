@@ -95,12 +95,14 @@ Copy the MIT-licensed `interface-design` skill from pinned commit
 method, then deeply revise the copied skill for Pi and this package. It must
 remain recognizable as the complete app-design discipline rather than a
 summary, external reference, unchanged vendored snapshot, or optional add-on.
-Preserve its copyright and permission notice in the packed `interface-design`
-resource and prominently identify the modifications. Retain and reconcile its
-intent-first brief, domain exploration, visual hierarchy, deliberate density,
-spatial rhythm, semantic token and depth architecture, existing-control reuse,
-complete interaction and data states, polish, motion, anti-patterns, rendering,
-build discipline, user confirmation, and swap/squint/signature/token checks.
+Preserve its complete copyright and permission notice in the packed, co-located
+`interface-design/LICENSE.txt` file. Prominently identify the modifications and
+pinned source in the package README; do not add attribution prose to
+`interface-design/SKILL.md`. Retain and reconcile its intent-first brief, domain
+exploration, visual hierarchy, deliberate density, spatial rhythm, semantic token
+and depth architecture, existing-control reuse, complete interaction and data
+states, polish, motion, anti-patterns, rendering, build discipline, user
+confirmation, and swap/squint/signature/token checks.
 
 Replace `.interface-design/system.md` throughout the copied method with this
 package's approved `DESIGN.md` contract and precedence. Weave the optional
@@ -198,8 +200,9 @@ than creating a documentation-only pull request.
 
 - Do not copy Anthropic or OpenAI skill wording. Treat that material only as
   prior art. Adapt the pinned MIT-licensed `interface-design` source only with
-  its required copyright and permission notice and a prominent modification
-  notice.
+  its complete copyright and permission notice in packed co-located `LICENSE.txt`
+  and prominent modification attribution in the package README, not within
+  `interface-design/SKILL.md`.
 - Do not claim that `DESIGN.md` is an Anthropic standard or that Google's alpha
   schema is stable.
 - Do not require `DESIGN.md` for every frontend edit, overwrite it silently, or
@@ -241,8 +244,9 @@ browser extension to be independently useful.
 - Damola Akinleye's `interface-design` skill is MIT-licensed and directly covers
   product dashboards, tools, admin panels, design-system craft, intent-first
   exploration, and visual self-checks. Pin adaptations to commit
-  `2f9be3206855bcb2d1d0af262c8bae25cba6658d`, preserve its MIT notice, identify
-  modifications, and do not import its separate project-memory file:
+  `2f9be3206855bcb2d1d0af262c8bae25cba6658d`, retain its complete MIT notice
+  in the packed co-located license, and identify modifications in the package
+  README, not the skill, and do not import its separate project-memory file:
   <https://github.com/Dammyjay93/interface-design>.
 - Google Labs' Apache-2.0 `design.md` project supplies a relevant structured
   format and linter, but it is alpha. Compatibility should be best-effort and
@@ -369,5 +373,6 @@ or unrelated remote changes.
   framework-neutral workflow is deeply modified to use this package's
   `DESIGN.md`, image, feedback, hot-reload, implementation-handoff, and
   visual-validation capabilities rather than mentioning them only in router or
-  wrapper guidance. The modified resource ships with its copyright and
-  permission notice. Apache-2.0 prose is not copied.
+  wrapper guidance. The packed co-located license retains its complete copyright
+  and permission notice, while the package README identifies the modified
+  derivative and pinned source; the skill contains no attribution prose.
