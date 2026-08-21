@@ -11,4 +11,6 @@ Treat supplied mock-ups as evidence, not executable behavior: extract regions,
 hierarchy, assets, tokens, states, responsive hypotheses, and ambiguity. Keep
 controls, navigation, forms, and meaningful content as native accessible UI.
 
-Continue honestly when optional target capabilities are unavailable.
+Choose only the methods the request and target technology require. Use
+`react-interface` for an existing React product or an explicitly accepted
+React greenfield surface. Continue honestly when a method or optional capability is unavailable.

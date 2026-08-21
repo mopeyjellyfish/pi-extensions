@@ -44,6 +44,12 @@ describe("frontend developer package resources", () => {
     expect(`${workflow}\n${design}\n${contract}`).not.toMatch(
       /pi-extensions|Playwright tool|Anthropic|OpenAI/,
     );
+    const react = await text("skills/react-interface/SKILL.md");
+    expect(react).toMatch(/preserve.*target.*stack/i);
+    expect(react).toMatch(/loading.*empty.*error.*focus.*hover.*disabled.*responsive/i);
+    expect(react).toMatch(/semantic|keyboard|reduced motion|contrast/i);
+    expect(react).not.toMatch(/require.*Tailwind|require.*component library/i);
+
 
     await expect(access(resolve(packageRoot, "README.md"))).resolves.toBeUndefined();
     await expect(access(resolve(packageRoot, "CHANGELOG.md"))).resolves.toBeUndefined();
