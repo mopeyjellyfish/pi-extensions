@@ -15,9 +15,10 @@ describe("frontend developer package resources", () => {
     expect.hasAssertions();
     const manifest = JSON.parse(await text("package.json")) as {
       name: string;
-      pi: { prompts: string[]; skills: string[] };
+      pi: { extensions: string[]; prompts: string[]; skills: string[] };
     };
     expect(manifest.name).toBe("@mopeyjellyfish/pi-frontend-developer");
+    expect(manifest.pi.extensions).toEqual(["./src/index.ts"]);
     expect(manifest.pi.skills).toEqual(["./skills"]);
     expect(manifest.pi.prompts).toEqual(["./prompts"]);
 
@@ -58,6 +59,13 @@ describe("frontend developer package resources", () => {
     expect(visual).toMatch(
       /keyboard[\s\S]*focus[\s\S]*reduced.motion[\s\S]*console[\s\S]*overflow/i,
     );
+    const [imageSkill, imagePrompt] = await Promise.all([
+      text("skills/image-generation/SKILL.md"),
+      text("prompts/generate-image.md"),
+    ]);
+    expect(imageSkill).toMatch(/separately billed|privacy|OpenAI Platform/i);
+    expect(imageSkill).toMatch(/credential|no request/i);
+    expect(imagePrompt).toContain("image-generation");
 
     await expect(access(resolve(packageRoot, "README.md"))).resolves.toBeUndefined();
     await expect(access(resolve(packageRoot, "CHANGELOG.md"))).resolves.toBeUndefined();
