@@ -131,13 +131,30 @@ describe("frontend developer package resources", () => {
     expect(method).toMatch(/## Visual Hierarchy & Composition[\s\S]*### One focal point per view/);
 
     expect(method).toMatch(/image-generation[\s\S]*privacy[\s\S]*cost[\s\S]*consent/i);
-    expect(method).toMatch(
-      /coherent material[\s\S]*feedback[\s\S]*structured-question[\s\S]*fallback/i,
-    );
+    expect(method).toMatch(/coherent material[\s\S]*question[\s\S]*fallback/i);
     expect(method).toMatch(/target.*hot-reload[\s\S]*cleanup/i);
     expect(method).toMatch(/preserves the target framework/i);
     expect(method).toMatch(/react-interface[\s\S]*target uses React/i);
     expect(method).toMatch(/visual-validation[\s\S]*unmet proof/i);
+    expect(method).toMatch(
+      /Suggest \+ Ask[\s\S]*question[\s\S]*tool[\s\S]*2.?4[\s\S]*concrete choices[\s\S]*recommended/i,
+    );
+    expect(method).toMatch(
+      /coherent material groups[\s\S]*question[\s\S]*tool[\s\S]*2.?4[\s\S]*concrete choices[\s\S]*recommended/i,
+    );
+    expect(method).toMatch(
+      /direct parent[\s\S]*launch[\s\S]*one fresh[\s\S]*worker[\s\S]*sole implementation writer[\s\S]*already-designated implementation writer[\s\S]*must not spawn another worker[\s\S]*direct-parent implementation[\s\S]*fallback[\s\S]*unavailable/i,
+    );
+    expect(method).toMatch(
+      /behavioral UI code[\s\S]*test-driven-development[\s\S]*intended failing test[\s\S]*minimum passing implementation/i,
+    );
+    expect(method).toMatch(
+      /installed[\s\S]*applicable[\s\S]*diagnosing-bugs[\s\S]*unresolved reported broken behavior[\s\S]*codebase-design[\s\S]*implementation seam[\s\S]*test-driven-development[\s\S]*react-interface[\s\S]*React[\s\S]*stable focused proof[\s\S]*visual-validation/i,
+    );
+    expect(method).toMatch(
+      /Worker task[\s\S]*goal[\s\S]*public seam[\s\S]*allowed scope[\s\S]*failing test[\s\S]*validation[\s\S]*success[\s\S]*stop conditions[\s\S]*evidence/i,
+    );
+    expect(method).toMatch(/cancell(?:ation|ed)[\s\S]*(?:not|never)[\s\S]*approv/i);
     expect(readme).toContain("/generate-image");
   });
 });
