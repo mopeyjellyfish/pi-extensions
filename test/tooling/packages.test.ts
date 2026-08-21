@@ -529,6 +529,7 @@ describe("package contracts", () => {
     expect(packages.map((descriptor) => descriptor.manifest["name"])).toEqual([
       "@mopeyjellyfish/pi-engineering",
       "@mopeyjellyfish/pi-feature-flow",
+      "@mopeyjellyfish/pi-frontend-developer",
       "@mopeyjellyfish/pi-git-conventions",
       "@mopeyjellyfish/pi-github",
       "@mopeyjellyfish/pi-hashline",

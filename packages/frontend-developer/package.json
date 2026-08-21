@@ -1,0 +1,49 @@
+{
+  "name": "@mopeyjellyfish/pi-frontend-developer",
+  "version": "0.0.0",
+  "description": "Deliberate frontend design workflow for Pi.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "skills/",
+    "prompts/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "frontend",
+    "design"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/frontend-developer"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/frontend-developer/test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
