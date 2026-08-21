@@ -17,9 +17,10 @@ Compare hierarchy, composition, typography, color, spacing, states, and assets;
 a similarity score is not a verdict.
 
 Return a mismatch ledger with severity, evidence, likely cause, and recheck
-target. Iterate on shared causes with a bounded pass count rather than arbitrary
-pixel nudges. Clean up browser resources under the target repository's command
-ownership.
+target. Iterate on shared causes while new evidence shows progress; stop when
+the ledger is resolved, evidence stops improving, or an unmet proof is named —
+never use an arbitrary pass count. Clean up browser resources under the target
+repository's command ownership.
 
 Load [`references/visual-checklist.md`](references/visual-checklist.md) before
 capture to define the evidence matrix and mismatch ledger.

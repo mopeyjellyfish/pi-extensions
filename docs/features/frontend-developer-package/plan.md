@@ -47,8 +47,8 @@ changes, or unrelated work.
 
 One branch, worktree, sequential writer, review boundary, and pull-request update
 is the smallest safe topology. The deep method, router, design contract, prompt,
-README, and resource tests overlap, so parallel writers would add merge and
-integration risk. Fresh read-only QA and formal review remain independent.
+and README overlap, so parallel writers would add merge and integration risk.
+Fresh read-only QA and formal review remain independent.
 
 ```text
 005 deeply integrated app-interface method
@@ -70,13 +70,13 @@ integration risk. Fresh read-only QA and formal review remain independent.
 
 ## Invalidation map
 
-| Changed surface                              | Focused proof                            | Affected proof                         | Final proof                               |
-| -------------------------------------------- | ---------------------------------------- | -------------------------------------- | ----------------------------------------- |
-| `interface-design` or its MIT license        | provenance and resource contract         | packed contents and README attribution | package validation, smoke, license review |
-| `frontend-design`, prompt, or router wording | impact/surface route assertions          | skill and prompt discovery             | package test, Markdown, smoke             |
-| `DESIGN.md` contract or template             | precedence and approval assertions       | design resource contract               | package test, Markdown, smoke             |
-| README or package file declarations          | documentation and packed-file assertions | package validation                     | source and packed smoke                   |
-| Repair after fixed review                    | checks named by the finding              | complete package test                  | required final gates once repaired        |
+| Changed surface                              | Focused proof               | Affected proof                         | Final proof                               |
+| -------------------------------------------- | --------------------------- | -------------------------------------- | ----------------------------------------- |
+| `interface-design` or its MIT license        | provenance review           | packed contents and README attribution | package validation, smoke, license review |
+| `frontend-design`, prompt, or router wording | target review               | skill and prompt discovery             | package validation, Markdown, smoke       |
+| `DESIGN.md` contract or template             | target review               | resource discovery                     | package validation, Markdown, smoke       |
+| README or package file declarations          | documentation review        | package validation                     | source and packed smoke                   |
+| Repair after fixed review                    | checks named by the finding | complete package test                  | required final gates once repaired        |
 
 Evidence is reused only while its covered surface is unchanged. Run the complete
 required gate once after the final diff freezes and again only when a repair
@@ -118,7 +118,6 @@ Likely files:
 - `packages/frontend-developer/skills/frontend-design/references/design-contract.md`
 - `packages/frontend-developer/skills/frontend-design/assets/DESIGN.template.md`
 - `packages/frontend-developer/prompts/design-ui.md`
-- `packages/frontend-developer/test/resources.test.ts`
 - `packages/frontend-developer/README.md`
 
 `interface-design` is the deep module. Its small public interface accepts an app
@@ -139,37 +138,18 @@ and browser automation are optional capabilities, not package dependencies. One
 retained writer owns every file in the current worktree. No parallel
 implementation worktree or writer is planned.
 
-### Red proof
+### Resource integrity decision
 
-Extend `packages/frontend-developer/test/resources.test.ts` before adding the
-new skill. Capture a focused failure proving:
-
-- `interface-design` is absent from discovery and packed contents;
-- its packed co-located MIT license lacks the complete notice, its package README
-  lacks the pinned source or prominent modification attribution, or the skill
-  contains attribution prose;
-- `frontend-design` does not route non-trivial app UI to the deep method, retain
-  a direct path for a mechanical edit, or conditionally route marketing work;
-- the deep method does not replace `.interface-design/system.md` with the
-  accepted `DESIGN.md` precedence and approval contract;
-- the complete app discipline is missing: person/task/feel, domain and color
-  world, signature and rejected defaults, focal hierarchy, type and density,
-  spatial rhythm, semantic tokens, one depth strategy, existing accessible
-  controls, complete interaction and data states, polish, restrained motion,
-  and swap/squint/signature/token checks;
-- the integrated method does not use image references only when useful and
-  authorized, ask for feedback after coherent material groups, preserve the
-  target framework, hand React work to `react-interface` only when applicable,
-  use target-owned hot reload, invoke visual proof, clean up owned resources, or
-  close remaining design questions honestly.
-
-Keep assertions behavioral. Do not freeze every upstream sentence or incidental
-section order.
+This plan originally required package-owned resource-contract assertions in
+`packages/frontend-developer/test/resources.test.ts`. That approach is
+superseded: package tests cover only TypeScript tool/runtime behavior. Resource
+integrity is covered by repository package validation, source and packed smoke,
+and Markdown lint; targeted review verifies guidance semantics.
 
 ### Green proof and checks
 
-Copy the pinned MIT skill and license, then deeply revise the copied skill until
-the focused contract passes. Run:
+Copy the pinned MIT skill and license, then deeply revise the copied skill
+according to accepted guidance and targeted review. Run:
 
 ```sh
 npm --workspace @mopeyjellyfish/pi-frontend-developer test
@@ -213,7 +193,7 @@ feat(pi-frontend-developer): add interface design workflow
 
 It remains in delivery unit 1 on `feat/frontend-developer-package`, based on
 `main`, and updates the existing standalone pull request. Include the deep
-method, attribution, routing, contract/template adjustments, focused tests, and
+method, attribution, routing, contract/template adjustments, focused checks, and
 README behavior.
 
 ### Done when

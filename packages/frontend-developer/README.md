@@ -29,14 +29,17 @@ interactive controls and meaningful content remain native accessible UI.
    density, tokens, depth, states, feedback, and visual proof without imposing
    a framework.
 3. `interface-design` preserves the target framework and implementation
-   conventions. It uses `react-interface` only when the target uses React and
-   an applicable specialist is available. Target-owned commands own hot reload
-   and cleanup.
+   conventions. When available, `implement` or `developing-changes` owns the
+   general engineering loop; otherwise the method uses the one-Worker/TDD
+   fallback. It uses `react-interface` only when the target uses React and an
+   applicable specialist is available. Target-owned commands own hot reload and
+   cleanup.
 4. It may use `image-generation` or `/generate-image` only when a reference is
-   useful and the human has explicitly consented to provider privacy exposure,
-   separately billed cost, and available credentials. It collects feedback after
-   coherent material groups using a structured question capability when
-   available, with a concise conversational fallback.
+   useful and the human explicitly consents through Pi's `question` tool when
+   available to provider privacy exposure, separately billed cost, and available
+   credentials. Use a concise conversational fallback only when that tool is
+   unavailable; cancellation or decline is not consent. It collects feedback
+   after coherent material groups using the same capability.
 5. Use `visual-validation` after a stable non-trivial UI change when browser or
    screenshot capability is available. It defines named routes, states, and
    desktop and mobile viewports and returns a mismatch ledger. Without proof,
