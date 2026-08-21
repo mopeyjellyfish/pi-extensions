@@ -29,6 +29,9 @@
     "packages/feature-flow": {
       "release-type": "node"
     },
+    "packages/frontend-developer": {
+      "release-type": "node"
+    },
     "packages/git-conventions": {
       "release-type": "node"
     },
