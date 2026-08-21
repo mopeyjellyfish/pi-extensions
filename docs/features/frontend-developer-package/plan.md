@@ -84,7 +84,7 @@ Evidence is reused only while its covered surface is unchanged. The complete
 required gate runs once after the final diff freezes, and again only when a
 repair invalidates it.
 
-## [ ] 001 — Preserve deliberate design context
+## [x] 001 — Preserve deliberate design context
 
 ### Outcome and requirement trace
 
@@ -202,7 +202,7 @@ are discoverable; a target repository can preserve deliberate design context
 from code, images, and optional `DESIGN.md`; focused tests and named checks pass;
 and package guidance remains original and target-repository neutral.
 
-## [ ] 002 — Implement production React interfaces
+## [x] 002 — Implement production React interfaces
 
 ### Outcome and requirement trace
 
@@ -290,7 +290,7 @@ design evidence to real repository-conforming React behavior with explicit
 state, accessibility, responsive, and performance-sensitive constraints, and
 all focused checks pass.
 
-## [ ] 003 — Verify visual behavior at named viewports
+## [x] 003 — Verify visual behavior at named viewports
 
 ### Outcome and requirement trace
 
@@ -380,7 +380,7 @@ visual check through available target capabilities, distinguish visual,
 interaction, accessibility, and responsive constraints, and fail honestly when
 visual proof cannot run.
 
-## [ ] 004 — Generate and edit GPT Image 2 mock-ups safely
+## [x] 004 — Generate and edit GPT Image 2 mock-ups safely
 
 ### Outcome and requirement trace
 
