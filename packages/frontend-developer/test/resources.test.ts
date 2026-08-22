@@ -23,11 +23,11 @@ describe("design review resource contract", () => {
     expect(prompt).toMatch(/design_board[\s\S]*before asking for a visual choice/iu);
     expect(frontendDesign).toMatch(/mechanical[\s\S]*direct/iu);
     expect(interfaceDesign).toMatch(/at\s+most four/iu);
-    expect(interfaceDesign).toMatch(/two to four[\s\S]*image evidence/iu);
+    expect(interfaceDesign).toMatch(/two to eight[\s\S]*image evidence/iu);
     expect(interfaceDesign).toMatch(
       /design_board[\s\S]*verif[\s\S]*URL[\s\S]*before requesting[\s\S]*feedback/iu,
     );
-    expect(interfaceDesign).toMatch(/board-native selection and notes/iu);
+    expect(interfaceDesign).toMatch(/feedbackMode:[^\n]*cli[\s\S]*question/iu);
     expect(interfaceDesign).toMatch(/separate target-owned live-site\s+URL/iu);
     expect(interfaceDesign).toMatch(/milestone[\s\S]*same\s+`design_board`/iu);
     expect(interfaceDesign).toMatch(/open[\s\S]*keep serving[\s\S]*close/iu);
@@ -35,6 +35,7 @@ describe("design review resource contract", () => {
     expect(visualValidation).toMatch(/unmet proof/iu);
     expect(readme).toMatch(/board\/site distinction/iu);
     expect(readme).toMatch(/localhost-only/iu);
+    expect(readme).toMatch(/full-width visual[\s\S]*feedbackMode: "board"/iu);
     expect(readme).toMatch(/unavailable review surface/iu);
   });
 });

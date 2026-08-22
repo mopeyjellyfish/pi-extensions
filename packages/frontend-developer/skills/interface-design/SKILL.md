@@ -95,7 +95,7 @@ This is where defaults get caught — or don't. Generic path: Task type → visu
 ## Image evidence for material direction
 
 For material direction, greenfield apps, major redesigns, or unresolved visual
-direction, create two to four coherent directions with inspectable image evidence
+direction, create two to eight coherent directions with inspectable image evidence
 for each. Use `image-generation` only when it is available and useful, after the
 human explicitly consents to external-provider privacy exposure, separately billed
 cost, and available credentials. Otherwise use rendered specimens or browser
@@ -330,12 +330,14 @@ Use this skill as a working discipline, not just advice. When editing UI:
    up package-owned resources on session shutdown.
 7. Build and show coherent material groups (for example shell/navigation, focal
    workflow, and states), not isolated fragments. At each coherent material
-   milestone, create or update two to four image-backed directions on the same
+   milestone, create or update two to eight image-backed directions on the same
    `design_board`, verify the board URL is reachable, and give the URL and a concise
-   description before requesting
-   feedback. Treat only a submitted board-native selection and notes as explicit
-   direction feedback. Resolve it in the decision ledger before continuing, but do
-   not interrupt a one-step mechanical fix with a board or repeated approvals.
+   description before requesting feedback. Default to `feedbackMode: "cli"` and use
+   Pi's `question` tool to collect the selected direction and notes after the human
+   has inspected the board. Use `feedbackMode: "board"` only when board-native
+   feedback is explicitly useful. Resolve accepted feedback in the decision ledger
+   before continuing, but do not interrupt a one-step mechanical fix with a board or
+   repeated approvals.
    When implementation exists, verify and report its separate target-owned live-site
    URL and link it from the board; the board never replaces the accessible native site.
 8. Run relevant target build, typecheck, and focused tests. After stable focused proof,
@@ -358,16 +360,17 @@ Rejecting:  [default 1] → [alternative], [default 2] → [alternative], [defau
 Direction:  [approach connecting to the above]
 ```
 
-Then present two to four image-backed directions through `design_board`. Verify
-the returned reachability evidence, provide the working localhost URL, say what is
-available there, and wait for a board-native selection and notes. Do not issue a
-visual-choice question before the board is reachable. Inline rendering may
-supplement the board when available, but never substitute for the review URL.
+Then present two to eight image-backed directions through `design_board`. Verify
+the returned reachability evidence, provide the working localhost URL, and say what
+is available there. Default to CLI feedback and ask for the visual choice only after
+the board is reachable. Use optional board-native selection and notes only when that
+mode was chosen. Inline rendering may supplement the board when available, but never
+substitute for the review URL.
 
 ### Build flow
 
 - **If `DESIGN.md` exists:** reconcile it with repository instructions and live evidence, then apply accepted decisions.
-- **If not:** explore domain (all four outputs) → ask the compact unresolved-question batch → create image-backed directions → present and verify the board → consume board-native feedback → build and update coherent material groups on the same board → run checks and visual proof → offer an approved `DESIGN.md` update when decisions should persist.
+- **If not:** explore domain (all four outputs) → ask the compact unresolved-question batch → create image-backed directions → present and verify the board → collect CLI feedback after inspection (or consume explicitly enabled board-native feedback) → build and update coherent material groups on the same board → run checks and visual proof → offer an approved `DESIGN.md` update when decisions should persist.
 - **For a small mechanical edit:** make the direct repository-conforming change, run its relevant check, and avoid unnecessary exploration, board creation, or approval loops.
 
 ### The checks (before showing)

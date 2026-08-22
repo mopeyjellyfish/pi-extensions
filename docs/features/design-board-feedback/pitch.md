@@ -30,7 +30,7 @@ For a material UI-design request, the workflow will:
    person and task, desired feel, content or product constraints, and reference
    preferences. It skips facts already established by repository evidence or the
    request and does not turn a bounded mechanical edit into a design interview.
-2. Produce two to four coherent visual directions. Each direction has inspectable
+2. Produce two to eight coherent visual directions. Each direction has inspectable
    image evidence. After explicit provider privacy and billing consent, the workflow
    may use `image_generation`; without consent, credentials, or a useful provider
    pass, it uses browser captures or rendered specimens instead of presenting a
@@ -40,9 +40,10 @@ For a material UI-design request, the workflow will:
    board URL is reachable before asking for feedback. Never ask the human to choose
    a visual direction until the response contains the working board URL and says
    what is available there.
-4. Let the human select a direction and submit notes on the board itself. The agent
-   reads that explicit local feedback, reflects the selected direction and notes in
-   the design decision ledger, and resolves material ambiguity before continuing.
+4. Let the human inspect full-width directions and full-size evidence on the board,
+   then collect the selected direction and notes in the CLI by default. Enable
+   board-native selection and notes only when that explicit feedback mode is useful.
+   Record accepted feedback in the design decision ledger before continuing.
 5. When implementation exists, keep a separate target-owned live-site URL and link
    it from the board. The board compares and records design evidence; the site
    remains the native accessible product implementation.
@@ -133,12 +134,13 @@ worktree removal, or unrelated remote changes.
 - **AC-003 — Reachable board:** Before requesting direction feedback, the agent verifies
   a localhost board URL and gives it to the human with a concise description of what
   can be inspected there.
-- **AC-004 — Comparable directions:** The board presents two to four coherent direction
-  choices, images, concise labels, and a visible recommendation without replacing the
-  native implementation.
-- **AC-005 — Board-native feedback:** The human can select a direction and submit notes
-  on the board; the agent can read the explicit submission and record it in the design
-  decision ledger before continuing.
+- **AC-004 — Comparable directions:** The board presents two to eight coherent
+  direction choices, images, concise labels, and a visible recommendation without
+  replacing the native implementation.
+- **AC-005 — Explicit feedback:** The default board is a visual inspection surface
+  and the agent collects selection and notes in the CLI. An explicit board-feedback
+  mode can instead submit the same bounded feedback from the board into the design
+  decision ledger.
 - **AC-006 — Separate live site:** When implementation exists, the board links to a
   separate target-owned live-site URL. The workflow verifies and reports both URLs
   before asking for implementation feedback.

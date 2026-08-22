@@ -36,9 +36,10 @@ const DesignBoardParameters = Type.Object(
           },
           { additionalProperties: false },
         ),
-        { maxItems: 4, minItems: 2 },
+        { maxItems: 8, minItems: 2 },
       ),
     ),
+    feedbackMode: Type.Optional(StringEnum(["cli", "board"])),
     recommendedDirectionId: Type.Optional(Type.String({ maxLength: 64, minLength: 1 })),
     liveSiteUrl: Type.Optional(Type.String({ maxLength: 2048, minLength: 1 })),
   },
@@ -53,11 +54,13 @@ export default function frontendDeveloperExtension(pi: ExtensionAPI): void {
     name: "design_board",
     label: "Design Board",
     description:
-      "Present image-backed design directions on a local review board and read explicit feedback.",
-    promptSnippet: "Create a verified local design review board before asking for a visual choice",
+      "Present image-backed design directions on a local inspection board with optional board-native feedback.",
+    promptSnippet:
+      "Create a verified local design inspection board before asking for a visual choice",
     promptGuidelines: [
-      "Use design_board present with two to four inspectable image-backed directions before asking for visual feedback.",
-      "Use design_board status to read explicit board-native feedback, and use design_board close when the session no longer needs the board.",
+      "Use design_board present with two to eight inspectable image-backed directions before asking for visual feedback.",
+      "Default to feedbackMode cli and collect the visual choice in the CLI; use feedbackMode board only when explicit board-native feedback is useful.",
+      "Use design_board status to verify reachability and optional board-native feedback, and use design_board close when the session no longer needs the board.",
     ],
     parameters: DesignBoardParameters,
     async execute(_id, input, signal, _update, ctx) {
