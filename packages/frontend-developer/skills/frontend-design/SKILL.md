@@ -15,8 +15,10 @@ take precedence over DESIGN.md. Its absence does not block work.
   relevant check. Do not add a design ceremony.
 - For a non-trivial app interface—a new app surface, major app redesign, or
   unclear product-UI direction—load `interface-design` before implementation.
-  It is the complete framework-neutral method for dashboards, admin panels,
-  tools, settings, data interfaces, and interactive product workflows.
+  Its material-design loop requires image-backed directions on a verified local
+  `design_board` URL before requesting a visual choice. It is the complete
+  framework-neutral method for dashboards, admin panels, tools, settings, data
+  interfaces, and interactive product workflows.
 - For marketing sites, campaigns, landing pages, or brand-only work, route to
   `marketing-site-design` only when that capability is available. Otherwise
   state the limitation and use available repository guidance; do not apply the

@@ -63,6 +63,31 @@ absent, use target-repository commands and report any verification that could
 not run. Generated or supplied mock-ups do not define hidden behavior and must
 not replace native controls or meaningful text.
 
+## Local design review board
+
+For material design direction, `/design` gathers only unresolved facts in one
+compact batch of at most four questions, then creates two to four coherent,
+image-backed directions. It presents them through the local `design_board` tool
+and verifies the localhost board URL before it asks for a visual choice. The
+board is localhost-only and session-scoped: it records an explicit selected
+direction and notes on the board itself. A visit, silence, cancellation, or
+unsubmitted note is not approval.
+The board/site distinction matters: the board is design evidence, while a
+separate target-owned live-site URL remains the native product implementation.
+When that site exists, the workflow verifies and reports both URLs.
+At coherent material milestones it updates the same board only after fresh image
+evidence is reachable. Mechanical style, spacing, and placement corrections bypass
+this ceremony.
+
+Image generation still requires explicit provider privacy and separately billed
+cost consent. If consent, credentials, a useful provider result, a browser, or
+safe URL opening is unavailable, the workflow uses rendered specimens or
+captures where possible and reports the unavailable review surface as unmet
+proof; it never claims that anyone saw or approved it. At handoff, choose to
+open, keep serving for the active session, or close each board and live-site
+resource. Keep-serving never survives session shutdown; package-owned boards
+close idempotently then.
+
 ## Image generation
 
 `image_generation` uses GPT Image 2 through a separately billed OpenAI Platform

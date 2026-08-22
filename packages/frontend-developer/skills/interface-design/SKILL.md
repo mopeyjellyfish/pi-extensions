@@ -61,9 +61,17 @@ Before touching code, answer these. Keep it a compact working brief unless the d
 - **What must they accomplish?** The verb. Grade these submissions. Find the broken deployment. Approve the payment. The answer determines what leads, what follows, what hides.
 - **What should this feel like?** In words that mean something. "Clean and modern" means nothing — every AI says that. Warm like a notebook? Cold like a terminal? Dense like a trading floor? Calm like a reading app? This shapes color, type, spacing, density — everything.
 
-If the prompt is too vague to identify the person, task, and feel, ask one concise question (using a structured question capability when available). If context allows a responsible, reversible assumption, state it briefly and proceed. Keep unresolved questions in the design decision ledger; do not silently invent product behavior.
+If a material request leaves the person/task, desired feel, real content or
+constraints, or reference preferences unresolved, ask one compact batch of at
+most four decision-changing questions with a structured question capability when
+available. Skip facts already established by the request or repository evidence.
+If context allows a responsible, reversible assumption, state it briefly and
+proceed. Keep unresolved questions in the design decision ledger; do not silently
+invent product behavior or turn a bounded mechanical edit into an interview.
 
-For initial costly ambiguity, use Pi's `question` tool when available. Use it again before any external image request to confirm privacy exposure and billing consent for separately billed cost, and after each material group to confirm milestone direction. Offer 2–4 concrete choices with a recommendation; a cancellation is never approval.
+Use Pi's `question` tool when available for this initial costly ambiguity and
+again before any external image request to confirm privacy exposure and separately
+billed cost. A cancellation is never approval.
 
 **Intent must be systemic.** Saying "warm" then using cold colors is not following through. If the intent is warm: surfaces, text, borders, accents, semantic colors, type — all warm. If dense: spacing, type size, information architecture — all dense. Check every token against the stated intent. For every choice — layout, color temperature, typeface, spacing scale, hierarchy — you must be able to say _why_. "It's common" or "it works" means you defaulted.
 
@@ -84,18 +92,17 @@ This is where defaults get caught — or don't. Generic path: Task type → visu
 
 ---
 
-## Image references when useful
+## Image evidence for material direction
 
-For greenfield apps, major redesigns, or unresolved visual direction, consider
-an image-reference pass only when `image-generation` is available and useful.
-Use the `question` tool when available to obtain explicit consent for
-external-provider privacy exposure, separately billed cost, and available
-credentials before uploading any input or generating an image. Use a direction
-board, UI reference, paintover, or raster asset as reference evidence, inspect
-every artifact, and get direction feedback before accepting it. Skip it for
-small changes, clear existing systems, sensitive inputs, unavailable
-credentials, or declined consent. Generated pixels never define hidden behavior
-or replace native accessible controls.
+For material direction, greenfield apps, major redesigns, or unresolved visual
+direction, create two to four coherent directions with inspectable image evidence
+for each. Use `image-generation` only when it is available and useful, after the
+human explicitly consents to external-provider privacy exposure, separately billed
+cost, and available credentials. Otherwise use rendered specimens or browser
+captures. Inspect every artifact and reject generic SaaS, illegible text, and
+off-domain palettes before presentation. If no image evidence can be produced,
+report the unmet review surface and do not ask the human to choose from prose.
+Generated pixels never define hidden behavior or replace native accessible controls.
 
 ## Render It When You Can
 
@@ -317,14 +324,31 @@ Use this skill as a working discipline, not just advice. When editing UI:
 3. For greenfield screens, major redesigns, or vague direction, run the authorized image-reference pass above if useful. Extract palette, density, proportions, and signature into real-code decisions; reject generic SaaS, illegible text, and off-domain palettes.
 4. For non-trivial UI implementation, when `implement` or `developing-changes` is available, it alone owns Worker/TDD/QA/review orchestration; this skill supplies accepted design context and does not separately launch Workers or duplicate engineering orchestration. TDD remains required for behavioral UI code. Only when that general workflow is unavailable does the direct parent select relevant installed skills: `diagnosing-bugs` for unresolved reported broken behavior, `codebase-design` when an implementation seam needs design, `test-driven-development` for behavioral UI code, and `react-interface` only when the target uses React. Preserve target repository instructions and target framework, component system, styling conventions, content, navigation, and behavior. In that fallback, a direct parent with a `worker` capability launches one fresh Worker as the sole implementation writer; an already-designated implementation writer continues and must not spawn another Worker. Reuse existing accessible controls before introducing primitives or hand-rolled behavior.
 5. In either path, behavioral UI code requires the writer to load and follow `test-driven-development`: prove one intended failing test before the minimum passing implementation. Give the fallback Worker the goal, public seam, allowed scope, failing test, validation, success and stop conditions, and require evidence.
-6. Use only target-owned start and hot-reload commands. Do not leave a server, browser, watcher, or other resource running outside target command ownership; perform cleanup for every resource this work owns.
-7. Build and show coherent material groups (for example shell/navigation, focal workflow, and states), not isolated fragments. After each group, use Pi's `question` tool with 2–4 concrete choices and visibly mark the recommended option for feedback; only when that tool is unavailable, use one concise conversational fallback. A cancellation is not approval. Resolve feedback in the decision ledger before continuing, but do not interrupt a one-step mechanical fix with mood boards or repeated approvals.
-8. Run relevant target build, typecheck, and focused tests. After stable focused proof, for non-trivial UI invoke `visual-validation` when browser or screenshot capability exists at named desktop and mobile viewports. Exercise key interactions and states; fix evidenced shared causes. If proof cannot run, report the unmet proof honestly instead of claiming visual acceptance.
-9. Keep user-facing updates short. Surface the useful recommendation, decision, feedback status, and remaining questions.
+6. Use only target-owned start and hot-reload commands for the product site. Keep the
+   package-owned board separate. At handoff ask whether to open, keep serving for the
+   active session, or close each board and site; respect the answer and still clean
+   up package-owned resources on session shutdown.
+7. Build and show coherent material groups (for example shell/navigation, focal
+   workflow, and states), not isolated fragments. At each coherent material
+   milestone, create or update two to four image-backed directions on the same
+   `design_board`, verify the board URL is reachable, and give the URL and a concise
+   description before requesting
+   feedback. Treat only a submitted board-native selection and notes as explicit
+   direction feedback. Resolve it in the decision ledger before continuing, but do
+   not interrupt a one-step mechanical fix with a board or repeated approvals.
+   When implementation exists, verify and report its separate target-owned live-site
+   URL and link it from the board; the board never replaces the accessible native site.
+8. Run relevant target build, typecheck, and focused tests. After stable focused proof,
+   for non-trivial UI invoke `visual-validation` when browser or screenshot capability
+   exists at named desktop and mobile viewports. Exercise key interactions and states;
+   fix evidenced shared causes. If proof cannot run, report the unmet proof honestly
+   instead of claiming visual acceptance.
+9. Keep user-facing updates short. Surface the verified board and site URLs, useful
+   recommendation, submitted feedback status, resource state, and remaining questions.
 
-### Suggest + Ask
+### Suggest + Board
 
-Lead with exploration and recommendation, then confirm:
+Lead with exploration and recommendation:
 
 ```text
 Domain:     [5+ concepts from the product's world]
@@ -334,13 +358,17 @@ Rejecting:  [default 1] → [alternative], [default 2] → [alternative], [defau
 Direction:  [approach connecting to the above]
 ```
 
-Then use Pi's `question` tool with 2–4 concrete choices and visibly mark the recommended option to ask whether that direction feels right. Only when the tool is unavailable, use one concise conversational fallback; cancellation does not silently approve the direction. If an inline render tool is available, render a live specimen of the direction in the same message — show the palette, type, and signature, don't just name them.
+Then present two to four image-backed directions through `design_board`. Verify
+the returned reachability evidence, provide the working localhost URL, say what is
+available there, and wait for a board-native selection and notes. Do not issue a
+visual-choice question before the board is reachable. Inline rendering may
+supplement the board when available, but never substitute for the review URL.
 
 ### Build flow
 
 - **If `DESIGN.md` exists:** reconcile it with repository instructions and live evidence, then apply accepted decisions.
-- **If not:** explore domain (all four outputs) → propose (reference all four) → confirm when direction is ambiguous or costly to change → build material groups → collect feedback → run checks and visual proof → offer an approved `DESIGN.md` update when decisions should persist.
-- **For a small mechanical edit:** make the direct repository-conforming change, run its relevant check, and avoid unnecessary exploration or approval loops.
+- **If not:** explore domain (all four outputs) → ask the compact unresolved-question batch → create image-backed directions → present and verify the board → consume board-native feedback → build and update coherent material groups on the same board → run checks and visual proof → offer an approved `DESIGN.md` update when decisions should persist.
+- **For a small mechanical edit:** make the direct repository-conforming change, run its relevant check, and avoid unnecessary exploration, board creation, or approval loops.
 
 ### The checks (before showing)
 
