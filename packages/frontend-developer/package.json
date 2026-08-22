@@ -37,7 +37,8 @@
       "./skills"
     ],
     "prompts": [
-      "./prompts"
+      "./prompts/design.md",
+      "./prompts/generate-image.md"
     ]
   },
   "repository": {

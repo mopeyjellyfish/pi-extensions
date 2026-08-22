@@ -1,9 +1,15 @@
 # Pi frontend developer
 
 `@mopeyjellyfish/pi-frontend-developer` provides a target-repository-neutral
-frontend workflow. Install it explicitly, then use `frontend-development` or
-`/frontend` for a change and `frontend-design` or `/design-ui` to route design
-work.
+frontend workflow. Install it explicitly, then use `/design` for any frontend
+interface request. It routes design direction or UI-design work to
+`frontend-design`; it routes implementation or frontend change work to
+`frontend-development`, which may use `frontend-design` when needed.
+
+`/generate-image` is a separate explicit command because it can expose input
+to a provider, incur separately billed cost, require credentials, and needs
+human consent. The package's focused methods remain available through skill
+discovery.
 
 `frontend-design` keeps a bounded mechanical style, spacing, or placement edit
 direct. It routes a non-trivial app interface—such as a dashboard, admin panel,
@@ -21,25 +27,26 @@ interactive controls and meaningful content remain native accessible UI.
 
 ## Workflow and focused skills
 
-1. Start with `frontend-development` or `/frontend` to inspect repository truth
-   and coordinate the relevant methods.
-2. Use `frontend-design` or `/design-ui` for impact routing. Use
-   `interface-design` for material app work: it establishes person, task, feel,
-   domain, a color world, signature, rejected defaults, hierarchy, type,
-   density, tokens, depth, states, feedback, and visual proof without imposing
-   a framework.
-3. `interface-design` preserves the target framework and implementation
-   conventions. When available, `implement` or `developing-changes` owns the
-   general engineering loop; otherwise the method uses the one-Worker/TDD
-   fallback. It uses `react-interface` only when the target uses React and an
-   applicable specialist is available. Target-owned commands own hot reload and
-   cleanup.
-4. It may use `image-generation` or `/generate-image` only when a reference is
-   useful and the human explicitly consents through Pi's `question` tool when
-   available to provider privacy exposure, separately billed cost, and available
-   credentials. Use a concise conversational fallback only when that tool is
-   unavailable; cancellation or decline is not consent. It collects feedback
-   after coherent material groups using the same capability.
+1. Start with `/design` to classify the request. The selected
+   `frontend-design` or `frontend-development` skill inspects repository truth.
+2. For design direction or UI-design work, use `frontend-design` for impact
+   routing. Use `interface-design` for material app work: it establishes
+   person, task, feel, domain, a color world, signature, rejected defaults,
+   hierarchy, type, density, tokens, depth, states, feedback, and visual proof
+   without imposing a framework.
+3. For implementation or a frontend change, use `frontend-development`. It may
+   use `frontend-design` as needed. `interface-design` preserves the target
+   framework and implementation conventions. When available, `implement` or
+   `developing-changes` owns the general engineering loop; otherwise the method
+   uses the one-Worker/TDD fallback. It uses `react-interface` only when the
+   target uses React and an applicable specialist is available. Target-owned
+   commands own hot reload and cleanup.
+4. Use `/generate-image` only when a reference is useful and the human
+   explicitly consents to provider privacy exposure, separately billed cost,
+   and available credentials through Pi's `question` tool when available. Use
+   a concise conversational fallback only when that tool is unavailable;
+   cancellation or decline is not consent. It collects feedback after coherent
+   material groups using the same capability.
 5. Use `visual-validation` after a stable non-trivial UI change when browser or
    screenshot capability is available. It defines named routes, states, and
    desktop and mobile viewports and returns a mismatch ledger. Without proof,
