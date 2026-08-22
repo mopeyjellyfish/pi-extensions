@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-worktrunk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Safe Worktrunk worktree selection and transparent routing for Pi.",
   "license": "MIT",
   "type": "module",
