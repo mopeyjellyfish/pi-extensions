@@ -193,6 +193,16 @@ describe("design_board", () => {
     expect(markup).toContain("Quiet &amp; focused");
     expect(markup).toContain("Recommended");
     expect(markup).toContain("http://127.0.0.1:3000/");
+    expect(markup).toContain('class="review-header"');
+    expect(markup).toContain('class="comparison"');
+    expect(markup).toContain('class="decision-panel feedback"');
+    expect(markup).toContain('class="direction recommended-direction"');
+    expect(markup).toContain("Revision 01");
+    expect(markup).toContain("2 directions");
+    expect(markup).toMatch(/object-fit:\s*contain/u);
+    expect(markup).toContain("@media(prefers-color-scheme:dark)");
+    expect(markup).toContain("@media(prefers-reduced-motion:reduce)");
+    expect(markup).toContain("input:focus-visible");
     expect(await fetch(new URL("image/calm", url))).toMatchObject({ ok: true });
 
     const update = presentation({ title: "Refined dashboard directions" });
