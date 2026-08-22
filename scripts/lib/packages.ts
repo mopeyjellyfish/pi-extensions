@@ -199,8 +199,9 @@ function validateIdentity(descriptor: PackageDescriptor, errors: string[]): void
   if (manifest["type"] !== "module") {
     errors.push('type must be "module".');
   }
-  if (manifest["license"] !== "MIT") {
-    errors.push('license must be "MIT".');
+  const requiredLicense = name === "@mopeyjellyfish/pi-grafana-skills" ? "Apache-2.0" : "MIT";
+  if (manifest["license"] !== requiredLicense) {
+    errors.push(`license must be "${requiredLicense}".`);
   }
   if (kind === "production" && manifest["private"] !== undefined && manifest["private"] !== false) {
     errors.push("production package private must be absent or false.");
@@ -468,6 +469,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/github/skills",
     "./packages/worktrunk/skills",
     "./packages/frontend-developer/skills",
+    "./node_modules/@mopeyjellyfish/pi-grafana-skills/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -481,6 +483,7 @@ const ROOT_PROFILE: RootProfile = {
   subagents: { agents: ["./agents"] },
 };
 const ROOT_DEPENDENCIES = {
+  "@mopeyjellyfish/pi-grafana-skills": "0.0.0",
   "@playwright/cli": "0.1.18",
   "pi-claude-bridge": "0.7.0",
   "pi-subagents": "0.50.0",

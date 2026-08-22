@@ -1,0 +1,39 @@
+{
+  "name": "@mopeyjellyfish/pi-grafana-skills",
+  "version": "0.0.0",
+  "description": "Grafana OSS, dashboarding, and PromQL skills for Pi.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "skills/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "grafana",
+    "dashboarding",
+    "promql"
+  ],
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/grafana-skills"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/grafana-skills/test"
+  }
+}

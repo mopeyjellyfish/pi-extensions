@@ -4,6 +4,7 @@
   "packages/frontend-developer": "0.0.0",
   "packages/git-conventions": "1.0.0",
   "packages/github": "0.0.0",
+  "packages/grafana-skills": "0.0.0",
   "packages/hashline": "0.0.0",
   "packages/lsp": "0.0.0",
   "packages/playwright-cleanup": "0.0.0",

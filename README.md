@@ -36,6 +36,8 @@ It loads only:
   `/generate-image`, which requires explicit human consent before provider
   privacy exposure, separately billed cost, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
+- [`pi-grafana-skills`](packages/grafana-skills/README.md), which redistributes
+  Grafana's official `grafana-oss`, `dashboarding`, and `promql` skills;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
 - `github-cli`, `open-pr`, and `triage` for repository-aware GitHub operations, approved pull-request delivery, and review-feedback processing;
 - pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
@@ -250,8 +252,9 @@ configuration and remove these remaining baseline overrides when present:
   intended, and remove the whole block only when pi-subagents built-ins should
   return.
 
-The root profile pins `pi-claude-bridge`, `pi-subagents`, and
-`@playwright/cli` because their lifecycle behavior was selected explicitly.
+The root profile pins the local `pi-grafana-skills` package and the external
+`pi-claude-bridge`, `pi-subagents`, and `@playwright/cli` dependencies because
+their behavior was selected explicitly.
 `playwright_browser` resolves the profile's local CLI and safely owns and
 cleans up each browser session. The Playwright browser binary is downloaded
 separately when it is first needed; run
@@ -276,6 +279,7 @@ license.
 | [`pi-feature-flow`](packages/feature-flow/README.md)             | Shape and planning without the root profile.                                      |
 | [`pi-git-conventions`](packages/git-conventions/README.md)       | Git delivery skills without the root profile.                                     |
 | [`pi-github`](packages/github/README.md)                         | GitHub CLI workflows without the root profile.                                    |
+| [`pi-grafana-skills`](packages/grafana-skills/README.md)         | Grafana OSS administration, dashboard authoring, and PromQL guidance.             |
 | [`pi-hashline`](packages/hashline/README.md)                     | Anchored reads and fail-closed Hashline edits without the root profile.           |
 | [`pi-lsp`](packages/lsp/README.md)                               | Semantic navigation, diagnostics, or refactoring for a supported language server. |
 | [`pi-playwright-cleanup`](packages/playwright-cleanup/README.md) | Ownership and cleanup of browser sessions.                                        |
