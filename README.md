@@ -29,6 +29,12 @@ It loads only:
 - the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
 - the [`todo`](packages/todo/README.md) extension for parent progress visibility;
 - the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
+- the `pi-frontend-developer` extension, with its `image_generation` tool; six
+  focused skills—`frontend-design`, `frontend-development`,
+  `image-generation`, `interface-design`, `react-interface`, and
+  `visual-validation`; `/design` for routing frontend interface requests; and
+  `/generate-image`, which requires explicit human consent before provider
+  privacy exposure, separately billed cost, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
 - `github-cli`, `open-pr`, and `triage` for repository-aware GitHub operations, approved pull-request delivery, and review-feedback processing;
@@ -196,8 +202,9 @@ session.
 Pi already provides file, search, shell, editing, session, and compaction
 behavior. Skills are discovered progressively. The baseline therefore keeps
 native behavior and adds the missing structured question, terminal status, web
-research, worktree routing, delivery guidance, and lifecycle contracts. Accepted
-`pitch.md` and `plan.md` files are durable anchors when a long session compacts.
+research, worktree routing, deliberate frontend workflow, delivery guidance,
+and lifecycle contracts. Accepted `pitch.md` and `plan.md` files are durable
+anchors when a long session compacts.
 
 Treat every extra extension as a measured addition:
 
@@ -264,6 +271,7 @@ license.
 
 | Package                                                          | Add when you need                                                                 |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [`pi-frontend-developer`](packages/frontend-developer/README.md) | Deliberate frontend design, implementation, visual validation, or image evidence. |
 | [`pi-engineering`](packages/engineering/README.md)               | Focused TDD, debugging, design, domain, or review skills beyond `implement`.      |
 | [`pi-feature-flow`](packages/feature-flow/README.md)             | Shape and planning without the root profile.                                      |
 | [`pi-git-conventions`](packages/git-conventions/README.md)       | Git delivery skills without the root profile.                                     |
