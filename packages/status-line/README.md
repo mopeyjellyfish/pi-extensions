@@ -90,6 +90,24 @@ limit until reliable data exists.
 Usage refreshes have a five-second timeout. The package does not poll while Pi
 is idle.
 
+### Context contributors
+
+Run `/context` in the TUI to append a private report of the current measured
+context use and estimated contributors. It lists only context-file and skill
+paths, active tool names, and session entry IDs; it never displays prompt,
+message, tool-argument, or tool-result content. System and context-file
+estimates use text characters divided by four. Skill metadata, tool schemas,
+and structured conversation content use JSON serialized characters divided by
+four. Both are estimates that the report compares with Pi's measured
+`getContextUsage()` value; they are not exact token accounting, and system,
+context-file, and skill estimates can overlap.
+
+The report shows the largest three tool results when present and ranks each
+contributor list by its estimate before showing at most ten entries. It states
+each omitted count, so the report remains bounded and deterministic. It
+persists as a custom TUI entry, which Pi does not send to the LLM. In print and
+JSON modes, `/context` fails rather than writing report data to standard output.
+
 ## First-party integrations
 
 The package consumes two optional, versioned Pi event-bus channels:

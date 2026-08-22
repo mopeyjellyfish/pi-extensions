@@ -19,7 +19,9 @@ import {
 } from "./powerline.ts";
 
 import type {
+  BuildSystemPromptOptions,
   ExtensionAPI,
+  ExtensionCommandContext,
   ExtensionContext,
   ReadonlyFooterDataProvider,
 } from "@earendil-works/pi-coding-agent";
@@ -41,6 +43,8 @@ const SUBAGENT_CONTROL_EVENT = "subagent:control-event";
 const GIT_ARGUMENTS = ["status", "--porcelain=v2", "--branch", "--untracked-files=no"] as const;
 const GIT_REFRESH_TOOLS = new Set(["bash", "edit", "worktree", "write"]);
 const STATUS_ENTRY_TYPE = "mopeyjellyfish-pi-status";
+const CONTEXT_CONTRIBUTOR_LIMIT = 10;
+const CONTEXT_REPORT_LIMIT = 3;
 
 interface WorktreeRouteEventV1 {
   readonly activePath: string;
@@ -303,6 +307,197 @@ function accountStatusLines(usage: AccountUsageSnapshot): string[] {
   return lines;
 }
 
+type ContextFile = NonNullable<BuildSystemPromptOptions["contextFiles"]>[number];
+type ContextSkill = NonNullable<BuildSystemPromptOptions["skills"]>[number];
+
+interface RankedContributor<T> {
+  readonly identity: string;
+  readonly item: T;
+  readonly size: number;
+}
+
+interface ConversationContributors {
+  readonly roleSizes: ReadonlyMap<string, number>;
+  readonly toolResults: readonly {
+    readonly entryId: string;
+    readonly size: number;
+    readonly toolName: string;
+  }[];
+}
+
+function estimatedTextSize(characters: number): string {
+  return `${integer(characters)} text chars (~${integer(Math.ceil(characters / 4))} tokens)`;
+}
+
+function estimatedSerializedSize(characters: number): string {
+  return `${integer(characters)} serialized chars (~${integer(Math.ceil(characters / 4))} tokens)`;
+}
+
+function serializedLength(value: unknown): number {
+  try {
+    return JSON.stringify(value).length;
+  } catch {
+    return 0;
+  }
+}
+
+function rankContributors<T>(
+  contributors: readonly RankedContributor<T>[],
+): RankedContributor<T>[] {
+  return [...contributors].sort(
+    (left, right) => right.size - left.size || left.identity.localeCompare(right.identity),
+  );
+}
+
+function collectPromptContributors(
+  pi: ExtensionAPI,
+  options: BuildSystemPromptOptions,
+): {
+  readonly activeTools: RankedContributor<string>[];
+  readonly contextFiles: RankedContributor<ContextFile>[];
+  readonly skills: RankedContributor<ContextSkill>[];
+} {
+  const tools = new Map(pi.getAllTools().map((tool) => [tool.name, tool]));
+  const activeToolNames = pi.getActiveTools();
+  const modelVisibleTools = options.selectedTools ?? ["read", "bash", "edit", "write"];
+  return {
+    activeTools: rankContributors(
+      activeToolNames.map((name) => ({
+        identity: name,
+        item: name,
+        size: serializedLength({
+          description: tools.get(name)?.description,
+          name,
+          parameters: tools.get(name)?.parameters,
+        }),
+      })),
+    ),
+    contextFiles: rankContributors(
+      (options.contextFiles ?? []).map((file) => ({
+        identity: file.path,
+        item: file,
+        size: file.content.length,
+      })),
+    ),
+    skills: rankContributors(
+      (options.skills ?? [])
+        .filter((skill) => !skill.disableModelInvocation && modelVisibleTools.includes("read"))
+        .map((skill) => ({
+          identity: skill.filePath,
+          item: skill,
+          size: serializedLength({
+            description: skill.description,
+            filePath: skill.filePath,
+            name: skill.name,
+          }),
+        })),
+    ),
+  };
+}
+
+function collectConversationContributors(ctx: ExtensionCommandContext): ConversationContributors {
+  const roleSizes = new Map<string, number>();
+  const toolResults: { entryId: string; size: number; toolName: string }[] = [];
+  const add = (role: string, content: unknown): void => {
+    roleSizes.set(role, (roleSizes.get(role) ?? 0) + serializedLength(content));
+  };
+  for (const entry of ctx.sessionManager.buildContextEntries()) {
+    if (entry.type === "custom_message") {
+      add("custom", entry.content);
+      continue;
+    }
+    if (entry.type === "branch_summary") {
+      if (entry.summary) add("branchSummary", entry.summary);
+      continue;
+    }
+    if (entry.type === "compaction") {
+      add("compactionSummary", entry.summary);
+      continue;
+    }
+    if (entry.type !== "message") continue;
+    const message = entry.message as unknown;
+    if (!isRecord(message) || typeof message["role"] !== "string") continue;
+    const role = message["role"];
+    add(role, message["content"] ?? []);
+    if (role === "toolResult" && typeof message["toolName"] === "string") {
+      toolResults.push({
+        entryId: entry.id,
+        size: serializedLength(message["content"] ?? []),
+        toolName: message["toolName"],
+      });
+    }
+  }
+  return { roleSizes, toolResults };
+}
+
+function cappedContributorLines<T>(
+  contributors: readonly RankedContributor<T>[],
+  label: string,
+  format: (contributor: RankedContributor<T>) => string,
+): string[] {
+  const visible = contributors.slice(0, CONTEXT_CONTRIBUTOR_LIMIT);
+  const omitted = contributors.length - visible.length;
+  return omitted === 0
+    ? visible.map(format)
+    : [...visible.map(format), `${label}: ${String(omitted)} omitted`];
+}
+function conversationContributorLines(conversation: ConversationContributors): string[] {
+  const categories = rankContributors(
+    [...conversation.roleSizes].map(([identity, size]) => ({ identity, item: identity, size })),
+  );
+  const toolResults = [...conversation.toolResults]
+    .sort((left, right) => right.size - left.size || left.entryId.localeCompare(right.entryId))
+    .slice(0, CONTEXT_REPORT_LIMIT)
+    .map(
+      (result) =>
+        `- ${displayValue(result.toolName)} (${displayValue(result.entryId)}): ${estimatedSerializedSize(result.size)}`,
+    );
+  return [
+    ...cappedContributorLines(
+      categories,
+      "Conversation categories",
+      ({ item, size }) => `Conversation ${displayValue(item)}: ${estimatedSerializedSize(size)}`,
+    ),
+    ...(toolResults.length === 0 ? [] : ["Largest tool results:", ...toolResults]),
+  ];
+}
+
+function measuredUsageText(ctx: ExtensionCommandContext): string {
+  const usage = ctx.getContextUsage();
+  if (usage === undefined) return "Measured usage: unavailable";
+  const tokens = usage.tokens === null ? "?" : integer(usage.tokens);
+  const percent = usage.percent === null ? "?" : `${usage.percent.toFixed(1)}%`;
+  return `Measured usage: ${tokens} / ${integer(usage.contextWindow)} tokens (${percent})`;
+}
+
+function contextReportText(pi: ExtensionAPI, ctx: ExtensionCommandContext): string {
+  const contributors = collectPromptContributors(pi, ctx.getSystemPromptOptions());
+  const conversation = collectConversationContributors(ctx);
+  return [
+    "Context contributors",
+    measuredUsageText(ctx),
+    "Estimates use characters ÷ 4; they are not exact token accounting.",
+    `System prompt: ${estimatedTextSize(ctx.getSystemPrompt().length)}`,
+    ...cappedContributorLines(
+      contributors.contextFiles,
+      "Context files",
+      ({ item, size }) => `Context file ${displayValue(item.path)}: ${estimatedTextSize(size)}`,
+    ),
+    ...cappedContributorLines(
+      contributors.skills,
+      "Skills",
+      ({ item, size }) => `Skill ${displayValue(item.filePath)}: ${estimatedSerializedSize(size)}`,
+    ),
+    ...cappedContributorLines(
+      contributors.activeTools,
+      "Active tool schemas",
+      ({ item, size }) =>
+        `Active tool schema ${displayValue(item)}: ${estimatedSerializedSize(size)}`,
+    ),
+    ...conversationContributorLines(conversation),
+  ].join("\n");
+}
+
 function statusText(pi: ExtensionAPI, ctx: ExtensionContext, usage: AccountUsageSnapshot): string {
   const model = ctx.model;
   const name = ctx.sessionManager.getSessionName();
@@ -435,20 +630,23 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
   const refreshAccountUsage = async (
     currentContext: ExtensionContext,
   ): Promise<AccountUsageSnapshot> => {
+    const model = currentContext.model;
+    const usageContext: AccountUsageContext = {
+      ...(model === undefined ? {} : { model }),
+      modelRegistry: currentContext.modelRegistry,
+    };
+    const provider = model?.provider;
     accountUsageController?.abort();
     const controller = new AbortController();
     accountUsageController = controller;
     const generation = ++accountUsageGeneration;
     try {
-      const fetched = await fetchAccountUsage(
-        currentContext as unknown as AccountUsageContext,
-        controller.signal,
-      );
+      const fetched = await fetchAccountUsage(usageContext, controller.signal);
       const next =
         fetched.status === "unavailable" &&
         accountUsage?.status === "available" &&
         accountUsage.source === "response-headers" &&
-        accountUsage.provider === currentContext.model?.provider
+        accountUsage.provider === provider
           ? accountUsage
           : fetched;
       if (generation === accountUsageGeneration) {
@@ -457,7 +655,6 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
       }
       return next;
     } catch {
-      const provider = currentContext.model?.provider;
       const unavailable: AccountUsageSnapshot = {
         ...(provider === undefined ? {} : { provider }),
         reason: "Usage request was cancelled",
@@ -481,6 +678,21 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
       const text = statusText(pi, currentContext, usage);
       if (currentContext.mode === "tui") pi.appendEntry(STATUS_ENTRY_TYPE, { text });
       else if (currentContext.hasUI) currentContext.ui.notify(text, "info");
+    },
+  });
+  pi.registerCommand("context", {
+    description: "Show estimated context contributors without exposing their contents",
+    handler: (_args, currentContext) => {
+      const text = contextReportText(pi, currentContext);
+      if (currentContext.mode === "tui") pi.appendEntry(STATUS_ENTRY_TYPE, { text });
+      else if (currentContext.hasUI) currentContext.ui.notify(text, "info");
+      else
+        return Promise.reject(
+          new Error(
+            "/context requires TUI or UI-capable RPC; it will not write report data to stdout",
+          ),
+        );
+      return Promise.resolve();
     },
   });
 

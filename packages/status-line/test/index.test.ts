@@ -1,3 +1,4 @@
+import { buildContextEntries } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it, vi, type Mock } from "vitest";
 
@@ -46,6 +47,14 @@ interface Harness {
   readonly footerValues: unknown[];
   previousEditorFactory: EditorFactory | undefined;
   readonly renders: Mock<() => void>;
+  activeTools: string[];
+  allTools: {
+    description: string;
+    name: string;
+    parameters: unknown;
+    promptGuidelines: string[];
+    sourceInfo: Record<string, never>;
+  }[];
 }
 
 function createHarness(): Harness {
@@ -72,6 +81,23 @@ function createHarness(): Harness {
   const renders = vi.fn<() => void>();
   const harness: Harness = {
     bus,
+    activeTools: ["read", "bash"],
+    allTools: [
+      {
+        description: "Run a command",
+        name: "bash",
+        parameters: { type: "object" },
+        promptGuidelines: [],
+        sourceInfo: {},
+      },
+      {
+        description: "Read a file",
+        name: "read",
+        parameters: { type: "object" },
+        promptGuidelines: [],
+        sourceInfo: {},
+      },
+    ],
     commands,
     editorFactory: undefined,
     editorValues,
@@ -100,6 +126,12 @@ function createHarness(): Harness {
     getThinkingLevel: () => "high",
     on(name: string, handler: (event: Record<string, unknown>, ctx: ExtensionContext) => unknown) {
       events.set(name, [...(events.get(name) ?? []), handler]);
+    },
+    getActiveTools() {
+      return harness.activeTools;
+    },
+    getAllTools() {
+      return harness.allTools;
     },
     appendEntry(customType: string, data: unknown) {
       entries.push({ customType, data });
@@ -689,6 +721,46 @@ describe("pi-status-line extension", () => {
       vi.unstubAllGlobals();
     }
   });
+  it("cancels a reload-era account refresh without reading its stale context", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const base = context(harness);
+    const model = { ...base.model, api: "openai-codex-responses", provider: "openai-codex" };
+    let stale = false;
+    let staleReads = 0;
+    const getApiKeyAndHeaders = vi.fn(
+      () =>
+        new Promise<never>((resolve) => {
+          void resolve;
+        }),
+    );
+    const ctx = {
+      ...base,
+      modelRegistry: {
+        getApiKeyAndHeaders,
+        isUsingOAuth: () => true,
+      },
+    } as unknown as ExtensionContext;
+    Object.defineProperty(ctx, "model", {
+      get() {
+        if (stale) {
+          staleReads += 1;
+          throw new Error("This extension ctx is stale after session replacement or reload");
+        }
+        return model;
+      },
+    });
+
+    await emitLifecycle(harness, "session_start", ctx);
+    await vi.waitFor(() => {
+      expect(getApiKeyAndHeaders).toHaveBeenCalledOnce();
+    });
+    await emitLifecycle(harness, "session_shutdown", ctx);
+    stale = true;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(staleReads).toBe(0);
+  });
 
   it("uses observed provider headers in the status line and /status", async () => {
     expect.hasAssertions();
@@ -757,6 +829,193 @@ describe("pi-status-line extension", () => {
     expect((harness.entries.at(-1)?.data as { text?: string }).text).toContain(
       "Context: ?% left (? used / 272,000)",
     );
+  });
+
+  it("reports bounded context contributor estimates without adding LLM context", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const base = context(harness);
+    const ctx = {
+      ...base,
+      getSystemPrompt: () => "System instructions that remain private.",
+      getSystemPromptOptions: () => ({
+        contextFiles: [{ content: "private project instruction", path: "/work/AGENTS.md" }],
+        cwd: "/projects/example",
+        skills: [
+          {
+            description: "Private skill description",
+            disableModelInvocation: false,
+            filePath: "/skills/review/SKILL.md",
+            name: "review",
+          },
+        ],
+      }),
+      sessionManager: {
+        ...base.sessionManager,
+        buildContextEntries: () => [
+          {
+            id: "user-1",
+            message: { content: "do not expose this", role: "user" },
+            type: "message",
+          },
+          {
+            id: "tool-1",
+            message: {
+              content: [{ text: "also private tool output" }],
+              role: "toolResult",
+              toolName: "bash",
+            },
+            type: "message",
+          },
+        ],
+      },
+    } as unknown as ExtensionContext;
+
+    await harness.commands.get("context")?.("", ctx);
+
+    expect(harness.entries).toHaveLength(1);
+    expect(harness.entries[0]).toMatchObject({ customType: "mopeyjellyfish-pi-status" });
+    const text = (harness.entries[0]?.data as { text?: string }).text ?? "";
+    expect(text).toContain("Measured usage: 50,320 / 272,000 tokens (18.5%)");
+    expect(text).toMatch(/System prompt: \d+ text chars/u);
+    expect(text).toMatch(/Active tool schema bash: \d+ serialized chars/u);
+    expect(text).toContain("Estimates use characters ÷ 4; they are not exact token accounting.");
+    expect(text).toContain("System prompt:");
+    expect(text).toContain("Context file /work/AGENTS.md:");
+    expect(text).toContain("Skill /skills/review/SKILL.md:");
+    expect(text).toContain("Active tool schema bash:");
+    await expect(
+      harness.commands.get("context")?.("", { ...ctx, hasUI: false, mode: "print" }),
+    ).rejects.toThrow("will not write report data to stdout");
+    expect(harness.entries).toHaveLength(1);
+    await harness.commands.get("context")?.("", { ...ctx, getContextUsage: () => void 0 });
+    expect((harness.entries.at(-1)?.data as { text?: string }).text).toContain(
+      "Measured usage: unavailable",
+    );
+    expect(text).toContain("Conversation user:");
+    expect(text).toContain("Largest tool results:\n- bash (tool-1):");
+    expect(text).not.toContain("private project instruction");
+    expect(text).not.toContain("Private skill description");
+    expect(text).not.toContain("do not expose this");
+    expect(text).not.toContain("also private tool output");
+  });
+  it("reports Pi's active compaction, summary, and custom-message context", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const base = context(harness);
+    const entries = [
+      {
+        id: "compacted-tool",
+        message: { content: [{ text: "old result" }], role: "toolResult", toolName: "bash" },
+        parentId: null,
+        timestamp: "2026-01-01T00:00:00.000Z",
+        type: "message",
+      },
+      {
+        id: "kept-user",
+        message: { content: "kept", role: "user" },
+        parentId: "compacted-tool",
+        timestamp: "2026-01-01T00:01:00.000Z",
+        type: "message",
+      },
+      {
+        firstKeptEntryId: "kept-user",
+        id: "compaction-1",
+        parentId: "kept-user",
+        summary: "compaction summary",
+        timestamp: "2026-01-01T00:02:00.000Z",
+        tokensBefore: 10_000,
+        type: "compaction",
+      },
+      {
+        content: "custom context",
+        customType: "review-note",
+        display: true,
+        id: "custom-1",
+        parentId: "compaction-1",
+        timestamp: "2026-01-01T00:03:00.000Z",
+        type: "custom_message",
+      },
+      {
+        fromId: "kept-user",
+        id: "branch-summary-1",
+        parentId: "custom-1",
+        summary: "branch summary",
+        timestamp: "2026-01-01T00:04:00.000Z",
+        type: "branch_summary",
+      },
+    ] as never;
+    const ctx = {
+      ...base,
+      getSystemPrompt: () => "System instructions",
+      getSystemPromptOptions: () => ({ cwd: "/projects/example" }),
+      sessionManager: {
+        ...base.sessionManager,
+        buildContextEntries: () => buildContextEntries(entries),
+      },
+    } as unknown as ExtensionContext;
+
+    await harness.commands.get("context")?.("", ctx);
+
+    const text = (harness.entries[0]?.data as { text?: string }).text ?? "";
+    expect(text).toContain("Conversation custom:");
+    expect(text).toContain("Conversation branchSummary:");
+    expect(text).toContain("Conversation compactionSummary:");
+    expect(text).not.toContain("bash (compacted-tool)");
+    expect(text).not.toContain("Largest tool results:");
+  });
+
+  it("ranks capped contributor lists by estimate before alphabetical identity", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const small = Array.from({ length: 11 }, (_, index) => String(index).padStart(2, "0"));
+    harness.activeTools = [...small.map((index) => `tool-${index}`), "z-large"];
+    harness.allTools = harness.activeTools.map((name) => ({
+      description: name === "z-large" ? "x".repeat(500) : "small",
+      name,
+      parameters: { type: "object" },
+      promptGuidelines: [],
+      sourceInfo: {},
+    }));
+    const base = context(harness);
+    const ctx = {
+      ...base,
+      getSystemPrompt: () => "System instructions",
+      sessionManager: { ...base.sessionManager, buildContextEntries: () => [] },
+      getSystemPromptOptions: () => ({
+        contextFiles: [
+          ...small.map((index) => ({ content: "small", path: `/context/${index}.md` })),
+          { content: "x".repeat(500), path: "/context/z-large.md" },
+        ],
+        cwd: "/projects/example",
+        selectedTools: ["read"],
+        skills: [
+          ...small.map((index) => ({
+            description: "small",
+            disableModelInvocation: false,
+            filePath: `/skills/${index}/SKILL.md`,
+            name: `skill-${index}`,
+          })),
+          {
+            description: "x".repeat(500),
+            disableModelInvocation: false,
+            filePath: "/skills/z-large/SKILL.md",
+            name: "skill-z-large",
+          },
+        ],
+      }),
+    } as unknown as ExtensionContext;
+
+    await harness.commands.get("context")?.("", ctx);
+
+    const text = (harness.entries[0]?.data as { text?: string }).text ?? "";
+    expect(text).toContain("Context file /context/z-large.md:");
+    expect(text).toContain("Skill /skills/z-large/SKILL.md:");
+    expect(text).toContain("Active tool schema z-large:");
+    expect(text).toContain("Context files: 2 omitted");
+    expect(text).toContain("Skills: 2 omitted");
+    expect(text).toContain("Active tool schemas: 2 omitted");
+    expect(text).not.toContain("Largest tool results:");
   });
 
   it("keeps /status useful without a model or context outside TUI mode", async () => {
