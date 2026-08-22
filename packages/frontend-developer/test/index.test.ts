@@ -131,6 +131,7 @@ interface ImageTool {
 function tool(): ImageTool {
   let registered: ImageTool | undefined;
   frontendDeveloperExtension({
+    on: vi.fn(),
     registerTool(value: ImageTool) {
       registered = value;
     },
