@@ -17,3 +17,8 @@ If compatible credentials or trusted configuration are absent, make no request:
 report the credential requirement and continue with supplied mock-ups or design
 evidence. Inspect the saved artifact's format and requested dimensions before
 using it in `frontend-design`; pixels remain evidence, not product behavior.
+
+For material design review, each generated artifact is image-backed direction
+evidence for `design_board`; inspect it before presentation. If generation is
+unavailable or declined, use rendered specimens or browser captures instead of
+asking the human to choose from prose.

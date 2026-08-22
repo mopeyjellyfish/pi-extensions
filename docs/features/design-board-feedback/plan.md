@@ -58,7 +58,7 @@ Pause and report variance if the board requires a hosted service, a new runtime
 package, target-repository scaffolding, public network binding, a browser bundle, or
 more than one package/delivery unit.
 
-## [ ] 001 — Local board presents directions and returns explicit feedback
+## [x] 001 — Local board presents directions and returns explicit feedback
 
 ### Outcome and requirement trace
 
@@ -184,7 +184,7 @@ This is the first commit in delivery unit 1. The eventual pull request targets
 - Available browser evidence confirms accessible usable wide and narrow board states,
   or the unavailable proof is reported without claiming visual acceptance.
 
-## [ ] 002 — `/design` requires visible evidence before feedback and closes the loop
+## [x] 002 — `/design` requires visible evidence before feedback and closes the loop
 
 ### Outcome and requirement trace
 

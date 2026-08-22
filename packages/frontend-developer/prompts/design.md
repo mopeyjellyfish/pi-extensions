@@ -4,8 +4,13 @@ description: Classify a frontend interface request as UI design or implementatio
 
 Classify this frontend interface request before proceeding:
 
-- For design direction or UI-design work, use the `frontend-design` skill.
-- For implementation or a frontend change, use the `frontend-development` skill.
-  It may use `frontend-design` when needed.
+- For a bounded mechanical style, spacing, or placement correction, make the
+  direct target-repository change without a design ceremony.
+- For material design direction, a new app surface, or a major redesign, use
+  the `frontend-design` skill. It must load `interface-design`, create
+  image-backed directions, and use `design_board` to verify and give a local
+  board URL before asking for a visual choice.
+- For implementation or a frontend change, use `frontend-development`. It may
+  use `frontend-design` when needed.
 
 $ARGUMENTS

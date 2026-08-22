@@ -22,5 +22,10 @@ the ledger is resolved, evidence stops improving, or an unmet proof is named —
 never use an arbitrary pass count. Clean up browser resources under the target
 repository's command ownership.
 
+When a material design board links a target-owned live site, verify that site
+separately. Browser captures can provide image-backed board evidence when image
+generation is unavailable; an unavailable board, browser, or site remains
+unmet proof and never implies approval.
+
 Load [`references/visual-checklist.md`](references/visual-checklist.md) before
 capture to define the evidence matrix and mismatch ledger.
