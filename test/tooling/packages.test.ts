@@ -8,9 +8,11 @@ import {
   discoverProductionPackages,
   findForbiddenPackedPaths,
   loadFixturePackage,
+  resolvePackageEntrypoints,
+  resolvePackagePrompts,
+  resolvePackageSkills,
   validatePackage,
   validateRootProfile,
-  resolvePackageSkills,
   type PackageDescriptor,
 } from "../../scripts/lib/packages.ts";
 import { validateReleaseConfiguration } from "../../scripts/lib/releases.ts";
@@ -19,6 +21,7 @@ import { repositoryRoot, toPosixPath } from "../../scripts/lib/repository.ts";
 const temporaryRoots: string[] = [];
 const ROOT_PROFILE = {
   extensions: [
+    "./packages/frontend-developer/src/index.ts",
     "./packages/hashline/src/index.ts",
     "./packages/playwright-cleanup/src/index.ts",
     "./packages/question/src/index.ts",
@@ -37,12 +40,15 @@ const ROOT_PROFILE = {
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
+    "./packages/frontend-developer/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
     "./packages/feature-flow/prompts/plan.md",
     "./packages/engineering/prompts",
     "./packages/productivity/prompts",
+    "./packages/frontend-developer/prompts/design.md",
+    "./packages/frontend-developer/prompts/generate-image.md",
     "./node_modules/pi-subagents/prompts",
   ],
   subagents: { agents: ["./agents"] },
@@ -560,6 +566,20 @@ describe("package contracts", () => {
       throw new Error("GitHub package was not discovered.");
     }
     await expect(resolvePackageSkills(github)).resolves.toHaveLength(3);
+    const frontendDeveloper = packages.find(
+      (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-frontend-developer",
+    );
+    if (frontendDeveloper === undefined) {
+      throw new Error("Frontend developer package was not discovered.");
+    }
+    await expect(resolvePackageEntrypoints(frontendDeveloper)).resolves.toEqual([
+      expect.stringMatching(/packages\/frontend-developer\/src\/index\.ts$/u),
+    ]);
+    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(6);
+    await expect(resolvePackagePrompts(frontendDeveloper)).resolves.toEqual([
+      expect.stringMatching(/packages\/frontend-developer\/prompts\/design\.md$/u),
+      expect.stringMatching(/packages\/frontend-developer\/prompts\/generate-image\.md$/u),
+    ]);
     await expect(validateRootProfile()).resolves.toEqual([]);
     await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);
   });

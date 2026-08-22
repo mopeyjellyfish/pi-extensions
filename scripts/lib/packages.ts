@@ -448,6 +448,7 @@ function validateRootRuntime(value: Record<string, unknown>, errors: string[]): 
 
 const ROOT_PROFILE: RootProfile = {
   extensions: [
+    "./packages/frontend-developer/src/index.ts",
     "./packages/hashline/src/index.ts",
     "./packages/playwright-cleanup/src/index.ts",
     "./packages/question/src/index.ts",
@@ -466,12 +467,15 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
+    "./packages/frontend-developer/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
     "./packages/feature-flow/prompts/plan.md",
     "./packages/engineering/prompts",
     "./packages/productivity/prompts",
+    "./packages/frontend-developer/prompts/design.md",
+    "./packages/frontend-developer/prompts/generate-image.md",
     "./node_modules/pi-subagents/prompts",
   ],
   subagents: { agents: ["./agents"] },

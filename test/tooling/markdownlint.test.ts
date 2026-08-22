@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -22,7 +23,11 @@ describe("Markdown lint configuration", () => {
       },
     )
       .split("\n")
-      .filter((path) => path !== "" && !generatedChangelog.test(path));
+      // Skip tracked entries deleted in this worktree because lint targets existing worktree content.
+      .filter(
+        (path) =>
+          path !== "" && existsSync(join(repositoryRoot, path)) && !generatedChangelog.test(path),
+      );
     const sources = await Promise.all(
       paths.map(async (path) => ({
         path,

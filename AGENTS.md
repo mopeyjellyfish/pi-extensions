@@ -94,12 +94,16 @@ automatic project loading would register the same tools, commands, and skills
 twice. Do not add an automatic project package entry for the working copy.
 
 The private root manifest is a curated default profile. It loads the
-Playwright-cleanup, question, status-line, todo, web-search, and Worktrunk
-extensions; complete Engineering and Productivity skills and prompts; the Shape
-and planning lifecycle; Git, GitHub, and Worktrunk skills; and the pinned
-`pi-claude-bridge` and `pi-subagents` extensions, subagent prompts, and six
-model-routed package agents. The Luna QA agent runs bounded read-only final gates
-and aggregates failures before retained-Worker repairs. Worker and QA repeat
+`pi-frontend-developer` extension; its `frontend-design`,
+`frontend-development`, `image-generation`, `interface-design`,
+`react-interface`, and `visual-validation` skills; and its `/design` and
+`/generate-image` prompts. It also loads the Playwright-cleanup, question,
+status-line, todo, web-search, and Worktrunk extensions; complete Engineering and Productivity
+skills and prompts; the Shape and planning lifecycle; Git,
+GitHub, and Worktrunk skills; and the pinned `pi-claude-bridge` and
+`pi-subagents` extensions, subagent prompts, and six model-routed package agents. The Luna QA agent
+runs bounded read-only final gates and aggregates
+failures before retained-Worker repairs. Worker and QA repeat
 while verification evidence shows measurable progress and stop on repeated or
 out-of-scope failures. The bundled subagent orchestration skill is
 intentionally excluded. Other production packages remain independently
