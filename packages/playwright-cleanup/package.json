@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-playwright-cleanup",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Own and verify cleanup of Playwright CLI browser sessions started by Pi agents.",
   "license": "MIT",
   "type": "module",
