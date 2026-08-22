@@ -111,6 +111,7 @@ function presentation(overrides: Record<string, unknown> = {}): Record<string, u
         label: "Bold utility",
       },
     ],
+    feedbackMode: "board",
     liveSiteUrl: "http://127.0.0.1:3000",
     recommendedDirectionId: "calm",
     title: "Dashboard directions",
@@ -196,6 +197,8 @@ describe("design_board", () => {
     expect(markup).toContain('class="review-header"');
     expect(markup).toContain('class="comparison"');
     expect(markup).toContain('class="decision-panel feedback"');
+    expect(markup).toContain("select the strongest direction");
+    expect(markup).not.toContain("return to the CLI");
     expect(markup).toContain('class="direction recommended-direction"');
     expect(markup).toContain("Revision 01");
     expect(markup).toContain("2 directions");
@@ -203,6 +206,14 @@ describe("design_board", () => {
     expect(markup).toContain("@media(prefers-color-scheme:dark)");
     expect(markup).toContain("@media(prefers-reduced-motion:reduce)");
     expect(markup).toContain("input:focus-visible");
+    expect(markup).toContain('popover="" id="viewer-1"');
+    expect(markup).toMatch(
+      /popovertarget="viewer-1"[^>]+aria-label="View full size: Calm &lt;focus&gt;"/u,
+    );
+    expect(markup).toMatch(/popovertargetaction="hide"[^>]+aria-label="Close full-size view/u);
+    expect(markup).not.toContain("autofocus");
+    expect(markup).toContain('type="checkbox"');
+    expect(markup).toContain(".viewer:has(input:checked) img");
     expect(await fetch(new URL("image/calm", url))).toMatchObject({ ok: true });
 
     const update = presentation({ title: "Refined dashboard directions" });
@@ -217,6 +228,81 @@ describe("design_board", () => {
     expect(second.details).toMatchObject({ reachable: true, url, version: 2 });
     expect(await (await fetch(url)).text()).toContain("http://127.0.0.1:3000/");
     expect(harness.entries.at(-1)?.data).toMatchObject({ state: "open", version: 2 });
+    await close(harness, root);
+  });
+
+  it("renders collision-proof accessible viewers for every direction", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "design-board-viewers-"));
+    await images(root);
+    const harness = register();
+    const longLabel = "Long direction label ".repeat(8).slice(0, 160);
+    const presented = await harness.tool.execute(
+      "present",
+      presentation({
+        directions: [
+          { id: "x", imagePath: "evidence/calm.png", label: longLabel },
+          { id: "x-actual-size", imagePath: "evidence/bold.png", label: "Suffix collision" },
+        ],
+        recommendedDirectionId: "x",
+      }),
+      undefined,
+      undefined,
+      context(root),
+    );
+    const markup = await (await fetch(String(presented.details["url"]))).text();
+
+    expect(markup.match(/popover=""/gu)).toHaveLength(2);
+    expect(markup).toContain('id="viewer-1"');
+    expect(markup).toContain('id="viewer-2"');
+    expect(markup).toContain('id="viewer-1-size"');
+    expect(markup).toContain('id="viewer-2-size"');
+    expect(markup).toContain("grid-template-rows:auto minmax(0,1fr)");
+    expect(markup).toContain(".viewer:popover-open{display:grid}");
+    expect(markup).toContain('class="viewer-toolbar"');
+    expect(markup).toContain('class="viewer-actions"');
+    expect(markup).not.toContain("1120px");
+    expect(markup).not.toContain("cursor:grab");
+    await close(harness, root);
+  });
+
+  it("defaults to a full-width CLI feedback board without browser form controls", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "design-board-cli-"));
+    await images(root);
+    const harness = register();
+    const input = presentation();
+    Reflect.deleteProperty(input, "feedbackMode");
+    const presented = await harness.tool.execute(
+      "present",
+      input,
+      undefined,
+      undefined,
+      context(root),
+    );
+    const markup = await (await fetch(String(presented.details["url"]))).text();
+
+    expect(presented.details).toMatchObject({ feedbackMode: "cli" });
+    expect(markup).toContain('class="board-form cli-board"');
+    expect(markup.match(/popover=""/gu)).toHaveLength(2);
+    expect(markup).not.toContain("<form");
+    expect(markup).not.toContain('name="directionId"');
+    expect(markup).not.toContain('class="decision-panel feedback"');
+    const url = String(presented.details["url"]);
+    expect(await postFeedback(url, {}, { origin: new URL(url).origin })).toMatchObject({
+      status: 404,
+    });
+    const update = presentation({ title: "Retained CLI mode" });
+    Reflect.deleteProperty(update, "feedbackMode");
+    const updated = await harness.tool.execute(
+      "update",
+      update,
+      undefined,
+      undefined,
+      context(root),
+    );
+    expect(updated.details).toMatchObject({ feedbackMode: "cli", version: 2 });
+    expect(await (await fetch(url)).text()).not.toContain("<form");
     await close(harness, root);
   });
 
@@ -448,7 +534,18 @@ describe("design_board", () => {
           directions: [{ id: "one", imagePath: "evidence/calm.png", label: "One" }],
         }),
       ),
-    ).rejects.toThrow(/two to four/iu);
+    ).rejects.toThrow(/two to eight/iu);
+    await expect(
+      execute(
+        presentation({
+          directions: Array.from({ length: 9 }, (_, index) => ({
+            id: `direction-${String(index)}`,
+            imagePath: index % 2 === 0 ? "evidence/calm.png" : "evidence/bold.png",
+            label: `Direction ${String(index + 1)}`,
+          })),
+        }),
+      ),
+    ).rejects.toThrow(/two to eight/iu);
     await expect(
       execute(
         presentation({
@@ -708,6 +805,10 @@ describe("design_board", () => {
       blocker.listen(Number(previousUrl.port), "127.0.0.1", resolveListen),
     );
     const branch = [...first.entries];
+    const legacyState = branch.at(-1)?.data;
+    if (legacyState && typeof legacyState === "object") {
+      Reflect.deleteProperty(legacyState, "feedbackMode");
+    }
     const restored = register();
     await restored.sessionStart[0]?.({ reason: "reload" }, context(root, branch));
     const status = await restored.tool.execute(
@@ -718,6 +819,8 @@ describe("design_board", () => {
       context(root, branch),
     );
     expect(status.details["url"]).not.toBe(previousUrl.href);
+    expect(status.details).toMatchObject({ feedbackMode: "cli" });
+    expect(await (await fetch(String(status.details["url"]))).text()).not.toContain("<form");
     expect(
       restored.messages.some(({ message }) => message["customType"] === "design_board_url_changed"),
     ).toBe(true);

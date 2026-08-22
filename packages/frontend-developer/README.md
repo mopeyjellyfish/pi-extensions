@@ -66,12 +66,14 @@ not replace native controls or meaningful text.
 ## Local design review board
 
 For material design direction, `/design` gathers only unresolved facts in one
-compact batch of at most four questions, then creates two to four coherent,
+compact batch of at most four questions, then creates two to eight coherent,
 image-backed directions. It presents them through the local `design_board` tool
 and verifies the localhost board URL before it asks for a visual choice. The
-board is localhost-only and session-scoped: it records an explicit selected
-direction and notes on the board itself. A visit, silence, cancellation, or
-unsubmitted note is not approval.
+board is localhost-only and session-scoped. By default it is a full-width visual
+inspection surface and the workflow collects the selected direction and notes in
+the CLI. Call `present` with `feedbackMode: "board"` only when board-native radio,
+notes, and submit controls are useful. A visit, silence, cancellation, or
+unsubmitted note is not approval in either mode.
 The board/site distinction matters: the board is design evidence, while a
 separate target-owned live-site URL remains the native product implementation.
 When that site exists, the workflow verifies and reports both URLs.

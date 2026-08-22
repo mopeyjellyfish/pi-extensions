@@ -33,7 +33,7 @@ Critical path:
 1. Prove the missing `design_board` registration and safe local board behavior.
 2. Implement the session-scoped board runtime and public tool contract.
 3. Prove the existing `/design` method can still ask for visual feedback without a
-   reachable board, images, board-native feedback, or lifecycle choice.
+   reachable board, images, explicit CLI or board feedback, or lifecycle choice.
 4. Tighten the prompt/skill/README contract around the working board capability.
 5. Run browser evidence, lifecycle reload acceptance, package checks, source smoke,
    packing inspection, and the repository gate.
@@ -78,16 +78,18 @@ Public seam:
 - Register `design_board` beside `image_generation` in
   `packages/frontend-developer/src/index.ts`.
 - Use a strict provider-neutral action schema for `present`, `status`, `open`, and
-  `close`. `present` carries a bounded board title, two to four direction records,
-  one recommended direction id, optional separate live-site URL, and validated image
-  paths. `present` and `status` make a bounded self-request and return explicit
-  reachability evidence with the URL, current version, resource state, and latest
-  submitted feedback.
+  `close`. `present` carries a bounded board title, two to eight direction records,
+  one recommended direction id, optional separate live-site URL, optional `cli` or
+  `board` feedback mode, and validated image paths. `present` and `status` make a
+  bounded self-request and return explicit reachability evidence with the URL,
+  current version, resource state, feedback mode, and latest submitted feedback.
 - Serve the board from `127.0.0.1` on an ephemeral port with an unguessable board path
   and same-origin submission token. Validate loopback `Host` and `Origin` headers to
   resist DNS rebinding and cross-origin form posts. Render escaped semantic HTML with
-  native radio, link, textarea, and submit controls; set a restrictive CSP and bound
-  request bodies. Normalize a leading `@`, allow only validated PNG/JPEG/WebP
+  native links and full-size viewers. Default to a CLI inspection board; render native
+  radio, textarea, and submit controls only in explicit board-feedback mode. Set a
+  restrictive CSP and bound request bodies. Normalize a leading `@`, allow only
+  validated PNG/JPEG/WebP
   artifacts under `ctx.cwd` or the board's package-owned session temp directory, and
   never expose arbitrary files. Board files and fallback captures in that temp root
   are runtime artifacts, not target-repository content; provider images may remain at
@@ -149,10 +151,11 @@ Capture and report the intended test failure before production implementation.
 - `npm test -- --run packages/frontend-developer/test/index.test.ts`
 - `npm --workspace @mopeyjellyfish/pi-frontend-developer typecheck`
 - When browser capability is available in the active development harness, use it to
-  open the returned board URL and verify two to four directions, image loading,
-  recommendation, keyboard-operable selection, notes submission, success state,
-  separate site link, wide and narrow layouts, and no console/runtime errors. Close
-  the owned browser after capture. If browser capability is absent, record the unmet
+  open the returned board URL and verify two to eight responsive directions, image
+  loading, recommendation, Fit/100% viewers, default CLI inspection without form
+  controls, explicit board-mode selection and notes submission, separate site link,
+  wide and narrow layouts, and no console/runtime errors. Close the owned browser
+  after capture. If browser capability is absent, record the unmet
   visual proof; shipped package guidance must not assume this repository's browser
   tool exists in target repositories.
 - Lifecycle proof covers `session_shutdown` cleanup and branch-aware reconstruction
@@ -190,10 +193,11 @@ This is the first commit in delivery unit 1. The eventual pull request targets
 
 For material UI design, `/design` conducts compact decision-changing discovery,
 creates image-backed comparable directions, gives the human a verified board URL
-before asking for a choice, consumes board-native feedback, updates the same board at
-coherent milestones, reports a separate live-site URL when implementation exists,
-and ends by asking whether to open, keep, or close each resource. Bounded mechanical
-visual edits remain direct.
+before asking for a choice, collects selection and notes in the CLI by default (or
+through explicitly enabled board-native feedback), updates the same board at coherent
+milestones, reports a separate live-site URL when implementation exists, and ends by
+asking whether to open, keep, or close each resource. Bounded mechanical visual edits
+remain direct.
 
 Traces to AC-001, AC-002, AC-003, AC-006, AC-007, AC-008, AC-010, AC-011, and the
 workflow-contract portion of AC-012.
@@ -210,12 +214,13 @@ Public workflow seam:
 - Revise the integrated `skills/interface-design/SKILL.md` method:
   - ask one compact batch of at most four questions only for unresolved person/task,
     feel, content/constraints, and references;
-  - create two to four coherent directions with image evidence;
+  - create two to eight coherent directions with image evidence;
   - obtain provider consent before `image_generation`, otherwise use rendered
     specimens or browser captures;
   - call `design_board`, verify the URL, and present it before any visual-choice ask;
-  - accept board-native selection/notes as explicit feedback, record them in the
-    decision ledger, and update the same board for coherent material groups;
+  - collect selection and notes in the CLI by default, or consume explicitly enabled
+    board-native feedback, then record it in the decision ledger and update the same
+    board for coherent material groups;
   - verify and report the separate target-owned site URL when implementation exists;
   - never claim inaccessible evidence was seen; and
   - finish with an explicit per-resource open/keep-serving/close question and report
@@ -223,11 +228,12 @@ Public workflow seam:
 - Align `skills/image-generation/SKILL.md` and
   `skills/visual-validation/SKILL.md` without duplicating the integrated method.
 - Update the package README explicitly with the board/site distinction, required
-  visual-evidence and provider-consent policy, localhost-only access, board-native
-  feedback, open/keep/close lifecycle choices, and unavailable-surface recovery.
+  visual-evidence and provider-consent policy, localhost-only access, default CLI and
+  optional board-native feedback, open/keep/close lifecycle choices, and
+  unavailable-surface recovery.
 - Add deterministic package resource-contract tests that guard ordering: visual
-  evidence and verified URL before feedback, compact discovery, board feedback,
-  separate site, lifecycle question, and mechanical-edit bypass.
+  evidence and verified URL before feedback, compact discovery, explicit feedback
+  mode, separate site, lifecycle question, and mechanical-edit bypass.
 
 Likely files:
 
@@ -256,15 +262,15 @@ Add one focused resource-contract test that reads the shipped prompt, skills, an
 README and fails against the current prose because it does not require:
 
 - compact four-topic discovery;
-- two to four image-backed directions;
+- two to eight image-backed directions;
 - `design_board` and a verified URL before visual feedback;
-- board-native selected direction and notes;
+- default CLI choice/notes and optional board-native feedback;
 - a separate verified live-site URL;
 - same-board milestone updates;
 - the final open/keep/close resource choice; and
 - README guidance for the board/site distinction, provider consent and fallback,
-  local-only access, board-native feedback, lifecycle choices, and unavailable
-  review-surface recovery.
+  local-only access, feedback modes, lifecycle choices, and unavailable review-surface
+  recovery.
 
 The test also asserts that provider consent remains required and mechanical edits
 still bypass the ceremony.
@@ -310,14 +316,14 @@ This is the second commit in delivery unit 1. It ships in the same pull request 
 - Material `/design` checkpoints cannot ask for a visual choice before a verified
   image-backed board URL is available.
 - Discovery is more probing but remains one compact, non-redundant batch.
-- Board-native choice/notes and separate live-site feedback are explicit parts of the
-  decision ledger.
+- Default CLI choice/notes, optional board-native feedback, and separate live-site
+  feedback are explicit parts of the decision ledger.
 - Milestones reuse the board, and handoff asks open/keep/close for every owned
   resource.
 - Mechanical edits, unavailable provider credentials, unavailable browser/opening,
   and non-interactive modes retain useful honest behavior.
 - The README documents the board/site distinction, provider consent and image
-  fallback, local-only access, board-native feedback, lifecycle choices, and failure
+  fallback, local-only access, feedback modes, lifecycle choices, and failure
   recovery.
 - Focused package tests, manual reload acceptance, source smoke, packing inspection,
   `npm run check`, and final hygiene inspection pass on the frozen worktree.
