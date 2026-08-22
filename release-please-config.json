@@ -38,6 +38,9 @@
     "packages/github": {
       "release-type": "node"
     },
+    "packages/grafana-skills": {
+      "release-type": "node"
+    },
     "packages/hashline": {
       "release-type": "node"
     },

@@ -98,10 +98,11 @@ The private root manifest is a curated default profile. It loads the
 `frontend-development`, `image-generation`, `interface-design`,
 `react-interface`, and `visual-validation` skills; and its `/design` and
 `/generate-image` prompts. It also loads the Playwright-cleanup, question,
-status-line, todo, web-search, and Worktrunk extensions; complete Engineering and Productivity
-skills and prompts; the Shape and planning lifecycle; Git,
-GitHub, and Worktrunk skills; and the pinned `pi-claude-bridge` and
-`pi-subagents` extensions, subagent prompts, and six model-routed package agents. The Luna QA agent
+status-line, todo, web-search, and Worktrunk extensions; the Apache-2.0 Grafana
+OSS, dashboarding, and PromQL skills; complete Engineering and Productivity
+skills and prompts; the Shape and planning lifecycle; Git, GitHub, and Worktrunk
+skills; and the pinned `pi-claude-bridge` and `pi-subagents` extensions,
+subagent prompts, and six model-routed package agents. The Luna QA agent
 runs bounded read-only final gates and aggregates
 failures before retained-Worker repairs. Worker and QA repeat
 while verification evidence shows measurable progress and stop on repeated or

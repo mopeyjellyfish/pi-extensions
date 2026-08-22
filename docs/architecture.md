@@ -4,10 +4,11 @@
 
 The root package is private and provides the small repository-wide Git profile
 documented in the root README. It selects a deliberate subset of local package
-resources, including todo for parent progress, and pins `@playwright/cli`,
-`pi-claude-bridge`, and `pi-subagents` as its external production dependencies.
-It loads the Claude bridge and subagent extensions plus explicit subagent
-prompts without loading the subagent dependency's broad orchestration skill.
+resources, including todo for parent progress and the Apache-2.0 Grafana skills
+package. It pins `@playwright/cli`, `pi-claude-bridge`, and `pi-subagents` as
+external production dependencies. It loads the Claude bridge and subagent
+extensions plus explicit subagent prompts without loading the subagent
+dependency's broad orchestration skill.
 It exposes six fixed package agents: Terra-medium Worker and Git writers,
 Luna-low Researcher, Luna-medium QA gate verification and Utility read-only
 support, and an Opus-medium Reviewer. Implementation keeps focused repair loops

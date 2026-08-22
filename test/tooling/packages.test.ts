@@ -41,6 +41,7 @@ const ROOT_PROFILE = {
     "./packages/github/skills",
     "./packages/worktrunk/skills",
     "./packages/frontend-developer/skills",
+    "./node_modules/@mopeyjellyfish/pi-grafana-skills/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -54,6 +55,7 @@ const ROOT_PROFILE = {
   subagents: { agents: ["./agents"] },
 } as const;
 const ROOT_DEPENDENCIES = {
+  "@mopeyjellyfish/pi-grafana-skills": "0.0.0",
   "@playwright/cli": "0.1.18",
   "pi-claude-bridge": "0.7.0",
   "pi-subagents": "0.50.0",
@@ -538,6 +540,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-frontend-developer",
       "@mopeyjellyfish/pi-git-conventions",
       "@mopeyjellyfish/pi-github",
+      "@mopeyjellyfish/pi-grafana-skills",
       "@mopeyjellyfish/pi-hashline",
       "@mopeyjellyfish/pi-lsp",
       "@mopeyjellyfish/pi-playwright-cleanup",

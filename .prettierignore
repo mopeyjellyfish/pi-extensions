@@ -9,5 +9,8 @@ package-lock.json
 # Release Please owns package changelog formatting.
 packages/*/CHANGELOG.md
 
+# Preserve byte-identical Markdown vendored from Grafana's official skills.
+packages/grafana-skills/skills/**
+
 # The feature-flow helper owns canonical ledger formatting.
 docs/features/*/index.json
