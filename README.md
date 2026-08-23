@@ -29,10 +29,11 @@ It loads only:
 - the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
 - the [`todo`](packages/todo/README.md) extension for parent progress visibility;
 - the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
-- the `pi-frontend-developer` extension, with its `image_generation` tool; six
-  focused skills—`frontend-design`, `frontend-development`,
-  `image-generation`, `interface-design`, `react-interface`, and
-  `visual-validation`; `/design` for routing frontend interface requests; and
+- the `pi-frontend-developer` extension, with its `image_generation` tool; eight
+  focused skills—`design-documentation`, `frontend-design`,
+  `frontend-development`, `image-generation`, `interface-craft`,
+  `interface-design`, `react-interface`, and `visual-validation`; `/design` for
+  routing frontend interface requests; and
   `/generate-image`, which requires explicit human consent before provider
   privacy exposure, separately billed cost, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
