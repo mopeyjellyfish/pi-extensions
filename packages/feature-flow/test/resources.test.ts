@@ -255,4 +255,61 @@ describe("feature-flow resources", () => {
       ]),
     );
   });
+
+  it("adds proportional UI evidence gates without coupling feature-flow to frontend resources", async () => {
+    expect.hasAssertions();
+    const [shape, planning, pitch, plan, readme] = await Promise.all([
+      read("skills/shape/SKILL.md"),
+      read("skills/planning-changes/SKILL.md"),
+      read("skills/shape/templates/pitch.md"),
+      read("skills/shape/templates/plan.md"),
+      read("README.md"),
+    ]);
+    expect(shape).toMatch(
+      /material user interface[\s\S]*applicable[\s\S]*design capability[\s\S]*before\s+pitch approval/iu,
+    );
+    for (const term of [
+      "person and task",
+      "surface mode",
+      "design authority",
+      "desired feel",
+      "focal workflow",
+      "representative states",
+      "responsive",
+      "accessibility",
+      "operation needs",
+      "visual decisions",
+      "disposition",
+    ])
+      expect(shape).toMatch(new RegExp(term.replaceAll(" ", "\\s+"), "iu"));
+    expect(shape).toMatch(/`DESIGN\.md`/u);
+    expect(shape).toMatch(
+      /unresolved material visual direction[\s\S]*image-backed[\s\S]*explicit human choice/iu,
+    );
+    expect(shape).toMatch(/mechanical[\s\S]*direct/iu);
+    expect(planning).toMatch(/accepted interface\s+criteria[\s\S]*vertical slices/iu);
+    for (const term of [
+      "representative states",
+      "responsive surfaces",
+      "accessibility paths",
+      "design-system reuse",
+      "operation-specific checks",
+      "browser evidence",
+      "mismatch ledger",
+      "approval",
+    ])
+      expect(planning).toMatch(new RegExp(term.replaceAll(" ", "\\s+"), "iu"));
+    expect(planning).toMatch(/`DESIGN\.md`/u);
+    expect(planning).toMatch(/design-evidence slice[\s\S]*before[\s\S]*UI\s+implementation/iu);
+    expect(planning).toMatch(/`implement`[\s\S]*engineering orchestration/iu);
+    expect(pitch).toMatch(/material interface scope[\s\S]*design evidence/iu);
+    expect(plan).toMatch(/interface slice[\s\S]*states[\s\S]*responsive[\s\S]*visual proof/iu);
+    expect(readme).toMatch(
+      /conditional[\s\S]*interface evidence[\s\S]*independently installable/iu,
+    );
+    for (const source of [shape, planning, pitch, plan]) {
+      expect(source).not.toMatch(/pi-extensions|packages\//iu);
+      expect(source).not.toMatch(/npm (?:run|test)|GitHub Actions|\bFable\b|\bSol\b/iu);
+    }
+  });
 });

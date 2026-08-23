@@ -26,6 +26,13 @@ an independent installation uses the direct parent when
 those capabilities are unavailable. An exceptional high-capability role needs
 explicit human approval.
 
+Material UI scope receives conditional interface evidence during Shape and
+traceable state, responsive, accessibility, system-reuse, and visual-proof gates
+during planning when applicable capabilities are installed. Mechanical edits
+remain direct. The package stays independently installable: design capabilities
+supply evidence only, and the direct parent preserves lifecycle ownership and an
+honest fallback.
+
 Planning identifies vertical slices first. A vertical slice is one end-to-end
 behavior with a narrow deterministic red/green proof. It then groups dependent
 slices into delivery units: a delivery unit is one coherent review, validation,

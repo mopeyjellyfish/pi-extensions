@@ -17,6 +17,11 @@ delivery units (review, validation, and publication boundaries), atomic commits,
 branches, and pull requests. State whether planning documents need independent
 review or merge value before implementation.
 
+For material interface scope, record the accepted design evidence, person and
+task, design authority, representative states, responsive and accessibility
+constraints, chosen visual direction, operation needs, and `DESIGN.md`
+disposition. Omit this guidance for non-interface or bounded mechanical work.
+
 ## Boundaries and no-gos
 
 Name scope limits, acceptable cuts, prohibited workarounds, and reshape triggers.
