@@ -75,6 +75,7 @@ interface Theme {
 interface RegisteredTool {
   readonly name: string;
   readonly label: string;
+  readonly description: string;
   readonly executionMode?: string;
   readonly parameters: unknown;
   readonly promptSnippet?: string;
@@ -149,10 +150,16 @@ describe("question contract", () => {
     expect(tool.executionMode).toBe("sequential");
     expect(tool.parameters).toBe(QuestionParameters);
     expect(tool.promptSnippet).toMatch(/clarifying/i);
+    expect(tool.description).toMatch(
+      /displayed\s+terminal\s+images[^.]*below\s+the\s+images[^.]*fullscreen/iu,
+    );
     expect(tool.promptGuidelines).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^Use question /u),
         expect.stringMatching(/continuationId/u),
+        expect.stringMatching(
+          /displayed\s+terminal\s+images[^.]*presentation:\s*inline[^.]*below[^.]*document[^.]*formal\s+approval[^.]*fullscreen/iu,
+        ),
       ]),
     );
   });
