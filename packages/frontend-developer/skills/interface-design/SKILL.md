@@ -395,19 +395,13 @@ Run these against your output; if any fails, iterate before presenting.
 
 ## After Completing a Task
 
-When accepted design decisions should persist, use Pi's `question` tool when
-available to ask: "Want me to save these patterns in DESIGN.md for future
-sessions?" A cancellation is not approval. Only after approval, create or
-materially update `DESIGN.md` with the
-[DESIGN template](../frontend-design/assets/DESIGN.template.md) as a lean starting point:
-
-- Direction and feel
-- Depth strategy (borders/shadows/layered) and spacing base unit
-- Hierarchy decisions (type scale ratio, density values, focal pattern)
-- Key component patterns — add when a component is used 2+ times, is reusable, or has measurements worth remembering (not one-offs or prop variations). Record the values, e.g. `Button primary — 36px h · 12px 16px pad · 6px radius · 14px/500`.
-- Visual direction notes and selected references when an image pass shaped the design
-
-**Consistency checks.** If `DESIGN.md` defines values that remain consistent with live evidence, hold to them: spacing on the grid, the declared depth strategy throughout, colors from the palette, documented patterns reused not reinvented. This compounds — each approved update makes future work faster and more consistent.
+When accepted design decisions should persist, ask whether to save them in
+`DESIGN.md`. A cancellation is not approval. Load `design-documentation` to
+prepare the complete proposal from its
+[canonical template](../design-documentation/assets/DESIGN.template.md), present
+it for explicit approval, and write only after approval. Record durable direction,
+depth, spacing, hierarchy, repeated component patterns, selected visual evidence,
+and unresolved decisions; do not promote one-off variations into system rules.
 
 ---
 

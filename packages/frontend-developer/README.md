@@ -30,6 +30,13 @@ sources; its absence does not block work. Creation or material rewrite requires
 human approval. Mock-ups are design evidence, not behavior specifications:
 interactive controls and meaningful content remain native accessible UI.
 
+`design-documentation` is directly discoverable and available through
+`/design document`. Scan mode extracts implemented reusable decisions; seed mode
+records an explicitly accepted direction without fabricated tokens; merge/refresh
+mode reconciles an existing file while preserving unknown content. It presents
+the complete portable proposal and requires explicit approval before creation,
+replacement, or material rewrite.
+
 ## Workflow and focused skills
 
 1. Start with `/design` to classify the request. The selected

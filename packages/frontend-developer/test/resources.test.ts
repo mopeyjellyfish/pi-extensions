@@ -47,14 +47,56 @@ describe("design review resource contract", () => {
 });
 
 describe("interface craft resource contract", () => {
-  const operations = ["design", "extract", "document", "critique", "audit", "polish", "bolder", "quieter", "distill", "harden", "onboard", "animate", "colorize", "typeset", "layout", "delight", "overdrive", "clarify", "adapt", "optimize", "live"];
+  const operations = [
+    "design",
+    "extract",
+    "document",
+    "critique",
+    "audit",
+    "polish",
+    "bolder",
+    "quieter",
+    "distill",
+    "harden",
+    "onboard",
+    "animate",
+    "colorize",
+    "typeset",
+    "layout",
+    "delight",
+    "overdrive",
+    "clarify",
+    "adapt",
+    "optimize",
+    "live",
+  ];
 
   it("discovers and routes the complete attributed operation catalog without an Impeccable runtime", async () => {
     expect.hasAssertions();
-    const [catalog, prompt, frontendDesign, frontendDevelopment, interfaceDesign, readme, manifest, license, notice] = await Promise.all([
-      resource("skills/interface-craft/SKILL.md"), resource("prompts/design.md"), resource("skills/frontend-design/SKILL.md"), resource("skills/frontend-development/SKILL.md"), resource("skills/interface-design/SKILL.md"), resource("README.md"), resource("package.json"), resource("LICENSE"), resource("NOTICE.md"),
+    const [
+      catalog,
+      prompt,
+      frontendDesign,
+      frontendDevelopment,
+      interfaceDesign,
+      readme,
+      manifest,
+      license,
+      notice,
+    ] = await Promise.all([
+      resource("skills/interface-craft/SKILL.md"),
+      resource("prompts/design.md"),
+      resource("skills/frontend-design/SKILL.md"),
+      resource("skills/frontend-development/SKILL.md"),
+      resource("skills/interface-design/SKILL.md"),
+      resource("README.md"),
+      resource("package.json"),
+      resource("LICENSE"),
+      resource("NOTICE.md"),
     ]);
-    expect(catalog).toMatch(/^---\nname: interface-craft\ndescription:.*polish.*audit.*layout.*clarify.*adapt.*optimize.*onboard.*bolder.*quieter/im);
+    expect(catalog).toMatch(
+      /^---\nname: interface-craft\ndescription:.*polish.*audit.*layout.*clarify.*adapt.*optimize.*onboard.*bolder.*quieter/im,
+    );
     expect(catalog).toMatch(/operation router/iu);
     for (const operation of operations) {
       const reference = await resource(`skills/interface-craft/references/${operation}.md`);
@@ -64,15 +106,107 @@ describe("interface craft resource contract", () => {
       expect(reference).toMatch(/Scope[\s\S]*Evidence[\s\S]*Handoff[\s\S]*Completion/iu);
       expect(reference).toMatch(/implement|developing-changes/iu);
     }
-    for (const phrase of ["polish this", "audit", "settings flow", "mobile layout", "make this calmer", "improve", "onboarding", "clarify", "errors", "document the design system", "Normalize"]) expect(prompt).toContain(phrase);
+    for (const phrase of [
+      "polish this",
+      "audit",
+      "settings flow",
+      "mobile layout",
+      "make this calmer",
+      "improve",
+      "onboarding",
+      "clarify",
+      "errors",
+      "document the design system",
+      "Normalize",
+    ])
+      expect(prompt).toContain(phrase);
     expect(prompt).toMatch(/teach me this design\s+system/iu);
-    for (const source of [frontendDesign, frontendDevelopment, interfaceDesign, readme]) expect(source).toMatch(/interface-craft/iu);
+    for (const source of [frontendDesign, frontendDevelopment, interfaceDesign, readme])
+      expect(source).toMatch(/interface-craft/iu);
     expect(manifest).toMatch(/"license": "MIT AND Apache-2\.0"/u);
     expect(manifest).toMatch(/"NOTICE\.md"/u);
     expect(license).toMatch(/Apache License\s+Version 2\.0/iu);
     expect(notice).toMatch(/Impeccable/iu);
-    for (const forbidden of ["npx impeccable", ".impeccable/", "PRODUCT.md", "/impeccable", "question server"]) expect(catalog).not.toContain(forbidden);
+    for (const forbidden of [
+      "npx impeccable",
+      ".impeccable/",
+      "PRODUCT.md",
+      "/impeccable",
+      "question server",
+    ])
+      expect(catalog).not.toContain(forbidden);
     expect(catalog).toContain("feature pitch lifecycle");
     expect(catalog).toContain("`init` or `craft`");
+  });
+
+  it("provides one approval-gated portable DESIGN.md workflow for humans and agents", async () => {
+    expect.hasAssertions();
+    const [
+      documentation,
+      template,
+      prompt,
+      frontendDesign,
+      designContract,
+      interfaceDesign,
+      readme,
+      rootReadme,
+      agents,
+    ] = await Promise.all([
+      resource("skills/design-documentation/SKILL.md"),
+      resource("skills/design-documentation/assets/DESIGN.template.md"),
+      resource("prompts/design.md"),
+      resource("skills/frontend-design/SKILL.md"),
+      resource("skills/frontend-design/references/design-contract.md"),
+      resource("skills/interface-design/SKILL.md"),
+      resource("README.md"),
+      resource("../../README.md"),
+      resource("../../AGENTS.md"),
+    ]);
+    expect(documentation).toMatch(/^---\nname: design-documentation\ndescription:.*DESIGN\.md/im);
+    expect(prompt).toMatch(/design document[\s\S]*design-documentation/iu);
+    expect(documentation).toMatch(/scan mode[\s\S]*seed mode[\s\S]*merge\/refresh mode/iu);
+    expect(documentation).toMatch(/complete proposal[\s\S]*format: "md"[\s\S]*fullscreen/iu);
+    expect(documentation).toMatch(
+      /explicit human approval[\s\S]*create[\s\S]*material(?:ly)? rewrite/iu,
+    );
+    expect(documentation).toMatch(/cancel[\s\S]*not\s+approval/iu);
+    expect(documentation).toMatch(
+      /repository instructions[\s\S]*verified behavior[\s\S]*outrank/iu,
+    );
+    expect(documentation).toMatch(/preserve unknown[\s\S]*no silent overwrite/iu);
+    for (const key of [
+      "version",
+      "name",
+      "description",
+      "omitted",
+      "colors",
+      "typography",
+      "rounded",
+      "spacing",
+      "components",
+    ])
+      expect(template).toMatch(new RegExp(`^${key}:`, "mu"));
+    expect(template).toMatch(
+      /## Overview[\s\S]*## Colors[\s\S]*## Typography[\s\S]*## Layout[\s\S]*## Elevation & Depth[\s\S]*## Shapes[\s\S]*## Components[\s\S]*## Do's and Don'ts/iu,
+    );
+    for (const source of [frontendDesign, designContract, interfaceDesign, readme]) {
+      expect(source).toMatch(/design-documentation/iu);
+      expect(source).not.toMatch(/frontend-design\/assets\/DESIGN\.template\.md/iu);
+    }
+    await expect(resource("skills/frontend-design/assets/DESIGN.template.md")).rejects.toThrow();
+    for (const profile of [rootReadme, agents]) {
+      expect(profile).toMatch(/interface-craft/iu);
+      expect(profile).toMatch(/design-documentation/iu);
+    }
+    for (const forbidden of [
+      "PRODUCT.md",
+      ".impeccable/",
+      "design.json",
+      "motion:",
+      "breakpoints:",
+      "shadows:",
+    ]) {
+      expect(documentation).not.toContain(forbidden);
+    }
   });
 });

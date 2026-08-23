@@ -94,10 +94,10 @@ automatic project loading would register the same tools, commands, and skills
 twice. Do not add an automatic project package entry for the working copy.
 
 The private root manifest is a curated default profile. It loads the
-`pi-frontend-developer` extension; its `frontend-design`,
-`frontend-development`, `image-generation`, `interface-design`,
-`react-interface`, and `visual-validation` skills; and its `/design` and
-`/generate-image` prompts. It also loads the Playwright-cleanup, question,
+`pi-frontend-developer` extension; its `design-documentation`, `frontend-design`,
+`frontend-development`, `image-generation`, `interface-craft`,
+`interface-design`, `react-interface`, and `visual-validation` skills; and its
+`/design` and `/generate-image` prompts. It also loads the Playwright-cleanup, question,
 status-line, todo, web-search, and Worktrunk extensions; the Apache-2.0 Grafana
 OSS, dashboarding, and PromQL skills; complete Engineering and Productivity
 skills and prompts; the Shape and planning lifecycle; Git, GitHub, and Worktrunk
