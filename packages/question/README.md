@@ -54,6 +54,8 @@ question({
 
 Use `presentation: "inline"` for a short clarification that refers to nearby transcript context. Use `presentation: "fullscreen"`, or omit the field, for attached documents and formal approval decisions. Inline presentation rejects attached documents rather than hiding the transcript or dropping the document.
 
+After displaying terminal images, use `presentation: "inline"` so the question and its options render below the images instead of overlapping them, unless the question attaches a document or requests formal approval; those stay full-screen.
+
 ```ts
 question({
   presentation: "inline",

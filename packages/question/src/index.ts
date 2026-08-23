@@ -177,12 +177,13 @@ export default function questionExtension(pi: ExtensionAPI): void {
     name: "question",
     label: "Question",
     description:
-      "Ask the user 1-4 structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Use presentation inline for contextual clarifications below the transcript; use fullscreen for documents and formal approval. Use stable IDs and re-call with continuationId after a redirected result.",
+      "Ask the user 1-4 structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Use presentation inline for contextual clarifications and after displayed terminal images so the question stays below the images; use fullscreen for attached documents and formal approval. Use stable IDs and re-call with continuationId after a redirected result.",
     promptSnippet: "Ask structured clarifying questions instead of guessing",
     promptGuidelines: [
       "Use question when a material ambiguity, preference, or decision requires user input instead of guessing.",
       "After question returns redirected, address the clarification and re-call question with its continuationId and revised questions; retain stable IDs only for semantically unchanged questions and options.",
       "Use presentation: inline when surrounding transcript context helps a short clarification; use presentation: fullscreen for documents and formal approvals.",
+      "When displayed terminal images precede a question, use question with presentation: inline so the question and options render below the images instead of overlapping them, unless the question attaches a document or requests formal approval; those stay fullscreen.",
       "Use question's document field only with fullscreen when the user needs to review full Markdown, YAML, JSON, XML, or text content before choosing an option.",
       "Do not add Other, Chat about this, Next, or Submit options to question inputs because question renders those controls.",
     ],
