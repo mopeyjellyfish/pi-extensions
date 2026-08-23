@@ -73,6 +73,12 @@ State the narrow deterministic focused failing test or before-state proof.
 State the focused passing proof, affected-boundary and integration checks when
 needed, and final required gates. State which evidence a revision invalidates.
 
+For an interface slice, trace accepted design criteria and name representative
+states, responsive surfaces, accessibility paths, system reuse, and visual proof,
+including browser evidence and mismatch-ledger resolution when available. Put a
+design-evidence slice before UI implementation when direction remains provisional,
+and name any separate `DESIGN.md` approval gate.
+
 ### Atomic commit and pull request
 
 State the atomic commit unit and its delivery unit. State the pull-request base
