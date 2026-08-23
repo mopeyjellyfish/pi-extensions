@@ -1,7 +1,7 @@
 import { stripVTControlCharacters } from "node:util";
 
 import { initTheme } from "@earendil-works/pi-coding-agent";
-import { Key, Markdown, visibleWidth } from "@earendil-works/pi-tui";
+import { CURSOR_MARKER, Key, Markdown, visibleWidth } from "@earendil-works/pi-tui";
 import { Compile } from "typebox/compile";
 import { describe, expect, it, vi } from "vitest";
 
@@ -81,7 +81,11 @@ interface RegisteredTool {
   readonly promptGuidelines?: readonly string[];
   execute(
     id: string,
-    input: { continuationId?: string; questions: readonly QuestionDefinition[] },
+    input: {
+      continuationId?: string;
+      presentation?: "inline" | "fullscreen";
+      questions: readonly QuestionDefinition[];
+    },
     signal: AbortSignal | undefined,
     update: undefined,
     context: ExtensionContext,
@@ -151,6 +155,15 @@ describe("question contract", () => {
         expect.stringMatching(/continuationId/u),
       ]),
     );
+  });
+
+  it("accepts inline and fullscreen presentation while rejecting unknown values", () => {
+    expect.hasAssertions();
+    const check = Compile(QuestionParameters);
+    expect(check.Check({ questions: [scopeQuestion] })).toBe(true);
+    expect(check.Check({ presentation: "inline", questions: [scopeQuestion] })).toBe(true);
+    expect(check.Check({ presentation: "fullscreen", questions: [scopeQuestion] })).toBe(true);
+    expect(check.Check({ presentation: "overlay", questions: [scopeQuestion] })).toBe(false);
   });
 
   it("accepts bounded documents and rejects invalid document input", () => {
@@ -408,13 +421,13 @@ describe("TUI dialog", () => {
     },
   ];
 
-  it("opens TUI questions in a full-screen capturing overlay", async () => {
+  it("keeps omitted and explicit fullscreen questions in a capturing overlay", async () => {
     expect.hasAssertions();
-    let options: unknown;
+    const options: unknown[] = [];
     const ctx = context("tui", {
       ui: {
         custom(factory: (...arguments_: unknown[]) => unknown, customOptions: unknown) {
-          options = customOptions;
+          options.push(customOptions);
           return new Promise((resolve) => {
             const component = factory(
               {
@@ -435,10 +448,187 @@ describe("TUI dialog", () => {
     } as unknown as Partial<ExtensionContext>);
 
     await register().execute("id", { questions: single }, undefined, undefined, ctx);
-    expect(options).toEqual({
-      overlay: true,
-      overlayOptions: { width: "100%", maxHeight: "100%", margin: 0 },
-    });
+    await register().execute(
+      "id",
+      { presentation: "fullscreen", questions: single },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(options).toEqual([
+      { overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", margin: 0 } },
+      { overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", margin: 0 } },
+    ]);
+  });
+
+  it("opens inline multi-select questions at the editor position with compact rendering", async () => {
+    expect.hasAssertions();
+    let options: unknown = "not called";
+    const ctx = context("tui", {
+      ui: {
+        custom(factory: (...arguments_: unknown[]) => unknown, customOptions?: unknown) {
+          options = customOptions;
+          return new Promise((resolve) => {
+            const component = factory(
+              {
+                terminal: { rows: 24 },
+                requestRender() {
+                  return;
+                },
+              },
+              theme,
+              {
+                matches(data: string, id: string) {
+                  return (
+                    (id === "tui.select.confirm" && data === "\r") ||
+                    (id === "tui.select.down" && data === "DOWN")
+                  );
+                },
+              },
+              resolve,
+            ) as { handleInput(data: string): void; render(width: number): string[] };
+            const lines = component.render(60);
+            expect(lines.length).toBeLessThan(24);
+            expect(lines.length).toBeLessThanOrEqual(14);
+            expect(lines.every((line) => visibleWidth(line) <= 60)).toBe(true);
+            component.handleInput("\r");
+            component.handleInput(" ");
+            for (let index = 0; index < 4; index++) component.handleInput("DOWN");
+            component.handleInput("\r");
+            component.handleInput("\r");
+          });
+        },
+      },
+    } as unknown as Partial<ExtensionContext>);
+
+    const result = await register().execute(
+      "id",
+      { presentation: "inline", questions },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(options).toBeUndefined();
+    expect(
+      result.details.answers.map((answer) => answer.selections.map((item) => item.optionId)),
+    ).toEqual([["small"], ["unit"]]);
+  });
+
+  it("keeps a focused inline option visible in a short terminal", async () => {
+    expect.hasAssertions();
+    const ctx = context("tui", {
+      ui: {
+        custom(factory: (...arguments_: unknown[]) => unknown) {
+          return new Promise((resolve) => {
+            const component = factory(
+              {
+                terminal: { rows: 8 },
+                requestRender() {
+                  return;
+                },
+              },
+              theme,
+              { matches: () => false },
+              resolve,
+            ) as { cancelAbort(): void; render(width: number): string[] };
+            const lines = component.render(40);
+            expect(lines.length).toBeLessThanOrEqual(8);
+            expect(stripVTControlCharacters(lines.join("\n"))).toContain("Small");
+            component.cancelAbort();
+          });
+        },
+      },
+    } as unknown as Partial<ExtensionContext>);
+
+    const result = await register().execute(
+      "id",
+      { presentation: "inline", questions: single },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(result.details).toMatchObject({ status: "cancelled", reason: "abort" });
+  });
+
+  it("preserves compact inline editing, cursor focus, redirection, and cancellation", () => {
+    expect.hasAssertions();
+    const compactQuestion: QuestionDefinition = {
+      ...scopeQuestion,
+      question: "Choose a scope while keeping the surrounding transcript visible ".repeat(3),
+      options: [
+        {
+          ...smallOption,
+          label: "Small option with enough words to wrap in a narrow inline viewport",
+        },
+        largeOption,
+      ],
+    };
+    const keybindings = {
+      matches(data: string, id: string) {
+        return (
+          (id === "tui.select.confirm" && data === "ENTER") ||
+          (id === "tui.select.down" && data === "DOWN") ||
+          (id === "tui.select.cancel" && data === "ESC")
+        );
+      },
+    };
+    let cancelled: unknown;
+    const editing = new QuestionDialog(
+      {
+        terminal: { rows: 10 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      keybindings,
+      [compactQuestion],
+      createInitialState([compactQuestion]),
+      (value) => {
+        cancelled = value;
+      },
+      () => 8,
+      false,
+    );
+    editing.focused = true;
+    editing.handleInput("DOWN");
+    editing.handleInput("DOWN");
+    editing.handleInput("ENTER");
+    for (const character of "custom inline answer ".repeat(8)) editing.handleInput(character);
+    const editorLines = editing.render(30);
+    expect(editorLines.join("\n")).toContain(CURSOR_MARKER);
+    expect(stripVTControlCharacters(editorLines.at(-2) ?? "")).toContain("Enter submit");
+    expect(editorLines.every((line) => visibleWidth(line) <= 30)).toBe(true);
+    editing.handleInput("ESC");
+    expect(cancelled).toBeUndefined();
+    editing.handleInput("ESC");
+    expect(cancelled).toMatchObject({ kind: "cancelled", reason: "escape" });
+
+    let redirected: unknown;
+    const chat = new QuestionDialog(
+      {
+        terminal: { rows: 10 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      keybindings,
+      [compactQuestion],
+      createInitialState([compactQuestion]),
+      (value) => {
+        redirected = value;
+      },
+      () => 8,
+      false,
+    );
+    chat.focused = true;
+    for (let index = 0; index < 3; index++) chat.handleInput("DOWN");
+    chat.handleInput("ENTER");
+    for (const character of "clarify inline") chat.handleInput(character);
+    expect(chat.render(30).join("\n")).toContain(CURSOR_MARKER);
+    chat.handleInput("\r");
+    expect(redirected).toMatchObject({ kind: "redirected", text: "clarify inline" });
   });
 
   it("submits through custom UI and bounds every line", async () => {
@@ -1170,7 +1360,20 @@ describe("tool execution modes", () => {
     expect(noUi.details.status).toBe("unavailable");
   });
 
-  it("walks RPC single/multi questions and submits", async () => {
+  it("rejects inline documents with actionable fullscreen guidance before opening the UI", async () => {
+    expect.hasAssertions();
+    await expect(
+      register().execute(
+        "id",
+        { presentation: "inline", questions: [documentQuestion] },
+        undefined,
+        undefined,
+        context("tui"),
+      ),
+    ).rejects.toThrow(/inline.*document.*fullscreen/iu);
+  });
+
+  it("ignores inline presentation while walking RPC single/multi questions", async () => {
     expect.hasAssertions();
     const selections = ["Small", "Next →", "[ ] Unit", "Next →", "Submit answers"];
     const ctx = context("rpc", {
@@ -1179,7 +1382,13 @@ describe("tool execution modes", () => {
         input: () => Promise.resolve(undefined),
       },
     } as unknown as Partial<ExtensionContext>);
-    const result = await register().execute("id", { questions }, undefined, undefined, ctx);
+    const result = await register().execute(
+      "id",
+      { presentation: "inline", questions },
+      undefined,
+      undefined,
+      ctx,
+    );
     expect(result.details.status).toBe("submitted");
     expect(
       result.details.answers.map((answer) => answer.selections.map((item) => item.optionId)),

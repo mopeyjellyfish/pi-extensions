@@ -1,3 +1,5 @@
+export type QuestionPresentation = "fullscreen" | "inline";
+
 export type QuestionDocumentFormat = "md" | "yml" | "json" | "xml" | "txt";
 
 export interface QuestionDocument {
@@ -24,6 +26,7 @@ export interface QuestionDefinition {
 
 export interface QuestionInput {
   readonly continuationId?: string;
+  readonly presentation?: QuestionPresentation;
   readonly questions: readonly QuestionDefinition[];
 }
 

@@ -3,7 +3,7 @@ import { Type } from "typebox";
 
 import { hasStructuralControl, sanitizeText } from "./bounds.ts";
 
-import type { QuestionDefinition, QuestionDocument } from "./types.ts";
+import type { QuestionDefinition, QuestionDocument, QuestionPresentation } from "./types.ts";
 
 export const DOCUMENT_FORMATS = ["md", "yml", "json", "xml", "txt"] as const;
 export const MAX_DOCUMENT_CHARACTERS = 100_000;
@@ -84,6 +84,12 @@ export const QuestionParameters = Type.Object(
         minLength: 1,
         maxLength: 128,
         description: "Opaque ID returned by a redirected question call",
+      }),
+    ),
+    presentation: Type.Optional(
+      StringEnum(["fullscreen", "inline"] as const satisfies readonly QuestionPresentation[], {
+        description:
+          "Fullscreen is the default for documents and formal approval; inline keeps contextual clarifications below the transcript",
       }),
     ),
     questions: Type.Array(QuestionSchema, { minItems: 1, maxItems: 4 }),
