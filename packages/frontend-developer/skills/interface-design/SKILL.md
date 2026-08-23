@@ -53,6 +53,10 @@ Ask for human approval before creating or materially rewriting `DESIGN.md`;
 record accepted rationale and application guidance there, never in a separate
 method-owned memory file.
 
+For a focused refinement, evaluation, enhancement, fix, extraction, or live
+iteration instead of full direction work, route through `interface-craft` and
+use its operation-specific evidence contract.
+
 ## Intent First
 
 Before touching code, answer these. Keep it a compact working brief unless the direction needs user confirmation.

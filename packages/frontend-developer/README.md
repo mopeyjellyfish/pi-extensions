@@ -6,6 +6,11 @@ interface request. It routes design direction or UI-design work to
 `frontend-design`; it routes implementation or frontend change work to
 `frontend-development`, which may use `frontend-design` when needed.
 
+Focused interface requests route through `interface-craft`; its 21 operations
+cover design, evaluation, refinement, enhancement, fixes, and live iteration.
+`/design document` routes directly to `design-documentation` for an approved
+portable DESIGN.md proposal.
+
 `/generate-image` is a separate explicit command because it can expose input
 to a provider, incur separately billed cost, require credentials, and needs
 human consent. The package's focused methods remain available through skill
@@ -56,6 +61,11 @@ The bundled `interface-design` method is a modified derivative of Damola
 Akinleye’s MIT-licensed skill pinned at
 `2f9be3206855bcb2d1d0af262c8bae25cba6658d`. Its complete copyright and
 permission notice ships in `skills/interface-design/LICENSE.txt`.
+
+`interface-craft/references` are modified Apache-2.0 adaptations of Impeccable
+4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48`. The package remains
+MIT-owned for its original work and ships the Apache-2.0 text and retained
+upstream notice in `LICENSE` and `NOTICE.md` for those references.
 
 Browser automation and general engineering, planning, Git, and review workflows
 are optional companion capabilities, not bundled dependencies. When they are

@@ -6,8 +6,9 @@ description: Build and verify a frontend change from explicit design evidence.
 # Frontend development
 
 Start with the target repository's instructions, product behavior, existing UI,
-and checks. Use `frontend-design` to route a bounded mechanical edit directly
-or non-trivial app-interface work to `interface-design`. Treat supplied mock-ups
+and checks. Use `frontend-design` to route a bounded mechanical edit directly,
+`interface-craft` for a focused product-interface operation, or
+`interface-design` for non-trivial app-interface work. Treat supplied mock-ups
 as evidence, not executable behavior: extract regions, hierarchy, assets,
 tokens, states, responsive hypotheses, and ambiguity. Keep controls,
 navigation, forms, and meaningful content as native accessible UI.

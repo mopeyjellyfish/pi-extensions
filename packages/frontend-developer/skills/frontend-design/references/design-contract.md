@@ -22,3 +22,7 @@ spacing, composition, density, motion, and interaction support it. Name
 anti-patterns that would weaken this product's direction. Ask for approval before
 creating or materially rewriting DESIGN.md, then record rationale, tokens as
 helpful evidence, responsive rules, component guidance, and unresolved decisions.
+
+`design-documentation` owns DESIGN.md proposals and the canonical template.
+It preserves unknown existing content where possible, never invents values, and
+requires explicit approval before creation, replacement, or material rewrite.

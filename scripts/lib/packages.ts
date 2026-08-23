@@ -199,7 +199,12 @@ function validateIdentity(descriptor: PackageDescriptor, errors: string[]): void
   if (manifest["type"] !== "module") {
     errors.push('type must be "module".');
   }
-  const requiredLicense = name === "@mopeyjellyfish/pi-grafana-skills" ? "Apache-2.0" : "MIT";
+  const requiredLicense =
+    name === "@mopeyjellyfish/pi-grafana-skills"
+      ? "Apache-2.0"
+      : name === "@mopeyjellyfish/pi-frontend-developer"
+        ? "MIT AND Apache-2.0"
+        : "MIT";
   if (manifest["license"] !== requiredLicense) {
     errors.push(`license must be "${requiredLicense}".`);
   }
