@@ -74,6 +74,10 @@ inspection surface and the workflow collects the selected direction and notes in
 the CLI. Call `present` with `feedbackMode: "board"` only when board-native radio,
 notes, and submit controls are useful. A visit, silence, cancellation, or
 unsubmitted note is not approval in either mode.
+For image-backed CLI feedback, use `presentation: "inline"` when the active
+`question` schema supports it so the question and options render below displayed
+images. If the tool or field is unavailable, use a concise conversational question
+after the evidence as the fallback.
 The board/site distinction matters: the board is design evidence, while a
 separate target-owned live-site URL remains the native product implementation.
 When that site exists, the workflow verifies and reports both URLs.

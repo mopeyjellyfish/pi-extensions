@@ -28,6 +28,12 @@ describe("design review resource contract", () => {
       /design_board[\s\S]*verif[\s\S]*URL[\s\S]*before requesting[\s\S]*feedback/iu,
     );
     expect(interfaceDesign).toMatch(/feedbackMode:[^\n]*cli[\s\S]*question/iu);
+    expect(interfaceDesign).toMatch(
+      /For image-backed CLI feedback,[^.]*question[^.]*presentation:\s*"inline"[^.]*below[^.]*\.[^.]*fallback\./iu,
+    );
+    expect(readme).toMatch(
+      /For image-backed CLI feedback,[^.]*presentation:\s*"inline"[^.]*below[^.]*\.[^.]*fallback\./iu,
+    );
     expect(interfaceDesign).toMatch(/separate target-owned live-site\s+URL/iu);
     expect(interfaceDesign).toMatch(/milestone[\s\S]*same\s+`design_board`/iu);
     expect(interfaceDesign).toMatch(/open[\s\S]*keep serving[\s\S]*close/iu);

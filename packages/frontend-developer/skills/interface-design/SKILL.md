@@ -335,9 +335,14 @@ Use this skill as a working discipline, not just advice. When editing UI:
    description before requesting feedback. Default to `feedbackMode: "cli"` and use
    Pi's `question` tool to collect the selected direction and notes after the human
    has inspected the board. Use `feedbackMode: "board"` only when board-native
-   feedback is explicitly useful. Resolve accepted feedback in the decision ledger
-   before continuing, but do not interrupt a one-step mechanical fix with a board or
-   repeated approvals.
+   feedback is explicitly useful.
+   For image-backed CLI feedback, when the active `question` schema supports it,
+   call `question` with `presentation: "inline"` so the question and options render
+   below displayed images instead of overlapping them. If the tool or field is
+   unavailable, ask one concise conversational question after the evidence as the
+   fallback.
+   Resolve accepted feedback in the decision ledger before continuing, but do not
+   interrupt a one-step mechanical fix with a board or repeated approvals.
    When implementation exists, verify and report its separate target-owned live-site
    URL and link it from the board; the board never replaces the accessible native site.
 8. Run relevant target build, typecheck, and focused tests. After stable focused proof,
