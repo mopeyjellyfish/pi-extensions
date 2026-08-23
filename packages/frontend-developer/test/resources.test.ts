@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
 
@@ -6,6 +6,20 @@ const root = new URL("../", import.meta.url);
 
 async function resource(path: string): Promise<string> {
   return readFile(new URL(path, root), "utf8");
+}
+
+async function markdownResources(directory: string): Promise<string[]> {
+  const paths: string[] = [];
+  async function walk(relative: string): Promise<void> {
+    const entries = await readdir(new URL(`${relative}/`, root), { withFileTypes: true });
+    for (const entry of entries) {
+      const path = `${relative}/${entry.name}`;
+      if (entry.isDirectory()) await walk(path);
+      else if (entry.name.endsWith(".md")) paths.push(path);
+    }
+  }
+  await walk(directory);
+  return Promise.all(paths.map(resource));
 }
 
 describe("design review resource contract", () => {
@@ -103,7 +117,9 @@ describe("interface craft resource contract", () => {
       expect(catalog).toMatch(new RegExp(`\\b${operation}\\b`, "u"));
       expect(reference).toMatch(/Modified from Impeccable 4\.1\.1/iu);
       expect(reference).toMatch(/56f44523f76efdcec813e67b38ee550e49b16f48/u);
-      expect(reference).toMatch(/Scope[\s\S]*Evidence[\s\S]*Handoff[\s\S]*Completion/iu);
+      expect(reference).toMatch(
+        /Scope[\s\S]*Diagnose[\s\S]*Evidence[\s\S]*Guardrails[\s\S]*Handoff[\s\S]*Completion/iu,
+      );
       expect(reference).toMatch(/implement|developing-changes/iu);
     }
     for (const phrase of [
@@ -127,14 +143,27 @@ describe("interface craft resource contract", () => {
     expect(manifest).toMatch(/"NOTICE\.md"/u);
     expect(license).toMatch(/Apache License\s+Version 2\.0/iu);
     expect(notice).toMatch(/Impeccable/iu);
-    for (const forbidden of [
-      "npx impeccable",
-      ".impeccable/",
-      "PRODUCT.md",
-      "/impeccable",
-      "question server",
-    ])
-      expect(catalog).not.toContain(forbidden);
+    const packedResources = [
+      ...(await markdownResources("skills")),
+      ...(await markdownResources("prompts")),
+      readme,
+      notice,
+    ];
+    for (const source of packedResources) {
+      for (const forbidden of [
+        "npx impeccable",
+        ".impeccable/",
+        "PRODUCT.md",
+        "`/impeccable`",
+        "impeccable/scripts",
+        "design.json",
+        "question server",
+        "hooks.json",
+      ])
+        expect(source).not.toContain(forbidden);
+      expect(source).not.toMatch(/\/(?:Users|home|tmp)\//u);
+      expect(source).not.toMatch(/pi-extensions|packages\/frontend-developer/iu);
+    }
     expect(catalog).toContain("feature pitch lifecycle");
     expect(catalog).toContain("`init` or `craft`");
   });
@@ -174,18 +203,10 @@ describe("interface craft resource contract", () => {
       /repository instructions[\s\S]*verified behavior[\s\S]*outrank/iu,
     );
     expect(documentation).toMatch(/preserve unknown[\s\S]*no silent overwrite/iu);
-    for (const key of [
-      "version",
-      "name",
-      "description",
-      "omitted",
-      "colors",
-      "typography",
-      "rounded",
-      "spacing",
-      "components",
-    ])
+    for (const key of ["version", "name", "description", "omitted"])
       expect(template).toMatch(new RegExp(`^${key}:`, "mu"));
+    for (const tokenGroup of ["colors", "typography", "rounded", "spacing", "components"])
+      expect(documentation).toMatch(new RegExp(`\\b${tokenGroup}\\b`, "u"));
     expect(template).toMatch(
       /## Overview[\s\S]*## Colors[\s\S]*## Typography[\s\S]*## Layout[\s\S]*## Elevation & Depth[\s\S]*## Shapes[\s\S]*## Components[\s\S]*## Do's and Don'ts/iu,
     );
@@ -198,15 +219,12 @@ describe("interface craft resource contract", () => {
       expect(profile).toMatch(/interface-craft/iu);
       expect(profile).toMatch(/design-documentation/iu);
     }
-    for (const forbidden of [
-      "PRODUCT.md",
-      ".impeccable/",
-      "design.json",
-      "motion:",
-      "breakpoints:",
-      "shadows:",
-    ]) {
+    for (const forbidden of ["PRODUCT.md", ".impeccable/", "design.json"]) {
       expect(documentation).not.toContain(forbidden);
+      expect(template).not.toContain(forbidden);
+    }
+    for (const unsupported of ["motion:", "breakpoints:", "shadows:"]) {
+      expect(template).not.toContain(unsupported);
     }
   });
 });

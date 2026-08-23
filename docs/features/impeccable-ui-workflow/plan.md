@@ -49,7 +49,7 @@ Evidence invalidation map:
 
 Material variance includes a need for a new package, a second production runtime/tool, an unplanned dependency or lockfile change beyond the approved frontend license-metadata synchronization, native or marketing-site scope, a second delivery unit, or inability to preserve `/design` and `/shape` ownership. Stop and report that variance before continuing.
 
-## [ ] 001 — Natural interface requests resolve to focused craft operations
+## [x] 001 — Natural interface requests resolve to focused craft operations
 
 ### Outcome and requirement trace
 
@@ -134,7 +134,7 @@ Atomic commit: `feat(pi-frontend-developer): add interface craft operations` in 
 - Exact `MIT AND Apache-2.0` metadata, complete license text, retained notice content, provenance, modification notices, package-validator support, synchronized lock metadata, and packed inventory cover adapted content.
 - Focused, tooling, package, and package-validation tests pass with no forbidden runtime, hidden state, or repository-specific production path.
 
-## [ ] 002 — Humans and agents can safely create or reconcile DESIGN.md
+## [x] 002 — Humans and agents can safely create or reconcile DESIGN.md
 
 ### Outcome and requirement trace
 
@@ -203,7 +203,7 @@ Atomic commit: `feat(pi-frontend-developer): add DESIGN.md documentation workflo
 - No write is authorized by agent discovery, silence, cancellation, or an existing absent file.
 - Focused and frontend package tests pass.
 
-## [ ] 003 — Material UI scope receives design gates during Shape and planning
+## [x] 003 — Material UI scope receives design gates during Shape and planning
 
 ### Outcome and requirement trace
 

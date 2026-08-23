@@ -4,16 +4,24 @@ Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` und
 
 ## Scope
 
-Measure accessibility, responsive, theming, performance, and implementation-integrity risks.
+Measure accessibility, responsive behavior, theming, user-facing performance, and implementation-integrity risk without silently fixing it.
+
+## Diagnose
+
+Inspect semantics, labels, keyboard and focus paths, contrast, reduced motion, touch targets, overflow, zoom, long content, theme tokens, loading cost, runtime errors, and repeated shortcuts.
 
 ## Evidence
 
-Record reproducible observations, affected states, and relevant measurements.
+Record reproducible steps, affected route/state/viewport, measurement or standard, user impact, severity, likely cause, and false-positive checks.
+
+## Guardrails
+
+Do not claim WCAG, performance, responsive, or visual acceptance from source inspection alone. Do not optimize without a baseline or recommend unavailable tooling as completed proof.
 
 ## Handoff
 
-Offer a follow-on to `implement` or `developing-changes` only when requested.
+Map verified findings to focused operations and offer `implement` or `developing-changes` only when requested. Keep evaluation and mutation as separate decisions.
 
 ## Completion
 
-The audit reports prioritized evidence and remains evaluation-only.
+The audit is prioritized, reproducible, includes positive findings, names systemic patterns, and reports unavailable evidence honestly.

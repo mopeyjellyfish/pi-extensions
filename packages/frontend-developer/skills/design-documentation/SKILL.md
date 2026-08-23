@@ -29,6 +29,11 @@ canonical sections in their defined order. Preserve the target's canonical CSS
 value format and established token names. Do not invent values, components,
 claims, or product behavior. Record unresolved decisions explicitly.
 
+The only standardized token groups are `colors`, `typography`, `rounded`,
+`spacing`, and `components`; `version`, `name`, `description`, and `omitted` are
+document metadata. Omit unsettled groups instead of adding unsupported top-level
+motion, breakpoint, or shadow groups.
+
 Scan mode inspects CSS properties, theme and token files, shared components,
 global styles, responsive rules, and representative computed styles when an
 installed browser capability is available. Seed mode leaves unsettled

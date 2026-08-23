@@ -4,16 +4,24 @@ Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` und
 
 ## Scope
 
-Reduce visual noise while preserving hierarchy and task feedback.
+Reduce aggressive emphasis and visual noise while preserving hierarchy, status, and task feedback.
+
+## Diagnose
+
+Find competing accents, repeated containers, harsh borders, excessive shadow or motion, over-large type, redundant copy, and equal-weight elements that exhaust attention.
 
 ## Evidence
 
-Identify competing emphasis, unnecessary decoration, and retained state cues.
+Compare attention order before and after with squint, contrast, focus, status, error, and responsive-state proof.
+
+## Guardrails
+
+Quiet does not mean low contrast, hidden actions, flattened state, gray everything, or removal of the product signature. Keep safety, urgency, focus visibility, and semantic distinctions strong.
 
 ## Handoff
 
-Delegate behavioral implementation to `implement` or `developing-changes` when available.
+Prioritize subtraction and token-level correction before adding new components. Delegate behavioral implementation to `implement` or `developing-changes` when available.
 
 ## Completion
 
-The calmer result preserves accessible focus, status, and focal workflow proof.
+The calmer interface has one clear focal path, fewer competing signals, preserved accessibility, and verified state communication.
