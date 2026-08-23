@@ -137,6 +137,7 @@ export class QuestionDialog implements Component, Focusable {
   private readonly keybindings: KeybindingsManager;
   private readonly questions: readonly QuestionDefinition[];
   private readonly rowBudget: () => number;
+  private readonly padToRows: boolean;
   private readonly done: (outcome: DialogOutcome) => void;
 
   constructor(
@@ -147,6 +148,7 @@ export class QuestionDialog implements Component, Focusable {
     initialState: QuestionnaireState,
     done: (outcome: DialogOutcome) => void,
     rowBudget: () => number = () => tui.terminal.rows,
+    padToRows = true,
   ) {
     this.tui = tui;
     this.theme = theme;
@@ -154,6 +156,7 @@ export class QuestionDialog implements Component, Focusable {
     this.questions = questions;
     this.done = done;
     this.rowBudget = rowBudget;
+    this.padToRows = padToRows;
     this.state = initialState;
     this.editor = new Editor(tui as unknown as TUI, editorTheme(theme));
     this.editor.onSubmit = (value) => {
@@ -707,12 +710,12 @@ export class QuestionDialog implements Component, Focusable {
         : undefined;
     const fitted = fitDialogToRows(all, {
       rows,
-      topRows: top.length,
+      topRows: this.padToRows ? top.length : Math.min(top.length, 2),
       bottomRows: STICKY_BOTTOM_ROWS,
       focusStart: editFocus ?? top.length + body.focusStart,
       focusEnd: editFocus ?? top.length + body.focusEnd,
     });
-    const padded = padDialogLines(fitted, rows);
+    const padded = this.padToRows ? padDialogLines(fitted, rows) : fitted;
     return padded.map((line) => {
       const truncated = truncateToWidth(line, safeWidth, "");
       return `${truncated}${" ".repeat(Math.max(0, safeWidth - visibleWidth(truncated)))}`;

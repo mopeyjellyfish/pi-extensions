@@ -12,9 +12,9 @@ Complete this delivery plan before implementation. It covers the accepted caller
 
 ## Delivery topology
 
-| Delivery unit | Branch                       | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                                        |
-| ------------- | ---------------------------- | ----------------- | --------------- | ------------ | ---------------------------------------------------------- |
-| 1             | `feat/question-inline-mode`  | `main`            | `001`           | none         | serial parent lane; current isolated worktree; sole writer |
+| Delivery unit | Branch                      | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                                        |
+| ------------- | --------------------------- | ----------------- | --------------- | ------------ | ---------------------------------------------------------- |
+| 1             | `feat/question-inline-mode` | `main`            | `001`           | none         | serial parent lane; current isolated worktree; sole writer |
 
 One delivery unit, branch, and pull request are sufficient. The question interface, TUI adapter selection, shared dialog implementation, formal review guidance, tests, and documentation produce one user outcome and cannot be validated independently. The accepted pitch and this plan share the implementation delivery unit's publication; they have no independent pull-request value.
 
@@ -40,7 +40,7 @@ Invalidation map:
 
 Return control to the human for a material forecast variance, including a required Pi core change, an inability to preserve shared dialog semantics, a need to accept inline documents, or a new delivery unit. Fresh approval is required if those findings change accepted boundaries or authority.
 
-## [ ] 001 — Choose a contextual inline or formal full-screen question
+## [x] 001 — Choose a contextual inline or formal full-screen question
 
 ### Outcome and requirement trace
 

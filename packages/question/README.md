@@ -4,8 +4,9 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 
 ## Features
 
-- One to four questions in a capturing full-screen overlay that uses every terminal row and column.
-- Single- and multi-select options with persistent selections.
+- `presentation: "inline"` keeps a contextual clarification below the visible transcript; omit presentation or use `"fullscreen"` for the existing capturing overlay.
+- Inline questions use the same one-to-four question dialog, choices, multi-select, notes, custom answers, redirection, and final review in a compact focus-aware viewport capped at 14 rows and 60% of terminal height.
+- Full-screen questions use every terminal row and column.
 - At 100 terminal columns or wider, options and final-review controls stay in a one-third left rail while an attached document, focused preview, or blank space uses the remaining two-thirds; narrower overlays stack content.
 - Optional full-document review with persistent, independently scrollable Markdown (including bulleted and numbered nested lists, spacing, rules, and language-highlighted fenced code in theme-aware background blocks), YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
 - Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
@@ -51,12 +52,32 @@ question({
 });
 ````
 
-The UI supplies **Other…**, **Chat about this…**, **Next →**, and, for multi-question dialogs, Submit controls. Do not include these as options.
-
-Attach one optional document to any question when the choice requires reviewing more than a compact option preview:
+Use `presentation: "inline"` for a short clarification that refers to nearby transcript context. Use `presentation: "fullscreen"`, or omit the field, for attached documents and formal approval decisions. Inline presentation rejects attached documents rather than hiding the transcript or dropping the document.
 
 ```ts
 question({
+  presentation: "inline",
+  questions: [
+    {
+      id: "scope",
+      header: "Scope",
+      question: "Should the change stay minimal?",
+      options: [
+        { id: "yes", label: "Yes", description: "Keep the requested scope" },
+        { id: "no", label: "No", description: "Broaden the change" },
+      ],
+    },
+  ],
+});
+```
+
+The UI supplies **Other…**, **Chat about this…**, **Next →**, and, for multi-question dialogs, Submit controls. Do not include these as options.
+
+Attach one optional document to any full-screen question when the choice requires reviewing more than a compact option preview:
+
+```ts
+question({
+  presentation: "fullscreen",
   questions: [
     {
       id: "plan-review",
@@ -95,7 +116,7 @@ Submitting an empty note or **Other…** editor clears its existing value. Empty
 
 ## Modes
 
-The complete dialog and document viewer require TUI mode. RPC mode walks the same questions through Pi's `select` and `input` UI protocol, omits document content from dialog titles, and uses the documented **Next →** sentinel. In both modes, a single question submits from its answer while multiple questions retain final review. JSON and print modes return a structured `unavailable` result rather than inventing an answer; continuation IDs are deliberately not resolved in those modes.
+The complete dialog and document viewer require TUI mode. `presentation` affects only TUI: RPC ignores it and walks the same questions through Pi's `select` and `input` UI protocol, omitting document content from dialog titles and using the documented **Next →** sentinel. In both modes, a single question submits from its answer while multiple questions retain final review. JSON and print modes return a structured `unavailable` result rather than inventing an answer; continuation IDs are deliberately not resolved in those modes.
 
 ## Bounds
 

@@ -69,6 +69,11 @@ function questionOverlayRows(terminalRows: number): number {
   return Math.max(1, Math.min(rowsWithinMargins, rowsWithinHeight));
 }
 
+function inlineRows(terminalRows: number): number {
+  const preferredRows = Math.min(14, Math.floor(terminalRows * 0.6));
+  return Math.max(1, Math.min(terminalRows, Math.max(8, preferredRows)));
+}
+
 function initialState(
   input: QuestionInput,
   ctx: ExtensionContext,
@@ -127,6 +132,7 @@ function toolResult(details: QuestionResultDetails) {
 async function runTui(
   questions: readonly QuestionDefinition[],
   state: QuestionnaireState,
+  presentation: "fullscreen" | "inline",
   ctx: ExtensionContext,
   signal: AbortSignal | undefined,
 ): Promise<DialogOutcome> {
@@ -135,6 +141,22 @@ async function runTui(
   const abort = () => dialog?.cancelAbort();
   signal?.addEventListener("abort", abort, { once: true });
   try {
+    if (presentation === "inline") {
+      return await ctx.ui.custom<DialogOutcome>((tui, theme, keybindings, done) => {
+        dialog = new QuestionDialog(
+          tui,
+          theme,
+          keybindings,
+          questions,
+          state,
+          done,
+          () => inlineRows(tui.terminal.rows),
+          false,
+        );
+        if (signal?.aborted) queueMicrotask(() => dialog?.cancelAbort());
+        return dialog;
+      });
+    }
     return await ctx.ui.custom<DialogOutcome>(
       (tui, theme, keybindings, done) => {
         dialog = new QuestionDialog(tui, theme, keybindings, questions, state, done, () =>
@@ -155,12 +177,13 @@ export default function questionExtension(pi: ExtensionAPI): void {
     name: "question",
     label: "Question",
     description:
-      "Ask the user 1-4 structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Use stable IDs and re-call with continuationId after a redirected result.",
+      "Ask the user 1-4 structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Use presentation inline for contextual clarifications below the transcript; use fullscreen for documents and formal approval. Use stable IDs and re-call with continuationId after a redirected result.",
     promptSnippet: "Ask structured clarifying questions instead of guessing",
     promptGuidelines: [
       "Use question when a material ambiguity, preference, or decision requires user input instead of guessing.",
       "After question returns redirected, address the clarification and re-call question with its continuationId and revised questions; retain stable IDs only for semantically unchanged questions and options.",
-      "Use question's document field when the user needs to review full Markdown, YAML, JSON, XML, or text content before choosing an option.",
+      "Use presentation: inline when surrounding transcript context helps a short clarification; use presentation: fullscreen for documents and formal approvals.",
+      "Use question's document field only with fullscreen when the user needs to review full Markdown, YAML, JSON, XML, or text content before choosing an option.",
       "Do not add Other, Chat about this, Next, or Submit options to question inputs because question renders those controls.",
     ],
     parameters: QuestionParameters,
@@ -176,12 +199,27 @@ export default function questionExtension(pi: ExtensionAPI): void {
           }),
         );
       }
+      if (
+        ctx.mode !== "rpc" &&
+        input.presentation === "inline" &&
+        input.questions.some((question) => question.document)
+      ) {
+        throw new Error(
+          'Invalid question input: inline presentation does not support attached documents; use presentation: "fullscreen".',
+        );
+      }
       const resumed = initialState(input, ctx);
       const continuation = resumed.continuedFrom ? { continuedFrom: resumed.continuedFrom } : {};
       const outcome =
         ctx.mode === "rpc"
           ? await walkRpc(input.questions, resumed.state, ctx, signal)
-          : await runTui(input.questions, resumed.state, ctx, signal);
+          : await runTui(
+              input.questions,
+              resumed.state,
+              input.presentation ?? "fullscreen",
+              ctx,
+              signal,
+            );
       if (outcome.kind === "submitted") {
         return toolResult(buildResult("submitted", input.questions, outcome.state, continuation));
       }
