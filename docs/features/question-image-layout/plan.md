@@ -34,7 +34,7 @@ Invalidation map:
 
 Return control to the human for a material forecast variance, including any need for Pi core changes, automatic transcript-image detection, side-by-side core image rendering, a package dependency, a default-presentation change, or an additional delivery unit.
 
-## [ ] 001 — Keep visual-choice questions below displayed images
+## [x] 001 — Keep visual-choice questions below displayed images
 
 ### Outcome and requirement trace
 
