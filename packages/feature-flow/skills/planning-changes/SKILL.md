@@ -72,7 +72,10 @@ available. Otherwise use a direct-parent evidence-based fallback: current and
 proposed boundaries, seams, dependencies, and test surface.
 
 Show the whole plan document through the question document field with
-`format: "md"` when available, not a summary or link, with:
+`format: "md"` when available, not a summary or link. Formal document approval
+must stay full-screen: set `presentation: "fullscreen"` when that field is
+available, or omit it so the tool's default full-screen presentation applies.
+Use these options:
 
 1. **Approve and implement**
 2. **Revise**
