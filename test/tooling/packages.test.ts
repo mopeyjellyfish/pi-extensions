@@ -533,7 +533,10 @@ describe("package contracts", () => {
 
   it("accepts the frontend package's approved dual-license expression only", async () => {
     expect.hasAssertions();
-    const descriptor = await fixtureWith({ name: "@mopeyjellyfish/pi-frontend-developer", license: "MIT AND Apache-2.0" });
+    const descriptor = await fixtureWith({
+      name: "@mopeyjellyfish/pi-frontend-developer",
+      license: "MIT AND Apache-2.0",
+    });
     const errors = await validatePackage(descriptor);
     expect(errors.filter((error) => error.includes("license must be"))).toEqual([]);
   });
@@ -585,7 +588,7 @@ describe("package contracts", () => {
     await expect(resolvePackageEntrypoints(frontendDeveloper)).resolves.toEqual([
       expect.stringMatching(/packages\/frontend-developer\/src\/index\.ts$/u),
     ]);
-    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(7);
+    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(8);
     await expect(resolvePackagePrompts(frontendDeveloper)).resolves.toEqual([
       expect.stringMatching(/packages\/frontend-developer\/prompts\/design\.md$/u),
       expect.stringMatching(/packages\/frontend-developer\/prompts\/generate-image\.md$/u),

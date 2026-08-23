@@ -4,12 +4,51 @@
   "description": "Deliberate frontend design, React implementation, visual validation, and optional image generation for Pi.",
   "license": "MIT AND Apache-2.0",
   "type": "module",
-  "engines": { "node": ">=22.20.0" },
-  "files": ["src/", "skills/", "prompts/", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE.md"],
-  "keywords": ["pi-extension", "pi-package", "frontend", "design"],
-  "peerDependencies": { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*", "typebox": "*" },
-  "devDependencies": { "vitest": "4.1.10" },
-  "pi": { "extensions": ["./src/index.ts"], "skills": ["./skills"], "prompts": ["./prompts/design.md", "./prompts/generate-image.md"] },
-  "repository": { "type": "git", "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git", "directory": "packages/frontend-developer" },
-  "scripts": { "test": "vitest run --root ../.. packages/frontend-developer/test", "typecheck": "tsc --noEmit -p tsconfig.json" }
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "skills/",
+    "prompts/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE.md"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "frontend",
+    "design"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts/design.md",
+      "./prompts/generate-image.md"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/frontend-developer"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/frontend-developer/test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
 }
