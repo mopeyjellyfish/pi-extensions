@@ -44,8 +44,10 @@ preference as not implementation authority until complete-plan approval.
 Create `docs/features/<slug>/pitch.md` from `templates/pitch.md` with
 `status: draft`, unless the target repository defines another feature-document
 location. When the question document field is available, attach the complete
-pitch document with `format: "md"`, not a summary or link; otherwise show the
-complete pitch in conversation. Present it with:
+pitch document with `format: "md"`, not a summary or link. Formal document
+approval must stay full-screen: set `presentation: "fullscreen"` when that
+field is available, or omit it so the tool's default full-screen presentation
+applies. Otherwise show the complete pitch in conversation. Present it with:
 
 1. **Approve and plan**
 2. **Revise**

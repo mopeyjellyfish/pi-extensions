@@ -87,6 +87,12 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/whole\s+plan[^.]*document[^.]*format: "md"/iu);
     expect(planning).toMatch(/document field[^.]*available/iu);
 
+    for (const approvalSkill of [shape, planning]) {
+      expect(approvalSkill).toMatch(/formal\s+document\s+approval[^.]*full-screen/iu);
+      expect(approvalSkill).toMatch(/presentation:\s*"fullscreen"[^.]*field\s+is\s+available/iu);
+      expect(approvalSkill).toMatch(/default\s+full-screen\s+presentation\s+applies/iu);
+    }
+
     expect(pitch).toMatch(/^---\nstatus: draft\n---/u);
     expect(pitch).toMatch(/## Problem and evidence/iu);
     expect(pitch).toMatch(/## Proposed solution/iu);
