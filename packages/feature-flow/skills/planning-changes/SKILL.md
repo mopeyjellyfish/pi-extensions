@@ -69,12 +69,14 @@ parallel work.
 
 When the accepted pitch contains material UI scope, trace its accepted interface
 criteria into vertical slices. Each relevant slice names representative states,
-responsive surfaces, accessibility paths, design-system reuse, operation-specific
-checks, target-owned browser evidence, and mismatch ledger visual proof. If
-direction remains provisional, order a design-evidence slice before UI
-implementation. Plan a separate `DESIGN.md` approval gate when durable decisions
-should persist. An applicable design method supplies context and evidence;
-`implement` retains engineering orchestration and approval ownership.
+responsive surfaces, accessibility paths, design-system reuse, and
+operation-specific checks. When applicable evidence capabilities exist, also
+name target-owned browser evidence and a visual mismatch ledger: a prioritized
+list of observed differences, likely causes, and recheck targets. If direction
+remains provisional, order a design-evidence slice before UI implementation.
+Plan a separate `DESIGN.md` approval gate when durable decisions should persist.
+An applicable design method supplies context and evidence; `implement` retains
+engineering orchestration and approval ownership.
 
 When a slice changes module shape, use `codebase-design` vocabulary when
 available. Otherwise use a direct-parent evidence-based fallback: current and

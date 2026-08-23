@@ -4,16 +4,24 @@ Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` und
 
 ## Scope
 
-Improve interface language, labels, errors, and feedback without inventing product claims.
+Improve interface language, labels, instructions, errors, empty states, and feedback without changing factual meaning.
+
+## Diagnose
+
+Read the complete interaction path and identify ambiguous verbs or nouns, jargon, missing consequence or recovery, inconsistent terminology, redundant copy, emotional mismatch, and translation or width risk.
 
 ## Evidence
 
-Trace the ambiguous task, actual content, error paths, and accessible names.
+For each state, name the fact needed now, next action, decision-changing context, factual source, accessible name, and realistic content extremes.
+
+## Guardrails
+
+Ask before changing legal, pricing, privacy, safety, policy, domain terminology, or product claims. Do not use placeholders as labels, blame users, expose internal codes as the main message, or promise an unknown cause.
 
 ## Handoff
 
-Delegate behavioral implementation to `implement` or `developing-changes` when available.
+Provide final contextual copy and identify behavior needed for announcement or recovery. Delegate behavioral implementation to `implement` or `developing-changes` when available.
 
 ## Completion
 
-Users can understand the requested flow with evidence from representative states.
+The flow uses consistent plain language, specific actions, accurate consequences, accessible names, and concise recovery across representative states and widths.

@@ -2,31 +2,20 @@
 version: alpha
 name: Project design system
 description: One-line product-specific visual thesis
-omitted: []
-colors:
-  primary: "#000000"
-typography:
-  body:
-    fontFamily: "system-ui, sans-serif"
-    fontSize: "16px"
-    fontWeight: 400
-    lineHeight: 1.5
-rounded:
-  sm: "4px"
-spacing:
-  sm: "8px"
-components:
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    typography: "{typography.body}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.sm}"
+omitted:
+  - colors
+  - typography
+  - rounded
+  - spacing
+  - components
 ---
 
 # Design system
 
-Remove example tokens that are not verified or accepted. Frontmatter tokens are
-normative; prose explains when and why to apply them.
+Remove an `omitted` entry only after verified implementation evidence or an
+explicitly accepted seed decision supports that token group. Frontmatter tokens
+are normative; prose explains when and why to apply them. Never copy example or
+placeholder values into a project.
 
 ## Overview
 

@@ -4,16 +4,24 @@ Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` und
 
 ## Scope
 
-Extract reused tokens, components, and rules into reusable design-system evidence.
+Extract repeated tokens, components, and application rules into reusable design-system evidence.
+
+## Diagnose
+
+Inventory canonical token sources, repeated literal values, component variants, state behavior, and conflicting implementations. Distinguish a real system pattern from one-off coincidence.
 
 ## Evidence
 
-Compare repeated live values and components; distinguish observations from proposed convergence.
+Cite source locations, recurrence counts, representative rendered states, and conflicts between code, live behavior, and accepted design context.
+
+## Guardrails
+
+Do not rename established semantics, abstract a single use, invent missing values, or let generated documentation become a second source of truth. Ask before converging conflicting intent.
 
 ## Handoff
 
-Delegate accepted behavioral changes to `implement` or `developing-changes` when available.
+Propose the narrowest token or component seam and documentation update. Delegate accepted behavioral consolidation to `implement` or `developing-changes` when available.
 
 ## Completion
 
-Reusable patterns and unresolved conflicts are documented without inventing values.
+Every extracted pattern is reused and evidence-backed; one-offs and unresolved conflicts remain explicit rather than entering the system.
