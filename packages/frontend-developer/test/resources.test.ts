@@ -45,3 +45,34 @@ describe("design review resource contract", () => {
     expect(readme).toMatch(/unavailable review surface/iu);
   });
 });
+
+describe("interface craft resource contract", () => {
+  const operations = ["design", "extract", "document", "critique", "audit", "polish", "bolder", "quieter", "distill", "harden", "onboard", "animate", "colorize", "typeset", "layout", "delight", "overdrive", "clarify", "adapt", "optimize", "live"];
+
+  it("discovers and routes the complete attributed operation catalog without an Impeccable runtime", async () => {
+    expect.hasAssertions();
+    const [catalog, prompt, frontendDesign, frontendDevelopment, interfaceDesign, readme, manifest, license, notice] = await Promise.all([
+      resource("skills/interface-craft/SKILL.md"), resource("prompts/design.md"), resource("skills/frontend-design/SKILL.md"), resource("skills/frontend-development/SKILL.md"), resource("skills/interface-design/SKILL.md"), resource("README.md"), resource("package.json"), resource("LICENSE"), resource("NOTICE.md"),
+    ]);
+    expect(catalog).toMatch(/^---\nname: interface-craft\ndescription:.*polish.*audit.*layout.*clarify.*adapt.*optimize.*onboard.*bolder.*quieter/im);
+    expect(catalog).toMatch(/operation router/iu);
+    for (const operation of operations) {
+      const reference = await resource(`skills/interface-craft/references/${operation}.md`);
+      expect(catalog).toMatch(new RegExp(`\\b${operation}\\b`, "u"));
+      expect(reference).toMatch(/Modified from Impeccable 4\.1\.1/iu);
+      expect(reference).toMatch(/56f44523f76efdcec813e67b38ee550e49b16f48/u);
+      expect(reference).toMatch(/Scope[\s\S]*Evidence[\s\S]*Handoff[\s\S]*Completion/iu);
+      expect(reference).toMatch(/implement|developing-changes/iu);
+    }
+    for (const phrase of ["polish this", "audit", "settings flow", "mobile layout", "make this calmer", "improve", "onboarding", "clarify", "errors", "document the design system", "Normalize"]) expect(prompt).toContain(phrase);
+    expect(prompt).toMatch(/teach me this design\s+system/iu);
+    for (const source of [frontendDesign, frontendDevelopment, interfaceDesign, readme]) expect(source).toMatch(/interface-craft/iu);
+    expect(manifest).toMatch(/"license": "MIT AND Apache-2\.0"/u);
+    expect(manifest).toMatch(/"NOTICE\.md"/u);
+    expect(license).toMatch(/Apache License\s+Version 2\.0/iu);
+    expect(notice).toMatch(/Impeccable/iu);
+    for (const forbidden of ["npx impeccable", ".impeccable/", "PRODUCT.md", "/impeccable", "question server"]) expect(catalog).not.toContain(forbidden);
+    expect(catalog).toContain("feature pitch lifecycle");
+    expect(catalog).toContain("`init` or `craft`");
+  });
+});
