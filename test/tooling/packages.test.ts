@@ -183,6 +183,9 @@ describe("package contracts", () => {
           "diagnosing-bugs",
           "domain-modeling",
           "writing-for-agents",
+          "frontend-development",
+          "react-interface",
+          "visual-validation",
         ],
         skillPaths: [
           "../packages/engineering/skills/test-driven-development",
@@ -190,6 +193,9 @@ describe("package contracts", () => {
           "../packages/engineering/skills/diagnosing-bugs",
           "../packages/engineering/skills/domain-modeling",
           "../packages/productivity/skills/writing-for-agents",
+          "../packages/frontend-developer/skills/frontend-development",
+          "../packages/frontend-developer/skills/react-interface",
+          "../packages/frontend-developer/skills/visual-validation",
         ],
       },
       researcher: {
@@ -291,6 +297,9 @@ describe("package contracts", () => {
             ? agent["skillPath"]
             : [agent["skillPath"]];
       expect(skillPaths).toEqual(contract.skillPaths);
+      for (const skillPath of skillPaths) {
+        expect(await readdir(join(agentsRoot, skillPath))).toContain("SKILL.md");
+      }
     }
     const [reviewer, git] = await Promise.all([
       readFile(join(agentsRoot, "reviewer.md"), "utf8"),

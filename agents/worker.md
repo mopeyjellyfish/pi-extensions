@@ -12,12 +12,18 @@ skills:
   - diagnosing-bugs
   - domain-modeling
   - writing-for-agents
+  - frontend-development
+  - react-interface
+  - visual-validation
 skillPath:
   - ../packages/engineering/skills/test-driven-development
   - ../packages/engineering/skills/codebase-design
   - ../packages/engineering/skills/diagnosing-bugs
   - ../packages/engineering/skills/domain-modeling
   - ../packages/productivity/skills/writing-for-agents
+  - ../packages/frontend-developer/skills/frontend-development
+  - ../packages/frontend-developer/skills/react-interface
+  - ../packages/frontend-developer/skills/visual-validation
 tools:
   - read
   - grep
