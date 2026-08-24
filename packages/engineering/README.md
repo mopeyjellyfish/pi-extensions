@@ -39,11 +39,15 @@ safe worktree tooling is available. Direct diagnosis, TDD, and domain-modeling
 work applies the same guard. When safe tooling is unavailable, the skill stops
 before writing and asks the human to provide a worktree.
 
-The parent supplies durable pitch and plan paths plus the exact slice instead
-of copying the conversation. The parent stays responsible for synthesis, final
-diff inspection, and verification. An independent installation without the
-root agent profiles uses the direct parent; it does not automatically provide
-companion extensions, agents, tools, or skills.
+The parent supplies durable Intent sources: target-project context, every named
+pitch, plan, request, and later user decisions, plus the exact slice, not a
+conversation transcript. It confirms the Business reason from evidence or asks
+the human to confirm it, then records it in the implementation spec and Worker
+handoff. The parent stays responsible for synthesis, final diff inspection, and
+verification.
+An independent installation without the root agent profiles uses the direct
+parent; it does not automatically provide companion extensions, agents, tools,
+or skills.
 
 `developing-changes` uses an impact-and-uncertainty decision: a mechanical
 low-risk request goes to `/just-do-it`; one clear coherent outcome can implement

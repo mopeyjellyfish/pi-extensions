@@ -33,6 +33,15 @@ finding identifies its location, consequence, and proof. Complete one fixed-
 boundary review pass. Do not rerun an unchanged failed command; report unavailable
 evidence instead of retrying or expanding the review.
 
+Before review, load inherited target-project context and every named pitch,
+plan, request, and later user decision in durable Intent sources. Evaluate the
+supplied work, not a design exercise; the governing `code-review` method supplies
+detailed calibration. Report only concrete actionable issues with practical-impact
+severity and the smallest sufficient correction. Exclude speculation,
+tooling-handled style preferences, unrelated pre-existing issues, and drive-by
+improvements. Escalate material architecture or business decisions to the
+primary agent; do not choose or implement them.
+
 Do not edit, browse, or authorize changes. When runtime bridge instructions
 provide `contact_supervisor`, use it with reason `need_decision` only for a
 blocking ambiguity. If it is unavailable, stop and report the decision in the

@@ -7,10 +7,14 @@ description: >-
 
 # Implement
 
-Accept one approved slice, bounded request, or confirmed bug outcome. Read
-repository instructions, Git state, and public contracts, then accepted intent
-and nearest tests before editing. Preserve unrelated changes and
-identify the required completion checks.
+Accept one approved slice, bounded request, or confirmed bug outcome. Load the
+inherited target-project context and every named pitch, plan, request, and later
+user decision from durable Intent sources before editing.
+Read repository instructions, Git state, and public contracts, then nearest tests.
+Preserve unrelated changes and identify the required completion checks. The
+Business reason must be inferable from this evidence; if unclear, the parent must
+ask the human to confirm it and, once confirmed with the user, record it in the
+implementation spec and Worker task.
 
 Before any edit, verify that the session is rooted in, or Pi is routed to, an
 isolated linked worktree. Reuse the same task worktree that holds the accepted
@@ -67,11 +71,14 @@ its tools, model, thinking level, and fresh-context default. A trivial bounded
 change — one obvious fix with one obvious focused check — may remain directly as
 the parent. If Worker is unavailable, the direct parent executes the unit.
 
-Keep the Worker task compact. Reference durable accepted intent instead of
-copying the conversation, and use only this contract:
+Keep the Worker task compact. Reference durable Intent sources; do not copy a conversation transcript.
+For a plan-less handoff, include the complete bounded request and every later
+user decision, not a transcript. Use only this contract:
 
 ```text
 Goal:
+Business reason:
+Intent sources:
 Public seam:
 Allowed files:
 Explicit non-goals:
@@ -82,12 +89,23 @@ Stop conditions:
 Output:
 ```
 
-Give exact pitch and plan paths, slice, worktree, setup, and focused checks in
-those fields. Do not append previous transcripts, every possible edge case, or
-final repository gates. Treat Worker results as `completed`, `blocked`,
-`variance`, or `partial`. A blocked or variance result pauses for the parent. A
-partial result must not trigger an automatic retry or a larger
-"finish everything" task. After a completed initial attempt, use the first QA
+Give exact pitch and plan paths, complete bounded request, later user decisions,
+slice, worktree, setup, and focused checks in those fields. Calibrate business
+fit to business impact, plausible failure cost, expected lifetime and scale,
+reversibility, and repository conventions. Balance delivery speed, reliability,
+maintainability, and operational risk. Choose the smallest solution robust for
+actual need and credible risk with a focused, bounded blast radius. Respect module
+boundaries, layering, and conventions; reuse existing logic, components, and
+helpers before adding an abstraction. Prevent underengineering that misses
+requirements, contracts, important invariants, credible failure modes, or
+changed-surface verification. Avoid overengineering: speculative abstractions,
+configuration, layers, generality, safeguards, process, or verification depth
+without proportionate concrete need or risk reduction. Do not append every
+possible edge case or final repository gates.
+Treat Worker results as `completed`, `blocked`, `variance`, or `partial`. A
+blocked or variance result pauses for the parent. A partial result must not
+trigger an automatic retry or a larger "finish everything" task. After a
+completed initial attempt, use the first QA
 failure packet for the initial repair. After later QA passes, repeat QA repair
 resumes of the latest retained Worker while verifier evidence shows measurable
 progress. If that Worker is not resumable or any repair returns `blocked`,

@@ -318,6 +318,30 @@ describe("package contracts", () => {
     expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
   });
 
+  it("gives Worker and Reviewer focused intent and review duties", async () => {
+    expect.hasAssertions();
+    const [worker, reviewer] = await Promise.all([
+      readFile(join(repositoryRoot, "agents", "worker.md"), "utf8"),
+      readFile(join(repositoryRoot, "agents", "reviewer.md"), "utf8"),
+    ]);
+
+    expect(worker).toMatch(
+      /target-project context[\s\S]*every\s+named\s+pitch[\s\S]*plan[\s\S]*request[\s\S]*later\s+user\s+decision/iu,
+    );
+    expect(worker).toMatch(
+      /infer[\s\S]*Business reason[\s\S]*supplied request[\s\S]*Intent\s+sources[\s\S]*cannot be established[\s\S]*contact_supervisor[\s\S]*stop\s+blocked/iu,
+    );
+    expect(worker).toMatch(
+      /business impact[\s\S]*smallest solution[\s\S]*module boundaries[\s\S]*existing logic[\s\S]*underengineering[\s\S]*overengineering/iu,
+    );
+    expect(reviewer).toMatch(
+      /`code-review` method[\s\S]*supplied\s+work[\s\S]*concrete actionable issues[\s\S]*practical-impact\s+severity[\s\S]*smallest sufficient correction/iu,
+    );
+    expect(reviewer).toMatch(
+      /exclude speculation[\s\S]*tooling-handled\s+style preferences[\s\S]*drive-by\s+improvements[\s\S]*primary agent[\s\S]*do not choose or implement/iu,
+    );
+  });
+
   it("works around pi-subagents issue 1207 for every configured agent", async () => {
     expect.hasAssertions();
     const agentsRoot = join(repositoryRoot, "agents");
