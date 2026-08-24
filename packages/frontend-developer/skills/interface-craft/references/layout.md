@@ -1,27 +1,86 @@
 # Layout
 
-Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` under Apache-2.0.
+Layout turns product priority into reading order, grouping, rhythm, and usable space. Diagnose the structural problem before moving boxes.
 
-## Scope
+---
 
-Correct composition, reading order, grouping, alignment, density, rhythm, and responsive structure inside the accepted visual world.
+## Product UI focus
 
-## Diagnose
+Use predictable structure, stable density, and navigable linearity as affordances. Depart from them only when the user task and observed system make the benefit clear.
 
-Assess the primary path, squint hierarchy, semantic grouping, repeated rhythm, proportions, container behavior, DOM/focus order, overlays, long content, safe areas, and narrow/intermediate/wide states.
+## Two isolated assessments
 
-## Evidence
+1. **Layout assessment:** inspect representative states and viewports. Answer every question below with rendered or source evidence:
+   - **Reading order:** Apply the squint test. With detail blurred, can you still identify the primary element, the secondary element, and the major groups in order?
+   - **Grouping:** Are related items close and distinct groups separated, or are containers compensating for weak proximity?
+   - **Rhythm:** Do tight and generous intervals create a deliberate cadence, or is one spacing value repeated until everything has equal weight?
+   - **Structure:** Does the topology match the content and task? Are repeated cards, columns, or sections genuinely equivalent, or merely a framework default?
+   - **Density:** Does the amount of information per region fit use frequency, decision complexity, and visitor mode?
+   - **Adaptation:** At narrow, intermediate, wide, zoomed, and localized states, what reorders, collapses, wraps, scrolls, or remains fixed? Does DOM and focus order still agree with the visual order?
+   - **Extremes:** Do long content, empty states, overlays, sticky elements, safe areas, and small touch targets expose structural failures?
+2. **Automated-check pass:** run:
 
-Capture representative states at named containers and viewports; show what reorders, wraps, collapses, scrolls, remains fixed, and how keyboard and assistive order correspond.
+Also inspect arbitrary spacing, overflow, stacking, and container behavior the automated checks cannot resolve. Keep mechanical evidence out of the first assessment, then synthesize both passes before editing. A clean scan cannot prove hierarchy or rhythm.
 
-## Guardrails
+## Set the spatial thesis
 
-Do not replace identity, create card grids by default, use absolute positioning or negative margins to escape structure, randomize spacing, or fix one screenshot while breaking other states.
+Before editing, name:
 
-## Handoff
+- the primary reading or task path;
+- what belongs together and what must separate;
+- which element leads and which supports;
+- the intended density and spacing rhythm;
+- how the structure changes across containers, viewports, input modes, and content extremes.
 
-State the spatial thesis and use existing layout primitives and spacing tokens. Delegate behavioral restructuring to `implement` or `developing-changes` when available.
+Choose the simplest structural model that expresses those relationships. Use layout primitives according to the relationships they control, and name reusable spacing and container roles semantically.
 
-## Completion
+## Apply
 
-The focal path, grouping, rhythm, density, and order remain clear across supported sizes, content extremes, and input modes.
+- Group by meaning. Use proximity before adding containers or decoration.
+- Create rhythm through deliberate contrast between tight and generous intervals.
+- Use a documented spacing scale rather than one-off values. A 4-unit base usually provides the useful middle steps that an 8-only scale misses.
+- Let hierarchy follow product priority, not framework defaults.
+- Keep distinct content visually distinct without turning every group into an isolated component.
+- Make responsive behavior structural: reorder, collapse, reflow, or reveal based on what remains important.
+- Prefer container-aware components when the same component appears in different contexts.
+- Use `gap` for sibling rhythm when it expresses the relationship more directly than child margins.
+- Keep touch targets usable even when their visible marks are small.
+- Use depth only when it clarifies state or hierarchy.
+- Make optical corrections only after inspecting the rendered result.
+
+Variation is not a goal by itself. Repetition should support recognition; break it only when content or priority changes.
+
+## Verify
+
+- The squint test still reveals the primary, secondary, and major groups in order.
+- The reading and task path remains clear at every supported size.
+- Related content groups naturally; unrelated content does not blur together.
+- Tight and generous spacing create intentional rhythm instead of monotonous repetition.
+- Density matches use frequency and content complexity.
+- Long text, empty states, localization, zoom, and dynamic content do not break the structure.
+- Keyboard, touch, and assistive-technology order agree with the visual order.
+- The final mechanical scan has no unexplained findings.
+
+Answer each item with rendered or source evidence, then rerun the scan. Do not substitute a bare “yes” for verification.
+
+## Live-mode signature params
+
+Every variant declares a coarse `density` parameter and authors spacing against `var(--p-density, 1)`.
+
+```json
+{
+  "id": "density",
+  "kind": "range",
+  "min": 0.6,
+  "max": 1.4,
+  "step": 0.05,
+  "default": 1,
+  "label": "Density"
+}
+```
+
+Add one structural parameter only when the topology genuinely branches. Follow live.md's parameter contract.
+
+## Repository-native boundary
+
+Use target-repository instructions, installed tools, and owned commands. Do not add runtime helpers, hidden state, or command entrypoints. For a behavior-changing edit, follow the target repository’s implementation and verification workflow; report unavailable proof plainly.

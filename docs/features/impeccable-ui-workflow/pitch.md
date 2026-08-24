@@ -59,7 +59,7 @@ This is one delivery unit because the frontend routing and feature-flow lifecycl
 
 ### Attribution and source boundary
 
-Adapt the useful operation concepts and selected playbook text, not the Impeccable runtime. Pin the reviewed upstream commit in package documentation, ship the Apache-2.0 license and required notices beside any derivative references, mark modified files, and preserve the package’s existing MIT resources as separate work. Add resource tests for exact attribution, packed contents, trigger vocabulary, forbidden runtime paths, and absence of Impeccable state or hook instructions.
+Adapt the useful operation concepts and selected playbook text, not the Impeccable runtime. Pin the reviewed upstream commit in package documentation, ship the Apache-2.0 license and required collective package `NOTICE.md` beside the derivative references, and preserve the package’s existing MIT resources as separate work. The package-level notice replaces per-reference provenance banners. Add resource tests for exact attribution, packed contents, trigger vocabulary, forbidden runtime paths, and absence of Impeccable state or hook instructions.
 
 ## Boundaries and no-gos
 
@@ -83,7 +83,7 @@ Acceptable cuts are operation references that delegate shared foundations to `in
 - **Vocabulary collisions:** `shape`, `document`, `audit`, and `live` already have broader meanings. Explicit routing rules must keep lifecycle ownership clear and ask once only when intent is genuinely ambiguous.
 - **Ceremony creep:** UI quality gates can make small fixes expensive. Impact routing must retain the direct mechanical path and apply Shape/plan integration only to material UI scope.
 - **False confidence:** checklists can become unsupported assertions. Every operation needs evidence requirements and honest unmet-proof outcomes.
-- **Licence boundary:** Apache-derived references inside an MIT package need clear file-level attribution, a shipped license, retained notices, and modification statements. If validation or legal review finds that boundary unclear, move the derivative catalog to a separate Apache-2.0 skill-only package while retaining `/design` integration.
+- **Licence boundary:** Apache-derived references inside an MIT package need a clear collective package notice, shipped license, retained upstream notices, and an upstream commit pin. The adapted references do not repeat per-file provenance banners. If validation or legal review finds that boundary unclear, move the derivative catalog to a separate Apache-2.0 skill-only package while retaining `/design` integration.
 
 Sources reviewed:
 

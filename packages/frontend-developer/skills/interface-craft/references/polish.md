@@ -1,27 +1,95 @@
 # Polish
 
-Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` under Apache-2.0.
+> **Additional context needed**: quality bar and shipping constraints.
 
-## Scope
+Polish is refinement, never concealed redesign. Preserve the incumbent visual world, content, behavior, and everything outside scope. If the concept itself is wrong, say so and recommend redesign or `bolder` instead of smuggling in a replacement.
 
-Finish a complete path to one consistent quality bar without concealing a redesign.
+A target-owned automated-check result is defect evidence, not proof of quality. Inspect the rendered experience and real interaction path.
 
-## Diagnose
+## 1. Establish the system
 
-Classify each issue as missing token, repeated one-off, conceptual mismatch, or local defect. Walk the path across representative sizes, states, content extremes, keyboard input, and neighboring product patterns.
+Read `DESIGN.md` and representative tokens, shared components, patterns, and neighboring flows. If no formal system exists, use coherent project conventions.
 
-## Evidence
+Classify each drift before fixing it:
 
-Use before/after captures and interaction proof for hierarchy, spacing, type, color, icons, motion, focus, loading, empty, error, success, disabled, and long-content states.
+- **missing token:** the system needs a reusable value;
+- **one-off implementation:** an existing shared component or pattern should replace it;
+- **conceptual mismatch:** the flow, information architecture, or hierarchy differs from comparable product areas;
+- **local defect:** the implementation is simply incomplete or inconsistent.
 
-## Guardrails
+Fix the cause at the narrowest correct level. Ask when a binding system principle cannot be inferred.
 
-Preserve accepted identity, behavior, factual copy, and scope. Fix shared causes before local symptoms; do not perfect one corner while the path remains incomplete or add animation merely to signal polish.
+## 2. Gather the evidence
 
-## Handoff
+- whether the path is functionally complete;
+- the intended quality bar and time available;
+- known constraints or deliberately unfinished work;
+- the states, content lengths, roles, and input methods users will actually encounter.
 
-Delegate behavioral implementation to `implement` or `developing-changes` when available, then use visual validation for the stable result.
+If a prior critique exists, use it as one input:
 
-## Completion
+Exit 0 returns the latest snapshot; incorporate relevant P0/P1 findings and name the snapshot read. Exit 2 means none exists. Perform an independent pass either way.
 
-The whole requested path is functionally complete, coherent across supported states and viewports, clean in the source diff, and backed by visual proof or an honest unmet-proof result.
+## 3. Triage
+
+Separate functional defects from cosmetic ones and fix in this order:
+
+1. broken or blocked tasks, data loss, misleading state, and inaccessible paths;
+2. missing loading, empty, error, success, disabled, and permission states;
+3. flow, hierarchy, responsive, and design-system drift;
+4. visual and motion inconsistencies;
+5. code and asset cleanup.
+
+Do not perfect one corner while leaving the rest below the same quality bar.
+
+## 4. Polish the whole path
+
+### Flow and hierarchy
+
+- Match neighboring mental models, terminology, disclosure, routing, save behavior, and optimistic or pessimistic patterns.
+- Make the primary task and current state obvious without flattening every element to equal weight.
+- Ensure arrival, transition, empty, and recovery paths connect instead of behaving as isolated screens.
+
+### Layout and type
+
+- Align to the project's grid and spacing scale; fix optical as well as mathematical alignment.
+- Group related content tightly and separate distinct groups generously.
+- Keep same-role typography consistent; test measure, wrapping, localization expansion, zoom, and font loading.
+- Verify every supported viewport rather than correcting only the current screenshot.
+
+### Color, imagery, and icons
+
+- Use semantic tokens and stable color meanings across themes.
+- Verify text, control, and focus contrast in every state.
+- Keep icon families, stroke/weight, sizing, and optical alignment coherent.
+- Prevent image layout shift; use correct aspect ratios, responsive sources, and useful alt text.
+
+### Interaction and state
+
+- Every control needs appropriate default, hover, focus, active, disabled, loading, error, and success behavior.
+- Preserve visible keyboard focus, logical tab order, labels, and appropriately sized touch targets.
+- Keep motion coherent, interruptible, and performant. Do not add animation merely to make polish visible.
+- Validate long, missing, localized, offline, slow, and permission-limited content where the product can encounter it.
+
+### Content and code
+
+- Keep terminology, capitalization, punctuation, and factual copy consistent. Ask before changing claims.
+- Remove debug output, dead code, unused imports, obsolete styles, and polish-created duplication.
+- Replace custom implementations with shared components where the system owns the pattern.
+- Promote genuinely reusable values to tokens; do not create a system abstraction for one local exception.
+
+## 5. Verify and finish
+
+Walk the complete path again with mouse, keyboard, and touch where applicable. Check:
+
+- mobile, intermediate, and wide web layouts;
+- loading, empty, error, success, disabled, long-content, and missing-content states;
+- zoom, contrast, focus, semantics, and screen-reader names;
+- console errors, layout shift, interaction latency, and image loading in supported web browsers;
+- agreement with `DESIGN.md`, neighboring features, and the user's scope.
+
+Finish with a source diff: remove accidental churn, orphaned code, redundant values, and temporary artifacts. Ship only when the feature is functionally complete and consistently finished across the path.
+
+## Repository-native boundary
+
+Use target-repository instructions, installed tools, and owned commands. Do not add runtime helpers, hidden state, or command entrypoints. For a behavior-changing edit, follow the target repository’s implementation and verification workflow; report unavailable proof plainly.

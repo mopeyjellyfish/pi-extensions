@@ -85,10 +85,11 @@ describe("interface craft resource contract", () => {
     "live",
   ];
 
-  it("discovers and routes the complete attributed operation catalog without an Impeccable runtime", async () => {
+  it("routes natural web-interface requests through complete, portable operation guidance", async () => {
     expect.hasAssertions();
     const [
       catalog,
+      documentation,
       prompt,
       frontendDesign,
       frontendDevelopment,
@@ -99,6 +100,7 @@ describe("interface craft resource contract", () => {
       notice,
     ] = await Promise.all([
       resource("skills/interface-craft/SKILL.md"),
+      resource("skills/interface-craft/references/document.md"),
       resource("prompts/design.md"),
       resource("skills/frontend-design/SKILL.md"),
       resource("skills/frontend-development/SKILL.md"),
@@ -108,47 +110,84 @@ describe("interface craft resource contract", () => {
       resource("LICENSE"),
       resource("NOTICE.md"),
     ]);
+    expect(catalog).toMatch(/^---\nname: interface-craft\ndescription:[\s\S]*web-interface/imu);
+    expect(catalog).toMatch(/first-class.*natural-language.*router/isu);
     expect(catalog).toMatch(
-      /^---\nname: interface-craft\ndescription:.*polish.*audit.*layout.*clarify.*adapt.*optimize.*onboard.*bolder.*quieter/im,
+      /settings flow.*mobile layout.*make this calmer.*document.*design system/isu,
     );
-    expect(catalog).toMatch(/operation router/iu);
-    for (const operation of operations) {
-      const reference = await resource(`skills/interface-craft/references/${operation}.md`);
-      expect(catalog).toMatch(new RegExp(`\\b${operation}\\b`, "u"));
-      expect(reference).toMatch(/Modified from Impeccable 4\.1\.1/iu);
-      expect(reference).toMatch(/56f44523f76efdcec813e67b38ee550e49b16f48/u);
-      expect(reference).toMatch(
-        /Scope[\s\S]*Diagnose[\s\S]*Evidence[\s\S]*Guardrails[\s\S]*Handoff[\s\S]*Completion/iu,
-      );
-      expect(reference).toMatch(/implement|developing-changes/iu);
-    }
+    expect(catalog).toMatch(/`\/shape` remains the feature pitch lifecycle/iu);
+    expect(catalog).toMatch(/package-level Apache attribution[\s\S]*`NOTICE\.md`/iu);
+    const frontmatter = catalog.slice(0, catalog.indexOf("\n---", 4));
+    for (const operation of ["clarify", "adapt", "optimize", "bolder", "quieter", "distill"])
+      expect(frontmatter).toMatch(new RegExp(`\\b${operation}\\b`, "u"));
     for (const phrase of [
       "polish this",
-      "audit",
-      "settings flow",
-      "mobile layout",
+      "audit the settings flow",
+      "fix the mobile layout",
       "make this calmer",
-      "improve",
-      "onboarding",
-      "clarify",
-      "errors",
+      "improve onboarding",
+      "clarify the errors",
       "document the design system",
+      "teach me this design system",
       "Normalize",
     ])
-      expect(prompt).toContain(phrase);
-    expect(prompt).toMatch(/teach me this design\s+system/iu);
+      expect(prompt).toMatch(new RegExp(phrase.replaceAll(" ", "\\s+"), "iu"));
     for (const source of [frontendDesign, frontendDevelopment, interfaceDesign, readme])
       expect(source).toMatch(/interface-craft/iu);
+    expect(documentation).toMatch(/repository-native.*`\/design` workflow/iu);
+    expect(documentation).toMatch(/upstream.*does not provide.*`design\.md`/isu);
+    expect(documentation).toMatch(/explicit human approval[\s\S]*DESIGN\.md/iu);
     expect(manifest).toMatch(/"license": "MIT AND Apache-2\.0"/u);
     expect(manifest).toMatch(/"NOTICE\.md"/u);
     expect(license).toMatch(/Apache License\s+Version 2\.0/iu);
-    expect(notice).toMatch(/Impeccable/iu);
-    const packedResources = [
+    expect(license).toMatch(/APPENDIX: How to apply the Apache License/iu);
+    expect(notice).toMatch(/Impeccable[\s\S]*4\.1\.1/iu);
+    expect(notice).toContain("56f44523f76efdcec813e67b38ee550e49b16f48");
+    expect(notice).toMatch(/Apache-2\.0[\s\S]*Paul Bakaus/iu);
+
+    for (const operation of operations) {
+      const source = await resource(`skills/interface-craft/references/${operation}.md`);
+      expect(source).not.toMatch(/^(?:Modified from|Source:|Adapted from) Impeccable/mu);
+    }
+
+    const references = await Promise.all(
+      operations.map(async (operation) => ({
+        operation,
+        source: await resource(`skills/interface-craft/references/${operation}.md`),
+      })),
+    );
+    for (const { operation, source } of references) {
+      expect(catalog).toMatch(new RegExp(`\\b${operation}\\b`, "u"));
+      expect(source.split(/\s+/u).length).toBeGreaterThan(300);
+    }
+    expect(new Set(references.map(({ source }) => source))).toHaveLength(operations.length);
+    const productUiReferences = await Promise.all(
+      [
+        "adapt",
+        "animate",
+        "bolder",
+        "colorize",
+        "critique",
+        "delight",
+        "layout",
+        "overdrive",
+        "quieter",
+        "typeset",
+      ].map((operation) => resource(`skills/interface-craft/references/${operation}.md`)),
+    );
+    for (const source of productUiReferences)
+      expect(source).not.toMatch(/Persuade \+ Experience|marketing|landing pages?|portfolios?/iu);
+    const adapt = await resource("skills/interface-craft/references/adapt.md");
+    expect(adapt).not.toMatch(/\biOS\b|\bAndroid\b|\badaptive\b/iu);
+    const polish = await resource("skills/interface-craft/references/polish.md");
+    expect(polish).not.toMatch(/phone and tablet|supported OS versions|on native/iu);
+
+    const nonAttributionResources = [
       ...(await markdownResources("skills")),
       ...(await markdownResources("prompts")),
       readme,
-      notice,
     ];
+    const packedResources = [...nonAttributionResources, notice];
     for (const source of packedResources) {
       for (const forbidden of [
         "npx impeccable",
@@ -159,13 +198,17 @@ describe("interface craft resource contract", () => {
         "design.json",
         "question server",
         "hooks.json",
+        "bundled detector",
+        "detect.mjs",
+        "sub-agent",
+        "Questions skipped",
       ])
         expect(source).not.toContain(forbidden);
+    }
+    for (const source of nonAttributionResources) {
       expect(source).not.toMatch(/\/(?:Users|home|tmp)\//u);
       expect(source).not.toMatch(/pi-extensions|packages\/frontend-developer/iu);
     }
-    expect(catalog).toContain("feature pitch lifecycle");
-    expect(catalog).toContain("`init` or `craft`");
   });
 
   it("provides one approval-gated portable DESIGN.md workflow for humans and agents", async () => {
