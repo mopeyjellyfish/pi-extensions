@@ -639,4 +639,28 @@ describe("engineering resources", () => {
     expect(justDoIt).toContain("remove Y from all files");
     expect(justDoIt).toContain("`just-do-it` skill");
   });
+
+  it("preserves accepted frontend evidence through material UI implementation", async () => {
+    expect.hasAssertions();
+    const [router, implement] = await Promise.all([
+      read("skills/developing-changes/SKILL.md"),
+      read("skills/implement/SKILL.md"),
+    ]);
+
+    expect(router).toMatch(
+      /bounded material UI[\s\S]*accepted frontend evidence[\s\S]*`implement`/iu,
+    );
+    expect(router).toMatch(/mechanical UI[\s\S]*direct/iu);
+    expect(router).toMatch(/`implement`[^.]*unavailable[\s\S]*direct-parent fallback/iu);
+    expect(implement).toMatch(/material UI[\s\S]*accepted\s+design\s+evidence/iu);
+    expect(implement).toMatch(/`frontend-development`/u);
+    expect(implement).toMatch(/`react-interface`[^.]*only when[^.]*target uses[\s\S]*React/iu);
+    expect(implement).toMatch(/`visual-validation`[\s\S]*(?:mismatch ledger|honest unmet-proof)/iu);
+    expect(implement).toMatch(/does not take design approval ownership/iu);
+    expect(implement).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);
+
+    for (const resource of [router, implement]) {
+      expect(resource).not.toMatch(/pi-extensions|packages\//iu);
+    }
+  });
 });
