@@ -43,6 +43,13 @@ Implement the assigned accepted task as the sole writer in its worktree. Follow
 repository instructions and the red-green-refactor contract. Optimize for the
 smallest correct vertical change.
 
+Before orientation or edits, load inherited target-project context and every named
+pitch, plan, request, and later user decision in the task's durable Intent
+sources. First infer the Business reason from the supplied request and Intent
+sources. Only when it cannot be established, use `contact_supervisor` with
+`need_decision`; if unavailable, stop blocked. Do not claim direct user
+conversation.
+
 ## Efficiency contract
 
 Use this bounded ordered orientation before writing. Take the tool calls needed
@@ -53,6 +60,18 @@ to establish each fact; this sequence is not a turn or tool limit:
 3. Identify runtime or dependency uncertainty.
 4. Estimate changed production files and handwritten lines.
 5. Select the smallest focused validation command.
+
+Use business-fit calibration: weigh business impact, plausible failure cost,
+expected lifetime and scale, reversibility, and repository conventions. Balance
+delivery speed, reliability, maintainability, and operational risk. Choose the
+smallest solution robust for actual need and credible risk with a focused,
+bounded blast radius. Respect target-project architecture: module boundaries,
+layering, and conventions; reuse existing logic, components, and helpers before
+adding an abstraction. Prevent underengineering that misses requirements,
+contracts, important invariants, credible failure modes, or changed-surface
+verification. Avoid overengineering:
+speculative abstractions, configuration, layers, generality, safeguards, process,
+or verification depth without proportionate concrete need or risk reduction.
 
 Before writing, return `variance` when a runtime or dependency assumption is
 unverified, an external port needs architectural adaptation, expected scope is

@@ -666,4 +666,36 @@ describe("engineering resources", () => {
       expect(resource).not.toMatch(/pi-extensions|packages\//iu);
     }
   });
+
+  it("preserves complete intent and right-sized engineering contracts", async () => {
+    expect.hasAssertions();
+    const [implement, review, readme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("skills/code-review/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(implement).toMatch(
+      /target-project context[\s\S]*every\s+named pitch[\s\S]*plan[\s\S]*request[\s\S]*later user decision/iu,
+    );
+    expect(implement).toMatch(
+      /business reason[\s\S]*infer[\s\S]*ask the human[\s\S]*implementation spec[\s\S]*Worker task/iu,
+    );
+    expect(implement).toMatch(
+      /business impact[\s\S]*reversibility[\s\S]*focused[\s\S]*module\s+boundaries[\s\S]*existing logic[\s\S]*underengineering[\s\S]*important invariants[\s\S]*overengineering[\s\S]*verification depth[\s\S]*proportionate concrete need/iu,
+    );
+    expect(review).toMatch(
+      /target-project context[\s\S]*every\s+named pitch[\s\S]*plan[\s\S]*request[\s\S]*later user decision/iu,
+    );
+    expect(review).toMatch(
+      /supplied work[\s\S]*right-sized[\s\S]*business impact[\s\S]*operational burden[\s\S]*concrete underengineering example[\s\S]*concrete overengineering example/iu,
+    );
+    expect(review).toMatch(
+      /exclude speculation[\s\S]*tooling-handled\s+style preferences[\s\S]*unrelated pre-existing issues[\s\S]*drive-by improvements[\s\S]*practical-impact severity[\s\S]*smallest sufficient correction[\s\S]*never inflate severity/iu,
+    );
+    expect(review).toMatch(
+      /Every finding must include:[\s\S]*smallest sufficient correction[\s\S]*primary agent[\s\S]*do not choose or implement/iu,
+    );
+    expect(readme).toMatch(/asks\s+the human[\s\S]*implementation spec[\s\S]*Worker\s+handoff/iu);
+  });
 });

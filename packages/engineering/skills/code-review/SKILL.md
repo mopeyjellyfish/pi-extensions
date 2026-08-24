@@ -34,17 +34,18 @@ If the ref does not resolve, the expected diff is empty, or the worktree changes
 during review, stop and ask for a stable boundary instead of reviewing a moving
 target.
 
-## 2. Read the pitch and plan
+## 2. Read complete intent
 
-The accepted pitch and accepted plan are the primary intent sources. Read their
-paths from the handoff or ask for them when the review is expected to follow a
-formal feature flow. Include later explicit user decisions that changed the
-accepted outcome.
-
-A bounded request, confirmed bug outcome, issue, or user-supplied intent is the
-fallback only when no formal pitch and plan exist. For a missing pitch or plan,
-state the gap as unavailable evidence; do not reconstruct intent from the
-implementation.
+Load inherited target-project context and every named pitch, plan, request, and
+later user decision from durable Intent sources.
+The accepted pitch and accepted plan are primary intent sources. Read the
+accepted pitch and plan paths from the handoff, or ask for those paths when the
+review is expected to follow a formal feature flow. A bounded request, confirmed
+bug outcome, issue, or user-supplied intent is the fallback only when no formal
+pitch and plan exist. For a plan-less handoff, read the complete bounded request
+and later user decisions, not a conversation transcript.
+For a missing pitch or plan, state the gap as unavailable evidence; do not
+reconstruct intent from the implementation.
 
 For the **Pitch and plan** axis, check:
 
@@ -108,29 +109,45 @@ wins, and a smell name is never evidence by itself.
 - **Refused Bequest** — an implementation inherits a contract it mostly ignores.
   Prefer composition or a smaller interface.
 
-## 5. Review both axes in one pass
+## 5. Review supplied work
 
 Trace changed behavior through callers, tests, failure paths, and public seams in
 proportion to risk. Review correctness, regression, security, performance, edge
 cases, falsifiable tests, architecture, testability, and maintainability. Apply
 `codebase-design` vocabulary when module shape or a test seam changed.
 
-Keep observations separate from findings. Tool-enforced style, unsupported
-speculation, broad cleanup outside the diff, and a preferred alternative without
-a concrete consequence are not findings.
+Evaluate supplied work for right-sized engineering; do not open a design
+exercise. Calibrate practical impact to business impact, plausible failure cost,
+expected lifetime and scale, reversibility, repository conventions, and
+operational burden. Balance delivery speed, reliability, maintainability, and
+operational risk. A concrete underengineering example is a missing contract,
+important invariant, credible failure mode, or changed-surface verification. A
+concrete overengineering example is a speculative abstraction, configuration,
+layer, generality, safeguard, process, or verification depth without
+proportionate concrete need or risk reduction, keeping review right-sized.
 
-## 6. Report actionable findings
+Keep observations separate from findings. Exclude speculation, tooling-handled
+style preferences, unrelated pre-existing issues, drive-by improvements, broad
+cleanup outside the diff, and preferred alternatives without concrete
+consequence.
 
-Order material findings by blocker, high, medium, then low. Every finding must
-include:
+## 6. Report only concrete actionable issues
+
+Report only concrete actionable issues with practical-impact severity and the
+smallest sufficient correction. Prioritize practical impact; order findings by
+blocker, high, medium, then low, and never inflate severity.
+
+Every finding must include:
 
 - file and location;
 - **Pitch and plan**, **Standards**, or both axes;
 - cited requirement, repository rule, reference question, or changed evidence;
 - concrete consequence;
 - confidence and unavailable evidence; and
-- the smallest useful correction direction without making the edit.
+- the smallest sufficient correction direction without making the edit.
 
-Then summarize what was checked, what could not be checked, and the finding
-count by axis. If no material finding remains, say so plainly. No finding
+Identify and escalate material architecture or business decisions for the
+primary agent instead of opening a design exercise; do not choose or implement
+them. Then summarize what was checked, what could not be checked, and the
+finding count by axis. If no material finding remains, say so plainly. No finding
 authorizes edits, commits, pushes, or other mutations.
