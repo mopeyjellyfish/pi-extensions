@@ -1,27 +1,73 @@
 # Delight
 
-Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` under Apache-2.0.
+> **Additional context needed**: the brand's emotional range.
 
-## Scope
+Make the experience memorable at moments that earn it. Delight is not a layer of generic whimsy; it is product character revealed through a useful interaction, a humane response, or an unexpectedly considered detail.
 
-Add restrained, product-specific moments that reward progress or make an occasional interaction memorable without delaying the task.
+---
 
-## Diagnose
+## Product UI focus
 
-Find meaningful success, discovery, empty, transition, or recovery moments; assess frequency, emotional context, product voice, interruption risk, and whether delight should be visual, verbal, tactile, or absent.
+Concentrate delight at meaningful moments such as first use, completion, recovery, or mastery. Reliability carries everything else.
 
-## Evidence
+## Find the opportunity
 
-Show trigger, duration, repetition, dismissal, reduced-motion behavior, sound or haptic alternatives when relevant, and the unaffected primary task.
+Inspect the target, `DESIGN.md`, product voice, repeated-use frequency, and emotional context. Look for:
 
-## Guardrails
+- effort worth acknowledging;
+- waiting that can become informative;
+- an empty or first-use state that can orient;
+- an error or recovery moment that needs empathy;
+- an interaction whose physical or verbal response could express the brand;
+- a useful capability people might enjoy discovering.
 
-Do not joke during risk or failure, celebrate routine actions repeatedly, add decorative animation everywhere, hide progress, surprise with sound, or substitute charm for clarity.
+Do not manufacture a celebration for an ordinary click. Ask only when the brand's emotional range or the stakes cannot be inferred.
 
-## Handoff
+## Define one delight thesis
 
-Reuse the product signature and established motion/content systems. Delegate behavioral implementation to `implement` or `developing-changes` when available.
+State in one sentence what the user should feel and why that feeling belongs to this product. Then choose the smallest system that can deliver it:
 
-## Completion
+- a distinctive response to a meaningful action;
+- product-specific language that clarifies while carrying voice;
+- an interaction or transition with a recognizable material behavior;
+- an illustration, sound, haptic, or environmental detail grounded in the product world;
+- a discovery reward that reveals real utility.
 
-The moment feels specific to the product, occurs at the right frequency, respects preferences, and leaves the workflow faster or unchanged.
+Derive the treatment from product mechanism and visual world, not a stock catalog.
+
+## Build for the emotional moment
+
+- **Success:** match the response to the effort and consequence. Major milestones can expand; routine saves should simply feel certain.
+- **Waiting:** show truthful progress, useful context, or product-specific activity. Never fake work or delay completion to stage a flourish.
+- **Empty and first use:** make the next action clear before adding personality.
+- **Error and recovery:** lead with the problem and recovery. Warmth may reduce stress; jokes must not trivialize loss, money, privacy, or blocked work.
+- **Repeated interaction:** keep the response satisfying after the hundredth use. Variation is useful only when it remains coherent and predictable enough to trust.
+- **Discovery:** reward curiosity without hiding required functionality.
+
+Copy must use the product's language. Generic whimsy is worse than neutral clarity.
+
+## Protect the experience
+
+Delight must not:
+
+- delay, block, or obscure the primary task;
+- override platform conventions or accessibility;
+- add unrequested factual claims;
+- play sound without consent or ignore mute settings;
+- become mandatory, unskippable, or exhausting on repeat;
+- add a dependency or asset cost disproportionate to the moment.
+
+For authored motion, load animate.md. Respect screen readers, keyboard use, touch, localization, and cultural context. Nonessential loops stop when hidden. Make celebration intensity proportional to frequency and consequence.
+
+## Verify
+
+- The moment is specific enough that a neighboring product could not use it unchanged.
+- It improves comprehension, confidence, motivation, or emotional recovery.
+- The interface remains fast and obvious without the flourish.
+- Repetition does not turn charm into friction.
+- Muted, keyboard, touch, and localized paths work.
+- The result feels like the selected world, not a generic “delight” treatment.
+
+## Repository-native boundary
+
+Use target-repository instructions, installed tools, and owned commands. Do not add runtime helpers, hidden state, or command entrypoints. For a behavior-changing edit, follow the target repository’s implementation and verification workflow; report unavailable proof plainly.

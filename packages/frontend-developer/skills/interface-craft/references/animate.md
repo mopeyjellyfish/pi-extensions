@@ -1,27 +1,91 @@
 # Animate
 
-Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` under Apache-2.0.
+> **Additional context needed**: performance constraints.
 
-## Scope
+Use motion to explain state, relationship, and hierarchy, or to create one authored moment the surface has earned. Decoration without purpose is animation debt.
 
-Add or correct motion that explains state, cause and effect, spatial relationship, or progress.
+---
 
-## Diagnose
+## Product UI focus
 
-For each candidate, name the state change, frequency, user benefit, interruption risk, performance cost, and reduced-motion alternative. Remove motion from high-frequency paths when it slows work.
+Motion serves feedback, state, and continuity. Keep routine transitions fast and do not make users wait through page-load choreography. Reserve a single authored focal sequence for a meaningful product moment.
 
-## Evidence
+## Find the job
 
-Capture trigger, origin, duration, easing, interruption, exit, focus behavior, frame stability, and reduced-motion behavior in representative interactions.
+Inspect the existing motion language, interaction states, target devices, and performance budget. Find only the places where motion would:
 
-## Guardrails
+- acknowledge an action;
+- make a state change or spatial relationship legible;
+- preserve continuity through navigation or layout change;
+- direct attention at a meaningful moment;
+- embody the selected visual world.
 
-Never animate merely to appear polished, use `transition: all`, block input, move focus, rely on motion alone, or casually animate layout-driving properties.
+Ask only when a material constraint cannot be inferred. Do not animate a static area merely because it exists.
 
-## Handoff
+## Set the motion thesis
 
-Reuse project motion tokens and exact properties. Delegate behavioral implementation to `implement` or `developing-changes` when available.
+Write a short plan before implementation:
 
-## Completion
+- **Focal moment:** the one sequence or interaction that deserves authorship, if any.
+- **Continuity:** the state, layout, or navigation changes that need explanation.
+- **Feedback:** the controls and outcomes that need acknowledgment.
+- **Budget:** which effects may be expensive and how often they run.
 
-Motion is purposeful, interruptible, performant, consistent, and understandable with reduced motion enabled.
+The focal moment must come from this product and surface concept. A generic fade-and-rise, hover lift, parallax layer, or scroll reveal is not a thesis.
+
+## Choose material by meaning
+
+Transform and opacity are reliable foundations, not the entire palette. Choose properties for what the transition communicates:
+
+- **Continuity and relationship:** shared-element motion, FLIP-style transforms, view transitions, or deliberate spatial movement.
+- **Focus and depth:** bounded blur, filter, backdrop, light, or shadow changes.
+- **Reveal and composition:** masks, clip paths, cropping, or controlled occlusion.
+- **Material and energy:** color, gradient position, texture, distortion, or shader effects when the world and runtime support them.
+- **State and feedback:** the smallest change that makes cause and result unmistakable.
+
+Do not stack techniques for spectacle. One strong material idea, carried through the focal sequence and quiet supporting states, is usually enough.
+
+Sibling stagger is appropriate when a list appears as a list. Cap the total delay, and never reinterpret every scrolled section as a staggered list.
+
+## Timing and easing
+
+Timing should express distance and consequence:
+
+| Duration   | Typical use                            |
+| ---------- | -------------------------------------- |
+| 100–150 ms | immediate feedback                     |
+| 150–300 ms | routine state change                   |
+| 300–500 ms | layout, overlay, or view transition    |
+| 500–800 ms | a deliberately authored focal entrance |
+
+Exit faster than entrance. Use natural deceleration such as `cubic-bezier(0.16, 1, 0.3, 1)` for confident arrivals; do not use bounce or elastic curves by reflex. Long feedback feels like latency.
+
+## Implement to the runtime
+
+- Use CSS transitions and keyframes for declarative state and bounded sequences.
+- Use Web Animations API or the project's existing motion library for interruption, sequencing, and dynamic values.
+- Use View Transitions or shared-element techniques when continuity across states is the point.
+- Use scroll-driven motion only when the scroll relationship itself carries meaning, with a robust fallback.
+- Do not add a dependency for an effect the existing stack can express cleanly.
+
+Keep content visible in the default state so failed scripts do not hide the page. Avoid casually animating layout-driving properties such as `width`, `height`, `top`, `left`, and margins; use FLIP, transforms, or grid techniques when appropriate. Bound blur, filter, shadow, canvas, and shader work to isolated regions. Apply `will-change` only during known animation. Measure on target viewports and devices rather than assuming transform means fast.
+
+## Accessibility and control
+
+Respect autoplay and sound preferences. Any nonessential loop must stop when offscreen or hidden.
+
+Every web animation needs a `prefers-reduced-motion` path with an intentional alternative. Remove or reduce spatial movement while preserving opacity, color, and state transitions that carry meaning. Reduced motion means fewer and gentler animations, not disabling all motion; feedback that confirms an action should remain legible.
+
+## Verify
+
+- The focal motion is specific to the selected world and surface.
+- Every supporting animation explains feedback, state, or relationship.
+- Interruption and repeated use behave correctly.
+- Desktop, mobile, and keyboard paths remain usable.
+- The `prefers-reduced-motion` path reduces movement without erasing meaningful feedback or state changes.
+- Expensive effects stay smooth on the target device.
+- Removing an animation would lose meaning or authored character, not merely decoration.
+
+## Repository-native boundary
+
+Use target-repository instructions, installed tools, and owned commands. Do not add runtime helpers, hidden state, or command entrypoints. For a behavior-changing edit, follow the target repository’s implementation and verification workflow; report unavailable proof plainly.

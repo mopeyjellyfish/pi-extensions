@@ -531,14 +531,31 @@ describe("package contracts", () => {
     await expect(validatePackage(await skillOnlyPackage())).resolves.toEqual([]);
   });
 
-  it("accepts the frontend package's approved dual-license expression only", async () => {
+  it("enforces the default MIT license and declarative package exceptions", async () => {
     expect.hasAssertions();
-    const descriptor = await fixtureWith({
+    const frontend = await fixtureWith({
       name: "@mopeyjellyfish/pi-frontend-developer",
       license: "MIT AND Apache-2.0",
     });
-    const errors = await validatePackage(descriptor);
-    expect(errors.filter((error) => error.includes("license must be"))).toEqual([]);
+    expect(
+      (await validatePackage(frontend)).filter((error) => error.includes("license must be")),
+    ).toEqual([]);
+
+    const future = await fixtureWith({
+      name: "@mopeyjellyfish/pi-future-skill",
+      license: "Apache-2.0",
+    });
+    await expect(validatePackage(future)).resolves.toContainEqual(
+      'minimal-extension: license must be "MIT".',
+    );
+
+    const wrongFrontend = await fixtureWith({
+      name: "@mopeyjellyfish/pi-frontend-developer",
+      license: "Apache-2.0",
+    });
+    await expect(validatePackage(wrongFrontend)).resolves.toContainEqual(
+      'minimal-extension: license must be "MIT AND Apache-2.0".',
+    );
   });
 
   it("discovers and validates every installable Pi package and skill", async () => {

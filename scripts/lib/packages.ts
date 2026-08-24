@@ -30,6 +30,12 @@ const FORBIDDEN_PACKED_PATH_COMPONENTS = new Set([
   "sessions",
 ]);
 
+const PACKAGE_LICENSE_EXCEPTIONS: Readonly<Record<string, string>> = {
+  "@mopeyjellyfish/pi-frontend-developer": "MIT AND Apache-2.0",
+  "@mopeyjellyfish/pi-grafana-skills": "Apache-2.0",
+};
+const DEFAULT_PACKAGE_LICENSE = "MIT";
+
 export interface PackageDescriptor {
   readonly kind: "fixture" | "production";
   readonly manifest: Record<string, unknown>;
@@ -199,12 +205,7 @@ function validateIdentity(descriptor: PackageDescriptor, errors: string[]): void
   if (manifest["type"] !== "module") {
     errors.push('type must be "module".');
   }
-  const requiredLicense =
-    name === "@mopeyjellyfish/pi-grafana-skills"
-      ? "Apache-2.0"
-      : name === "@mopeyjellyfish/pi-frontend-developer"
-        ? "MIT AND Apache-2.0"
-        : "MIT";
+  const requiredLicense = PACKAGE_LICENSE_EXCEPTIONS[name] ?? DEFAULT_PACKAGE_LICENSE;
   if (manifest["license"] !== requiredLicense) {
     errors.push(`license must be "${requiredLicense}".`);
   }

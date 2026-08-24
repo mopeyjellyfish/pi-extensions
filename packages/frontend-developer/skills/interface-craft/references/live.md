@@ -1,27 +1,58 @@
 # Live
 
-Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` under Apache-2.0.
+Use `live` for a bounded browser-evidence iteration on an existing web interface.
+It is a design and verification loop, not a replacement browser, server, review
+surface, command, or persistence layer. Use only browser, image, or board
+capabilities already installed in the target repository, and use the target's
+owned start and stop commands when a site must run.
 
-## Scope
+## Establish the target
 
-Iterate on an installed target site's real elements and states with browser, board, and image evidence when those capabilities are available.
+Identify the requested route, component, coherent element group, user task, and
+question that a variant must answer. Read target instructions, the relevant
+source, established tokens, sibling components, and `DESIGN.md` when present.
+A missing document is not evidence that the identity is absent: inspect computed
+styles, CSS variables, loaded type, copy voice, and neighboring patterns before
+proposing a change. Confirm representative viewport, content, interaction, and
+accessibility states. Ask one focused question only if a missing fact changes the
+direction.
 
-## Diagnose
+## Preserve identity before variation
 
-Confirm the target-owned start command, route, selected element or coherent group, current computed behavior, representative states, viewport matrix, design authority, and exact question the variants must answer.
+Write a short identity lock from observed evidence: dominant surface and accent
+roles, type pairing, layout topology, depth treatment, density, and voice. A
+normal iteration varies expression within that lock. A replacement visual world
+requires an explicit current request to redesign; it must still preserve product
+truth, function, accessible controls, and constraints.
 
-## Evidence
+For each option choose a distinct primary axis: hierarchy, structure, type,
+existing color roles, density, or progressive disclosure. Do not offer three
+minor spacing changes. For an action-specific request, make each option express
+that action differently: `layout` changes structure, `colorize` changes color
+strategy, `typeset` changes hierarchy, `bolder` amplifies a different dimension,
+and `quieter` removes a different source of noise. Keep choices comparable at
+the same route, state, and viewport.
 
-Capture the incumbent and each coherent variant at the same state and size, verify interactions and runtime errors, present reachable evidence, and record the selected direction and notes.
+## Apply and verify
 
-## Guardrails
+Use a small, reversible source change through the target repository's normal
+editing workflow. Keep semantic markup, keyboard behavior, visible focus,
+contrast, loading and error feedback, and reduced-motion alternatives intact.
+Do not paste preview-only wrappers, generated markup, temporary styles, or
+runtime artifacts into product source. If the request changes behavior, follow
+the target's implementation process rather than treating a visual comparison as
+behavioral proof.
 
-Do not vendor another live server, browser, question system, or hidden state; edit generated pixels as product code; bypass target command ownership; or infer approval from a visit, silence, or unsubmitted feedback.
-
-## Handoff
-
-Translate accepted visual evidence into native accessible implementation. Delegate behavior to `implement` or `developing-changes` when available and keep the target site separate from the review board.
+Capture or inspect the incumbent and each coherent result at equivalent sizes.
+Exercise the primary interaction with keyboard and pointer where applicable;
+check narrow, intermediate, and wide layouts; and inspect long, empty, loading,
+error, disabled, and success content that the path can encounter. Use an
+installed review board only when it is already available and distinguish board
+evidence from the target-owned site.
 
 ## Completion
 
-The accepted variant is implemented and rechecked against reachable browser evidence, or unavailable browser, board, site, and interaction proof is reported explicitly.
+Record the selected direction, exact source scope, evidence viewed, checks run,
+and remaining uncertainty. Recheck the accepted result after implementation.
+If browser, site, interaction, or review evidence is unavailable, do not invent
+it: state what was unavailable and the smallest next verification step.

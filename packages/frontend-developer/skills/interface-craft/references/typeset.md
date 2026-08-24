@@ -1,27 +1,83 @@
 # Typeset
 
-Modified from Impeccable 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48` under Apache-2.0.
+Typography carries information, hierarchy, and voice. Improve it inside the established visual world; do not replace the identity unless the user asked to.
 
-## Scope
+---
 
-Improve typographic hierarchy, readability, density, voice, and data scanning without rewriting factual content.
+## Product UI focus
 
-## Diagnose
+Stability, scanability, and measure come first. A single well-tuned family and fixed role scale are often right; use display contrast only when it improves task hierarchy.
 
-Inventory typefaces, roles, size ratio, weights, line heights, tracking, measure, numeral behavior, fallback loading, wrapping, localization, and where size-only hierarchy becomes flat.
+## Two isolated assessments
 
-## Evidence
+Do not let target-owned automated-check findings anchor the design assessment.
 
-Test real and extreme content at supported widths, 200% zoom, font fallback, dynamic numbers, headings, labels, tables, errors, and translated expansion.
+1. **Typographic assessment:** inspect representative pages and styles. Answer every question below with a file, selector, or computed value:
+   - **Authority and fit:** Which faces, weights, and roles are established? Do they fit the product and selected world, or are they unexamined defaults? Is every family necessary?
+   - **Hierarchy:** Can heading, body, label, metadata, and data roles be distinguished at a glance? Are adjacent sizes or weights too close to carry different jobs?
+   - **Scale and consistency:** Is there a deliberate role scale, or a collection of arbitrary values? Do repeated roles stay identical across screens and states?
+   - **Reading:** Does body copy stay within a comfortable 45–75 character measure? Are line height, paragraph rhythm, contrast, and tracking tuned to the actual face, width, language, and surface?
+   - **Stress:** What happens with long headings, localization expansion, zoom, narrow containers, missing weights, and font fallback?
+   - **Delivery:** Are only used assets loaded? Do fallback metrics, loading strategy, and variable-font settings avoid invisible text and disruptive reflow?
+2. **Automated-check pass:** run:
 
-## Guardrails
+Also inspect dynamic or arbitrary font values the automated checks cannot interpret. Synthesize both assessments before editing, noting what each caught alone. A clean scan is a floor, not proof of good typography.
 
-Preserve brand and platform constraints. Do not choose a fashionable font without purpose, add many weights, use uppercase without readability review, or fix hierarchy through size alone.
+## Set the system
 
-## Handoff
+Before editing, state:
 
-Define semantic roles and reusable tokens before local styling. Delegate implementation to `implement` or `developing-changes` when available.
+- the roles the interface needs;
+- the intended contrast between those roles;
+- the reading measure and density;
+- which existing faces and weights are authoritative;
+- any performance, localization, or accessibility constraints.
 
-## Completion
+Use the fewest roles and families that make the hierarchy unmistakable. Combine size, weight, space, and tone deliberately instead of asking size alone to do all the work. Role names and tokens should describe purpose rather than values.
 
-The reading order is unmistakable, text remains legible and stable under real content, and typography expresses the accepted product direction.
+## Apply
+
+- Keep body copy comfortably readable and zoomable. Use 1rem / 16px as the ordinary web body floor unless a dense role, platform convention, or user setting justifies otherwise.
+- Keep prose in the 45–75ch range. Tune line height inversely with measure: wider lines generally need more leading.
+- Compensate light text on dark surfaces on all three perceptual axes: slightly more line height, a touch more tracking, and one step more weight when the face needs it.
+- Tune line height to the face, width, language, and contrast, not a universal ratio.
+- Keep repeated roles consistent across screens and states.
+- Use numeric, tabular, code, and label features when their content benefits.
+- Load only used font assets and weights. Provide metric-compatible fallbacks and avoid blocking text.
+- Preserve browser zoom, user font settings, Dynamic Type, and platform text scaling.
+- Use paragraph spacing or first-line indentation as the primary paragraph rhythm; combining both usually double-marks the boundary.
+
+Do not make type decorative at the expense of comprehension, or introduce a second family without a clear role it alone can perform.
+
+## Verify
+
+- Primary, secondary, body, and metadata roles are recognizable without reading the copy.
+- Long text remains comfortable across relevant widths and languages.
+- The typography belongs to the product and its established world.
+- Loading does not create disruptive reflow or invisible text.
+- Zoom, text scaling, focus, contrast, and reduced viewport paths remain usable.
+- The final mechanical scan has no unexplained findings.
+
+Answer each item with rendered or source evidence, then rerun the scan. Do not substitute a bare “yes” for verification.
+
+## Live-mode signature params
+
+Every variant declares a coarse `scale` parameter and authors its type ramp against `var(--p-scale, 1)`.
+
+```json
+{
+  "id": "scale",
+  "kind": "range",
+  "min": 0.85,
+  "max": 1.3,
+  "step": 0.05,
+  "default": 1,
+  "label": "Scale"
+}
+```
+
+Add at most one pairing or weight parameter when it represents a real system choice. Follow live.md's parameter contract.
+
+## Repository-native boundary
+
+Use target-repository instructions, installed tools, and owned commands. Do not add runtime helpers, hidden state, or command entrypoints. For a behavior-changing edit, follow the target repository’s implementation and verification workflow; report unavailable proof plainly.
