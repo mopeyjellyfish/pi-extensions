@@ -265,7 +265,7 @@ Atomic commit: `feat(pi-feature-flow): add UI design gates` in delivery unit 1. 
 - Feature-flow has no hard frontend package or tool dependency and preserves the direct-parent fallback.
 - Focused and feature-flow package tests pass.
 
-## [ ] 004 — UI delivery explicitly composes installed frontend skills
+## [x] 004 — UI delivery explicitly composes installed frontend skills
 
 ### Outcome and requirement trace
 
