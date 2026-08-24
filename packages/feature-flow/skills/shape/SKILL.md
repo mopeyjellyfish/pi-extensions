@@ -28,15 +28,19 @@ no-gos, material risks, authority, and observable acceptance criteria. Do not
 restate repository truth. Keep only decision-changing research; omit empty or
 non-decision research.
 
-For material user interface scope, when an applicable installed design capability
-is available, gather the smallest decision-changing interface evidence before
-pitch approval. Record the person and task, surface mode, current design authority,
-desired feel, focal workflow, representative states, responsive and accessibility
-constraints, operation needs, required visual decisions, and `DESIGN.md`
-disposition. For unresolved material visual direction, require image-backed
-directions and an explicit human choice when that evidence capability exists;
-otherwise record unmet evidence without pretending approval. Keep a bounded
-mechanical interface correction direct and do not add this ceremony.
+For material user interface scope, load and follow `frontend-design` before pitch
+approval when that installed capability is available. It may select
+`interface-craft`, `interface-design`, or `design-documentation` as the accepted
+method; Shape keeps product intent, unresolved-direction decisions, and approval
+ownership. Record the smallest decision-changing interface evidence: person and
+task, surface mode, current design authority, desired feel, focal workflow,
+representative states, responsive and accessibility constraints, operation
+needs, required visual decisions, and `DESIGN.md` disposition. For unresolved
+material visual direction, require image-backed directions and an explicit human
+choice when that evidence capability exists; otherwise record unmet evidence
+without pretending approval. Keep a bounded mechanical interface correction
+direct and do not add this ceremony. Use the direct-parent fallback when
+`frontend-design` is unavailable and record the unavailable evidence honestly.
 
 A pitch identifies vertical slices as smallest end-to-end behaviors with focused
 red and green proof. Planning groups dependent slices into the fewest coherent

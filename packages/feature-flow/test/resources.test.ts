@@ -266,7 +266,7 @@ describe("feature-flow resources", () => {
       read("README.md"),
     ]);
     expect(shape).toMatch(
-      /material user interface[\s\S]*applicable[\s\S]*design capability[\s\S]*before\s+pitch approval/iu,
+      /material user interface[\s\S]*load and follow `frontend-design`[\s\S]*before\s+pitch\s+approval[\s\S]*installed capability/iu,
     );
     for (const term of [
       "person and task",
@@ -284,7 +284,7 @@ describe("feature-flow resources", () => {
       expect(shape).toMatch(new RegExp(term.replaceAll(" ", "\\s+"), "iu"));
     expect(shape).toMatch(/`DESIGN\.md`/u);
     expect(shape).toMatch(
-      /unresolved material visual direction[\s\S]*image-backed[\s\S]*explicit human choice/iu,
+      /unresolved\s+material\s+visual\s+direction[\s\S]*image-backed[\s\S]*explicit\s+human\s+choice/iu,
     );
     expect(shape).toMatch(/mechanical[\s\S]*direct/iu);
     expect(planning).toMatch(/accepted interface\s+criteria[\s\S]*vertical slices/iu);
@@ -310,6 +310,32 @@ describe("feature-flow resources", () => {
     for (const source of [shape, planning, pitch, plan]) {
       expect(source).not.toMatch(/pi-extensions|packages\//iu);
       expect(source).not.toMatch(/npm (?:run|test)|GitHub Actions|\bFable\b|\bSol\b/iu);
+    }
+  });
+
+  it("composes installed frontend methods through material UI shaping and planning", async () => {
+    expect.hasAssertions();
+    const [shape, planning] = await Promise.all([
+      read("skills/shape/SKILL.md"),
+      read("skills/planning-changes/SKILL.md"),
+    ]);
+
+    expect(shape).toMatch(
+      /material user interface[\s\S]*load and follow `frontend-design`[\s\S]*before\s+pitch\s+approval[\s\S]*installed capability/iu,
+    );
+    expect(shape).toMatch(
+      /`frontend-design`[\s\S]*(?:`interface-craft`|`interface-design`|`design-documentation`)/u,
+    );
+    expect(shape).toMatch(/direct-parent fallback[\s\S]*`frontend-design`[^.]*unavailable/iu);
+    expect(planning).toMatch(/material UI[\s\S]*`frontend-development`/iu);
+    expect(planning).toMatch(/accepted design or operation method/iu);
+    expect(planning).toMatch(/`react-interface`[^.]*only for a React target/iu);
+    expect(planning).toMatch(/evidence capability[\s\S]*`visual-validation`/iu);
+    expect(planning).toMatch(/parent-owned[\s\S]*`design-documentation`[\s\S]*approval/iu);
+    expect(planning).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);
+
+    for (const resource of [shape, planning]) {
+      expect(resource).not.toMatch(/pi-extensions|packages\//iu);
     }
   });
 });
