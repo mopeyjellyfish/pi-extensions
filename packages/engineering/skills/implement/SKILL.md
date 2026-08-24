@@ -124,6 +124,16 @@ requires intended failing and passing proof at the approved public seam.
 Documentation, metadata, and mechanical work use the smallest focused validation
 that detects the intended error; do not manufacture a behavioral test.
 
+For material UI implementation, the executor must consume accepted design
+evidence and follow installed `frontend-development` plus the accepted
+implementation-time method. Load `react-interface` only when the target uses
+React. When an evidence capability exists, finish with `visual-validation`, a
+visual mismatch ledger, and recheck targets; otherwise return honest unmet-proof
+evidence. This routing does not take design approval ownership: the parent keeps
+that gate and unresolved direction decisions. If frontend methods are
+unavailable, the direct-parent fallback preserves the route and records the
+unmet method or proof.
+
 A confirmed bug outcome consumes the diagnosis evidence and regression seam
 from `diagnosing-bugs`. If the cause or outcome is unconfirmed, load and follow
 `diagnosing-bugs` before implementation. If that skill is unavailable, the

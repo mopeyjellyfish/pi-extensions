@@ -31,6 +31,13 @@ method. A read-only change review uses `code-review`. One bounded delivery unit 
 forecast or topology overhead; use the lightest route that preserves its
 objective proof.
 
+For bounded material UI work with accepted frontend evidence, route the accepted
+design evidence, selected frontend methods, and proof obligation to `implement`.
+Keep bounded mechanical UI edits direct when their objective check is sufficient.
+If `implement` or the selected frontend methods are unavailable, the direct-parent
+fallback preserves the accepted evidence and records the unmet implementation or
+proof honestly.
+
 The direct parent owns the user conversation, route choice, synthesis, final
 diff inspection, verification, and approval. Do not require a subagent package:
 each route retains its direct-parent fallback. If `shape` or
