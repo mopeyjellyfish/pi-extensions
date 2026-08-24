@@ -5,6 +5,7 @@ status: accepted
 # Plan: Integrated interface craft workflow
 
 Complete this delivery plan before implementation. It covers every accepted vertical slice, the critical path, dependencies, delivery units, and independent lanes.
+Slices 001 through 003 remain accepted and complete. This accepted addendum adds slice 004 plus the AC-014 wording correction that records the already approved collective `NOTICE.md` decision.
 
 ## Execution mode
 
@@ -14,7 +15,7 @@ Accept-all implementation is selected. Only explicit whole-plan approval confirm
 
 | Delivery unit | Branch                                | Pull request base | Vertical slices | Dependencies            | Lane/worktree owner                                                                |
 | ------------- | ------------------------------------- | ----------------- | --------------- | ----------------------- | ---------------------------------------------------------------------------------- |
-| 1             | `feat/integrate-impeccable-ui-skills` | `main`            | `001-003`       | accepted pitch and plan | serial implementation lane; current isolated worktree; one Worker writer at a time |
+| 1             | `feat/integrate-impeccable-ui-skills` | `main`            | `001-004`       | accepted pitch and plan | serial implementation lane; current isolated worktree; one Worker writer at a time |
 
 One delivery unit, one branch, and one pull request is intentional. Frontend operation routing, DESIGN.md behavior, and feature-flow integration form one public workflow and need one frozen review and validation boundary. The accepted pitch and plan share implementation publication. Atomic commits remain coherent package-owned changes inside this unit.
 
@@ -22,7 +23,7 @@ No stack is planned. The slices do not have enough independent merge value to ju
 
 ## Critical path, dependencies, and lanes
 
-Critical path: accepted plan → frontend operation catalog → first-class DESIGN.md workflow → conditional Shape/planning integration → focused package checks → source smoke → full repository check → frozen-diff review → bounded repairs and invalidated checks → one pull request.
+Critical path: accepted plan → frontend operation catalog → first-class DESIGN.md workflow → conditional Shape/planning integration → explicit frontend skill routing through implementation and visual proof → focused package checks → source smoke → full repository check → frozen-diff review → bounded repairs and invalidated checks → one pull request.
 
 All implementation is serial in the current routed worktree because slices 001 and 002 share `prompts/design.md`, frontend routing skills, `README.md`, and `test/resources.test.ts`; slice 003 depends on their final vocabulary. One implementation writer owns the worktree at a time. Read-only review may run independently only against a frozen diff.
 
@@ -30,7 +31,7 @@ Forecast:
 
 - active implementation lanes: 1;
 - delivery units and pull requests: 1 and 1;
-- expected implementation commits: 3 package-scoped feature commits, plus the already accepted pitch commit and the approved plan commit;
+- expected commits: 1 bounded plan-update commit followed by 3 atomic implementation commits, one for feature-flow, one for engineering, and one for the private root profile; retain the already reviewed pitch, plan, implementation, and review-repair commits;
 - integration points: `/design` routing into operation references and DESIGN.md; conditional feature-flow language into installed frontend capabilities; root source smoke discovering both packages;
 - expensive gates: frontend and feature-flow package tests, package validation, `npm run smoke:source`, `npm run check`, and deterministic Pi reload acceptance because prompt and skill resources change;
 - likely cascade cost: moderate because the frontend artifact becomes explicitly dual-licensed and exact resource, attribution, root-profile, packed-content, and feature-flow contracts change together.
@@ -40,6 +41,7 @@ Evidence invalidation map:
 - changing an operation name, routing rule, or operation reference invalidates slice 001 focused tests and frontend package tests;
 - changing DESIGN.md schema, precedence, approval, template, or document routing invalidates slice 002 focused tests and frontend package tests;
 - changing Shape/planning UI criteria, capability independence, templates, or lifecycle ownership invalidates slice 003 focused tests and feature-flow package tests;
+- changing conditional frontend skill selection, implementation handoff, fixed Worker skill access, or QA visual proof invalidates slice 004 focused feature-flow, engineering, root tooling, and profile tests;
 - changing shared frontend routing or README after slice 002 invalidates both slice 001 and 002 focused proof;
 - changing the frontend skill inventory invalidates the root `README.md` and `AGENTS.md` profile descriptions;
 - changing package manifests, approved license metadata, resource paths, or attribution inventory invalidates the root lockfile, package validator tests, package validation, packed-content proof, and source smoke;
@@ -101,7 +103,7 @@ Before production resource edits, add focused resource and tooling tests that fa
 - Pi discovery has no trigger-rich `interface-craft` frontmatter `description`, `/design` has no natural-language routing surface, and the catalog body has no operation router;
 - the required trigger phrases are absent or incomplete: “polish”, “audit”, “fix the layout”, “clarify”, “adapt”, “optimize”, “onboard”, “make bolder”, “make quieter”, “polish this”, “audit the settings flow”, “fix the mobile layout”, “make this calmer”, “improve onboarding”, “clarify the errors”, “document the design system”, “teach me this design system”, and “normalize”;
 - routing and `/shape`, `init`, `craft`, and `/impeccable` collision rules are absent;
-- dual-license metadata, complete Apache license text, retained upstream notice, modification markers, pinned provenance, and packed attribution inventory are absent;
+- dual-license metadata, complete Apache license text, retained upstream notice, collective package modification record, pinned provenance, and packed attribution inventory are absent;
 - the package validator does not yet accept the named frontend package’s exact dual-license expression;
 - forbidden Impeccable runtime/state strings are not guarded.
 
@@ -131,7 +133,7 @@ Atomic commit: `feat(pi-frontend-developer): add interface craft operations` in 
 - All 21 accepted operation references exist and are reachable through one catalog skill.
 - The skill frontmatter description exposes agent-selection triggers, its body routes operations, references own focused contracts, and `/design` exposes the human request surface without one prompt per verb.
 - `/shape` ownership, excluded `init`/`craft`/`/impeccable` names, mechanical-edit routing, evaluation-only behavior, and single engineering orchestration remain explicit.
-- Exact `MIT AND Apache-2.0` metadata, complete license text, retained notice content, provenance, modification notices, package-validator support, synchronized lock metadata, and packed inventory cover adapted content.
+- Exact `MIT AND Apache-2.0` metadata, complete license text, retained notice content, provenance, collective modification record, package-validator support, synchronized lock metadata, and packed inventory cover adapted content.
 - Focused, tooling, package, and package-validation tests pass with no forbidden runtime, hidden state, or repository-specific production path.
 
 ## [x] 002 — Humans and agents can safely create or reconcile DESIGN.md
@@ -263,16 +265,90 @@ Atomic commit: `feat(pi-feature-flow): add UI design gates` in delivery unit 1. 
 - Feature-flow has no hard frontend package or tool dependency and preserves the direct-parent fallback.
 - Focused and feature-flow package tests pass.
 
+## [ ] 004 — UI delivery explicitly composes installed frontend skills
+
+### Outcome and requirement trace
+
+Material UI work uses one explicit conditional skill chain from pitch evidence through implementation and visual proof. Shape loads `frontend-design`; planning records the applicable frontend methods on each interface slice; `developing-changes` preserves that route for bounded requests; and `implement` requires the executor to follow `frontend-development`, any applicable framework specialist, and `visual-validation`. The private root Worker exposes the implementation-time skills needed to honor this contract without making production packages depend on each other. QA remains a bounded verifier that runs only parent-named evidence and commands. This satisfies AC-017 and deepens AC-009 through AC-013.
+
+### Seam and files
+
+Public production seams:
+
+- `packages/feature-flow/skills/shape/SKILL.md`;
+- `packages/feature-flow/skills/planning-changes/SKILL.md`;
+- `packages/engineering/skills/developing-changes/SKILL.md`;
+- `packages/engineering/skills/implement/SKILL.md`;
+- `packages/feature-flow/test/resources.test.ts`;
+- `packages/engineering/test/resources.test.ts`.
+
+Private root-profile seams:
+
+- `agents/worker.md`;
+- `test/tooling/packages.test.ts`;
+- root `README.md` and `AGENTS.md` when their private-profile descriptions become inaccurate.
+
+Package READMEs change only when needed to keep their user-visible lifecycle descriptions accurate. No package manifest, runtime dependency, production tool, prompt, extension, or frontend skill implementation change is expected.
+
+### Dependencies
+
+Accepted interface evidence and operation vocabulary from slices 001 through 003. Installed frontend capabilities remain optional: feature-flow and engineering must preserve direct-parent fallbacks and cannot assume frontend-developer, React, browser, image, or board capabilities exist in a target repository. The private root profile may explicitly compose repository packages because its manifest already loads them together.
+
+### Execution lane and ownership
+
+`serial`; same task worktree and delivery unit. One Worker owns each atomic package or root-profile unit in order; no writers overlap.
+
+### Red proof
+
+Before production guidance changes, extend focused resource tests so the current vague capability language and missing implementation route fail. Prove:
+
+- material UI Shape explicitly loads installed `frontend-design`, which may select `interface-craft`, `interface-design`, or `design-documentation`, while Shape retains intent and approval ownership;
+- each material interface plan slice names installed `frontend-development`, its accepted design or operation method, `react-interface` only for React, `visual-validation` when evidence capability exists, and any parent-owned `design-documentation` gate;
+- `developing-changes` preserves accepted frontend evidence when routing bounded material UI work into `implement`, while bounded mechanical UI edits remain direct;
+- `implement` requires material UI executors to consume accepted design evidence, follow the selected implementation-time frontend methods, and finish with visual validation or an honest unmet-proof result without taking design approval ownership;
+- existing feature-flow portability guards remain unchanged: named skills are conditional, package paths and repository-specific resources remain forbidden, and direct-parent fallbacks remain explicit;
+- the private Worker exposes only `frontend-development`, `react-interface`, and `visual-validation`; every configured agent `skillPath` is proven to resolve to an installed skill directory. QA remains skill-independent and verifies only parent-named visual evidence or commands without rediscovery.
+
+Run the focused feature-flow, engineering, and root tooling resource tests and capture the intended failures.
+
+### Green proof and checks
+
+Add concise routing paragraphs at the existing material-UI and delivery seams. Do not duplicate the frontend skill methods. Shape and planning name optional installed skills; `developing-changes` and `implement` pass accepted evidence, selected methods, and proof obligations into the executor. Update the private Worker skill list, root-profile descriptions when needed, and exact root tooling tests. Keep design-board, image-generation, DESIGN.md approval, and product-direction decisions with the parent.
+
+Run:
+
+- `npm test -- --run packages/feature-flow/test/resources.test.ts`;
+- `npm test -- --run packages/engineering/test/resources.test.ts`;
+- `npm test -- --run test/tooling/packages.test.ts`;
+- `npm --workspace @mopeyjellyfish/pi-feature-flow test`;
+- `npm --workspace @mopeyjellyfish/pi-engineering test`;
+- `npm run packages:check`.
+
+Any later edit to these lifecycle skills, private agent profiles, or frontend skill inventory invalidates this proof and deterministic reload acceptance.
+
+### Atomic commit and pull request
+
+Atomic commits in delivery unit 1: `feat(pi-feature-flow): route UI pitches and plans through frontend skills`; `feat(pi-engineering): route UI implementation through frontend skills`; and `feat: expose frontend skills to the private Worker`. Pull-request base remains `main`; no stack position and no second pull request.
+
+### Done when
+
+- Shape, planning, and implementation name and compose the correct installed frontend skills for material UI work.
+- Accepted visual direction and operation evidence reach the implementation executor without moving product or approval ownership.
+- React and browser methods are conditional on the target stack and installed capabilities.
+- Independent production packages retain direct-parent fallbacks and no new dependency.
+- The private Worker can honor implementation and visual-validation routing, every configured skill path resolves, and QA retains its bounded parent-named verification contract.
+- Focused tests and package checks pass.
+
 ## Integration, review, and completion gates
 
-After all three slices and their atomic commits:
+After all four slices and their atomic commits:
 
 1. Inspect the complete diff and exact changed-file inventory. Confirm no generated files, sessions, credentials, sidecar state, hook manifests, dependencies, unapproved lockfile changes beyond the frontend license metadata, or unrelated formatting are present.
 2. Run `npm run smoke:source` to prove the edited source packages load together with Pi.
 3. Run `npm run check` against the final worktree. Run `npm run workflows:check` only if workflow files changed and `npm run security:check` only if dependency or installation mechanics changed; either change is forecast variance and should already have returned control.
-4. Start the deterministic Pi command from this worktree, confirm expected skills and prompts load without conflict diagnostics, run the focused automated tests, use `/reload` while idle, and verify `/design polish`, `/design audit`, `/design document`, natural skill discovery, and `/shape` ownership without duplicate registrations or stale state. Close package-owned resources on shutdown.
+4. Start the deterministic Pi command from this worktree, confirm expected skills, prompts, and private agents load without conflict diagnostics, run the focused automated tests, use `/reload` while idle, and verify `/design polish`, `/design audit`, `/design document`, and `/shape` ownership. Exercise one material-UI Shape → plan → implement handoff, confirm the plan names selected frontend skills, and confirm the fixed Worker exposes `frontend-development`, `react-interface`, and `visual-validation` without duplicate registrations or stale state. Close package-owned resources on shutdown.
 5. Freeze the green diff and run one read-only formal review against the accepted pitch, this plan, repository standards, attribution, package independence, trigger coverage, and forbidden runtime/state surface.
 6. Send material findings to the retained implementation Writer for the smallest repairs. Rerun every invalidated focused, package, smoke, and repository gate. Repeat gate 4 whenever a prompt, skill, reference, or template changed after reload acceptance. Stop on repeated or out-of-scope failures.
 7. Inspect final commits, `git status`, package contents, and residual risks. Use `open-pr` once for delivery unit 1. Do not merge or remove the worktree.
 
-The delivery unit is complete when AC-001 through AC-016 are traceable to green focused proof, source smoke and `npm run check` pass after the final edit, deterministic reload acceptance is recorded, formal review has no unresolved blocking findings, the branch contains only approved atomic units, and one bounded pull request is ready for human review.
+The delivery unit is complete when AC-001 through AC-017 are traceable to green focused proof, source smoke and `npm run check` pass after the final edit, deterministic reload acceptance is recorded, formal review has no unresolved blocking findings, the branch contains only approved atomic units, and one bounded pull request is ready for human review.
