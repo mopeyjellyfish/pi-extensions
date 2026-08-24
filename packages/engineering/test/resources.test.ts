@@ -642,9 +642,10 @@ describe("engineering resources", () => {
 
   it("preserves accepted frontend evidence through material UI implementation", async () => {
     expect.hasAssertions();
-    const [router, implement] = await Promise.all([
+    const [router, implement, readme] = await Promise.all([
       read("skills/developing-changes/SKILL.md"),
       read("skills/implement/SKILL.md"),
+      read("README.md"),
     ]);
 
     expect(router).toMatch(
@@ -658,6 +659,8 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/`visual-validation`[\s\S]*(?:mismatch ledger|honest unmet-proof)/iu);
     expect(implement).toMatch(/does not take design approval ownership/iu);
     expect(implement).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);
+    expect(readme).toMatch(/material UI evidence[\s\S]*frontend methods[\s\S]*`implement`/iu);
+    expect(readme).toMatch(/mechanical UI[^.]*direct/iu);
 
     for (const resource of [router, implement]) {
       expect(resource).not.toMatch(/pi-extensions|packages\//iu);
