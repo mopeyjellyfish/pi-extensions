@@ -82,6 +82,16 @@ function parseAgentFrontmatter(source: string): Record<string, unknown> {
   return fields;
 }
 
+function assertAgentSkillPath(value: unknown): asserts value is string | string[] | undefined {
+  if (
+    value !== undefined &&
+    typeof value !== "string" &&
+    (!Array.isArray(value) || value.some((entry) => typeof entry !== "string"))
+  ) {
+    throw new TypeError("Agent skillPath must be a string or an array of strings.");
+  }
+}
+
 afterEach(async () => {
   await Promise.all(
     temporaryRoots.splice(0).map(async (root) => {
@@ -290,15 +300,13 @@ describe("package contracts", () => {
       expect(agent["defaultModel"]).toBeUndefined();
       expect(agent["tools"]).toEqual(contract.tools);
       expect(agent["skills"] ?? []).toEqual(contract.skills);
-      const skillPaths =
-        agent["skillPath"] === undefined
-          ? []
-          : Array.isArray(agent["skillPath"])
-            ? agent["skillPath"]
-            : [agent["skillPath"]];
+      const skillPath = agent["skillPath"];
+      assertAgentSkillPath(skillPath);
+      const skillPaths: string[] =
+        skillPath === undefined ? [] : Array.isArray(skillPath) ? skillPath : [skillPath];
       expect(skillPaths).toEqual(contract.skillPaths);
-      for (const skillPath of skillPaths) {
-        expect(await readdir(join(agentsRoot, skillPath))).toContain("SKILL.md");
+      for (const resolvedSkillPath of skillPaths) {
+        expect(await readdir(join(agentsRoot, resolvedSkillPath))).toContain("SKILL.md");
       }
     }
     const [reviewer, git] = await Promise.all([
