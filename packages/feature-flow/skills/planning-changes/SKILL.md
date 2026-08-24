@@ -68,15 +68,19 @@ dependencies; serialize them instead. Planning does not implement or start
 parallel work.
 
 When the accepted pitch contains material UI scope, trace its accepted interface
-criteria into vertical slices. Each relevant slice names representative states,
-responsive surfaces, accessibility paths, design-system reuse, and
-operation-specific checks. When applicable evidence capabilities exist, also
-name target-owned browser evidence and a visual mismatch ledger: a prioritized
-list of observed differences, likely causes, and recheck targets. If direction
-remains provisional, order a design-evidence slice before UI implementation.
-Plan a separate `DESIGN.md` approval gate when durable decisions should persist.
-An applicable design method supplies context and evidence; `implement` retains
-engineering orchestration and approval ownership.
+criteria into vertical slices. Each relevant interface slice names
+`frontend-development`, the accepted design or operation method, representative
+states, responsive surfaces, accessibility paths, design-system reuse, and
+operation-specific checks. Name `react-interface` only for a React target. When
+an evidence capability exists, name `visual-validation`, target-owned browser
+evidence, and a visual mismatch ledger: a prioritized list of observed
+differences, likely causes, and recheck targets. If direction remains
+provisional, order a design-evidence slice before UI implementation. Plan a
+parent-owned `design-documentation` and `DESIGN.md` approval gate when durable
+decisions should persist. Frontend methods supply context, implementation, and
+proof; `implement` retains engineering orchestration. If these installed frontend
+methods are unavailable, use the direct-parent fallback and record the unmet
+method or proof honestly.
 
 When a slice changes module shape, use `codebase-design` vocabulary when
 available. Otherwise use a direct-parent evidence-based fallback: current and
