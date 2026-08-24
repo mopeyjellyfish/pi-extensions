@@ -53,6 +53,8 @@ hard-to-reverse, or risky work Shapes then plans. A confirmed bug outcome then
 goes to `implement`. It uses uncertainty, reversibility, risk, affected
 boundaries, and coordination cost, not file count alone. It asks one focused
 question only at a material boundary.
+Accepted material UI evidence and selected installed frontend methods continue
+into `implement`; bounded mechanical UI work remains direct.
 
 `/just-do-it <request>` sets up the worktree first and immediately gives one
 fresh Worker the explicit mechanical scope and objective before-and-after
