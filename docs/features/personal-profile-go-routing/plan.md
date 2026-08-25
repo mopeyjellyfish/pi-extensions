@@ -6,11 +6,18 @@ status: accepted
 
 Intent source: [`pitch.md`](./pitch.md), accepted on `feat/go-skills`.
 
-Mandatory pre-approval Go specification review: **Approved**.
+## Review evidence
 
-This plan delivers the complete personal aggregate and evidence-based Go routing
-in one serial delivery unit. It updates PR #99 because the routing depends on the
-three Go skills introduced on that branch.
+- **Applicability:** Go-targeted because this plan changes Go-specific guidance
+  and routing applied to future Go work.
+- **Fixed document:** This plan after the accepted LSP compatibility decision.
+- **Status:** Approved after slice 001 reconciliation.
+- **Invalidation:** The LSP exclusion changed slice 001 and invalidated the
+  original review; the remaining slices and delivery boundary are unchanged.
+
+This plan delivers the complete compatible personal aggregate and evidence-based
+Go routing in one serial delivery unit. It updates PR #99 because the routing
+depends on the three Go skills introduced on that branch.
 
 ## Execution mode
 
@@ -76,11 +83,12 @@ Invalidation map:
 
 ### Outcome and requirement trace
 
-The root profile loads every local production extension and skill exactly once,
-uses package-directory paths for local skills, removes the redundant root
-Grafana dependency, and accurately documents the complete personal profile.
+The root profile loads every compatible local production extension and every
+local skill exactly once, uses package-directory paths for local skills, keeps
+the conflicting LSP extension optional, removes the redundant root Grafana
+dependency, and accurately documents the complete compatible personal profile.
 
-Traces: AC-001, AC-002, and the aggregate parts of AC-009.
+Traces: revised AC-001, AC-002, and the aggregate parts of AC-009.
 
 ### Seam and files
 
@@ -98,17 +106,19 @@ Likely files:
 - `packages/README.md`
 - `docs/architecture.md`
 
-Keep local extensions in package-name order, followed by external extensions:
-`frontend-developer`, `hashline`, `lsp`, `playwright-cleanup`, `question`,
+Keep compatible local extensions in package-name order, followed by external
+extensions: `frontend-developer`, `hashline`, `playwright-cleanup`, `question`,
 `simple-english`, `status-line`, `todo`, `web-search`, `worktrunk`, then
-`pi-claude-bridge` and `pi-subagents`. Keep skills in workflow order:
-`feature-flow`, `engineering`, `productivity`, `simple-english`,
-`git-conventions`, `github`, `worktrunk`, `frontend-developer`, `go`, and
-`grafana-skills`. Each local name represents its root-relative package resource
-path. Existing prompt coverage remains unchanged. Future prompt auto-inclusion
-is deliberately outside this feature: prompt entries stay explicit because the
-user selected every extension and skill, and the current profile already
-includes every local prompt-bearing package.
+`pi-claude-bridge` and `pi-subagents`. `lsp` is the one approved local extension
+exception because its `write` and `edit` registrations conflict with Hashline.
+Keep skills in workflow order: `feature-flow`, `engineering`, `productivity`,
+`simple-english`, `git-conventions`, `github`, `worktrunk`,
+`frontend-developer`, `go`, and `grafana-skills`. Each local name represents its
+root-relative package resource path. Existing prompt coverage remains unchanged.
+Future prompt auto-inclusion is deliberately outside this feature: prompt
+entries stay explicit because the user selected every compatible extension and
+every skill, and the current profile already includes every local prompt-bearing
+package.
 
 ### Dependencies
 
@@ -120,36 +130,45 @@ Serial in the current linked worktree. One writer owns all files in this slice.
 
 ### Red proof
 
-First update the exact root-profile expectation in
-`test/tooling/packages.test.ts` to require every accepted extension and skill,
-local Grafana path, and dependency removal. Add a behavior test that introduces
-a synthetic production package resource under a temporary root and proves that
-profile validation rejects its omission. When `packages/` exists and contains
-production packages, the validator derives required local extension and skill
-paths from `discoverProductionPackages(root)`. Map each package-manifest resource
-entry to the same root-relative path under `./packages/<directory>/`; deduplicate
-identical mapped paths, and do not broaden a future package's specific declared
-subdirectory to all of `skills/`. Compare derived and configured local resources
-as sets; the explicit `ROOT_PROFILE` still fixes their order and allowed
-external resources. Guard discovery with `pathExists`, and convert a malformed
-package discovery failure into a returned validation error rather than throwing.
-Prompt completeness remains outside the derived check. Replace the synthetic
-additional-resource fixture that currently reuses the future legitimate LSP
-path. Run:
+The initial slice red was already captured before the in-flight Worker changes:
+the updated complete-profile contract failed against the old root manifest. The
+current uncommitted state passes 41 focused root-profile tests and
+`npm run packages:check`, but source smoke is red with the verified LSP/Hashline
+tool conflicts. Do not reconstruct the completed initial red.
+
+For the remaining compatibility delta, first update
+`test/tooling/packages.test.ts` to remove LSP from the exact profile and add
+tests for a named `ROOT_EXTENSION_EXCEPTIONS` reason contract. The tests must
+prove:
+
+- the LSP omission is accepted only for
+  `./packages/lsp/src/index.ts` with the verified conflict reason;
+- re-adding that path is rejected with the reason in the validation evidence;
+- any other omitted future extension and any omitted skill still fail; and
+- when an `lsp` production package exists, the exception becomes stale and fails
+  if its manifest stops declaring that exact resource.
+
+Arbitrary temporary roots without an `lsp` package do not treat the exception as
+stale. Keep the implemented `pathExists` guard, discovery error collection, and
+literal manifest-entry-to-root-relative mapping. A future glob resource is not
+silently expanded by this slice; it must receive explicit completeness support
+before root validation accepts it. Prompt completeness remains outside the
+derived check. Run:
 
 ```sh
 npm test -- --run test/tooling/packages.test.ts
 ```
 
-It must fail against the old manifest, validator constants, and missing
-completeness check for the intended reasons.
+It must fail because the current manifest and validator still include LSP and
+have no named exception contract.
 
 ### Green proof and checks
 
-Update the root manifest, both validator constants (`ROOT_PROFILE` and
-`ROOT_DEPENDENCIES`), both test mirrors, lockfile, Knip dependency ignore, and
-profile documentation. Regenerate dependency metadata with the declared npm
-setup rather than editing the lockfile by hand. Run:
+Preserve the completed complete-profile, dependency, lockfile, Knip, and current
+documentation work. Remove LSP only from `package.json`, `ROOT_PROFILE`, and the
+test mirror; add the reasoned exception validation and tests; then correct all
+current documentation claims, including the loaded-profile bullet in
+`README.md`. Run:
 
 ```sh
 npm test -- --run test/tooling/packages.test.ts
@@ -157,9 +176,10 @@ npm run packages:check
 npm run smoke:source
 ```
 
-The tests must verify exact ordered resource lists, no duplicates, future local
-extension and skill completeness, the reduced root dependency set, and
-successful source loading.
+The tests must verify exact ordered resource lists, no duplicates, the one
+reasoned LSP extension exception and its rot guard, future compatible extension
+and all-skill completeness, the reduced root dependency set, and successful
+source loading.
 
 ### Atomic commit and pull request
 
@@ -169,15 +189,17 @@ Delivery unit 1 in PR #99. Do not publish between slices.
 
 ### Done when
 
-- Root manifest and validator agree on every local extension and skill, and a
+- Root manifest and validator agree on every compatible local extension and
+  every local skill; the LSP exception is exact, reasoned, rot-guarded, and a
   synthetic future package cannot be omitted silently.
 - Local Feature Flow and Grafana skills use package-directory paths.
-- The redundant root Grafana dependency and stale Knip ignore at
-  `knip.config.ts:12` are removed, with lockfile metadata synchronized.
-- Rename the `keeps the private root profile curated` test to match the complete
-  profile contract. Update current claims at `AGENTS.md:96`,
-  `packages/README.md:34`, `README.md:5`, and `README.md:256`; do not rewrite
-  historical plans or accepted feature documents.
+- The redundant root Grafana dependency is absent and the lockfile remains
+  synchronized. Preserve the required `@playwright/cli` Knip ignore now at
+  `knip.config.ts:12`.
+- The complete-profile test keeps its current name. Update current claims at
+  `AGENTS.md:96`, `packages/README.md:34`, `docs/architecture.md:5`,
+  `README.md:5`, `README.md:40`, and `README.md:256`; document LSP as optional
+  and do not rewrite historical plans or accepted feature documents.
 - Focused root profile, package, and source smoke checks pass.
 
 ## [ ] 002 — Require Go specification review in Shape and planning
@@ -185,9 +207,12 @@ Delivery unit 1 in PR #99. Do not publish between slices.
 ### Outcome and requirement trace
 
 Every Go-targeted pitch and plan loads applicable Go standards and receives one
-fixed-document `go-spec-reviewer` pass before approval. The pass consumes the
-existing independent-review budget, has explicit invalidation rules, and uses a
-Reviewer mode that cannot be confused with fixed-diff code review.
+fixed-document `go-spec-reviewer` pass before approval. Go-targeted means the
+proposed outcome changes Go source, a Go module, a Go CLI, or Go-specific
+guidance and routing; an unrelated `go.mod` or Go toolchain gate alone is not
+enough. The pass consumes the existing independent-review budget, has explicit
+invalidation rules, and uses a Reviewer mode that cannot be confused with
+fixed-diff code review.
 
 Traces: AC-003, AC-004, AC-006 (Reviewer), AC-007, AC-008, and the Feature Flow
 parts of AC-009.
@@ -200,6 +225,8 @@ Likely files:
 
 - `packages/feature-flow/skills/shape/SKILL.md`
 - `packages/feature-flow/skills/planning-changes/SKILL.md`
+- `packages/feature-flow/skills/shape/templates/pitch.md`
+- `packages/feature-flow/skills/shape/templates/plan.md`
 - `packages/feature-flow/README.md`
 - `packages/feature-flow/test/resources.test.ts`
 - `agents/reviewer.md`
@@ -210,15 +237,22 @@ Likely files:
 Reviewer keeps its current `code-review` and `codebase-design` skills and adds,
 in order, `go-spec-reviewer`, `go`, and `cobra-viper`. Their corresponding paths
 are exactly `../packages/go/skills/go-spec-reviewer`,
-`../packages/go/skills/go`, and `../packages/go/skills/cobra-viper`. Its task
-contract selects either `Review mode: fixed-document Go specification` or
-`Review mode: fixed-diff code`.
+`../packages/go/skills/go`, and `../packages/go/skills/cobra-viper`. Introduce
+`Review mode: fixed-document Go specification` and
+`Review mode: fixed-diff code`; an omitted token defaults to fixed-diff code for
+backward compatibility. The Reviewer charter states that caller-supplied
+resolved skill references supersede the Go review skill's illustrative paths.
+The parent owns material-revision classification and records applicability,
+fixed document, status, and invalidation reason in the templates' unconditional
+`Review evidence` section. Non-Go documents record `not applicable`.
 
 ### Dependencies
 
 Slice 001 makes the Go skills available in the root profile. Independent
-Feature Flow installs still use installed-capability checks and direct-parent
-fallback.
+Feature Flow installs attempt skill resolution by installed name through the
+host. When unavailable, the direct parent records the unmet Go method, completes
+the bounded review from target-repository standards, and may proceed to approval
+without pretending that the skill loaded.
 
 ### Execution lane and ownership
 
@@ -228,12 +262,18 @@ Serial in the current linked worktree after slice 001.
 
 Add Feature Flow and agent contract assertions for:
 
-- evidence-based Go and CLI applicability;
-- one mandatory pre-approval spec review;
-- review-budget consumption and replacement only after proposed-solution,
-  boundary, authority, or acceptance-criterion changes;
-- explicit fixed-document mode, resolved skill references, issue resolution,
-  and direct-parent fallback; and
+- evidence-based Go and CLI applicability, including the negative toolchain-only
+  case and the guidance-only bounded review case;
+- one mandatory pre-approval spec review that intentionally consumes the one
+  independent-review budget while the parent keeps other standards inline;
+- review-budget consumption, parent-owned recorded invalidation, and replacement
+  only after proposed-solution, boundary, authority, or acceptance-criterion
+  changes;
+- unconditional template `Review evidence` sections with assertable fields and
+  `not applicable` for non-Go documents;
+- explicit fixed-document and fixed-diff modes, backward-compatible default,
+  caller-supplied resolved references that supersede illustrative paths, issue
+  resolution, and named-resolution fallback that may proceed; and
 - the Reviewer's exact skills, skill paths, description, and dual-mode charter.
 
 Run:
@@ -269,24 +309,27 @@ supporting root files into an independent commit.
 
 - Shape and planning enforce one applicable Go spec review before approval.
 - The one-review budget, invalidation rule, issue handling, and human approval
-  behavior are unambiguous.
-- Reviewer can perform fixed-document Go review inline and retains fixed-diff
-  code review as a separate mode.
-- Feature Flow remains usable without the Go package or configured Reviewer and
-  states the honest fallback.
+  behavior are unambiguous and recorded in `Review evidence`.
+- Reviewer performs fixed-document Go review inline, uses caller-supplied
+  resolved references, retains fixed-diff code review as a separate mode, and
+  defaults omitted tokens to fixed-diff behavior.
+- Feature Flow remains usable without the Go package or configured Reviewer,
+  attempts installed skill resolution by name, and states the honest fallback.
 - Focused Feature Flow and agent tests pass.
 
 ## [ ] 003 — Route Go guidance through backend engineering work
 
 ### Outcome and requirement trace
 
-Go review, diagnosis, testing, implementation, refactoring, and architecture
-analysis load `go`; Cobra/Viper guidance loads only when CLI evidence applies.
-Fresh Worker and Reviewer runs have the required local skill paths, while
-independent Engineering installs retain capability checks and direct-parent
-fallback.
+Go review, diagnosis, testing, implementation, refactoring, module design,
+domain modeling, architecture analysis, and bounded mechanical Go work load
+`go`; Cobra/Viper guidance loads only when CLI evidence applies. Fresh Worker
+and Reviewer runs have the required local skill paths, while independent
+Engineering installs attempt named skill resolution and retain an honest
+direct-parent fallback.
 
-Traces: AC-005, AC-006 (Worker), AC-008, and the Engineering parts of AC-009.
+Traces: AC-005, AC-006 (Worker), AC-007 (fixed-diff callers), AC-008, and the
+Engineering parts of AC-009.
 
 ### Seam and files
 
@@ -299,6 +342,9 @@ Likely files:
   additions after the pinned upstream boundary
 - `packages/engineering/skills/test-driven-development/SKILL.md`
 - `packages/engineering/skills/implement/SKILL.md`
+- `packages/engineering/skills/just-do-it/SKILL.md`
+- `packages/engineering/skills/codebase-design/SKILL.md`
+- `packages/engineering/skills/domain-modeling/SKILL.md`
 - `packages/engineering/skills/improve-codebase-architecture/SKILL.md`
 - `packages/engineering/skills/code-review/SKILL.md`
 - `packages/engineering/README.md`
@@ -312,9 +358,10 @@ Likely files:
 Worker keeps its current skills and adds `go` and `cobra-viper`, with exact paths
 `../packages/go/skills/go` and `../packages/go/skills/cobra-viper`. Slice 003 may
 update Reviewer prose for Go code-review applicability but must not change the
-final Reviewer skill arrays established in slice 002. Code review applies
-precedence in this order: target repository instructions and module contracts;
-applicable Go and Cobra/Viper standards; then concrete
+final Reviewer skill arrays established in slice 002. `implement` and
+`just-do-it` send `Review mode: fixed-diff code` in formal review handoffs. Code
+review applies precedence in this order: target repository instructions and
+module contracts; applicable Go and Cobra/Viper standards; then concrete
 `code-review/references/go.md` questions. It reports only practical consequences
 and does not duplicate tool findings.
 
@@ -330,8 +377,10 @@ Serial in the current linked worktree after slice 002.
 
 Add Engineering and agent contract assertions that each named direct entry loads
 `go` from Go evidence, conditionally loads `cobra-viper` from CLI evidence,
-preserves cross-package availability fallback, keeps the vendored debugging
-prefix byte-identical, and enforces code-review precedence and calibration. Run:
+attempts installed name resolution with an honest fallback, keeps the vendored
+debugging prefix byte-identical, covers module design and domain modeling, sends
+explicit fixed-diff review tokens from `implement` and `just-do-it`, and
+enforces code-review precedence and calibration. Run:
 
 ```sh
 npm test -- --run packages/engineering/test/resources.test.ts test/tooling/packages.test.ts
@@ -344,8 +393,9 @@ contain the routing contract.
 
 Add one concise shared routing rule to each direct entry point, without copying
 the Go standards into Engineering. Put diagnosis routing only in the existing
-Pi additions. Update Worker skill paths and Worker/Reviewer prose; keep the
-Reviewer arrays from slice 002 unchanged. Run:
+Pi additions. Update Worker skill paths and Worker/Reviewer prose, plus the two
+fixed-diff caller handoffs; keep the Reviewer arrays from slice 002 unchanged.
+Run:
 
 ```sh
 npm test -- --run packages/engineering/test/resources.test.ts test/tooling/packages.test.ts
@@ -382,6 +432,7 @@ agent paths, documentation, and artifacts. Then run one fresh read-only QA pass
 with these exact commands, once each:
 
 ```sh
+npm ci --ignore-scripts
 npm test -- --run test/tooling/packages.test.ts packages/feature-flow/test/resources.test.ts packages/engineering/test/resources.test.ts packages/go/test/skill.test.ts
 npm run smoke:source
 npm run security:check
@@ -404,13 +455,14 @@ npm exec -- pi \
   -e .
 ```
 
-Confirm the complete extension and skill set appears once without conflict
-diagnostics, including successful LSP startup with `diff` and `vscode-jsonrpc`
-resolved from the workspace install. While Pi is idle, run `/reload`. Verify
-that `go`, `cobra-viper`, and `go-spec-reviewer` remain discoverable; LSP and
-Simple English resources do not duplicate; one fixed-document Go review can be
-selected separately from one fixed-diff code review; and no stale registrations
-remain. Runtime dependency or startup failure pauses accept-all execution.
+Confirm the complete compatible extension and complete skill set appears once
+without conflict diagnostics. Confirm LSP remains absent from the root profile
+and documented as independently installable because of its Hashline tool-name
+conflict. While Pi is idle, run `/reload`. Verify that `go`, `cobra-viper`, and
+`go-spec-reviewer` remain discoverable; Simple English does not duplicate; one
+fixed-document Go review can be selected separately from one fixed-diff code
+review; and no stale registrations remain. Runtime dependency or startup failure
+pauses accept-all execution.
 
 When all checks pass, run one fresh fixed-diff formal review against `main` and
 the accepted pitch and plan. The review follows `code-review`; this repository
