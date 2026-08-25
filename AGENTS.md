@@ -313,6 +313,15 @@ because rewriting it in a release branch would be overwritten by the next
 automation update. Review generated release notes for accuracy, but do not
 hand-format them or weaken repository-wide Markdown rules to accommodate them.
 
+Do not stage or commit credentials, local absolute paths, environment files,
+generated artifacts, package archives, coverage, sessions, trust state, or
+delegated-agent runtime files. GitHub Actions use least privilege and immutable
+full-SHA action pins.
+
+Keep the dependency release-age gate and low-frequency grouped update policy
+intact. Routine major upgrades are manual. A security-driven age-gate exception
+requires explicit review and pull-request documentation.
+
 ## Delivery efficiency
 
 The root `npm run dev` launcher activates declared runtimes and reuses dependency
@@ -324,13 +333,5 @@ When both read-only lanes are required, freeze one diff and run them concurrentl
 when supported. QA owns executable gates and Reviewer does not rerun them. Root
 `npm run check` uses bounded independent process concurrency; do not add a
 composite check to its own command list. Reuse final verification only when the
-staged tree, command definitions, and setup fingerprint match its attestation.
-
-Do not stage or commit credentials, local absolute paths, environment files,
-generated artifacts, package archives, coverage, sessions, trust state, or
-delegated-agent runtime files. GitHub Actions use least privilege and immutable
-full-SHA action pins.
-
-Keep the dependency release-age gate and low-frequency grouped update policy
-intact. Routine major upgrades are manual. A security-driven age-gate exception
-requires explicit review and pull-request documentation.
+exact tested tree, base `HEAD`, approved path set, command definitions, and setup
+fingerprint match its attestation.

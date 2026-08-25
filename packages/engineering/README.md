@@ -121,22 +121,18 @@ The explicit **Accept and publish** action invokes `commit` and `open-pr` withou
 a second mutation prompt; accepted accept-all performs the same steps after
 successful evidence and any selected review.
 
-When another checkpointed delivery unit remains after publication, the parent
-summarizes its outcome, dependencies, proof, checks, and remaining progress. The
-`question` tool offers exactly **Continue**, **Review next unit**, and
-**Discuss**. Accepted accept-all continues in dependency order after successful
-evidence, any selected review, commit, and publication. Scope, delivery
-boundaries, dependencies, or authority changes return through planning and
-approval. Repeat until no units remain. Plan-less requests and single-unit plans
-do not receive a next-unit prompt. Planned stacks require `gh stack`;
-unavailable delivery tools fail closed while preserving local work and recovery
-evidence.
-
-When a current checkpointed unit is accepted and committed, and authorized
-publication has completed, the parent summarizes the next planned unit and
-offers **Continue**, **Review next unit**, and **Discuss**. A discussion or next-
-unit review returns to the same checkpoint when the accepted plan does not
-change. Repeat through the remaining units, then report plan completion.
+When the current checkpointed delivery unit is accepted and committed, and
+authorized publication has completed, the parent summarizes the next planned
+unit's outcome, dependencies, proof, checks, and remaining progress. It offers
+**Continue**, **Review next unit**, and **Discuss**; review or discussion returns
+to the same checkpoint when the accepted plan does not change. Accepted
+accept-all continues in dependency order after successful evidence, any selected
+review, commit, and publication. Scope, delivery boundaries, dependencies, or
+authority changes return through planning and approval. Repeat until the
+remaining units are complete, then report plan completion. Plan-less requests
+and single-unit plans do not receive a next-unit prompt. Planned stacks require
+`gh stack`; unavailable delivery tools fail closed while preserving local work
+and recovery evidence.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the
