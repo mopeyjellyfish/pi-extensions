@@ -12,6 +12,10 @@ Install this package in any target repository with Pi:
 pi install npm:@mopeyjellyfish/pi-go
 ```
 
-Pi discovers the `go` skill from this package and loads its guidance when Go
-code, modules, tools, services, reviews, or refactors need it. The skill uses
-the target repository's instructions and Go toolchain.
+Pi discovers two skills from this package. Both use the target repository's
+instructions and Go toolchain:
+
+- `go` activates for general Go code, modules, tools, services, reviews, and
+  refactors.
+- `cobra-viper` activates when a Go CLI needs commands, subcommands, flags, or
+  CLI configuration, including when Cobra or Viper are not named.

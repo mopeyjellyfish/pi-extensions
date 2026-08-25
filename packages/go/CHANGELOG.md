@@ -2,4 +2,5 @@
 
 ## [0.0.0] - Unreleased
 
-- Initial Go programming skill.
+- Initial `go` and `cobra-viper` skills for Go programming and Cobra/Viper CLI
+  guidance.
