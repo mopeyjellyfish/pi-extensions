@@ -79,11 +79,13 @@ or verification depth without proportionate concrete need or risk reduction.
 
 Before writing, return `variance` when a runtime or dependency assumption is
 unverified, an external port needs architectural adaptation, expected scope is
-more than twice the accepted task, or broad unrelated refactoring would be
-required. In a fresh worktree, perform the repository-defined runtime and
-dependency setup before the first test, build, or generated-file command.
-Verify the required tool is available. A setup failure is not behavioral red
-proof: diagnose it separately and do not rerun an unchanged setup command.
+more than twice the accepted task, or broad unrelated refactoring is required.
+In a fresh worktree, repository-defined runtime and dependency setup occurs
+before the first test when valid evidence is absent or stale. Otherwise accept
+valid parent-supplied setup evidence only when its fingerprint covers unchanged
+runtime selectors and lockfile; verify inherited tools before running setup
+again. Verify the required tool is available. A setup failure is not behavioral
+red proof: diagnose it separately and do not rerun an unchanged setup command.
 
 Implement one vertical behavior at the public seam. Add the minimum
 representative behavioral test; do not build a Cartesian test matrix or expand

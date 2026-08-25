@@ -13,16 +13,21 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
 It exposes six fixed package agents: Terra-medium Worker and Git writers,
-Luna-low Researcher, Luna-medium QA gate verification and Utility read-only
-support, and an Opus-medium Reviewer. Implementation keeps focused repair loops
-in Worker and runs exact named repository gates in QA. Worker and QA repeat
-while verification evidence shows measurable progress, stop on repeated or
-out-of-scope failures, and review only a frozen green diff. The human selects
+Luna-low Researcher, Luna-medium QA verification and Utility read-only support,
+and an Opus-medium Reviewer. Implementation keeps focused repair loops in Worker
+and selects QA and formal review by risk. Mechanical, documentation, and
+reversible metadata work has direct focused evidence. Material public behavior,
+lifecycle, state, concurrency, provider, dependency, cross-boundary, security,
+migration, or irreversible work has proportionate independent evidence. Exact
+non-browser green-path commands run without model QA. When both QA and formal
+review are required, they receive the same frozen diff and run concurrently when
+supported; QA owns executable gates and Reviewer does not rerun them. The parent
+joins results before one retained-Worker repair packet. The human selects
 a Fable or Sol parent; parent settings and AskClaude selection remain user
 settings, so installation never overwrites
 Pi authentication, preferences, or bridge configuration. AskClaude is available
-only to a non-claude-bridge parent; a Fable parent uses the Opus Reviewer at the
-formal boundary. A Sol child requires a justified `question` and explicit human
+only to a non-claude-bridge parent; a Fable parent uses the Opus Reviewer when
+risk selects formal review. A Sol child requires a justified `question` and explicit human
 approval, with no automatic fallback.
 
 Shape and planning use an evidence-based Go gate: proposed Go source, modules,
@@ -77,6 +82,17 @@ Extensions must remain correct in TUI, RPC, JSON, and print modes:
 The repository's minimum runtime is Node `22.20.0`, a Jod LTS release, with ES2022 and Node16 module semantics. `.nvmrc` selects Node `24.18.0` for routine development, while CI also exercises the minimum runtime. The `@types/node` minor line tracks that minimum so type checking cannot silently admit APIs unavailable to supported users. Strict compiler options and type-aware ESLint rules apply to production, tests, fixtures, and tooling. Library declaration checking alone is skipped because the current host's transitive declarations contain unresolved optional types; repository source is never skipped.
 
 Prettier owns formatting. ESLint owns correctness, maintainability, dependency boundaries, promise safety, and protocol-specific restrictions. Knip detects unused files, exports, and dependencies.
+
+## Root development tooling
+
+The private root launcher activates the declared Node and Go selectors, records
+a setup fingerprint for the selectors and lockfile, and reuses matching setup.
+The root check runner executes independent required commands with a configurable
+bounded concurrency (default three), buffers output in command order, reports
+all failures, and cancels child processes on interruption. It never invokes the
+composite check command recursively. Final evidence records the exact tested
+tree, base `HEAD`, approved path set, command definitions, and setup fingerprint;
+publication reuses it only while every value remains unchanged.
 
 ## Go
 

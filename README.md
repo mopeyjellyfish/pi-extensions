@@ -74,10 +74,11 @@ returns after bounded structured verification; it does not watch CI or run
 long-lived commands.
 
 The lifecycle is parent-led and routes work by impact and uncertainty.
-`/just-do-it` delegates one explicit mechanical low-risk request after worktree
-setup; clear bounded work implements now; coordinated clear work plans first;
-and uncertain, hard-to-reverse, or risky work Shapes then plans. Shape and
-planning set up or verify an isolated linked task worktree before repository
+`/just-do-it` keeps an explicit mechanical low-risk request with the direct
+parent by default and uses one Worker only when broad repetition saves critical
+path time or parent context. Clear bounded work implements now; coordinated
+clear work plans first; uncertain, hard-to-reverse, or risky work Shapes then plans.
+Shape and planning set up or verify an isolated linked task worktree before repository
 reads, discovery, research, or questions. Complete accepted plans execute in
 dependency order, with only planned independent lanes using separate worktrees
 and sole writers. A coherent delivery unit normally keeps its atomic commits in
@@ -96,14 +97,16 @@ does not overwrite parent settings. The fixed child catalog is:
 | `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair             |
 | `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                 |
 
-Implementation uses Worker for one vertical slice and focused checks, then QA
-for one read-only pass over the exact named repository gates. QA aggregates all
-failures before each retained-Worker repair. Worker and QA repeat while failure
-signatures, diagnostic counts, or coverage gaps show measurable progress. They
-stop on repeated evidence, a non-completed Worker result, or scope variance;
-formal review starts only after QA verifies the gates. This keeps broad checks
-and coverage out of the Worker's development loop while the parent retains
-finalization and acceptance.
+Implementation selects assurance by risk. Mechanical, documentation, and
+reversible metadata work uses direct focused verification and parent diff
+inspection. Exact green-path non-browser commands run deterministically without
+a model QA launch. Material behavior, lifecycle, state, concurrency, provider,
+dependency, cross-boundary, security, migration, or irreversible work selects
+the applicable QA and formal review lanes. When both lanes are required, the
+parent freezes one diff, gives QA and Reviewer its identifier, and launches the
+read-only lanes concurrently when the host supports it. QA owns named executable
+gates; Reviewer does not rerun them. The parent joins findings into one repair
+packet before a retained Worker repair.
 
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected Fable or Sol parent's responsibility for product
@@ -139,7 +142,7 @@ in `~/.pi/agent/claude-bridge.json` only when you use it:
 ```
 
 AskClaude is available only to a non-claude-bridge parent; a Fable parent cannot
-call it. Use the fixed Opus Reviewer at the formal review boundary instead.
+call it. Use the fixed Opus Reviewer when risk selects formal review.
 
 Hide pi-subagents built-ins in the pinned pi-subagents **Pi settings** object
 at `~/.pi/agent/settings.json` (not its extension config file):
@@ -155,7 +158,7 @@ at `~/.pi/agent/settings.json` (not its extension config file):
 A `subagents.defaultModel` is unnecessary: pinned pi-subagents gives each
 explicit agent frontmatter model precedence. Do not use a per-run model
 override unless the human explicitly approves that exception. Keep these
-conservative extension controls in
+bounded extension controls in
 `~/.pi/agent/extensions/subagent/config.json`:
 
 ```json
@@ -164,8 +167,8 @@ conservative extension controls in
   "asyncByDefault": false,
   "maxSubagentDepth": 1,
   "parallel": {
-    "maxTasks": 3,
-    "concurrency": 2
+    "maxTasks": 4,
+    "concurrency": 3
   },
   "scheduledRuns": {
     "enabled": false
@@ -178,11 +181,11 @@ We evaluated
 this workflow. Its smaller parent tool schema may reduce orchestration context,
 but replacing the pinned runtime now would remove contracts used by this
 profile: retained-Worker resume, structured usage telemetry, acceptance gates,
-and the status RPC consumed by the status line. Those capabilities directly
-support the progress-bounded Worker ↔ QA verifier flow. Keep the current
+and the status RPC consumed by the status line. Those capabilities support
+progress-bounded repair and concurrent read-only assurance. Keep the current
 runtime and measure representative end-to-end runs before considering a
-smaller tool description alone does not reduce Worker discovery, repair, or
-repository-check work.
+smaller tool description; schema size alone does not reduce implementation,
+repair, or repository-check work.
 
 Pinned `pi-subagents` 0.50.0 is affected by
 [issue #1207](https://github.com/nicobailon/pi-subagents/issues/1207). Remove
@@ -313,7 +316,15 @@ so keep it in place. Use `-l` for a project-local installation.
 
 ## Development
 
-Use the versions in `.nvmrc` and `.gvmrc`, then install dependencies:
+Use the development launcher to activate the declared runtimes and reuse setup
+while its lockfile and runtime-selector fingerprint remains unchanged:
+
+```sh
+npm run dev
+```
+
+For manual commands, use the versions in `.nvmrc` and `.gvmrc`, then install
+dependencies:
 
 ```sh
 nvm use

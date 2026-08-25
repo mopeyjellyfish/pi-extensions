@@ -162,12 +162,36 @@ Present the proposed header and any body or footers before committing. Explain
 why the chosen type and scope match the staged diff when the choice is not
 obvious.
 
+## Reuse verified-tree evidence
+
+Final verification may provide a verified-tree identifier, exact command
+definitions, setup fingerprint, base `HEAD`, and complete approved path set.
+The identifier must represent the exact tested contents, including approved
+untracked files and deletions. A plain `git write-tree` against an unstaged real
+index does not represent working-tree changes and is not valid evidence.
+
+When verification occurs before staging, create the identifier with a temporary
+index seeded from the recorded `HEAD`, add only the complete explicit approved
+path set to that temporary index (including deletions), and run `git write-tree`
+against it. Remove the temporary index afterward. This writes Git objects but
+must not alter the real index, working tree, branch, or `HEAD`. Hosts may use an
+equivalent exact tree snapshot when it has the same properties.
+
+Immediately before commit, stage the approved paths normally and compare the
+real staged tree from `git write-tree` with the verified-tree identifier. Also
+compare the recorded base `HEAD`, command definitions, setup fingerprint, and
+approved path set with their current values. When all match, record the
+comparison and do not rerun unchanged gates. If any value differs, the evidence
+is stale: run only the invalidated required checks, record new final evidence,
+and compare again before commit.
+
 ## Validate and commit
 
 1. Run `git diff --cached --check`. Record the staged tree with
    `git write-tree`.
-2. Run the focused tests and checks required by the repository. Run
-   repository-provided commit validation against the proposed message.
+2. Reuse matching verified-tree evidence as defined above. Without valid
+   evidence, run the focused tests and checks required by the repository. Always
+   run repository-provided commit validation against the proposed message.
 3. Run `git write-tree` again. If validation changes the staged tree, report the
    mismatch and stop before commit.
 4. Run normal `git commit` only with the applicable authority from the staging

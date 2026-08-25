@@ -33,7 +33,7 @@ is the default: checkpointed plans retain all routine prompts. Accept-all is
 authority only when whole-plan approval confirms accept-all authority for the
 named accepted plan; otherwise treat an accept-all preference as checkpointed.
 An accept-all plan runs every named delivery unit through tests, required gates,
-fixed formal review, commit, and authorized publication in dependency order
+risk-selected assurance, commit, and authorized publication in dependency order
 without routine Accept and publish or Continue questions. Accept-all plans pause
 for setup, test, check, commit, or publication failure and return control to the
 human; they also pause for material review findings, material forecast variance,
@@ -79,6 +79,7 @@ user decision, not a transcript. Use only this contract:
 Goal:
 Business reason:
 Intent sources:
+Setup evidence:
 Public seam:
 Allowed files:
 Explicit non-goals:
@@ -105,10 +106,10 @@ possible edge case or final repository gates.
 Treat Worker results as `completed`, `blocked`, `variance`, or `partial`. A
 blocked or variance result pauses for the parent. A partial result must not
 trigger an automatic retry or a larger "finish everything" task. After a
-completed initial attempt, use the first QA
-failure packet for the initial repair. After later QA passes, repeat QA repair
-resumes of the latest retained Worker while verifier evidence shows measurable
-progress. If that Worker is not resumable or any repair returns `blocked`,
+completed initial attempt, a first selected QA or joined assurance failure
+packet may start one repair. After later selected QA failures, continue repair
+resumes of the latest retained Worker only while verifier evidence shows
+measurable progress. If that Worker is not resumable or any repair returns `blocked`,
 `variance`, or `partial`, return control for direct parent ownership or
 replanning; do not launch a replacement Worker.
 
@@ -133,6 +134,37 @@ boundaries and authority do not change. Fresh approval is required only when
 those boundaries or authority change. When no accepted forecast exists, report
 material coordination growth against the bounded request instead of creating
 planning overhead.
+
+## Select assurance by risk
+
+Use mechanical, low-risk changes with direct focused verification;
+documentation and reversible metadata changes use the same route. Exact
+non-browser commands run deterministically; a green command does not require
+model QA. Select QA for failed-command diagnosis, browser evidence, or ambiguous
+acceptance. Select formal review for material public behavior, lifecycle, state,
+concurrency, provider, dependency, cross-boundary, security, migration, or
+irreversible risk. Either lane may be selected without the other.
+
+When both QA and review are selected, freeze one diff and run the read-only lanes
+concurrently. When Pi's `subagent` tool supplies configured `qa` and `reviewer`
+capabilities, the parent uses one parallel workflow rather than two sequential
+launches:
+
+```text
+workflowScript: "return runs.all([{key:'qa', agent: 'qa', task:'<QA task>'}, {key:'review', agent: 'reviewer', task:'<review task>'}])"
+cwd: "<active task worktree>"
+async: false
+```
+
+The workflow task texts reference the same frozen-tree identifier, durable
+intent, changed-files list, and focused evidence. QA owns named executable
+gates. Reviewer does not run QA gates and owns intent, correctness,
+architecture, security, and maintainability. Other hosts use equivalent
+concurrent read-only execution when available and otherwise keep the roles
+separate sequentially. Join both results before repair or publication and
+combine findings into one prioritized repair packet for the retained Worker.
+After repair, run only invalidated evidence and do not repeat unchanged review
+unless architecture or accepted scope changed.
 
 ## Deliver each unit
 
@@ -167,21 +199,20 @@ affected-boundary checks needed for a useful handoff. The parent owns
 finalization: integration proof, coverage, root or repository-wide checks,
 security or packing checks, and required completion gates.
 
-After every completed Worker handoff, run one fresh read-only `qa` verifier in
-the same worktree when that capability exists. Give it the exact named
-completion commands; it must run each once and return all failures as one
-aggregated defect packet. If QA is unavailable, the parent runs the same
-commands directly.
+Run known completion commands through the parent or a deterministic repository
+runner, each once. Independent commands may run concurrently only when they do
+not share mutable output; never run a composite gate alongside its own
+constituent commands. A green deterministic run needs no QA child.
 
-The first failing QA packet establishes the baseline and starts the initial
-repair. On later failures, compare the new packet with the prior pass.
-Measurable progress means fewer failing commands or failure signatures, a
+When QA is selected, give one fresh read-only `qa` verifier only the exact named
+commands or browser evidence and require one aggregated defect packet. A first
+failing packet establishes the baseline. On later failures, compare it with the
+prior packet. Measurable progress means fewer failing commands or signatures, a
 smaller diagnostic or coverage gap, or new evidence that resolves a prior
 failure. While progress is measurable, resume the latest retained Worker with
-the complete packet. The Worker repairs with focused checks and returns control
-to QA. QA runs invalidated checks first, then the exact complete gate once after
-they pass. Repeat Worker and QA while evidence shows measurable progress;
-proceed to formal review only when QA returns `verified`.
+the complete joined repair packet. After repair, run invalidated checks first.
+Run the exact complete gate once against the final frozen diff after invalidated
+checks pass.
 
 Stop the loop when the same failure recurs without new evidence, the defect set
 does not shrink or materially change after an accepted repair, the Worker does
@@ -190,13 +221,22 @@ accepted intent. This is a progress boundary, not an iteration limit. Coverage
 is a late diagnostic: rerun it only after relevant production or test changes,
 and never create separate workers per file or failure group.
 
-Before formal review, require a frozen diff, clean diff check, focused proof,
-required completion gates passing, no known task TODOs, and no active writer.
-At that boundary, the parent inspects the final diff for scope, package,
-release, dependency, and artifact hygiene, plus security, cancellation, cleanup,
-and user-visible documentation. Build complete work evidence: changed files,
-red and green evidence or an explicit test exception, focused and required
-check results, residual risks, and delivery state.
+Before selected assurance, require a frozen diff, clean diff check, focused
+proof, the exact command definitions, no known task TODOs, and no active writer.
+Required completion gates and formal review may run concurrently because both
+are read-only; publication waits for their joined result. The parent inspects
+the final diff for scope, package, release, dependency, and artifact hygiene,
+plus security, cancellation, cleanup, and user-visible documentation. Build
+complete work evidence: changed files, red and green evidence or an explicit
+test exception, focused and required check results, setup fingerprint, command
+definitions, verified-tree identifier, residual risks, and delivery state.
+
+Create the verified-tree identifier from the exact frozen contents, recorded
+base `HEAD`, and complete approved path set. When the real index remains
+unstaged, use the temporary-index method from `commit` or an equivalent exact
+snapshot; a plain `git write-tree` on an unstaged index is not the working diff.
+Publication may reuse the evidence only while that identifier, path set, command
+definitions, and setup fingerprint all remain unchanged.
 
 Record efficiency telemetry in that evidence when available: child tokens and
 turns, tool calls, changed production and test LOC, focused and full-check
@@ -216,31 +256,35 @@ toolchain evidence alone does not activate either method. If a companion skill
 is unavailable, record the unmet method and have the direct parent use bounded
 target-repository Go standards without pretending the skill loaded.
 
-## Fixed review and acceptance
+## Concurrent assurance and acceptance
 
 The complete work evidence document supports Review, Revise, Deepen verification,
-or Pause before acceptance. One fixed formal review occurs at each stable
-completed delivery unit. When a configured `reviewer` capability exists, it
-must load and follow `code-review` with fresh read-only context. Give it the
-worktree, fixed-point intent (pitch, plan, or request), base ref and fixed diff,
-changed files, and verification evidence. Return material findings as one
-prioritized batch. After approval to repair, permit one review repair resume of
-the same retained Worker; if it is not resumable, the parent owns the repair
-directly rather than launching a replacement. The writer reruns focused
-invalidated evidence, then re-enters the progress-bounded QA loop until the
-required final gate passes. The parent verifies the repaired findings without
-starting a second full review; pause if a repair changes architecture or
-accepted scope. For an accepted accept-all plan, pause and return control to the
-human before resolving any material finding. If the reviewer is unavailable,
-the direct parent loads and follows `code-review`.
+or Pause before acceptance. Risk determines whether a formal review is needed.
+For a stable completed delivery unit that needs independent review, run one fixed
+formal review. A configured `reviewer` capability must load and follow
+`code-review` with fresh read-only context. Give it the worktree, fixed-point
+intent, base ref and frozen diff, changed files, verified-tree identifier, and
+available focused evidence. When QA is also selected, use the concurrent
+workflow above; do not wait for QA to finish before starting review. If the
+reviewer is unavailable, the direct parent loads and follows `code-review`.
+
+Return material findings in the joined prioritized packet. After approval to
+repair, permit one review repair resume of the same retained Worker; if it is not
+resumable, the parent owns the repair directly rather than launching a
+replacement. The writer reruns focused invalidated evidence, then the parent or
+selected QA runs the invalidated required gates. The parent verifies repaired
+review findings without starting a second full review; pause if repair changes
+architecture or accepted scope. For an accepted accept-all plan, pause and
+return control to the human before resolving any material finding. Publication
+requires every selected gate green and every material review finding resolved.
 
 For formal review, send `Review mode: fixed-diff code` with the handoff.
 
 For checkpointed plans, present the evidence and an explicit **Accept and
 publish** action. Acceptance invokes `commit` and `open-pr` with no second
 mutation prompt. For accepted accept-all plans, perform the same commit and
-authorized publication after successful evidence and fixed review without that
-routine question. These focused delivery skills own publication; lifecycle
+authorized publication after successful evidence and any selected review without
+that routine question. These focused delivery skills own publication; lifecycle
 guidance must not issue ad hoc Git commands. For a planned stack, `open-pr` must
 use `gh stack`; if focused delivery or required stack tooling is unavailable,
 fail closed, preserve local work and evidence, and state the recovery action.
@@ -262,13 +306,13 @@ conversation, wait, and do not start the next unit.
 
 For an accepted accept-all plan with another ready delivery unit, continue in
 accepted dependency order without a routine question after the prior unit's
-successful tests, required gates, fixed review, commit, and authorized
-publication. Pause instead for every accept-all pause condition.
+successful tests, required gates, risk-selected assurance, commit, and
+authorized publication. Pause instead for every accept-all pause condition.
 
 **Continue** launches the next ready delivery unit or planned ready lane set in
 accepted dependency order without replanning. **Review next unit** pauses
 implementation and reviews that next unit against the accepted pitch and plan;
-it does not duplicate the completed unit's fixed formal review. **Discuss**
+it does not duplicate any selected fixed formal review. **Discuss**
 pauses execution for questions or potential changes. Do not silently alter the
 accepted plan. If discussion changes accepted scope, delivery boundaries,
 dependencies, or authority, route through the appropriate planning and approval

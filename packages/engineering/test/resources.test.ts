@@ -60,8 +60,12 @@ describe("engineering resources", () => {
       expect(resource).toMatch(/unavailable[^.]*stop[^.]*before[^.]*writ/iu);
     }
 
+    expect(implement).toMatch(
+      /runs\.all[\s\S]*agent:\s*["']qa["'][\s\S]*agent:\s*["']reviewer["']/iu,
+    );
+    expect(readme).toMatch(/QA[^.]*Reviewer[^.]*parallel|parallel[^.]*QA[^.]*Reviewer/iu);
     for (const resource of [implement, readme]) {
-      expect(resource).not.toMatch(/runs\.all|writer lease|FFF|lsp_query/iu);
+      expect(resource).not.toMatch(/writer lease|FFF|lsp_query/iu);
     }
   });
 
@@ -79,13 +83,13 @@ describe("engineering resources", () => {
       "async: false",
     ].join("\n");
 
-    for (const resource of [implement, justDoIt]) {
-      expect(resource).toContain(fixedWorkerArguments);
-      expect(resource).toMatch(/Pi's `subagent` tool[^.]*argument\s+object[^.]*workflowScript/iu);
-      expect(resource).toMatch(
-        /do not pass[^.]*`mode`[^.]*`model`[^.]*`thinking`[^.]*agent profile/iu,
-      );
-    }
+    expect(implement).toContain(fixedWorkerArguments);
+    expect(implement).toMatch(/Pi's `subagent` tool[^.]*argument\s+object[^.]*workflowScript/iu);
+    expect(implement).toMatch(
+      /do not pass[^.]*`mode`[^.]*`model`[^.]*`thinking`[^.]*agent profile/iu,
+    );
+    expect(justDoIt).not.toContain(fixedWorkerArguments);
+    expect(justDoIt).toMatch(/direct parent[^.]*default[\s\S]*Worker[^.]*only when/iu);
     expect(readme).toMatch(
       /fixed Worker[^.]*foreground[^.]*omit[^.]*mode[^.]*model[^.]*thinking[^.]*agent profile/iu,
     );
@@ -101,23 +105,27 @@ describe("engineering resources", () => {
     const readme = readmeText.replaceAll(/\s+/gu, " ");
 
     expect(implement).toMatch(
-      /one worker attempt[\s\S]*repeat QA repair resumes[^.]*measurable progress/iu,
+      /one worker attempt[\s\S]*selected QA[\s\S]*repair resumes[\s\S]*measurable progress/iu,
     );
     expect(implement).toMatch(/one review repair resume/iu);
     expect(implement).toMatch(/no fixed iteration, turn, tool, token, or cost limit/iu);
     expect(implement).toMatch(/stop[^.]*same failure[^.]*without new evidence/iu);
-    expect(implement).toMatch(/fresh read-only `qa` verifier[\s\S]*aggregated defect packet/iu);
+    expect(implement).toMatch(/QA[^.]*selected[\s\S]*aggregated defect packet/iu);
     expect(implement).toMatch(/partial[^.]*must not[^.]*automatic[^.]*retry/iu);
     expect(implement).toMatch(
       /Goal:[\s\S]*Public seam:[\s\S]*Allowed files:[\s\S]*Stop conditions:/iu,
     );
     expect(implement).toMatch(/do not impose hard turn, tool, token, or cost budgets/iu);
-    expect(implement).toMatch(/parent[^.]*required completion gates[\s\S]*fixed formal review/iu);
+    expect(implement).toMatch(
+      /parent owns[\s\S]*required completion gates[\s\S]*risk determines[^.]*formal review/iu,
+    );
     expect(implement).toMatch(
       /tool calls[\s\S]*changed production[\s\S]*test LOC[\s\S]*review cycles/iu,
     );
     expect(readme).toMatch(/bounded worker[\s\S]*parent finalization/iu);
-    expect(readme).toMatch(/Worker[^.]*QA[^.]*while[^.]*progress/iu);
+    expect(readme).toMatch(
+      /green-path[^.]*without a QA model[\s\S]*QA and formal review[^.]*parallel/iu,
+    );
   });
 
   it("uses invalidation-aware evidence for serial delivery units", async () => {
@@ -140,7 +148,9 @@ describe("engineering resources", () => {
     );
     expect(tdd).toMatch(/when (?:a )?plan\s+exists[\s\S]*otherwise[\s\S]*changed surfaces/iu);
     expect(implement).toMatch(/complete gate once[\s\S]*frozen diff/iu);
-    expect(implement).toMatch(/one fixed formal review[\s\S]*stable\s+completed delivery unit/iu);
+    expect(implement).toMatch(
+      /stable\s+completed delivery unit[\s\S]*one fixed[\s\S]*formal review/iu,
+    );
     expect(implement).toMatch(/review repair resume[\s\S]*same retained Worker/iu);
     expect(implement).toMatch(/critical-path[^.]*parent-context[^.]*independent evidence/iu);
     expect(implement).toMatch(/materially\s+exceeds[\s\S]*forecast[\s\S]*pause/iu);
@@ -157,7 +167,7 @@ describe("engineering resources", () => {
       /one bounded delivery unit[\s\S]*no\s+forecast or topology overhead/iu,
     );
     expect(readme).toMatch(
-      /validation ladder[\s\S]*affected-boundary[\s\S]*integration[\s\S]*stable\s+delivery-unit/iu,
+      /validation ladder[\s\S]*affected-boundary[\s\S]*integration[\s\S]*stable-boundary/iu,
     );
     expect(readme).toMatch(
       /fresh worktree[\s\S]*runtime[\s\S]*dependency setup[\s\S]*first test/iu,
@@ -194,15 +204,24 @@ describe("engineering resources", () => {
     );
     expect(implement).not.toContain("make the smallest relevant public-seam test fail");
     expect(implement).not.toContain("trace callers and sibling paths");
-    expect(implement).toMatch(
-      /complete work evidence[\s\S]*red and\s+green evidence[\s\S]*explicit test exception/iu,
-    );
-    expect(implement).toMatch(
-      /parent inspects the final diff[\s\S]*release[\s\S]*dependency[\s\S]*artifact hygiene[\s\S]*security[\s\S]*cancellation[\s\S]*cleanup[\s\S]*user-visible documentation/iu,
-    );
+    expect(implement).toContain("complete work evidence");
+    expect(implement).toMatch(/red and\s+green evidence/iu);
+    expect(implement).toMatch(/explicit\s+test exception/iu);
+    expect(implement).toMatch(/parent inspects\s+the final diff/iu);
+    for (const concern of [
+      "release",
+      "dependency",
+      "artifact hygiene",
+      "security",
+      "cancellation",
+      "cleanup",
+      "user-visible documentation",
+    ]) {
+      expect(implement).toContain(concern);
+    }
     expect(implement).toMatch(/`reviewer`[\s\S]*load and\s+follow[\s\S]*`code-review`/iu);
-    expect(justDoIt).toMatch(/`reviewer` capability[\s\S]*load and\s+follow[\s\S]*`code-review`/iu);
-    expect(justDoIt).toMatch(/reviewer[^.]*unavailable[\s\S]*direct parent[\s\S]*`code-review`/iu);
+    expect(justDoIt).toMatch(/does not mandate[^.]*QA[^.]*Reviewer/iu);
+    expect(justDoIt).toMatch(/material risk[\s\S]*`reviewer`[\s\S]*`code-review`/iu);
     expect(router).toMatch(
       /reported[\s\S]*broken[\s\S]*unresolved cause[\s\S]*`diagnosing-bugs`/iu,
     );
@@ -472,16 +491,18 @@ describe("engineering resources", () => {
       /`shape`[\s\S]*`planning-changes`[\s\S]*unavailable[\s\S]*direct parent[\s\S]*pitch[\s\S]*slice plan/iu,
     );
     expect(justDoIt).toMatch(/worktree setup[\s\S]*first/iu);
-    expect(justDoIt).toMatch(/exactly one[\s\S]*fresh[\s\S]*`worker`/iu);
-    expect(justDoIt).toMatch(/scope[\s\S]*authority[\s\S]*before[\s\S]*after[\s\S]*check/iu);
+    expect(justDoIt).toMatch(/direct parent[^.]*default/iu);
+    expect(justDoIt).toMatch(/exactly one fresh `worker`[^.]*only when/iu);
+    expect(justDoIt).toMatch(
+      /mechanical scope[\s\S]*objective check[\s\S]*setup evidence[\s\S]*delivery authority/iu,
+    );
     expect(justDoIt).toMatch(
       /ambiguity[\s\S]*behavior design[\s\S]*security[\s\S]*migration[\s\S]*expanding scope/iu,
     );
-    expect(justDoIt).toMatch(/direct parent/iu);
     expect(justDoIt).toMatch(/Utility[\s\S]*QA[\s\S]*only when useful/iu);
-    expect(justDoIt).toMatch(/capability[\s\S]*review/iu);
-    expect(justDoIt).toMatch(/explicit approval[\s\S]*high-capability/iu);
-    expect(justDoIt).toMatch(/commit[\s\S]*push[\s\S]*pull request/iu);
+    expect(justDoIt).toMatch(/material risk[\s\S]*reviewer/iu);
+    expect(justDoIt).toMatch(/explicit\s+approval[\s\S]*higher-capability/iu);
+    expect(justDoIt).toMatch(/named branch[\s\S]*`commit`[\s\S]*`open-pr`/iu);
     expect(justDoIt).toMatch(
       /not authorize[\s\S]*merge[\s\S]*deploy[\s\S]*plain[\s\S]*force[\s\S]*cleanup/iu,
     );
@@ -489,7 +510,9 @@ describe("engineering resources", () => {
       /complete accepted plan[\s\S]*dependency order[\s\S]*without replanning/iu,
     );
     expect(implement).toMatch(/planned parallel lanes[\s\S]*worktrees/iu);
-    expect(implement).toMatch(/formal review[\s\S]*completed delivery unit/iu);
+    expect(implement).toMatch(
+      /risk determines[^.]*formal review[\s\S]*stable completed delivery unit/iu,
+    );
     expect(implement).toMatch(
       /Accept\s+and\s+publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no\s+second\s+mutation\s+prompt/iu,
     );
@@ -552,7 +575,7 @@ describe("engineering resources", () => {
     );
     expect(implement).toMatch(/checkpointed[^.]*retain[^.]*routine prompts/iu);
     expect(implement).toMatch(
-      /accept-all[^.]*every named delivery unit[\s\S]*tests[\s\S]*required gates[\s\S]*fixed formal review[\s\S]*commit[\s\S]*authorized publication/iu,
+      /accept-all[^.]*every named delivery unit[\s\S]*tests[\s\S]*required gates[\s\S]*risk-selected assurance[\s\S]*commit[\s\S]*authorized publication/iu,
     );
     expect(implement).toMatch(
       /accept-all[^.]*without[^.]*routine[^.]*Accept and publish[^.]*Continue questions/iu,
@@ -564,7 +587,7 @@ describe("engineering resources", () => {
       /accept-all[^.]*never authorizes merge[^.]*release[^.]*deployment[^.]*destructive\s+cleanup[^.]*unrelated\s+work/iu,
     );
     expect(implement).toMatch(
-      /review repair resume[^.]*same retained Worker[\s\S]*writer reruns focused[^.]*invalidated evidence[^.]*progress-bounded QA loop[^.]*required final gate passes/iu,
+      /review repair resume[^.]*same retained Worker[\s\S]*writer reruns focused invalidated evidence[\s\S]*invalidated required gates[\s\S]*without starting a second full review/iu,
     );
     expect(implement).toMatch(
       /accept-all[^.]*pause[^.]*return control[^.]*before resolving[^.]*material finding/iu,
@@ -577,7 +600,7 @@ describe("engineering resources", () => {
     );
     expect(readme).toMatch(/accept-all[^.]*whole-plan approval[^.]*checkpointed/iu);
     expect(readme).toMatch(
-      /tests[^.]*required gates[^.]*fixed\s+formal review[^.]*commit[^.]*authorized\s+publication/iu,
+      /test[\s\S]*required gate[\s\S]*risk-selected assurance[\s\S]*commit[\s\S]*authorized publication/iu,
     );
   });
 
@@ -734,5 +757,25 @@ describe("engineering resources", () => {
       /target-repository instructions[\s\S]*module contracts[\s\S]*Go and Cobra\/Viper[\s\S]*references\/go\.md/iu,
     );
     expect(review).toMatch(/practical[\s\S]*consequence[\s\S]*do not duplicate[^.]*tool/iu);
+  });
+
+  it("selects assurance by risk and joins independent read-only lanes on one frozen diff", async () => {
+    expect.hasAssertions();
+    const [router, implement, justDoIt, reviewer] = await Promise.all([
+      read("skills/developing-changes/SKILL.md"),
+      read("skills/implement/SKILL.md"),
+      read("skills/just-do-it/SKILL.md"),
+      readFile(join(REPOSITORY_ROOT, "agents", "reviewer.md"), "utf8"),
+    ]);
+    expect(router).toMatch(/assurance[^.]*risk[\s\S]*deterministic[^.]*green path/iu);
+    expect(implement).toMatch(/mechanical[\s\S]*low-risk[\s\S]*direct focused verification/iu);
+    expect(implement).toMatch(
+      /runs\.all[\s\S]*agent:\s*["']qa["'][\s\S]*agent:\s*["']reviewer["']/iu,
+    );
+    expect(implement).toMatch(/one prioritized repair packet[\s\S]*retained Worker/iu);
+    expect(implement).toMatch(/green command[\s\S]{0,80}does not require[\s\S]{0,40}model QA/iu);
+    expect(justDoIt).toMatch(/direct parent[^.]*default[\s\S]*Worker[^.]*only when/iu);
+    expect(justDoIt).not.toMatch(/completed unit[\s\S]*reviewer[\s\S]*must/iu);
+    expect(reviewer).toMatch(/do not run QA gates/iu);
   });
 });

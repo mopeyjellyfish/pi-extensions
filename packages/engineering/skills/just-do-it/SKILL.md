@@ -1,7 +1,7 @@
 ---
 name: just-do-it
 description: >-
-  Delegates one explicit mechanical, low-risk change immediately and stops when
+  Delivers one explicit mechanical, low-risk change immediately and stops when
   it needs a larger delivery route.
 ---
 
@@ -23,41 +23,33 @@ writing and ask the user to provide an isolated worktree.
 Without arguments, ask only for the mechanical request. Do not ask discovery or
 design questions.
 
-## Immediate handoff
+## Immediate execution
 
-Immediately launch **exactly one fresh `worker`** when that Worker capability is
-available. When Pi's `subagent` tool supplies the capability, send this argument
-object directly rather than putting it in `workflowScript`:
+The direct parent is the default executor for this obvious bounded change. It
+keeps sole write ownership, applies the mechanical edit, runs the objective
+before-and-after check, and inspects the final diff without paying a fresh-agent
+startup cost.
 
-```text
-agent: "worker"
-task: "<rendered Worker task contract>"
-cwd: "<active task worktree>"
-async: false
-```
+Use exactly one fresh `worker` only when broad repetition materially shortens
+the critical path or protects scarce parent context. Use the fixed-role Worker
+launch contract from `implement`; give it the exact mechanical scope,
+exclusions, objective check, setup evidence, and bounded delivery authority. Do
+not pass per-run model or thinking overrides. If Worker is unavailable, keep
+direct parent ownership. Do not substitute a higher-capability role. Explicit
+approval is required for a higher-capability role, with the evidence, expected
+benefit, and bounded task.
 
-Other hosts use their equivalent fixed-role foreground launch. Do not pass
-`mode`, `model`, or `thinking` for this fixed-role launch; the agent profile owns
-its tools, model, thinking level, and fresh-context default. Give it:
-
-- the exact mechanical scope and exclusions;
-- bounded implementation, commit, push, and pull request authority for the
-  named branch after verification;
-- the objective before check, after check, and required checks; and
-- required output: changed files, validation evidence, residual risks, and an
-  unstaged diff for parent inspection.
-
-The Worker is the sole writer. If that capability is absent, the direct parent
-performs the same bounded work and records the same evidence. Do not substitute
-a higher-capability role. Explicit approval is required for a high-capability
-role, with the evidence, expected benefit, and bounded task.
+Whichever executor owns the change must return changed files, validation
+evidence, residual risks, and an unstaged diff for parent inspection.
 
 A Utility or QA capability may do bounded inventory or validation only when useful
 to shorten the critical path; neither owns implementation, routing, or approval.
-At the completed unit, when a configured `reviewer` capability exists, it must
-load and follow `code-review`. If the reviewer is unavailable, the direct parent
-loads and follows `code-review`. The parent inspects the diff and evidence in
-every case.
+Low-risk `/just-do-it` work uses its objective check and parent diff inspection;
+it does not mandate independent QA or a Reviewer. The parent inspects the diff
+and evidence in every case.
+When material risk requires code review, a configured `reviewer` capability can
+load and follow `code-review`; if unavailable, the direct parent uses
+`code-review`.
 
 For formal review, send `Review mode: fixed-diff code` with the handoff.
 

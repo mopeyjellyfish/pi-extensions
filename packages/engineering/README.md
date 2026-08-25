@@ -7,25 +7,25 @@ discovery. It has no extension or
 runtime dependency.
 
 The root profile loads complete Engineering resources. It uses the installed
-Worker profile for standard, plan-less, and accepted hard work, the configured
-QA profile as a read-only gate verifier, then the installed Reviewer profile for
-formal read-only fixed-point review. A fixed agent being unavailable falls back
-to the direct parent. A higher-capability need requires a `question` with
+Worker profile for standard, plan-less, and accepted hard work, configured QA
+for failed-command diagnosis, browser evidence, or ambiguous acceptance, and
+Reviewer for risk-selected formal review. A fixed agent being unavailable falls
+back to the direct parent. A higher-capability need requires a `question` with
 evidence, expected benefit, and a bounded task before explicit human approval;
 difficulty alone never selects that role. `/debug` starts its skill in a
 dedicated worktree and uses the `question` tool for focused intake:
 
 ```text
-parent plan -> bounded Worker <-> QA while progressing -> fresh Reviewer
+parent -> bounded Worker -> frozen diff -> [deterministic gates or QA || Reviewer]
 ```
 
 The Worker owns one vertical change, focused behavioral proof, and local static
-checks. Parent finalization owns the named repository gates and delegates their
-mechanical execution to QA when that capability exists. QA runs each named gate
-once, aggregates every actionable failure into one packet, and never edits.
-Worker and QA repeat while failure signatures, diagnostic counts, or coverage
-gaps show measurable progress. They stop on repeated evidence, a non-completed
-Worker result, or scope variance rather than on a fixed iteration count.
+checks. Parent finalization owns the named repository gates and assurance
+selection. Exact green-path commands run deterministically without a QA model.
+When QA and formal review are both selected, they run in parallel on one frozen
+diff: QA owns executable evidence and Reviewer owns intent and Standards. The
+parent joins their results into one repair packet. Progressing repairs rerun only
+invalidated evidence and do not repeat unchanged review.
 
 All configured child handoffs start with fresh context. Fixed Worker launches are
 foreground launches that omit per-run mode, model, and thinking fields so the
@@ -38,6 +38,10 @@ contains the accepted pitch and plan, or creates one for a plan-less bounded req
 safe worktree tooling is available. Direct diagnosis, TDD, and domain-modeling
 work applies the same guard. When safe tooling is unavailable, the skill stops
 before writing and asks the human to provide a worktree.
+
+In a fresh worktree, repository-defined runtime and dependency setup occurs
+before the first test unless valid parent-supplied setup evidence covers the
+unchanged runtime selectors and dependency inputs.
 
 The parent supplies durable Intent sources: target-project context, every named
 pitch, plan, request, and later user decisions, plus the exact slice, not a
@@ -60,78 +64,79 @@ question only at a material boundary.
 Accepted material UI evidence and selected installed frontend methods continue
 into `implement`; bounded mechanical UI work remains direct.
 
-`/just-do-it <request>` sets up the worktree first and immediately gives one
-fresh Worker the explicit mechanical scope and objective before-and-after
-check. It stops and returns to the router for ambiguity, behavior design,
-security or migration risk, or scope expansion. Invocation grants bounded
-implementation, `commit`, and `open-pr` delivery after verification for its
-named branch only; it never grants merge, deployment, release, plain force
-push, cleanup, or unrelated changes. The parent inspects the diff and evidence;
-an independent installation falls back to the direct parent.
+`/just-do-it <request>` sets up the worktree first and keeps an obvious
+mechanical change with the direct parent by default. It uses one fresh Worker
+only when broad repetition materially shortens the critical path or protects
+parent context. It stops and returns to the router for ambiguity, behavior
+design, security or migration risk, or scope expansion. Invocation grants
+bounded implementation, `commit`, and `open-pr` delivery after verification for
+its named branch only; it never grants merge, deployment, release, plain force
+push, cleanup, or unrelated changes. The parent always inspects the diff and
+evidence.
 
 For a complete accepted plan, `implement` consumes slices in dependency order
-without replanning and uses only planned parallel lanes with isolated worktrees
-and sole writers. Accept-all requires whole-plan approval and otherwise defaults
-to checkpointed implementation; accepted accept-all authority applies only to
-the named accepted plan. An accept-all plan runs every named delivery unit
-through focused tests, read-only QA verification of required gates, fixed
-formal review, commit, and authorized publication in dependency order without
-routine Accept and publish or Continue questions. It pauses and returns control
-to the human for setup, test, check, commit, or publication failure; material
-review findings; material forecast
-variance; or a change to accepted scope, delivery boundaries, dependencies, or
-authority. It never authorizes merge, release, deployment, destructive cleanup,
-or unrelated work. A fresh worktree receives the repository-defined runtime and
-dependency setup before its first test or build; setup failures remain separate
-from behavioral red proof. Its executor loads and follows
-`test-driven-development` for behavioral work and `diagnosing-bugs` for
-unresolved failures; its formal reviewer loads and follows `code-review`. A
-serial delivery unit reuses one writer and worktree. Its validation ladder is
-focused slice proof and affected-boundary checks in the Worker, followed by
-integration proof and stable delivery-unit required gates in one read-only QA
-pass. QA aggregates failures before each retained-Worker repair. Evidence is
-reused only while its covered surface is unchanged; after repair, QA runs
-invalidated checks and the complete gate once. Worker and QA repeat while
-evidence shows measurable progress and stop on repeated failures without new
-evidence. One fixed formal review occurs only after the diff and checks freeze.
-Material findings return as one batch for one retained-Worker review repair.
-The Worker reruns focused invalidated evidence and re-enters QA until the
-required final
-gate passes; the parent verifies the repaired findings without a second full
-review. For an accepted accept-all plan, pause and return control to the human
-before resolving any material finding. Delegation must provide a critical-path,
+without replanning and uses only planned parallel writer lanes with isolated
+worktrees and sole ownership. Accept-all requires whole-plan approval and
+otherwise defaults to checkpointed implementation. A serial delivery unit
+reuses one writer and worktree. Its validation ladder is focused slice proof,
+affected-boundary checks, integration proof, and one stable-boundary required
+gate run against the final frozen diff.
+
+Implementation selects assurance from concrete risk. Mechanical,
+documentation, and reversible metadata work uses direct focused evidence.
+Material public behavior, lifecycle, state, concurrency, provider, dependency,
+cross-boundary, security, migration, or irreversible work selects proportionate
+QA or review. When both are needed, Pi uses one `runs.all` workflow for fresh
+read-only QA and Reviewer children on the same frozen-tree identifier. QA does
+not broaden the named commands; Reviewer does not run them. Hosts without
+concurrent children preserve the role split sequentially.
+
+Behavioral `implement` work loads `test-driven-development`; an unresolved
+failure loads `diagnosing-bugs` before implementation. Missing methods use the
+documented direct-parent proof fallback.
+
+After a joined failure, the retained Worker receives one prioritized packet.
+The writer reruns focused invalidated evidence, then the parent or selected QA
+runs invalidated required gates and the final complete gate once. The parent
+verifies repaired review findings without a second full review unless
+architecture or accepted scope changed. Matching setup evidence is reused only
+while runtime selectors and dependency inputs remain unchanged. Matching final
+evidence records the exact tested tree, command definitions, setup fingerprint,
+base `HEAD`, and approved path set for publication reuse.
+
+Accept-all pauses for setup, test, check, commit, publication, material review,
+or forecast variance. It never authorizes merge, release, deployment,
+destructive cleanup, or unrelated work. Delegation must provide a critical-path,
 parent-context, or independent-evidence benefit. Bounded one-unit routes do not
-gain forecast overhead. For checkpointed plans, pause and report material
-coordination variance against an accepted forecast when one exists, or against
-the bounded request when none does; seek fresh approval only when delivery
-boundaries or authority change. For an accepted accept-all plan, every material
-forecast variance returns control to the human, even when delivery boundaries
-and authority do not change. Fresh approval is required only when those
-boundaries or authority change. For checkpointed plans, the explicit **Accept
-and publish** action invokes `commit` and `open-pr` without a second mutation
-prompt. For accepted accept-all plans, those same steps follow successful
-evidence and fixed review without a routine question. When a checkpointed
-complete accepted plan's current unit is accepted and committed, and any
-authorized publication has completed and another unit remains, the parent
-summarizes progress and the next planned unit's observable outcome, dependencies
-and readiness, intended proof and checks, and remaining plan progress. The
+gain forecast overhead.
+
+Every accepted unit runs tests, required gates, risk-selected assurance, commit,
+and authorized publication. For checkpointed plans, the parent asks before
+publication; accepted accept-all omits that routine prompt.
+
+For checkpointed plans, pause and report material coordination variance against
+the accepted forecast and seek fresh approval only when delivery boundaries or
+authority change. Every material variance pauses accepted accept-all execution.
+The explicit **Accept and publish** action invokes `commit` and `open-pr` without
+a second mutation prompt; accepted accept-all performs the same steps after
+successful evidence and any selected review.
+
+When another checkpointed delivery unit remains after publication, the parent
+summarizes its outcome, dependencies, proof, checks, and remaining progress. The
 `question` tool offers exactly **Continue**, **Review next unit**, and
-**Discuss**. If `question` is unavailable or the human cancels, the parent
-presents the same three choices in conversation, waits, and does not start the
-next unit. An accepted accept-all plan continues to the next ready unit in
-dependency order without a routine question only after successful tests,
-required gates, fixed review, commit, and authorized publication. Continue
-starts the next ready delivery unit or planned ready lane set in accepted
-dependency order without replanning; Review next unit pauses to review it
-against the accepted pitch and plan without duplicating the completed unit's
-fixed formal review; Discuss pauses for questions or potential changes. Scope,
-delivery boundaries, dependencies, or authority changes return through planning
-and approval before implementation resumes. After Review next unit or Discuss
-finishes without an accepted plan change, control returns to the same checkpoint.
-Repeat until no planned delivery units remain, then report plan completion.
-Plan-less requests and single-unit plans do not receive a next-unit prompt.
-Planned stacks require `gh stack`; unavailable delivery tools fail closed while
-preserving local work and recovery evidence.
+**Discuss**. Accepted accept-all continues in dependency order after successful
+evidence, any selected review, commit, and publication. Scope, delivery
+boundaries, dependencies, or authority changes return through planning and
+approval. Repeat until no units remain. Plan-less requests and single-unit plans
+do not receive a next-unit prompt. Planned stacks require `gh stack`;
+unavailable delivery tools fail closed while preserving local work and recovery
+evidence.
+
+When a current checkpointed unit is accepted and committed, and authorized
+publication has completed, the parent summarizes the next planned unit and
+offers **Continue**, **Review next unit**, and **Discuss**. A discussion or next-
+unit review returns to the same checkpoint when the accepted plan does not
+change. Repeat through the remaining units, then report plan completion.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the

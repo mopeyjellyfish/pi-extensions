@@ -70,9 +70,12 @@ Treat repository setup as part of creating or activating a fresh linked
 worktree. Ignored dependencies, generated files, and local tool state do not
 normally carry across worktrees. Before the first test, build, or generated-file
 command, read the repository instructions, select the declared runtimes, run the
-declared dependency setup once, and verify the required tool is available. A
-setup failure is not behavioral test evidence. Diagnose it separately and do
-not rerun an unchanged command.
+declared dependency setup once, and verify the required tool is available. Pass
+setup evidence to later children with the worktree and a fingerprint of the
+runtime selectors and lockfile. Reuse matching evidence after verifying inherited
+tools; rerun setup only when evidence is absent or stale. A setup failure is not
+behavioral test evidence. Diagnose it separately and do not rerun an unchanged
+command.
 
 Use Node from `.nvmrc` and Go from `.gvmrc`:
 
@@ -82,6 +85,10 @@ source "$HOME/.gvm/scripts/gvm"
 source .gvmrc
 npm ci --ignore-scripts
 ```
+
+For a deterministic root-profile development session, prefer `npm run dev`.
+The launcher activates both runtimes before Pi starts, reuses matching setup,
+and lets parent and child Bash calls inherit the selected toolchains.
 
 Do not silently change either runtime line. Keep the root lockfile synchronized
 when dependency metadata changes.
@@ -103,10 +110,10 @@ Worktrunk, Frontend Developer—including `interface-craft` and
 coverage; and the pinned `pi-claude-bridge` and `pi-subagents` extensions,
 subagent prompts, and six model-routed package agents. LSP remains independently
 installable, but Pi rejects its `write` and `edit` tool-name conflicts with
-Hashline. The Luna QA agent runs bounded read-only final gates and aggregates
-failures before retained-Worker repairs. Worker and QA repeat while verification
-evidence shows
-measurable progress and stop on repeated or out-of-scope failures. The bundled
+Hashline. Assurance is risk-based: exact green-path commands run
+deterministically, QA handles diagnosis, browser, or ambiguous acceptance, and
+Reviewer handles material formal review. When both are required, they run
+concurrently on one frozen diff and return one joined repair packet. The bundled
 subagent orchestration skill is intentionally excluded. Pi reevaluates the root
 manifest during `/reload`.
 
@@ -305,6 +312,19 @@ Its generated Markdown intentionally remains outside Prettier and markdownlint
 because rewriting it in a release branch would be overwritten by the next
 automation update. Review generated release notes for accuracy, but do not
 hand-format them or weaken repository-wide Markdown rules to accommodate them.
+
+## Delivery efficiency
+
+The root `npm run dev` launcher activates declared runtimes and reuses dependency
+setup only while its lockfile and selector fingerprint matches. Worker and QA
+may consume valid parent setup evidence after verifying inherited tools. Select
+independent QA and formal review by risk; low-risk mechanical work needs direct
+focused evidence, while material changes retain required independent evidence.
+When both read-only lanes are required, freeze one diff and run them concurrently
+when supported. QA owns executable gates and Reviewer does not rerun them. Root
+`npm run check` uses bounded independent process concurrency; do not add a
+composite check to its own command list. Reuse final verification only when the
+staged tree, command definitions, and setup fingerprint match its attestation.
 
 Do not stage or commit credentials, local absolute paths, environment files,
 generated artifacts, package archives, coverage, sessions, trust state, or
