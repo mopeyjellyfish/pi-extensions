@@ -559,7 +559,7 @@ describe("engineering resources", () => {
       /plan-less requests[\s\S]*single-unit plans[\s\S]*must not[\s\S]*next-unit prompt/iu,
     );
     expect(readme).toMatch(
-      /accepted and committed,[\s\S]*authorized\s+publication\s+has\s+completed[\s\S]*next planned unit[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss[\s\S]*same checkpoint[\s\S]*plan completion/iu,
+      /accepted and committed,[\s\S]*authorized\s+publication\s+has\s+completed[\s\S]*next planned\s+unit[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss[\s\S]*same checkpoint[\s\S]*plan completion/iu,
     );
   });
 

@@ -312,6 +312,10 @@ After the final edit:
 - The final design keeps one writer, makes low-risk direct execution the default,
   uses deterministic green-path gates, and starts selected QA and Reviewer lanes
   together through one `runs.all` workflow.
+- The final bounded-parallel gate completed in `175.34s` after rebasing onto the
+  current base. No equivalent serial clean-state run was available without
+  duplicating every expensive gate, so this delivery makes no measured speedup
+  claim.
 
 ## Completion conditions
 

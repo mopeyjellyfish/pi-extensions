@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { pathToFileURL } from "node:url";
 
 import { npmInvocation, terminateProcessTree } from "./lib/process.ts";
@@ -18,18 +19,21 @@ export interface CheckOptions {
 }
 
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
-const npmCheck = (name: string): CheckCommand => ({ name, ...npmInvocation(["run", name]) });
-const checks: readonly CheckCommand[] = [
-  npmCheck("format:check"),
-  npmCheck("lint"),
-  npmCheck("markdownlint"),
-  npmCheck("knip"),
-  npmCheck("typecheck"),
-  npmCheck("packages:check"),
-  npmCheck("test:coverage"),
-  npmCheck("smoke"),
-  npmCheck("go:check"),
-];
+
+function rootChecks(): readonly CheckCommand[] {
+  const npmCheck = (name: string): CheckCommand => ({ name, ...npmInvocation(["run", name]) });
+  return [
+    npmCheck("format:check"),
+    npmCheck("lint"),
+    npmCheck("markdownlint"),
+    npmCheck("knip"),
+    npmCheck("typecheck"),
+    npmCheck("packages:check"),
+    npmCheck("test:coverage"),
+    npmCheck("smoke"),
+    npmCheck("go:check"),
+  ];
+}
 
 function runCheck(
   check: CheckCommand,
@@ -49,29 +53,48 @@ function runCheck(
     });
     let output = "";
     let truncated = false;
-    const append = (chunk: Buffer): void => {
+    const append = (text: string): void => {
+      if (truncated) return;
       const remaining = MAX_OUTPUT_BYTES - Buffer.byteLength(output);
       if (remaining <= 0) {
-        if (!truncated) output += "\n[output truncated]\n";
+        output += "\n[output truncated]\n";
         truncated = true;
         return;
       }
-      output += chunk.subarray(0, remaining).toString("utf8");
-      if (chunk.byteLength > remaining && !truncated) {
-        output += "\n[output truncated]\n";
-        truncated = true;
+      const encoded = Buffer.from(text);
+      if (encoded.byteLength <= remaining) {
+        output += text;
+        return;
       }
+      let end = remaining;
+      while (end > 0) {
+        const byte = encoded[end];
+        if (byte === undefined || (byte & 0xc0) !== 0x80) break;
+        end--;
+      }
+      output += encoded.subarray(0, end).toString("utf8");
+      output += "\n[output truncated]\n";
+      truncated = true;
     };
+    const stdoutDecoder = new StringDecoder("utf8");
+    const stderrDecoder = new StringDecoder("utf8");
     const cancel = (): void => {
       terminateProcessTree(child);
     };
     options.signal?.addEventListener("abort", cancel, { once: true });
-    child.stdout.on("data", append);
-    child.stderr.on("data", append);
+    child.stdout.on("data", (chunk: Buffer) => {
+      append(stdoutDecoder.write(chunk));
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      append(stderrDecoder.write(chunk));
+    });
+    child.stdin.end();
     child.on("error", (error: Error) => {
-      output += `${error.message}\n`;
+      append(`${error.message}\n`);
     });
     child.on("close", (code) => {
+      append(stdoutDecoder.end());
+      append(stderrDecoder.end());
       options.signal?.removeEventListener("abort", cancel);
       resolvePromise({ name: check.name, output, passed: code === 0 && !options.signal?.aborted });
     });
@@ -127,7 +150,7 @@ if (invokedPath !== undefined && import.meta.url === pathToFileURL(resolve(invok
     Number.isInteger(configuredConcurrency) && configuredConcurrency > 0
       ? configuredConcurrency
       : 3;
-  process.exitCode = await runChecks(checks, {
+  process.exitCode = await runChecks(rootChecks(), {
     concurrency,
     cwd: process.cwd(),
     signal: controller.signal,

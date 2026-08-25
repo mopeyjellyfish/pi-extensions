@@ -69,6 +69,52 @@ describe("bounded check runner", () => {
     expect(output.join("")).toContain("2 required check(s) failed");
   });
 
+  it("closes child input and preserves UTF-8 split across output chunks", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "pi-check-test-"));
+    temporaryRoots.push(root);
+    const output: string[] = [];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 1000);
+    try {
+      const result = await runChecks(
+        [
+          {
+            name: "stdin",
+            command: process.execPath,
+            arguments: [
+              "-e",
+              "process.stdin.on('end',()=>console.log('stdin closed'));process.stdin.resume()",
+            ],
+          },
+          {
+            name: "utf8",
+            command: process.execPath,
+            arguments: [
+              "-e",
+              "process.stdout.write(Buffer.from([0xe2]));setTimeout(()=>process.stdout.write(Buffer.from([0x82,0xac])),10)",
+            ],
+          },
+        ],
+        {
+          concurrency: 2,
+          cwd: root,
+          signal: controller.signal,
+          write: (text) => output.push(text),
+        },
+      );
+
+      expect(result).toBe(0);
+      expect(output.join("")).toContain("stdin closed");
+      expect(output.join("")).toContain("€");
+      expect(output.join("")).not.toContain("�");
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+
   it("rejects a non-positive concurrency bound", async () => {
     expect.hasAssertions();
     await expect(
