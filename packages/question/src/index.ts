@@ -63,8 +63,6 @@ const QUESTION_OVERLAY_OPTIONS = {
   margin: OVERLAY_MARGIN,
 } as const;
 
-const INLINE_TRANSCRIPT_ROWS = 2;
-
 function questionOverlayRows(terminalRows: number): number {
   const rowsWithinMargins = terminalRows - OVERLAY_MARGIN * 2;
   const rowsWithinHeight = Math.floor(terminalRows * OVERLAY_HEIGHT_RATIO);
@@ -72,7 +70,7 @@ function questionOverlayRows(terminalRows: number): number {
 }
 
 function inlineRows(terminalRows: number): number {
-  return Math.max(1, terminalRows - INLINE_TRANSCRIPT_ROWS);
+  return Math.max(1, terminalRows);
 }
 
 function initialState(
