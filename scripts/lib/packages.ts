@@ -513,7 +513,7 @@ async function validateRootProfileCompleteness(
   configuredProfile: PackageResources,
   errors: string[],
 ): Promise<void> {
-  if (!(await pathExists(join(root, "packages")))) {
+  if (!pathExists(join(root, "packages"))) {
     return;
   }
   try {
