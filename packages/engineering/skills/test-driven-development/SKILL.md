@@ -56,3 +56,12 @@ validation before and after. Add a public-seam behavior test only when it gives
 material protection. Documentation, metadata, generated-contract, and
 mechanical work use the smallest focused validation that can detect the
 intended error; do not manufacture a red test.
+
+## Go routing
+
+When work has Go source, a Go module, a Go CLI, or Go-specific work, resolve
+`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
+or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
+toolchain evidence alone does not activate either method. If a companion skill
+is unavailable, record the unmet method and have the direct parent use bounded
+target-repository Go standards without pretending the skill loaded.

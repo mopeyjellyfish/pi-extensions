@@ -34,3 +34,12 @@ Offer an architecture decision record (ADR) only for a durable rejected choice
 or a decision that is difficult to reverse. Do not create an ADR for ordinary naming, transient exploration,
 or a decision already captured by the code and context. Return accepted terms,
 scenario evidence, code references, conflicts, and any ADR recommendation.
+
+## Go routing
+
+When work has Go source, a Go module, a Go CLI, or Go-specific work, resolve
+`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
+or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
+toolchain evidence alone does not activate either method. If a companion skill
+is unavailable, record the unmet method and have the direct parent use bounded
+target-repository Go standards without pretending the skill loaded.

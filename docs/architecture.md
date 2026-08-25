@@ -34,6 +34,14 @@ and fixed-diff code modes, while standalone packages resolve companions by name
 and honestly use a bounded direct-parent target-repository standards fallback
 when unavailable.
 
+Engineering direct entries use the same evidence-based routing for Go source,
+modules, Go CLIs, and Go-specific work: resolve `go`, and resolve `cobra-viper`
+only for commands, flags, or CLI configuration. Toolchain evidence alone does
+not activate either. Worker preloads both skills despite its fresh profile.
+Fixed-diff Go review applies target-repository instructions and module contracts,
+installed Go and applicable Cobra/Viper standards, then `references/go.md`;
+findings need practical consequences and must not duplicate current tool output.
+
 Each directory under `packages/` is an independent npm package with its own Pi
 manifest, runtime dependencies, documentation, tests, and optional native
 helper. Production resources install into unrelated target repositories and

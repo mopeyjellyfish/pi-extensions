@@ -151,11 +151,20 @@ code.
 
 `code-review` evaluates the accepted pitch and plan plus repository Standards.
 It loads only the applicable TypeScript, React, Go, or SQL guide from its
-`references/` directory; target-repository standards always win. `codebase-design`
-includes the complete adapted deep-module method, its dependency-deepening and
-alternative-interface references, and explicit testability guidance. Its
-alternative-interface flow keeps architecture judgment in the parent and
-prevents ordinary child agents from orchestrating fanout.
+`references/` directory; target-repository standards always win. For Go source,
+modules, Go CLIs, or Go-specific work, every Engineering direct entry resolves
+installed `go`; it resolves `cobra-viper` only for commands, flags, or CLI
+configuration. Toolchain evidence alone does not activate either. An independent
+installation records an unavailable companion as an unmet method and uses bounded
+target-repository Go standards instead of claiming it loaded. Formal reviewers
+use target-repository instructions and module contracts first, installed Go and
+applicable Cobra/Viper standards second, and `references/go.md` questions last;
+only practical, non-tool-duplicate findings are reported. Worker preloads both
+Go skills, and fixed-diff handoffs explicitly send `Review mode: fixed-diff
+code`. `codebase-design` includes the complete adapted deep-module method, its
+dependency-deepening and alternative-interface references, and explicit
+testability guidance. Its alternative-interface flow keeps architecture judgment
+in the parent and prevents ordinary child agents from orchestrating fanout.
 
 The focused implementation, TDD, `codebase-design`, `code-review`, debugging, and
 architecture-discovery methods use MIT-licensed guidance from [mattpocock/skills](https://github.com/mattpocock/skills)

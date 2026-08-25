@@ -117,6 +117,14 @@ separate from its fixed-diff code-review mode; independently installed packages
 attempt named skill resolution and record an honest bounded direct-parent
 target-repository standards fallback when a companion is unavailable.
 
+Engineering direct-entry methods resolve installed `go` for Go source, modules,
+Go CLIs, and Go-specific work, resolving `cobra-viper` only for commands, flags,
+or CLI configuration; unrelated toolchain evidence alone does not activate them.
+Worker preloads both skills. Fixed-diff Go review follows target-repository
+instructions and module contracts, applicable installed Go and Cobra/Viper
+standards, then `code-review`'s `references/go.md`, and reports only practical
+non-tool-duplicate findings.
+
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash
 tools, but it does not retarget Pi's resource loader. To test changes from a

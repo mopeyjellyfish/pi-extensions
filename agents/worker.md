@@ -15,6 +15,8 @@ skills:
   - frontend-development
   - react-interface
   - visual-validation
+  - go
+  - cobra-viper
 skillPath:
   - ../packages/engineering/skills/test-driven-development
   - ../packages/engineering/skills/codebase-design
@@ -24,6 +26,8 @@ skillPath:
   - ../packages/frontend-developer/skills/frontend-development
   - ../packages/frontend-developer/skills/react-interface
   - ../packages/frontend-developer/skills/visual-validation
+  - ../packages/go/skills/go
+  - ../packages/go/skills/cobra-viper
 tools:
   - read
   - grep

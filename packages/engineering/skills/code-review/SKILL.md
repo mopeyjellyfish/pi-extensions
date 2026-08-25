@@ -78,6 +78,20 @@ evidence of applicability. Do not load every reference by default. Treat each
 reference as review questions, not universal violations. Do not report style or
 static findings already enforced by current tooling.
 
+## Go routing
+
+When review has Go source, a Go module, a Go CLI, or Go-specific work, resolve
+`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
+or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
+toolchain evidence alone does not activate either method. If a companion skill
+is unavailable, record the unmet method and have the direct parent use bounded
+target-repository Go standards without pretending the skill loaded.
+
+For Go review, apply target-repository instructions and module contracts first,
+then applicable installed Go and Cobra/Viper standards, then
+`references/go.md` questions. Report a Go concern only when it has a practical
+consequence; do not duplicate a current tool finding.
+
 ## 4. Apply the smell baseline
 
 Use this baseline only as labeled judgment calls. A documented repository rule

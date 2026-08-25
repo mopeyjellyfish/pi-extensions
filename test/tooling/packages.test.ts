@@ -225,6 +225,8 @@ describe("package contracts", () => {
           "frontend-development",
           "react-interface",
           "visual-validation",
+          "go",
+          "cobra-viper",
         ],
         skillPaths: [
           "../packages/engineering/skills/test-driven-development",
@@ -235,6 +237,8 @@ describe("package contracts", () => {
           "../packages/frontend-developer/skills/frontend-development",
           "../packages/frontend-developer/skills/react-interface",
           "../packages/frontend-developer/skills/visual-validation",
+          "../packages/go/skills/go",
+          "../packages/go/skills/cobra-viper",
         ],
       },
       researcher: {
@@ -355,6 +359,7 @@ describe("package contracts", () => {
       /caller-supplied[^.]*resolved skill references[^.]*supersede[^.]*illustrative paths/iu,
     );
     expect(reviewer).toMatch(/fixed-document[^.]*inline/iu);
+    expect(reviewer).toMatch(/fixed-diff[^.]*Go[^.]*`go`[^.]*`cobra-viper`/iu);
   });
 
   it("gives Worker and Reviewer focused intent and review duties", async () => {

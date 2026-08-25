@@ -698,4 +698,41 @@ describe("engineering resources", () => {
     );
     expect(readme).toMatch(/asks\s+the human[\s\S]*implementation spec[\s\S]*Worker\s+handoff/iu);
   });
+  it("routes evidence-based Go work through Engineering entry skills", async () => {
+    expect.hasAssertions();
+    const entries = await Promise.all(
+      [
+        "developing-changes",
+        "just-do-it",
+        "diagnosing-bugs",
+        "test-driven-development",
+        "implement",
+        "codebase-design",
+        "domain-modeling",
+        "improve-codebase-architecture",
+        "code-review",
+      ].map((name) => read(`skills/${name}/SKILL.md`)),
+    );
+    const [implement, justDoIt, diagnosis, review] = [
+      entries[4],
+      entries[1],
+      entries[2],
+      entries[8],
+    ];
+
+    for (const entry of entries) {
+      expect(entry).toMatch(/Go source[\s\S]*Go module[\s\S]*Go-specific work/iu);
+      expect(entry).toMatch(/resolve[^.]*`go`[^.]*installed name/iu);
+      expect(entry).toMatch(/Cobra[\s\S]*Viper[\s\S]*CLI/iu);
+      expect(entry).toMatch(/unmet method[\s\S]*target-repository Go standards/iu);
+      expect(entry).toMatch(/unrelated[^.]*toolchain[^.]*does not activate/iu);
+    }
+    expect(diagnosis?.slice(diagnosis.indexOf("\n## Pi debug additions\n"))).toMatch(/Go source/iu);
+    expect(implement).toMatch(/Review mode: fixed-diff code/iu);
+    expect(justDoIt).toMatch(/Review mode: fixed-diff code/iu);
+    expect(review).toMatch(
+      /target-repository instructions[\s\S]*module contracts[\s\S]*Go and Cobra\/Viper[\s\S]*references\/go\.md/iu,
+    );
+    expect(review).toMatch(/practical[\s\S]*consequence[\s\S]*do not duplicate[^.]*tool/iu);
+  });
 });

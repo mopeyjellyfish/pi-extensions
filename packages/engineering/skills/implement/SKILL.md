@@ -158,6 +158,15 @@ from `diagnosing-bugs`. If the cause or outcome is unconfirmed, load and follow
 direct parent first requires a reproducible symptom, identified cause, and
 regression seam.
 
+## Go routing
+
+When work has Go source, a Go module, a Go CLI, or Go-specific work, resolve
+`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
+or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
+toolchain evidence alone does not activate either method. If a companion skill
+is unavailable, record the unmet method and have the direct parent use bounded
+target-repository Go standards without pretending the skill loaded.
+
 Use focused tests before required completion checks. When an accepted plan
 exists, use its invalidation map as the validation ladder; otherwise derive the
 smallest ladder from the changed surfaces without creating a forecast. Reuse
@@ -224,6 +233,8 @@ starting a second full review; pause if a repair changes architecture or
 accepted scope. For an accepted accept-all plan, pause and return control to the
 human before resolving any material finding. If the reviewer is unavailable,
 the direct parent loads and follows `code-review`.
+
+For formal review, send `Review mode: fixed-diff code` with the handoff.
 
 For checkpointed plans, present the evidence and an explicit **Accept and
 publish** action. Acceptance invokes `commit` and `open-pr` with no second

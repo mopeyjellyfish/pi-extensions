@@ -59,6 +59,17 @@ load and follow `code-review`. If the reviewer is unavailable, the direct parent
 loads and follows `code-review`. The parent inspects the diff and evidence in
 every case.
 
+For formal review, send `Review mode: fixed-diff code` with the handoff.
+
+## Go routing
+
+When work has Go source, a Go module, a Go CLI, or Go-specific work, resolve
+`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
+or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
+toolchain evidence alone does not activate either method. If a companion skill
+is unavailable, record the unmet method and have the direct parent use bounded
+target-repository Go standards without pretending the skill loaded.
+
 ## Stop and reroute
 
 The Worker or parent stops without widening scope and returns to

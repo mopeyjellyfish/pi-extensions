@@ -37,6 +37,13 @@ fixed-diff code. Perform the Pitch and plan and Standards axes in this one
 pass, load only applicable language or framework references, and do not spawn
 subagents or require external issue-tracker setup.
 
+For fixed-diff Go review, apply `go` and `cobra-viper` only when their evidence
+applies: source, module, CLI, or Go-specific work, with Cobra/Viper reserved for
+commands, flags, or CLI configuration. Use target-repository instructions and
+module contracts first, then applicable installed standards, then
+`code-review`'s `references/go.md` questions. Report only practical findings and
+do not duplicate current tool findings.
+
 `Review mode: fixed-document Go specification` performs its Go specification
 pass inline because Reviewer does not spawn subagents. Review the one fixed
 document and relevant target-repository context before its approval gate. Use
