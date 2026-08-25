@@ -31,6 +31,15 @@ Name scope limits, acceptable cuts, prohibited workarounds, and reshape triggers
 Record only research, alternatives, unknowns, and risks that change a decision.
 Omit this section's entries when none do.
 
+## Review evidence
+
+- **Applicability:** `not applicable` for non-Go work; otherwise state the
+  Go-targeted evidence.
+- **Fixed document:** State the reviewed pitch revision or `not applicable`.
+- **Status:** State the Go specification review result or `not applicable`.
+- **Invalidation:** State why the review remains valid or was replaced, or `not
+applicable`.
+
 ## Authority
 
 State parent-owned product and architecture decisions and the bounded authority

@@ -23,6 +23,35 @@ human explicitly selected accept-all. Create or update
 `status: draft`, unless the target repository defines another feature-document
 location.
 
+## Go specification review
+
+Treat a plan as Go-targeted only when its proposed outcome changes Go source, a
+Go module, a Go CLI, or Go-specific guidance or routing for future Go work. An
+unrelated `go.mod` or toolchain gate alone is not Go-targeted. For a Go-targeted
+plan, resolve the installed `go` skill by name and resolve `cobra-viper` only
+when CLI scope applies. Before approval, require one `go-spec-reviewer` pass
+with `Review mode: fixed-document Go specification`, the fixed plan path, and
+the caller-resolved `go` and applicable `cobra-viper` references; those caller
+references supersede illustrative skill paths. The pass reviews a guidance-only
+plan only for Go routing-contract accuracy, consistency, applicability, and
+implementation readiness; skip absent code, package, concurrency, and CLI
+design checks.
+
+This mandatory pass consumes the one independent-review budget; the parent
+keeps other standards inline. Resolve blocking issues and material questions
+before the approval question. Record applicability, fixed document, status, and
+invalidation in the template's unconditional `Review evidence`; record `not
+applicable` for non-Go plans. A proposed-solution, boundary, authority, or
+acceptance-criterion change invalidates the pass and requires one replacement;
+wording-only edits do not. The parent owns that classification. If Independent
+review is selected without a document change, show the existing evidence rather
+than running another pass.
+
+For independent installation, attempt installed skill resolution by name. If a
+companion skill is unavailable, record the unmet method and complete a bounded
+direct-parent review against target-repository Go standards before approval;
+do not claim that the skill loaded or block only for its absence.
+
 ## Plan complete delivery
 
 Write one complete delivery plan before implementation begins. Cover all

@@ -33,6 +33,17 @@ remain direct. The package stays independently installable: design capabilities
 supply evidence only, and the direct parent preserves lifecycle ownership and an
 honest fallback.
 
+For a Go-targeted pitch or plan—Go source, module, CLI, or Go-specific guidance
+or routing—the parent resolves installed `go` guidance and `cobra-viper` only
+for CLI scope, then requires one fixed-document Go specification review before
+approval. An unrelated `go.mod` or toolchain gate is not Go-targeted. That pass
+uses the one independent-review budget, while other standards stay inline;
+material solution, boundary, authority, or acceptance-criterion changes replace
+its evidence. Templates always record Review evidence and use `not applicable`
+for non-Go documents. Independent installations attempt named resolution; if a
+companion is absent, the parent records the unmet method and completes a bounded
+target-repository Go standards review without claiming it loaded.
+
 Planning identifies vertical slices first. A vertical slice is one end-to-end
 behavior with a narrow deterministic red/green proof. It then groups dependent
 slices into delivery units: a delivery unit is one coherent review, validation,
