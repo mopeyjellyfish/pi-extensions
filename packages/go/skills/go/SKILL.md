@@ -274,47 +274,59 @@ if err != nil {
 
 ## Testing Patterns
 
-**Anti-Pattern:** Relying on heavy BDD frameworks (like Ginkgo) or complex mocking generation tools. Go testing should just be Go programming.
+**Anti-Pattern:** Relying on heavy BDD frameworks (like Ginkgo) or complex mocking generation tools. Go tests should remain ordinary Go code, not a BDD framework or generated-mock-heavy style.
 
-### 1. Table-Driven Tests
+### 1. Testify Assertions in Ordinary Go Tests
 
-The absolute standard for unit testing in Go. Iterate over a slice of structs containing inputs and expected outputs using `t.Run()`.
+Use [Testify](https://github.com/stretchr/testify) `assert` and `require` for clear assertions while keeping standard `testing` functions and `t.Run()` subtests. Use `require` when a failed precondition should stop the case; use `assert` when later independent checks are still useful. Do not use Testify suites or other framework abstractions.
+
+### 2. Short Top-Level Names and Table-Driven Cases
+
+Table-driven subtests are the Go unit-testing standard. Prefer short, behavior-focused top-level test names with many table-driven cases. Do not encode every scenario in the function name: `TestThatThisThingWorksWhenSomethingGoesWrongOneTuesdayInMay` is bad; `TestThingWorks` is preferred. Put scenario details in case names and subtests. Cases should cover different days, months, years, and other meaningful dimensions.
 
 ```go
-func TestParseConfig(t *testing.T) {
+import (
+    "testing"
+    "time"
+
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+)
+
+func TestThingWorks(t *testing.T) {
     tests := []struct {
-        name    string
-        input   string
-        wantErr bool
+        name string
+        date time.Time
+        want string
     }{
-        {"valid config", "port=8080", false},
-        {"invalid format", "port=abc", true},
+        {"Tuesday in May", time.Date(2025, time.May, 6, 0, 0, 0, 0, time.UTC), "Tuesday, May 6, 2025"},
+        {"leap day", time.Date(2024, time.February, 29, 0, 0, 0, 0, time.UTC), "Thursday, February 29, 2024"},
+        {"new year", time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC), "Sunday, January 1, 2023"},
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            _, err := ParseConfig(tt.input)
-            if (err != nil) != tt.wantErr {
-                t.Fatalf("ParseConfig() error = %v, wantErr %v", err, tt.wantErr)
-            }
+            got, err := Thing(tt.date)
+            require.NoError(t, err)
+            assert.Equal(t, tt.want, got)
         })
     }
 }
 ```
 
-### 2. Meaningful Helpers with `t.Helper()`
+### 3. Meaningful Helpers with `t.Helper()`
 
 When extracting repeated assertion logic, always call `t.Helper()` to ensure failures point to the actual test case, not the helper function line.
 
-### 3. Fakes and Stubs over Heavy Mocks
+### 4. Fakes and Stubs over Heavy Mocks
 
 Leverage Go's implicit interfaces to write simple, manual fakes. This keeps test dependencies lightweight and test logic transparent.
 
-### 4. Golden Files and the `testdata` Directory
+### 5. Golden Files and the `testdata` Directory
 
 For tests requiring complex inputs or producing large outputs, use a directory named `testdata`. The `go test` tool explicitly ignores these directories.
 
-### 5. Filesystem Abstraction (The Afero Pattern)
+### 6. Filesystem Abstraction (The Afero Pattern)
 
 Do not hardcode `os` package calls deep within business logic. Accept an interface for the filesystem so tests can run in memory without touching the disk. `github.com/spf13/afero` is the industry standard for this.
 
@@ -332,11 +344,11 @@ func NewFileProcessor(fs afero.Fs) *FileProcessor {
 
 In tests, inject `afero.NewMemMapFs()` to completely eliminate disk I/O and prevent flaky, slow tests.
 
-### 6. `cmp` over DeepEqual
+### 7. Testify over `reflect.DeepEqual`
 
-For comparing complex structs or maps, use `github.com/google/go-cmp/cmp` for rich, readable diffs instead of the strict `reflect.DeepEqual`.
+For comparing values, structs, or maps, use Testify assertions such as `assert.Equal` or `require.Equal` instead of `reflect.DeepEqual` for clear failures.
 
-### 7. Modern `testing` Additions (Go 1.24+)
+### 8. Modern `testing` Additions (Go 1.24+)
 
 ```go
 // Test-scoped context — canceled automatically when the test ends.
@@ -357,7 +369,7 @@ func BenchmarkParse(b *testing.B) {
 // t.Chdir(dir) changes working directory for the test and restores it after.
 ```
 
-### 8. `testing/synctest` for Concurrent Code (Go 1.25)
+### 9. `testing/synctest` for Concurrent Code (Go 1.25)
 
 Test goroutines and timeouts deterministically with a fake clock — no `time.Sleep` in tests, no flaky timing assumptions:
 
