@@ -38,6 +38,9 @@
     "packages/github": {
       "release-type": "node"
     },
+    "packages/go": {
+      "release-type": "node"
+    },
     "packages/grafana-skills": {
       "release-type": "node"
     },

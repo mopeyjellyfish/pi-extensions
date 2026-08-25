@@ -280,6 +280,7 @@ license.
 | [`pi-feature-flow`](packages/feature-flow/README.md)             | Shape and planning without the root profile.                                      |
 | [`pi-git-conventions`](packages/git-conventions/README.md)       | Git delivery skills without the root profile.                                     |
 | [`pi-github`](packages/github/README.md)                         | GitHub CLI workflows without the root profile.                                    |
+| [`pi-go`](packages/go/README.md)                                 | Idiomatic Go programming guidance.                                                |
 | [`pi-grafana-skills`](packages/grafana-skills/README.md)         | Grafana OSS administration, dashboard authoring, and PromQL guidance.             |
 | [`pi-hashline`](packages/hashline/README.md)                     | Anchored reads and fail-closed Hashline edits without the root profile.           |
 | [`pi-lsp`](packages/lsp/README.md)                               | Semantic navigation, diagnostics, or refactoring for a supported language server. |

@@ -14,3 +14,6 @@ packages/grafana-skills/skills/**
 
 # The feature-flow helper owns canonical ledger formatting.
 docs/features/*/index.json
+
+# Preserve the byte-identical user-supplied Go skill.
+packages/go/skills/go/SKILL.md

@@ -20,5 +20,6 @@ export default {
     "!.pi/subagents/**",
     "!packages/*/CHANGELOG.md",
     "!packages/grafana-skills/skills/**",
+    "!packages/go/skills/go/SKILL.md",
   ],
 };
