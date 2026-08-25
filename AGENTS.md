@@ -93,22 +93,21 @@ The repository deliberately does not commit a `.pi/settings.json` that loads
 automatic project loading would register the same tools, commands, and skills
 twice. Do not add an automatic project package entry for the working copy.
 
-The private root manifest is a curated default profile. It loads the
-`pi-frontend-developer` extension; its `design-documentation`, `frontend-design`,
-`frontend-development`, `image-generation`, `interface-craft`,
-`interface-design`, `react-interface`, and `visual-validation` skills; and its
-`/design` and `/generate-image` prompts. It also loads the Playwright-cleanup, question,
-status-line, todo, web-search, and Worktrunk extensions; the Apache-2.0 Grafana
-OSS, dashboarding, and PromQL skills; complete Engineering and Productivity
-skills and prompts; the Shape and planning lifecycle; Git, GitHub, and Worktrunk
-skills; and the pinned `pi-claude-bridge` and `pi-subagents` extensions,
-subagent prompts, and six model-routed package agents. The Luna QA agent
-runs bounded read-only final gates and aggregates
-failures before retained-Worker repairs. Worker and QA repeat
-while verification evidence shows measurable progress and stop on repeated or
-out-of-scope failures. The bundled subagent orchestration skill is
-intentionally excluded. Other production packages remain independently
-loadable. Pi reevaluates the root manifest during `/reload`.
+The private root manifest is David's complete compatible personal profile. It
+loads all compatible local production extensions and every local skill:
+Frontend Developer, Hashline, Playwright-cleanup, Question, Simple English,
+Status Line, Todo, Web Search, and Worktrunk extensions; Feature Flow; complete
+Engineering and Productivity skills and prompts; Simple English, Git, GitHub,
+Worktrunk, Frontend Developer, Go, and Grafana skills; their existing prompt
+coverage; and the pinned `pi-claude-bridge` and `pi-subagents` extensions,
+subagent prompts, and six model-routed package agents. LSP remains independently
+installable, but Pi rejects its `write` and `edit` tool-name conflicts with
+Hashline. The Luna QA agent runs bounded read-only final gates and aggregates
+failures before retained-Worker repairs. Worker and QA repeat while verification
+evidence shows
+measurable progress and stop on repeated or out-of-scope failures. The bundled
+subagent orchestration skill is intentionally excluded. Pi reevaluates the root
+manifest during `/reload`.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash

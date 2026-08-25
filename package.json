@@ -17,6 +17,7 @@
       "./packages/hashline/src/index.ts",
       "./packages/playwright-cleanup/src/index.ts",
       "./packages/question/src/index.ts",
+      "./packages/simple-english/src/index.ts",
       "./packages/status-line/src/index.ts",
       "./packages/todo/src/index.ts",
       "./packages/web-search/src/index.ts",
@@ -25,15 +26,16 @@
       "./node_modules/pi-subagents/index.ts"
     ],
     "skills": [
-      "./packages/feature-flow/skills/shape",
-      "./packages/feature-flow/skills/planning-changes",
+      "./packages/feature-flow/skills",
       "./packages/engineering/skills",
       "./packages/productivity/skills",
+      "./packages/simple-english/skills",
       "./packages/git-conventions/skills",
       "./packages/github/skills",
       "./packages/worktrunk/skills",
       "./packages/frontend-developer/skills",
-      "./node_modules/@mopeyjellyfish/pi-grafana-skills/skills"
+      "./packages/go/skills",
+      "./packages/grafana-skills/skills"
     ],
     "prompts": [
       "./packages/feature-flow/prompts/shape.md",
@@ -114,7 +116,6 @@
     "vitest": "4.1.10"
   },
   "dependencies": {
-    "@mopeyjellyfish/pi-grafana-skills": "0.0.0",
     "@playwright/cli": "0.1.18",
     "pi-claude-bridge": "0.7.0",
     "pi-subagents": "0.50.0"

@@ -2,13 +2,16 @@
 
 ## Package boundaries
 
-The root package is private and provides the small repository-wide Git profile
-documented in the root README. It selects a deliberate subset of local package
-resources, including todo for parent progress and the Apache-2.0 Grafana skills
-package. It pins `@playwright/cli`, `pi-claude-bridge`, and `pi-subagents` as
-external production dependencies. It loads the Claude bridge and subagent
-extensions plus explicit subagent prompts without loading the subagent
-dependency's broad orchestration skill.
+The root package is private and provides David's complete compatible personal
+Pi profile, documented in the root README. It loads every compatible local
+production extension and every skill exactly once from its package directory,
+including the Apache-2.0 Grafana skills package. `pi-lsp` remains independently
+installable but optional because Pi rejects its `write` and `edit` tool-name
+conflicts with Hashline. The root validator keeps that exact exception
+reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
+`pi-subagents` as external production dependencies. It loads the Claude bridge
+and subagent extensions plus explicit subagent prompts without loading the
+subagent dependency's broad orchestration skill.
 It exposes six fixed package agents: Terra-medium Worker and Git writers,
 Luna-low Researcher, Luna-medium QA gate verification and Utility read-only
 support, and an Opus-medium Reviewer. Implementation keeps focused repair loops

@@ -9,7 +9,6 @@ const config = {
       ignoreDependencies: [
         "@earendil-works/pi-ai",
         "@earendil-works/pi-tui",
-        "@mopeyjellyfish/pi-grafana-skills",
         "@playwright/cli",
         "pi-claude-bridge",
         "pi-subagents",
