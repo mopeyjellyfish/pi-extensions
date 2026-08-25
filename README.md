@@ -63,6 +63,13 @@ source, modules, CLIs, and Go-specific guidance or routing, not an unrelated
 evidence. The configured Reviewer keeps separate fixed-document Go
 specification and fixed-diff code modes.
 
+Engineering routes Go source, modules, Go CLIs, and Go-specific work through
+installed `go`, adding `cobra-viper` only for commands, flags, or CLI
+configuration; toolchain evidence alone does not activate either. Worker
+preloads both skills. Fixed-diff Go review applies target-repository instructions
+and module contracts before installed Go standards and `references/go.md`, and
+reports only practical findings that do not duplicate current tool output.
+
 The configured Git agent composes the focused Git and GitHub skills. Given a
 worktree, branch, authority, intent, and evidence, it derives atomic units and
 messages, stages, commits, pushes, and creates or updates the pull request. It

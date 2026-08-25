@@ -191,3 +191,13 @@ When Phase 5 begins, load and follow the `test-driven-development` skill. Keep
 the upstream order: turn the minimized reproduction into a red regression test
 at the correct seam, make the smallest root-cause fix, and verify the test and
 original loop turn green.
+
+### Go routing
+
+When diagnosis has Go source, a Go module, a Go CLI, or Go-specific work,
+resolve `go` by its installed name and follow it. Resolve `cobra-viper` only
+when Cobra or Viper commands, flags, or CLI configuration are in scope.
+Unrelated Go toolchain evidence alone does not activate either method. If a
+companion skill is unavailable, record the unmet method and have the direct
+parent use bounded target-repository Go standards without pretending the skill
+loaded.

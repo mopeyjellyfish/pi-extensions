@@ -65,3 +65,12 @@ accepted pitch and plan. If Shape is unavailable, return the same
 self-contained candidate brief to the parent and state that implementation has
 not started. This skill stops after that handoff; it does not edit production
 code, create a branch, or implement the candidate.
+
+## Go routing
+
+When work has Go source, a Go module, a Go CLI, or Go-specific work, resolve
+`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
+or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
+toolchain evidence alone does not activate either method. If a companion skill
+is unavailable, record the unmet method and have the direct parent use bounded
+target-repository Go standards without pretending the skill loaded.
