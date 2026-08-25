@@ -558,7 +558,7 @@ describe("TUI dialog", () => {
           return new Promise((resolve) => {
             const component = factory(
               {
-                terminal: { rows: 26 },
+                terminal: { rows: 23 },
                 requestRender() {
                   return;
                 },
@@ -570,7 +570,7 @@ describe("TUI dialog", () => {
             const lines = component.render(60);
             const output = stripVTControlCharacters(lines.join("\n"));
             expect(lines).toHaveLength(23);
-            expect(lines.length).toBeLessThanOrEqual(24);
+            expect(lines.length).toBeLessThanOrEqual(23);
             expect(output).toContain("First choice");
             expect(output).toContain("Second pick");
             expect(output).toContain("Which implementation scope");
