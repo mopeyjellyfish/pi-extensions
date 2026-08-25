@@ -5,7 +5,7 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 ## Features
 
 - `presentation: "inline"` keeps a contextual clarification below the visible transcript; omit presentation or use `"fullscreen"` for the existing capturing overlay.
-- Inline questions use the same one-to-four question dialog, choices, multi-select, notes, custom answers, redirection, and final review in a compact focus-aware viewport capped at 14 rows and 60% of terminal height.
+- Inline questions use the same one-to-four question dialog, choices, multi-select, notes, custom answers, redirection, and final review at their natural height when space permits. They retain two terminal rows for nearby transcript context.
 - Full-screen questions use every terminal row and column.
 - At 100 terminal columns or wider, options and final-review controls stay in a one-third left rail while an attached document, focused preview, or blank space uses the remaining two-thirds; narrower overlays stack content.
 - Optional full-document review with persistent, independently scrollable Markdown (including bulleted and numbered nested lists, spacing, rules, and language-highlighted fenced code in theme-aware background blocks), YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
