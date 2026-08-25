@@ -608,6 +608,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-frontend-developer",
       "@mopeyjellyfish/pi-git-conventions",
       "@mopeyjellyfish/pi-github",
+      "@mopeyjellyfish/pi-go",
       "@mopeyjellyfish/pi-grafana-skills",
       "@mopeyjellyfish/pi-hashline",
       "@mopeyjellyfish/pi-lsp",
