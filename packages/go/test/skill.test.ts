@@ -36,6 +36,19 @@ describe("Go skill package", () => {
     expect(skill).toContain("BindPFlags(cmd.Flags())");
     expect(skill).toContain("fresh tree + fresh Viper every test");
   });
+  it("discovers pre-implementation Go specification review guidance", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(
+      join(PACKAGE_ROOT, "skills", "go-spec-reviewer", "SKILL.md"),
+      "utf8",
+    );
+
+    expect(skill).toMatch(/^---\nname: go-spec-reviewer\ndescription:/u);
+    expect(skill).toContain("before implementation begins");
+    expect(skill).toContain("### Step 0 — Load the Standards");
+    expect(skill).toContain("## Go Spec Review");
+    expect(skill).toContain("**Status:** Approved | Approved with Questions | Issues Found");
+  });
   it("recommends Testify assertions with concise table-driven test names", async () => {
     expect.hasAssertions();
     const skill = await readFile(join(PACKAGE_ROOT, "skills", "go", "SKILL.md"), "utf8");

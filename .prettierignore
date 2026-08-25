@@ -18,3 +18,4 @@ docs/features/*/index.json
 # Preserve the byte-identical user-supplied Go skills.
 packages/go/skills/go/SKILL.md
 packages/go/skills/cobra-viper/SKILL.md
+packages/go/skills/go-spec-reviewer/SKILL.md
