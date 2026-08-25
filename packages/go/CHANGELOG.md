@@ -2,5 +2,5 @@
 
 ## [0.0.0] - Unreleased
 
-- Initial `go` and `cobra-viper` skills for Go programming and Cobra/Viper CLI
-  guidance.
+- Initial `go`, `cobra-viper`, and `go-spec-reviewer` skills for Go programming,
+  Cobra/Viper CLI guidance, and pre-implementation design review.
