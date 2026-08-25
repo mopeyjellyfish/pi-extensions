@@ -2,22 +2,22 @@
 
 This repository contains independently installable extensions and skills for
 the [Pi coding agent](https://github.com/earendil-works/pi). The private root
-package is deliberately small; it is a recommended coding profile, not an
-install-everything aggregate.
+package is David's complete compatible personal Pi profile: it loads every
+local production extension and skill except optional `pi-lsp`.
 
 > [!WARNING]
 > Pi extensions run with your user permissions. Skills can direct an agent to
 > run commands. Read the source before installing an untrusted package.
 
-## Recommended baseline
+## Personal profile
 
-Install the repository profile:
+Install David's complete repository profile:
 
 ```sh
 pi install git:github.com/mopeyjellyfish/pi-extensions
 ```
 
-It loads only:
+It loads:
 
 - Pi's native tools and native compaction;
 - [`pi-hashline`](packages/hashline/README.md), which augments `read` with
@@ -37,6 +37,11 @@ It loads only:
   `/generate-image`, which requires explicit human consent before provider
   privacy exposure, separately billed cost, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
+- [`pi-lsp`](packages/lsp/README.md) remains independently installable for
+  semantic navigation, diagnostics, and refactoring, but is optional because Pi
+  rejects its `write` and `edit` tool-name conflicts with Hashline;
+- `pi-simple-english`, including its pragmatic ASD-STE100 writing guidance;
+- complete `pi-go` skills for Go programming and delivery;
 - [`pi-grafana-skills`](packages/grafana-skills/README.md), which redistributes
   Grafana's official `grafana-oss`, `dashboarding`, and `promql` skills;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
@@ -193,33 +198,15 @@ pi update --extension git:github.com/mopeyjellyfish/pi-extensions
 pi remove git:github.com/mopeyjellyfish/pi-extensions
 ```
 
-## Why the default is small
+## Why the profile is complete
 
-Tool-output counters are not end-to-end quality or token measurements. A
-rewriter can report fewer shell-output tokens while the complete task uses the
-same or more model tokens. Context replacement can also remove detail needed by
-complex work. The available local and comparative evidence did not show a
-stable task-level advantage from making RTK, FFF, or context-mode part of every
-session.
-
-Pi already provides file, search, shell, editing, session, and compaction
-behavior. Skills are discovered progressively. The baseline therefore keeps
-native behavior and adds the missing structured question, terminal status, web
-research, worktree routing, deliberate frontend workflow, delivery guidance,
-and lifecycle contracts. Accepted `pitch.md` and `plan.md` files are durable
-anchors when a long session compacts.
-
-Treat every extra extension as a measured addition:
-
-1. Start with the baseline on representative complex tasks.
-2. Add one extension for a specific observed gap.
-3. Compare completion quality, wall time, retries, failures, and total model
-   tokens, not only rewritten command output.
-4. Remove the extension when the benefit is not repeatable.
-
-Use the small [Pi profile A/B evaluation](docs/evaluations/pi-profile-ab.md)
-before adding deferred-tool loading, custom compaction, or another always-on
-extension.
+This is David's personal profile, so it deliberately loads every compatible
+local production extension and skill. `pi-lsp` remains optional because Pi
+hard-fails when it and Hashline both register `write` and `edit`. The root
+validator prevents a future compatible local extension or skill from being
+omitted silently while keeping prompt entries explicit. Each package remains
+independently installable for target repositories that need only a specific
+capability.
 
 OpenAI's [GPT-5.6 guidance](https://developers.openai.com/api/docs/guides/latest-model)
 also recommends comparing representative workloads when choosing model and
@@ -253,9 +240,10 @@ configuration and remove these remaining baseline overrides when present:
   intended, and remove the whole block only when pi-subagents built-ins should
   return.
 
-The root profile pins the local `pi-grafana-skills` package and the external
-`pi-claude-bridge`, `pi-subagents`, and `@playwright/cli` dependencies because
-their behavior was selected explicitly.
+The root profile pins the external `pi-claude-bridge`, `pi-subagents`, and
+`@playwright/cli` dependencies. Local Grafana skills resolve directly from the
+`packages/grafana-skills` workspace package.
+
 `playwright_browser` resolves the profile's local CLI and safely owns and
 cleans up each browser session. The Playwright browser binary is downloaded
 separately when it is first needed; run

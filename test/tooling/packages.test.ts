@@ -25,6 +25,7 @@ const ROOT_PROFILE = {
     "./packages/hashline/src/index.ts",
     "./packages/playwright-cleanup/src/index.ts",
     "./packages/question/src/index.ts",
+    "./packages/simple-english/src/index.ts",
     "./packages/status-line/src/index.ts",
     "./packages/todo/src/index.ts",
     "./packages/web-search/src/index.ts",
@@ -33,15 +34,16 @@ const ROOT_PROFILE = {
     "./node_modules/pi-subagents/index.ts",
   ],
   skills: [
-    "./packages/feature-flow/skills/shape",
-    "./packages/feature-flow/skills/planning-changes",
+    "./packages/feature-flow/skills",
     "./packages/engineering/skills",
     "./packages/productivity/skills",
+    "./packages/simple-english/skills",
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
     "./packages/frontend-developer/skills",
-    "./node_modules/@mopeyjellyfish/pi-grafana-skills/skills",
+    "./packages/go/skills",
+    "./packages/grafana-skills/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -55,7 +57,6 @@ const ROOT_PROFILE = {
   subagents: { agents: ["./agents"] },
 } as const;
 const ROOT_DEPENDENCIES = {
-  "@mopeyjellyfish/pi-grafana-skills": "0.0.0",
   "@playwright/cli": "0.1.18",
   "pi-claude-bridge": "0.7.0",
   "pi-subagents": "0.50.0",
@@ -127,6 +128,34 @@ async function rootWithRuntime(node: string, nodeTypes: string): Promise<string>
   return root;
 }
 
+async function futureProfilePackage(root: string): Promise<void> {
+  const packageRoot = join(root, "packages", "future");
+  await mkdir(packageRoot, { recursive: true });
+  await writeFile(
+    join(packageRoot, "package.json"),
+    JSON.stringify({
+      name: "@mopeyjellyfish/pi-future",
+      pi: {
+        extensions: ["./src/future.ts"],
+        skills: ["./skills/specific"],
+      },
+    }),
+    "utf8",
+  );
+}
+async function lspProfilePackage(root: string, extension = "./src/index.ts"): Promise<void> {
+  const packageRoot = join(root, "packages", "lsp");
+  await mkdir(packageRoot, { recursive: true });
+  await writeFile(
+    join(packageRoot, "package.json"),
+    JSON.stringify({
+      name: "@mopeyjellyfish/pi-lsp",
+      pi: { extensions: [extension] },
+    }),
+    "utf8",
+  );
+}
+
 async function skillOnlyPackage(): Promise<PackageDescriptor> {
   const temporaryParent = join(repositoryRoot, ".tmp");
   await mkdir(temporaryParent, { recursive: true });
@@ -167,7 +196,7 @@ async function skillOnlyPackage(): Promise<PackageDescriptor> {
 }
 
 describe("package contracts", () => {
-  it("keeps the private root profile curated", async () => {
+  it("keeps the private root profile complete", async () => {
     expect.hasAssertions();
     const manifest = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8")) as {
       readonly dependencies?: unknown;
@@ -525,26 +554,58 @@ describe("package contracts", () => {
     }
     expect(agents).toMatch(/does not make it[\s\S]*available[\s\S]*active Pi process/iu);
     expect(agents).toMatch(/No production resource\s+may be specific to this repository/iu);
-    expect(agents).toMatch(/Playwright-cleanup[\s\S]*complete Engineering and Productivity/iu);
+    expect(agents).toMatch(/Hashline[\s\S]*complete\s+Engineering\s+and Productivity/iu);
     expect(agents).toMatch(/six[\s\S]*model-routed package agents/iu);
   });
 
-  it("rejects a missing or additional root profile resource", async () => {
+  it("rejects a re-added LSP extension with its compatibility reason", async () => {
     expect.hasAssertions();
     const root = await rootWithRuntime(">=22.20.0", "22.20.0");
+    await lspProfilePackage(root);
     const manifestPath = join(root, "package.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
     manifest["pi"] = {
       ...ROOT_PROFILE,
       extensions: [...ROOT_PROFILE.extensions, "./packages/lsp/src/index.ts"],
-      prompts: ROOT_PROFILE.prompts.slice(1),
     };
     await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
 
     await expect(validateRootProfile(root)).resolves.toEqual(
       expect.arrayContaining([
         `Root pi.extensions must equal ${JSON.stringify(ROOT_PROFILE.extensions)}.`,
-        `Root pi.prompts must equal ${JSON.stringify(ROOT_PROFILE.prompts)}.`,
+        "Root pi.extensions must omit ./packages/lsp/src/index.ts: Pi hard-fails because pi-lsp and Hashline both register write and edit.",
+      ]),
+    );
+  });
+
+  it("keeps the LSP exception valid when no LSP package exists", async () => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.20.0", "22.20.0");
+
+    await expect(validateRootProfile(root)).resolves.not.toContainEqual(
+      "Root extension exception for ./packages/lsp/src/index.ts is stale: @mopeyjellyfish/pi-lsp no longer declares that resource.",
+    );
+  });
+
+  it("rejects a stale LSP exception", async () => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.20.0", "22.20.0");
+    await lspProfilePackage(root, "./src/server.ts");
+
+    await expect(validateRootProfile(root)).resolves.toContainEqual(
+      "Root extension exception for ./packages/lsp/src/index.ts is stale: @mopeyjellyfish/pi-lsp no longer declares that resource.",
+    );
+  });
+
+  it("rejects omitted future local extension and skill resources", async () => {
+    expect.hasAssertions();
+    const root = await rootWithRuntime(">=22.20.0", "22.20.0");
+    await futureProfilePackage(root);
+
+    await expect(validateRootProfile(root)).resolves.toEqual(
+      expect.arrayContaining([
+        "Root pi.extensions must include every local production extension: ./packages/future/src/future.ts.",
+        "Root pi.skills must include every local production skill: ./packages/future/skills/specific.",
       ]),
     );
   });

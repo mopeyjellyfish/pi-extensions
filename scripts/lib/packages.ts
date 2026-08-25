@@ -459,6 +459,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/hashline/src/index.ts",
     "./packages/playwright-cleanup/src/index.ts",
     "./packages/question/src/index.ts",
+    "./packages/simple-english/src/index.ts",
     "./packages/status-line/src/index.ts",
     "./packages/todo/src/index.ts",
     "./packages/web-search/src/index.ts",
@@ -467,15 +468,16 @@ const ROOT_PROFILE: RootProfile = {
     "./node_modules/pi-subagents/index.ts",
   ],
   skills: [
-    "./packages/feature-flow/skills/shape",
-    "./packages/feature-flow/skills/planning-changes",
+    "./packages/feature-flow/skills",
     "./packages/engineering/skills",
     "./packages/productivity/skills",
+    "./packages/simple-english/skills",
     "./packages/git-conventions/skills",
     "./packages/github/skills",
     "./packages/worktrunk/skills",
     "./packages/frontend-developer/skills",
-    "./node_modules/@mopeyjellyfish/pi-grafana-skills/skills",
+    "./packages/go/skills",
+    "./packages/grafana-skills/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -488,12 +490,82 @@ const ROOT_PROFILE: RootProfile = {
   ],
   subagents: { agents: ["./agents"] },
 };
+const ROOT_EXTENSION_EXCEPTIONS: Readonly<Record<string, string>> = {
+  "./packages/lsp/src/index.ts":
+    "Pi hard-fails because pi-lsp and Hashline both register write and edit.",
+};
 const ROOT_DEPENDENCIES = {
-  "@mopeyjellyfish/pi-grafana-skills": "0.0.0",
   "@playwright/cli": "0.1.18",
   "pi-claude-bridge": "0.7.0",
   "pi-subagents": "0.50.0",
 };
+
+function rootProfileResourcePath(
+  root: string,
+  descriptor: PackageDescriptor,
+  entry: string,
+): string {
+  return `./${toPosixPath(join(relative(root, descriptor.root), entry))}`;
+}
+
+async function validateRootProfileCompleteness(
+  root: string,
+  configuredProfile: PackageResources,
+  errors: string[],
+): Promise<void> {
+  if (!(await pathExists(join(root, "packages")))) {
+    return;
+  }
+  try {
+    const packages = await discoverProductionPackages(root);
+    for (const resource of ["extensions", "skills"] as const) {
+      const required = new Set(
+        packages.flatMap((descriptor) =>
+          packageResources(descriptor.manifest)[resource].map((entry) =>
+            rootProfileResourcePath(root, descriptor, entry),
+          ),
+        ),
+      );
+      const configured = new Set(
+        configuredProfile[resource].filter((entry) => entry.startsWith("./packages/")),
+      );
+      const exceptions = resource === "extensions" ? ROOT_EXTENSION_EXCEPTIONS : {};
+      for (const [entry, reason] of Object.entries(exceptions)) {
+        if (configured.has(entry)) {
+          errors.push(`Root pi.extensions must omit ${entry}: ${reason}`);
+        }
+        const lspPackage = packages.find(
+          (descriptor) => descriptor.manifest["name"] === "@mopeyjellyfish/pi-lsp",
+        );
+        if (lspPackage !== undefined && !required.has(entry)) {
+          errors.push(
+            `Root extension exception for ${entry} is stale: @mopeyjellyfish/pi-lsp no longer declares that resource.`,
+          );
+        }
+      }
+      const missing = [...required].filter(
+        (entry) => !configured.has(entry) && !Object.hasOwn(exceptions, entry),
+      );
+      const additional = [...configured].filter(
+        (entry) => !required.has(entry) && !Object.hasOwn(exceptions, entry),
+      );
+      if (missing.length > 0) {
+        errors.push(
+          `Root pi.${resource} must include every local production ${resource.slice(0, -1)}: ${missing.join(", ")}.`,
+        );
+      }
+      if (additional.length > 0) {
+        errors.push(
+          `Root pi.${resource} must not include undeclared local production ${resource.slice(0, -1)}: ${additional.join(", ")}.`,
+        );
+      }
+    }
+  } catch (error) {
+    errors.push(
+      `Unable to discover local production resources: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
 
 function validateRootSubagents(pi: Record<string, unknown>, errors: string[]): void {
   const subagents = pi["subagents"];
@@ -545,5 +617,6 @@ export async function validateRootProfile(root = repositoryRoot): Promise<string
   }
   const errors: string[] = [];
   validateRootManifest(value, errors);
+  await validateRootProfileCompleteness(root, packageResources(value), errors);
   return errors;
 }

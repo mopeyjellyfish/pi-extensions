@@ -31,12 +31,15 @@ The manifest validator requires:
 - no dependency duplicated across dependency sections;
 - Pi host packages only in `peerDependencies`.
 
-The private root package is a curated profile, not a completeness aggregate. Its
-exact resources and pinned external dependencies are validated separately and
-may select only a small subset of production packages. Adding a production
-package does not add it to the root profile. Every package must still pass its own source, packed-install, resource,
-and release checks. `npm pack` must include each declared resource, package
-manifest, README, changelog, and license.
+The private root package is David's complete compatible personal profile. Its
+exact ordered resources and pinned external dependencies are validated
+separately. Every compatible local production extension and every skill is
+loaded exactly once from its package directory; adding one cannot be silently
+omitted from the root profile. `pi-lsp` is the one optional extension because
+Pi rejects its `write` and `edit` tool-name conflicts with Hashline. Prompt
+entries remain explicit. Every package must still pass its own source,
+packed-install, resource, and release checks. `npm pack` must include each
+declared resource, package manifest, README, changelog, and license.
 
 ## Releases
 
