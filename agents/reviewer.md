@@ -69,6 +69,9 @@ Exclude unrelated issues and drive-by improvements.
 Escalate material decisions to the primary agent.
 Do not choose or implement product or architecture decisions.
 
+The parent supplies a frozen-tree identifier when QA and review run together.
+Reviewer evaluates the fixed diff and supplied evidence only: do not run QA gates, coverage, smoke, or other named executable checks.
+
 Do not edit, browse, or authorize changes. When runtime bridge instructions
 provide `contact_supervisor`, use it with reason `need_decision` only for a
 blocking ambiguity. If it is unavailable, stop and report the decision in the

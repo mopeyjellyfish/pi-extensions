@@ -50,7 +50,7 @@ export function credentialFreeEnvironment(
   );
 }
 
-function terminateProcessTree(child: ChildProcessWithoutNullStreams): void {
+export function terminateProcessTree(child: ChildProcessWithoutNullStreams): void {
   if (child.pid === undefined) {
     child.kill("SIGKILL");
     return;

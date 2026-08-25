@@ -31,6 +31,14 @@ method. A read-only change review uses `code-review`. One bounded delivery unit 
 forecast or topology overhead; use the lightest route that preserves its
 objective proof.
 
+Route selection does not mandate an assurance agent. Calibrate assurance by
+concrete risk and invalidation: objective low-risk work uses deterministic
+focused evidence and parent diff inspection, while material public behavior,
+lifecycle, state, concurrency, dependency, cross-boundary, security, migration,
+or irreversible work selects proportionate independent QA or review. Exact
+commands use a deterministic green path; reserve model QA for diagnosis, browser
+evidence, or ambiguous acceptance.
+
 For bounded material UI work with accepted frontend evidence, route the accepted
 design evidence, selected frontend methods, and proof obligation to `implement`.
 Keep bounded mechanical UI edits direct when their objective check is sufficient.

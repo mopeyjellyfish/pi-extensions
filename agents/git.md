@@ -72,6 +72,14 @@ queued or pending CI, report the current state and hand off to a separate
 caller or QA step. On a transport failure, diagnose once and stop with recovery
 evidence; do not wait or retry.
 
+Before commit or publication, reuse final verification only when the supplied
+identifier represents the exact tested contents and its base `HEAD`, complete
+approved path set, command definitions, and setup fingerprint still match. After
+staging only those paths, require the real `git write-tree` value to equal that
+identifier. If any value differs, the evidence is stale: run only invalidated
+required checks. When all match, record the comparison and do not rerun
+unchanged gates.
+
 When runtime bridge instructions provide `contact_supervisor`, use it with reason
 `need_decision` only for a blocking decision. If it is unavailable, stop and
 report the decision in the final result. Send no routine completion handoff.

@@ -299,6 +299,20 @@ After the final edit:
 10. Commit atomically, push only `perf/subagent-delivery-efficiency`, and create
     one pull request against `main` with a Conventional Commit title.
 
+## Implementation record
+
+- Initial setup exposed that GVM sourcing is incompatible with shell nounset;
+  the launcher keeps fail-fast behavior without nounset and checks GVM activation
+  explicitly. The successful worktree setup used Node `v24.18.0`, Go `1.26.5`,
+  and one dependency installation.
+- The sole Worker returned `partial` after implementing most slices and passing
+  its focused suite. Under the accepted pause policy, the user explicitly chose
+  **Parent completes**. The parent then took sole write ownership for the bounded
+  missing routing, exact-tree evidence, launcher hardening, and integration work.
+- The final design keeps one writer, makes low-risk direct execution the default,
+  uses deterministic green-path gates, and starts selected QA and Reviewer lanes
+  together through one `runs.all` workflow.
+
 ## Completion conditions
 
 - R-001 through R-012 are traceable to tests and final evidence.

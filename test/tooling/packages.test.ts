@@ -420,7 +420,7 @@ describe("package contracts", () => {
       ),
     );
 
-    expect.soft(qa).toMatch(/fresh worktree[^.]*setup[^.]*before[^.]*check/iu);
+    expect.soft(qa).toMatch(/fresh worktree[\s\S]*setup evidence[\s\S]*before[^.]*check/iu);
     expect.soft(qa).toMatch(/exact named completion commands[^.]*each once/iu);
     expect.soft(qa).toMatch(/aggregate[^.]*failures[^.]*one defect packet/iu);
     expect.soft(qa).toMatch(/never rerun[^.]*unchanged failing command/iu);
@@ -505,8 +505,8 @@ describe("package contracts", () => {
     expect(readme).toContain('"toolDescriptionMode": "compact"');
     expect(readme).toContain('"asyncByDefault": false');
     expect(readme).toContain('"maxSubagentDepth": 1');
-    expect(readme).toContain('"maxTasks": 3');
-    expect(readme).toContain('"concurrency": 2');
+    expect(readme).toContain('"maxTasks": 4');
+    expect(readme).toContain('"concurrency": 3');
     expect(readme).toContain('"scheduledRuns": {');
     expect(readme).toContain('"enabled": false');
     expect(readme).toContain('"subagents": {\n    "disableBuiltins": true');

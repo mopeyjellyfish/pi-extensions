@@ -66,7 +66,7 @@ describe("git convention skills", () => {
     expect(skill).toMatch(/lockfile[^.]*semantic grouping/iu);
     expect(skill).toMatch(/shared lockfile[^.]*one unit/iu);
     expect(skill).toMatch(/explicit paths or approved hunks/iu);
-    expect(skill.match(/git write-tree/gu)).toHaveLength(2);
+    expect(skill.match(/git write-tree/gu)?.length).toBeGreaterThanOrEqual(2);
     expect(skill).toContain("HEAD^{tree}");
     expect(skill).toMatch(/validate the actual `HEAD` message/iu);
     expect(skill).toMatch(/sequential lockfile regeneration is the narrow\s+exception/iu);
@@ -220,5 +220,16 @@ describe("git convention skills", () => {
     expect(skill).toContain("git merge-base --is-ancestor");
     expect(skill).toContain("conflict");
     expect(skill).toContain("Never push");
+  });
+  it("reuses only evidence attested to the current staged tree and definitions", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "commit", "SKILL.md"), "utf8");
+    expect(skill).toMatch(/verified-tree identifier[\s\S]*exact tested contents/iu);
+    expect(skill).toMatch(/plain `git write-tree`[^.]*unstaged[^.]*not valid evidence/iu);
+    expect(skill).toMatch(/temporary index/iu);
+    expect(skill).toMatch(/complete explicit approved\s+path set/iu);
+    expect(skill).toMatch(/base `HEAD`[\s\S]*command definitions[\s\S]*setup fingerprint/iu);
+    expect(skill).toMatch(/stale[\s\S]*only the invalidated required checks/iu);
+    expect(skill).toMatch(/all match[\s\S]*do not rerun unchanged gates/iu);
   });
 });

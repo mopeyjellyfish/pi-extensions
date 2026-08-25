@@ -53,7 +53,7 @@
     }
   },
   "scripts": {
-    "check": "npm run format:check && npm run lint && npm run markdownlint && npm run knip && npm run typecheck && npm run test:coverage && npm run packages:check && npm run smoke && npm run go:check",
+    "check": "tsx scripts/check.ts",
     "commits:check": "commitlint --verbose",
     "fix": "npm run format && npm run lint:fix && npm run go:format",
     "format": "prettier --write --ignore-unknown .",
@@ -69,6 +69,7 @@
     "smoke": "tsx scripts/smoke-packages.ts",
     "smoke:source": "tsx scripts/smoke-packages.ts --source-only",
     "smoke:packed": "tsx scripts/smoke-packages.ts --packed-only",
+    "dev": "bash scripts/dev.sh",
     "go:verify": "tsx scripts/go.ts verify",
     "go:format": "tsx scripts/go.ts format",
     "go:format:check": "tsx scripts/go.ts format-check",

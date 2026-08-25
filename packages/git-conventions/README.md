@@ -26,3 +26,9 @@ the base explicitly when the repository or an open pull request does not make
 it unambiguous. This independent package does not automatically install a Git
 agent, Worktrunk, GitHub CLI, or companion extensions; use the direct parent
 and install documented external requirements when they are needed.
+
+When a delivery workflow supplies final evidence, `commit` reuses it only when
+the identifier represents the exact tested contents and its base `HEAD`,
+approved path set, command definitions, and setup fingerprint are unchanged.
+The staged `git write-tree` value must match that identifier. Otherwise the
+evidence is stale and only invalidated required checks run again.
