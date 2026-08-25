@@ -21,5 +21,6 @@ export default {
     "!packages/*/CHANGELOG.md",
     "!packages/grafana-skills/skills/**",
     "!packages/go/skills/go/SKILL.md",
+    "!packages/go/skills/cobra-viper/SKILL.md",
   ],
 };

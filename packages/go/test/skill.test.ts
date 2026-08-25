@@ -23,6 +23,19 @@ describe("Go skill package", () => {
     expect(skill).toMatch(/^---\nname: go\ndescription:/u);
     expect(skill).toMatch(/Use whenever Go code is written/u);
   });
+  it("discovers Cobra and Viper CLI guidance with isolated command factories", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "cobra-viper", "SKILL.md"), "utf8");
+
+    expect(skill).toMatch(/^---\nname: cobra-viper\ndescription:/u);
+    expect(skill).toMatch(
+      /Use whenever a Go CLI or command-line tool is being built, reviewed, or refactored/u,
+    );
+    expect(skill).toContain("NewRootCmd()");
+    expect(skill).toContain("viper.New()");
+    expect(skill).toContain("BindPFlags(cmd.Flags())");
+    expect(skill).toContain("fresh tree + fresh Viper every test");
+  });
   it("recommends Testify assertions with concise table-driven test names", async () => {
     expect.hasAssertions();
     const skill = await readFile(join(PACKAGE_ROOT, "skills", "go", "SKILL.md"), "utf8");
