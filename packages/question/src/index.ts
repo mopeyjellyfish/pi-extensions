@@ -70,8 +70,7 @@ function questionOverlayRows(terminalRows: number): number {
 }
 
 function inlineRows(terminalRows: number): number {
-  const preferredRows = Math.min(14, Math.floor(terminalRows * 0.6));
-  return Math.max(1, Math.min(terminalRows, Math.max(8, preferredRows)));
+  return Math.max(1, terminalRows);
 }
 
 function initialState(

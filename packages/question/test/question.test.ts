@@ -496,7 +496,7 @@ describe("TUI dialog", () => {
             ) as { handleInput(data: string): void; render(width: number): string[] };
             const lines = component.render(60);
             expect(lines.length).toBeLessThan(24);
-            expect(lines.length).toBeLessThanOrEqual(14);
+            expect(lines.length).toBeLessThanOrEqual(22);
             expect(lines.every((line) => visibleWidth(line) <= 60)).toBe(true);
             component.handleInput("\r");
             component.handleInput(" ");
@@ -519,6 +519,90 @@ describe("TUI dialog", () => {
     expect(
       result.details.answers.map((answer) => answer.selections.map((item) => item.optionId)),
     ).toEqual([["small"], ["unit"]]);
+  });
+
+  it("naturally sizes inline multi-question previews without clipping controls", async () => {
+    expect.hasAssertions();
+    const firstQuestion: QuestionDefinition = {
+      id: "first",
+      header: "First choice",
+      question:
+        "Which implementation scope best fits this clarification while keeping nearby transcript context visible?",
+      multiSelect: true,
+      options: [
+        {
+          id: smallOption.id,
+          label: smallOption.label,
+          description: smallOption.description,
+          preview: "Preview line 1\nPreview line 2\nPreview line 3",
+        },
+        largeOption,
+        unitOption,
+        e2eOption,
+      ],
+    };
+    const secondQuestion: QuestionDefinition = {
+      ...firstQuestion,
+      id: "second",
+      header: "Second pick",
+      options: [
+        { id: "small-two", label: "Small two", description: smallOption.description },
+        { id: "large-two", label: "Large two", description: largeOption.description },
+        { id: "unit-two", label: "Unit two", description: unitOption.description },
+        { id: "e2e-two", label: "E2E two", description: e2eOption.description },
+      ],
+    };
+    const ctx = context("tui", {
+      ui: {
+        custom(factory: (...arguments_: unknown[]) => unknown) {
+          return new Promise((resolve) => {
+            const component = factory(
+              {
+                terminal: { rows: 23 },
+                requestRender() {
+                  return;
+                },
+              },
+              theme,
+              { matches: () => false },
+              resolve,
+            ) as { cancelAbort(): void; render(width: number): string[] };
+            const lines = component.render(60);
+            const output = stripVTControlCharacters(lines.join("\n"));
+            expect(lines).toHaveLength(23);
+            expect(lines.length).toBeLessThanOrEqual(23);
+            expect(output).toContain("First choice");
+            expect(output).toContain("Second pick");
+            expect(output).toContain("Which implementation scope");
+            expect(output).toContain("Preview line 1");
+            expect(output).toContain("Preview line 2");
+            expect(output).toContain("Preview line 3");
+            expect(output).toContain("Small");
+            expect(output).toContain("Large");
+            expect(output).toContain("Unit");
+            expect(output).toContain("E2E");
+            expect(output).toContain("Other…");
+            expect(output).toContain("Chat about this…");
+            expect(output).toContain("Next →");
+            expect(
+              lines
+                .map((line) => stripVTControlCharacters(line).trim())
+                .some((line) => ["↑", "↓", "↕"].includes(line)),
+            ).toBe(false);
+            component.cancelAbort();
+          });
+        },
+      },
+    } as unknown as Partial<ExtensionContext>);
+
+    const result = await register().execute(
+      "id",
+      { presentation: "inline", questions: [firstQuestion, secondQuestion] },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(result.details).toMatchObject({ status: "cancelled", reason: "abort" });
   });
 
   it("keeps a focused inline option visible in a short terminal", async () => {
