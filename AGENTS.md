@@ -98,7 +98,8 @@ loads all compatible local production extensions and every local skill:
 Frontend Developer, Hashline, Playwright-cleanup, Question, Simple English,
 Status Line, Todo, Web Search, and Worktrunk extensions; Feature Flow; complete
 Engineering and Productivity skills and prompts; Simple English, Git, GitHub,
-Worktrunk, Frontend Developer, Go, and Grafana skills; their existing prompt
+Worktrunk, Frontend Developer—including `interface-craft` and
+`design-documentation`—Go, and Grafana skills; their existing prompt
 coverage; and the pinned `pi-claude-bridge` and `pi-subagents` extensions,
 subagent prompts, and six model-routed package agents. LSP remains independently
 installable, but Pi rejects its `write` and `edit` tool-name conflicts with
