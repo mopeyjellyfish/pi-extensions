@@ -14,8 +14,8 @@ lanes.
   Go-targeted evidence.
 - **Fixed document:** State the reviewed plan revision or `not applicable`.
 - **Status:** State the Go specification review result or `not applicable`.
-- **Invalidation:** State why the review remains valid or was replaced, or `not
-applicable`.
+- **Invalidation:** State why the review remains valid or was replaced, or
+  `not applicable`.
 
 ## Execution mode
 

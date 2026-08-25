@@ -37,9 +37,6 @@ It loads:
   `/generate-image`, which requires explicit human consent before provider
   privacy exposure, separately billed cost, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
-- [`pi-lsp`](packages/lsp/README.md) remains independently installable for
-  semantic navigation, diagnostics, and refactoring, but is optional because Pi
-  rejects its `write` and `edit` tool-name conflicts with Hashline;
 - `pi-simple-english`, including its pragmatic ASD-STE100 writing guidance;
 - complete `pi-go` skills for Go programming and delivery;
 - [`pi-grafana-skills`](packages/grafana-skills/README.md), which redistributes
