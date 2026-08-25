@@ -143,6 +143,52 @@ describe("feature-flow resources", () => {
     }
   });
 
+  it("requires evidence-based Go specification review before Go document approval", async () => {
+    expect.hasAssertions();
+    const [shape, planning, pitch, plan, readme] = await Promise.all([
+      read("skills/shape/SKILL.md"),
+      read("skills/planning-changes/SKILL.md"),
+      read("skills/shape/templates/pitch.md"),
+      read("skills/shape/templates/plan.md"),
+      read("README.md"),
+    ]);
+
+    for (const workflow of [shape, planning]) {
+      expect(workflow).toMatch(
+        /Go-targeted[\s\S]*Go source[\s\S]*Go module[\s\S]*Go CLI[\s\S]*Go-specific guidance[\s\S]*unrelated `go\.mod`[\s\S]*toolchain[\s\S]*not/iu,
+      );
+      expect(workflow).toMatch(
+        /one[\s\S]*fixed-document Go specification[\s\S]*before[\s\S]*approval/iu,
+      );
+      expect(workflow).toMatch(
+        /consumes[\s\S]*one independent-review budget[\s\S]*other standards[\s\S]*inline/iu,
+      );
+      expect(workflow).toMatch(
+        /proposed[- ]solution[\s\S]*boundar(?:y|ies)[\s\S]*authority[\s\S]*acceptance[- ]criterion[\s\S]*replacement/iu,
+      );
+      expect(workflow).toMatch(
+        /installed skill resolution by name[\s\S]*unmet method[\s\S]*target-repository Go standards/iu,
+      );
+    }
+    expect(shape).toMatch(/`go`[^.]*`cobra-viper`[^.]*CLI/iu);
+    expect(planning).toMatch(
+      /guidance[\s\S]*routing[\s\S]*accuracy[\s\S]*consistency[\s\S]*applicability[\s\S]*implementation readiness/iu,
+    );
+    for (const template of [pitch, plan]) {
+      expect(template).toMatch(/## Review evidence/iu);
+      expect(template).toMatch(/Applicability:[\s\S]*not applicable/iu);
+      expect(template).toMatch(/Fixed document/iu);
+      expect(template).toMatch(/Status/iu);
+      expect(template).toMatch(/Invalidation/iu);
+    }
+    expect(readme).toMatch(
+      /Go-targeted[\s\S]*fixed-document Go specification[\s\S]*before[\s\S]*approval/iu,
+    );
+    expect(readme).toMatch(
+      /independent installation[\s\S]*named resolution[\s\S]*unmet method[\s\S]*target-repository Go standards/iu,
+    );
+  });
+
   it("defines delivery units without coupling portable planning guidance to one repository", async () => {
     expect.hasAssertions();
     const [context, shape, planning, plan, readme] = await Promise.all([

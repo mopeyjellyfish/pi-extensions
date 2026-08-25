@@ -8,6 +8,15 @@ Complete this delivery plan before implementation. It covers every accepted
 vertical slice, the critical path, dependencies, delivery units, and independent
 lanes.
 
+## Review evidence
+
+- **Applicability:** `not applicable` for non-Go work; otherwise state the
+  Go-targeted evidence.
+- **Fixed document:** State the reviewed plan revision or `not applicable`.
+- **Status:** State the Go specification review result or `not applicable`.
+- **Invalidation:** State why the review remains valid or was replaced, or `not
+applicable`.
+
 ## Execution mode
 
 Repeat the selected execution mode: checkpointed implementation (default) or

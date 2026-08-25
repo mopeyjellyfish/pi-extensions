@@ -56,6 +56,13 @@ It loads:
 - complete [Productivity](packages/productivity/README.md) skills and prompts,
   including `writing-for-agents` and `/wait-what`.
 
+For Go-targeted Shape pitches and plans, the parent requires one fixed-document
+Go specification review before approval. The evidence-based trigger covers Go
+source, modules, CLIs, and Go-specific guidance or routing, not an unrelated
+`go.mod` or toolchain gate; non-Go documents record `not applicable` review
+evidence. The configured Reviewer keeps separate fixed-document Go
+specification and fixed-diff code modes.
+
 The configured Git agent composes the focused Git and GitHub skills. Given a
 worktree, branch, authority, intent, and evidence, it derives atomic units and
 messages, stages, commits, pushes, and creates or updates the pull request. It

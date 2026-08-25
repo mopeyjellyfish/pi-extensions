@@ -109,6 +109,14 @@ measurable progress and stop on repeated or out-of-scope failures. The bundled
 subagent orchestration skill is intentionally excluded. Pi reevaluates the root
 manifest during `/reload`.
 
+Shape and planning require one evidence-based fixed-document Go specification
+review before approving a Go-targeted pitch or plan. The trigger is proposed Go
+source, module, CLI, or Go-specific guidance or routing, not unrelated `go.mod`
+or toolchain evidence. The Reviewer's fixed-document specification mode is
+separate from its fixed-diff code-review mode; independently installed packages
+attempt named skill resolution and record an honest bounded direct-parent
+target-repository standards fallback when a companion is unavailable.
+
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash
 tools, but it does not retarget Pi's resource loader. To test changes from a

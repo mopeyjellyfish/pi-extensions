@@ -25,6 +25,15 @@ only to a non-claude-bridge parent; a Fable parent uses the Opus Reviewer at the
 formal boundary. A Sol child requires a justified `question` and explicit human
 approval, with no automatic fallback.
 
+Shape and planning use an evidence-based Go gate: proposed Go source, modules,
+CLIs, or Go-specific guidance or routing require one fixed-document Go
+specification review before approval; unrelated `go.mod` or toolchain evidence
+does not. Templates retain Review evidence for every document, with `not
+applicable` for non-Go work. Reviewer has separate fixed-document specification
+and fixed-diff code modes, while standalone packages resolve companions by name
+and honestly use a bounded direct-parent target-repository standards fallback
+when unavailable.
+
 Each directory under `packages/` is an independent npm package with its own Pi
 manifest, runtime dependencies, documentation, tests, and optional native
 helper. Production resources install into unrelated target repositories and

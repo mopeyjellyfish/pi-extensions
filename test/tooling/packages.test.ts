@@ -261,10 +261,13 @@ describe("package contracts", () => {
         role: "read-only",
         completionGuard: false,
         tools: ["read", "grep", "find", "ls", "bash"],
-        skills: ["code-review", "codebase-design"],
+        skills: ["code-review", "codebase-design", "go-spec-reviewer", "go", "cobra-viper"],
         skillPaths: [
           "../packages/engineering/skills/code-review",
           "../packages/engineering/skills/codebase-design",
+          "../packages/go/skills/go-spec-reviewer",
+          "../packages/go/skills/go",
+          "../packages/go/skills/cobra-viper",
         ],
       },
       git: {
@@ -345,6 +348,13 @@ describe("package contracts", () => {
     expect(reviewer).toMatch(/`code-review` method[\s\S]*do not spawn[\s\S]*issue-tracker setup/iu);
     expect(reviewer).toMatch(/Pitch and plan[\s\S]*Standards/iu);
     expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
+    expect(reviewer).toMatch(/Review mode: fixed-document Go specification/iu);
+    expect(reviewer).toMatch(/Review mode: fixed-diff code/iu);
+    expect(reviewer).toMatch(/omitted[^.]*default[^.]*fixed-diff code/iu);
+    expect(reviewer).toMatch(
+      /caller-supplied[^.]*resolved skill references[^.]*supersede[^.]*illustrative paths/iu,
+    );
+    expect(reviewer).toMatch(/fixed-document[^.]*inline/iu);
   });
 
   it("gives Worker and Reviewer focused intent and review duties", async () => {
@@ -364,10 +374,10 @@ describe("package contracts", () => {
       /business impact[\s\S]*smallest solution[\s\S]*module boundaries[\s\S]*existing logic[\s\S]*underengineering[\s\S]*overengineering/iu,
     );
     expect(reviewer).toMatch(
-      /`code-review` method[\s\S]*supplied\s+work[\s\S]*concrete actionable issues[\s\S]*practical-impact\s+severity[\s\S]*smallest sufficient correction/iu,
+      /`code-review`\s+method[\s\S]*supplied\s+work[\s\S]*concrete\s+actionable\s+issues[\s\S]*practical-impact\s+severity[\s\S]*smallest\s+sufficient\s+correction/iu,
     );
     expect(reviewer).toMatch(
-      /exclude speculation[\s\S]*tooling-handled\s+style preferences[\s\S]*drive-by\s+improvements[\s\S]*primary agent[\s\S]*do not choose or implement/iu,
+      /exclude\s+speculation[\s\S]*tooling-handled\s+style\s+preferences[\s\S]*drive-by\s+improvements[\s\S]*primary\s+agent[\s\S]*do\s+not\s+choose\s+or\s+implement/iu,
     );
   });
 
