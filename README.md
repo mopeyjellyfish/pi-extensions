@@ -74,10 +74,11 @@ returns after bounded structured verification; it does not watch CI or run
 long-lived commands.
 
 The lifecycle is parent-led and routes work by impact and uncertainty.
-`/just-do-it` keeps an explicit mechanical low-risk request with the direct
-parent by default and uses one Worker only when broad repetition saves critical
-path time or parent context. Clear bounded work implements now; coordinated
-clear work plans first; uncertain, hard-to-reverse, or risky work Shapes then plans.
+`/just-do-it` fixes a small, bounded problem during active work when the outcome,
+local cause, and objective check are clear. The direct parent verifies, commits,
+and pushes the fix without independent review. Clear standalone work implements
+now. Coordinated clear work plans first. Uncertain, hard-to-reverse, or risky
+work Shapes then plans.
 Shape and planning set up or verify an isolated linked task worktree before repository
 reads, discovery, research, or questions. Complete accepted plans execute in
 dependency order, with only planned independent lanes using separate worktrees
