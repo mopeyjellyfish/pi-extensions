@@ -368,11 +368,12 @@ describe("engineering resources", () => {
 
   it("keeps the adapted design method, references, and local safeguards", async () => {
     expect.hasAssertions();
-    const [skill, deepening, designItTwice, notice] = await Promise.all([
+    const [skill, deepening, designItTwice, notice, readme] = await Promise.all([
       read("skills/codebase-design/SKILL.md"),
       read("skills/codebase-design/DEEPENING.md"),
       read("skills/codebase-design/DESIGN-IT-TWICE.md"),
       read("THIRD_PARTY_NOTICES.md"),
+      read("README.md"),
     ]);
 
     for (const term of [
@@ -414,6 +415,53 @@ describe("engineering resources", () => {
     );
     expect(notice).toMatch(
       /ee8bae40062cd6b435073368ed0c540f48c35862[\s\S]*SKILL\.md[\s\S]*adapted[\s\S]*DEEPENING\.md[\s\S]*adapted[\s\S]*DESIGN-IT-TWICE\.md[\s\S]*adapted/iu,
+    );
+    expect(skill).toMatch(
+      /## Go routing[\s\S]*target-repository standards remain first[\s\S]*`go` by its installed name[\s\S]*applicable `cobra-viper`[\s\S]*evidence[\s\S]*depth[\s\S]*locality[\s\S]*leverage/iu,
+    );
+    expect(skill).toMatch(
+      /## Go routing[\s\S]*Go terms[\s\S]*module[\s\S]*package[\s\S]*API[\s\S]*interface type/iu,
+    );
+    const testability = skill.slice(
+      skill.indexOf("## Designing for testability"),
+      skill.indexOf("## Relationships"),
+    );
+    const hardToTestExample = testability.indexOf("// Hard to test");
+    const compositionRoot = testability.indexOf(
+      "A composition root may construct concrete dependencies;",
+    );
+    const returnResults = testability.indexOf("2. **Return results, don't produce side effects.**");
+    const compositionRootQualifier = testability.slice(compositionRoot, returnResults);
+    expect(hardToTestExample).toBeGreaterThanOrEqual(0);
+    expect(compositionRoot).toBeGreaterThan(hardToTestExample);
+    expect(returnResults).toBeGreaterThan(compositionRoot);
+    expect(compositionRootQualifier).toContain(
+      "this does not require\n   a seam or injected interface.",
+    );
+    expect(skill).toMatch(
+      /small[\s\S]*consumer-defined[\s\S]*real\s+interchangeable\s+behavior[\s\S]*do not create[\s\S]*layer-named `ports` or `adapters` packages/iu,
+    );
+    const goRouting = skill.slice(skill.indexOf("## Go routing"));
+    expect(goRouting).toMatch(/Do not create\s+layer-named `ports` or `adapters` packages\./u);
+    expect(goRouting).not.toMatch(
+      /layer-named `ports` or `adapters` packages\s+(?:unless|if|when)\b/iu,
+    );
+    expect(goRouting).toMatch(
+      /justified interface[\s\S]*consuming package[\s\S]*location selected by applicable Go guidance/iu,
+    );
+    expect(skill).toMatch(/## Glossary[\s\S]*For Go work[\s\S]*Go routing/iu);
+    expect(deepening).toMatch(
+      /Dependency categories[\s\S]*For Go work[\s\S]*Go routing[\s\S]*1\. In-process/iu,
+    );
+    expect(deepening).toMatch(
+      /in-process execution[\s\S]*does not prove[\s\S]*responsibilities belong together/iu,
+    );
+    expect(deepening).toMatch(/delete old tests only when redundant/iu);
+    expect(designItTwice).toMatch(
+      /Before presenting Go alternatives[\s\S]*discard[\s\S]*generic repositories[\s\S]*services[\s\S]*layer-named packages[\s\S]*up-front interfaces/iu,
+    );
+    expect(readme).toMatch(
+      /`codebase-design`[\s\S]*target-repository standards[\s\S]*first[\s\S]*installed `go`/iu,
     );
   });
 
@@ -517,6 +565,24 @@ describe("engineering resources", () => {
       /Accept\s+and\s+publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no\s+second\s+mutation\s+prompt/iu,
     );
     expect(implement).toMatch(/planned stack[\s\S]*`gh stack`[\s\S]*fail closed/iu);
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "Start planned independent ready delivery units in parallel only when they have isolated worktrees, sole writers, non-overlapping ownership, and complete dependencies.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "For a planned ready parallel lane set, start one fixed-role Worker per independent delivery unit concurrently.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "Publish independent delivery units as sibling standalone pull requests from their accepted common base.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "Publish each sequential dependency chain in dependency and stack order through `open-pr` and `gh stack`.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "For a mixed plan, preserve every independent lane and dependent chain from the accepted topology.",
+    );
+    expect(readme.replaceAll(/\s+/gu, " ")).toContain(
+      "Independent delivery units can run in parallel and publish as sibling standalone pull requests; sequential dependency chains publish as ordered GitHub stacks.",
+    );
     expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
     for (const documentation of [readme, rootReadme]) {
       expect(documentation).toMatch(/`\/just-do-it`/u);

@@ -26,17 +26,21 @@ target.
 `open-pr` owns approved pull-request delivery. It preflights authenticated
 repository and explicit base/head state, inspects commit, diff, checks, and
 evidence, and pushes only the approved branch. One coherent delivery unit uses a
-standalone PR by default and may contain multiple verified atomic commits. A
-stack needs independent value and check viability at each position plus justified
-integration, CI fan-out, and cascade cost; stack positions retain one-commit
-review units. Publication operations wait for the stable unit and are batched
-where safe. Planned stack delivery requires `gh stack`: Worktrunk chains use
-`gh stack link`, locally tracked stacks use `gh stack submit`, and approved
-lower-branch changes use checked `gh stack sync` with expected-remote
-`--force-with-lease`, never plain force. It verifies link/sync output and
-structured PR metadata after publication. Its approachable body records problem,
-outcome, implementation details, tests and evidence, risks, and stack
-dependencies. It never merges or changes stack topology destructively.
+standalone PR by default and may contain multiple verified atomic commits.
+Independent delivery units publish as sibling standalone pull requests;
+sequential dependency chains publish as ordered stacks. A mixed plan can contain
+several sibling pull requests and one or more stacks.
+
+Independent units keep their accepted common base. Stack positions use the
+adjacent lower branch and retain one-commit review units. Publication operations
+wait for stable units and are batched where safe. Only planned sequential chains
+require `gh stack`: Worktrunk chains use `gh stack link`, locally tracked stacks
+use `gh stack submit`, and approved lower-branch changes use checked
+`gh stack sync` with expected-remote `--force-with-lease`, never plain force. The
+skill verifies link/sync output and structured PR metadata after publication. Its
+approachable body records problem, outcome, implementation details, tests and
+evidence, risks, and stack dependencies. It never merges or changes accepted
+topology destructively.
 
 For a failed check, inspect configuration, triggering event, current state, and
 bounded logs before one corrective action. Never treat a blind rerun as

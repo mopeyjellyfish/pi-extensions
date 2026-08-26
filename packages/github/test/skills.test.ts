@@ -179,9 +179,21 @@ describe("GitHub CLI skill", () => {
 
     expect(openPr).toMatch(/standalone[^.]*one coherent delivery unit[^.]*default/iu);
     expect(openPr).toMatch(/standalone pull request[^.]*multiple verified atomic commits/iu);
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "Follow the accepted plan's topology. Publish independent delivery units as sibling standalone pull requests from their accepted common base.",
+    );
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "Publish each sequential dependency chain as one ordered stack.",
+    );
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "A mixed plan can contain several sibling standalone pull requests and one or more stacks.",
+    );
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "The `github/gh-stack` extension is required only for a planned sequential chain.",
+    );
     expect(openPr).toMatch(/one-commit review units/iu);
-    expect(openPr).toMatch(
-      /independent value[\s\S]*check\s+viability[\s\S]*integration[\s\S]*fan-out[\s\S]*cascade/iu,
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "For each stack position, confirm independent review value, required check viability, adjacent ancestry, CI fan-out, and cascade cost.",
     );
     expect(openPr).toMatch(/batch[\s\S]*stable delivery unit/iu);
     expect(openPr).toMatch(
@@ -196,6 +208,9 @@ describe("GitHub CLI skill", () => {
       /configuration[\s\S]*triggering\s+event[\s\S]*current state[\s\S]*bounded logs/iu,
     );
     expect(readme).toMatch(/one coherent delivery unit[\s\S]*multiple verified atomic commits/iu);
+    expect(readme.replaceAll(/\s+/gu, " ")).toContain(
+      "Independent delivery units publish as sibling standalone pull requests; sequential dependency chains publish as ordered stacks.",
+    );
 
     for (const resource of [openPr, triage]) {
       expect(resource).not.toMatch(

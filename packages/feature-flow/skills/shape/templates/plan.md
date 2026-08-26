@@ -26,23 +26,34 @@ deployment, destructive cleanup, or unrelated work.
 
 ## Delivery topology
 
-| Delivery unit | Branch     | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                      |
-| ------------- | ---------- | ----------------- | --------------- | ------------ | ---------------------------------------- |
-| 1             | `<branch>` | `<base>`          | `001...`        | none         | `<lane>; isolated worktree; sole writer` |
+| Delivery unit | Topology                 | Stack position      | Branch     | Pull request base   | Dependencies | Checks              | Ownership               | Integration point  | CI fan-out | Cascade cost |
+| ------------- | ------------------------ | ------------------- | ---------- | ------------------- | ------------ | ------------------- | ----------------------- | ------------------ | ---------- | ------------ |
+| 1             | standalone/sibling/stack | `standalone` or 1/N | `<branch>` | `<common/adjacent>` | none         | `<required checks>` | `<worktree and writer>` | `<target or none>` | `<count>`  | `<forecast>` |
 
 One delivery unit, branch, and pull request is the default. A delivery unit is
 one coherent review, validation, and publication boundary and may contain
 multiple atomic commits. State whether planning documents share implementation
 publication; split only for independent review or merge value.
 
-A stack is intentional, not automatic. Use one when a large change needs
-multiple right-sized, independently reviewable delivery units with an ordered
-dependency relationship. Do not create stack positions solely because
-implementation has multiple slices or commits. For every stack position, state
-independent value, required-check viability, integration dependency, CI fan-out,
-and justified cascade cost. A planned stack uses `open-pr` and `gh stack`.
-`gh stack link` verifies a Worktrunk-managed chain but creates no local tracked
-view; use `gh stack view --json` only for locally tracked stacks.
+Select topology from delivery-unit dependencies, not item count. Use sibling
+standalone pull requests for independent delivery units and an ordered GitHub
+stack for each sequential dependency chain. A mixed plan can contain parallel
+sibling pull requests and one or more dependent stacks.
+Every delivery unit, sibling or stacked, must retain independent review value and
+required-check viability.
+
+For every independent unit, record its accepted common base, branch, ownership,
+checks, integration point, and CI fan-out. Parallel lanes need separate isolated
+worktrees, sole writers, and non-overlapping ownership. For every stacked unit,
+record its branch, adjacent pull-request base, stack position, dependencies,
+checks, and cascade cost. If coordination cost does not repay review or merge
+value, collapse delivery units before plan approval.
+
+Multiple slices or commits inside one delivery unit do not create branches, pull
+requests, or stack positions. Every pull request uses `open-pr`. Only a planned
+sequential chain uses `gh stack`. `gh stack link` verifies a Worktrunk-managed
+chain but creates no local tracked view; use `gh stack view --json` only for
+locally tracked stacks.
 
 ## Critical path, dependencies, and lanes
 

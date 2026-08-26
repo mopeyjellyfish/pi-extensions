@@ -41,16 +41,24 @@ or any change to accepted scope, delivery boundaries, dependencies, or
 authority. Accept-all never authorizes merge, release, deployment, destructive
 cleanup, or unrelated work.
 
-Complete accepted plan execution follows dependency order without replanning.
-For a complete accepted plan, consume every accepted slice in planned dependency
-order without replanning between slices. A `parallel-ready` plan executes
-planned parallel lanes in isolated worktrees with sole write ownership only
-when their dependencies are complete. Do not add workers merely because work is
-large. Keep overlapping work serial. The parent
-synthesizes results and verifies evidence before accepting each unit. A serial
-delivery unit reuses the same writer and same worktree through its dependent
-slices. A plan-less bounded request, an approved slice, or a confirmed bug
-outcome may proceed as one unit.
+Complete accepted plan execution follows the accepted dependency graph without
+replanning. Consume dependent slices and delivery units in dependency order.
+A `parallel-ready` plan identifies planned parallel lanes. Each lane has an
+isolated worktree and sole write ownership.
+Start planned independent ready delivery units in parallel only when they have
+isolated worktrees, sole writers, non-overlapping ownership, and complete
+dependencies.
+Each parallel lane must also name its integration point. When concurrent child
+execution is available, launch the complete ready lane set together to shorten
+the critical path. Otherwise serialize execution without changing the accepted
+branch or pull-request topology.
+
+Do not add workers merely because work is large. Keep overlapping work serial.
+The parent synthesizes results, integrates parallel lanes at their named point,
+and verifies evidence before accepting each unit. A serial delivery unit reuses
+the same writer and same worktree through its dependent slices. A plan-less
+bounded request, an approved slice, or a confirmed bug outcome may proceed as
+one unit.
 
 When the configured `worker` capability is available, it is the only configured
 implementation child. Launch one fresh foreground `worker` for one worker
@@ -64,6 +72,13 @@ task: "<rendered Worker task contract>"
 cwd: "<active task worktree>"
 async: false
 ```
+
+For a planned ready parallel lane set, start one fixed-role Worker per independent
+delivery unit concurrently. Give each Worker its exact isolated worktree as
+`cwd`, one bounded task, and non-overlapping ownership. Never give two active
+writers the same worktree. If the host cannot keep those worktrees and writers
+separate, serialize execution without changing the accepted pull-request
+topology.
 
 Other hosts use their equivalent fixed-role foreground launch. Do not pass
 `mode`, `model`, or `thinking` for this fixed-role launch; the agent profile owns
@@ -285,9 +300,19 @@ publish** action. Acceptance invokes `commit` and `open-pr` with no second
 mutation prompt. For accepted accept-all plans, perform the same commit and
 authorized publication after successful evidence and any selected review without
 that routine question. These focused delivery skills own publication; lifecycle
-guidance must not issue ad hoc Git commands. For a planned stack, `open-pr` must
-use `gh stack`; if focused delivery or required stack tooling is unavailable,
-fail closed, preserve local work and evidence, and state the recovery action.
+guidance must not issue ad hoc Git commands.
+
+Publish independent delivery units as sibling standalone pull requests from their
+accepted common base. Publish each sequential dependency chain in dependency and
+stack order through `open-pr` and `gh stack`. For a mixed plan, preserve every
+independent lane and dependent chain from the accepted topology. Wait for each
+unit's accepted evidence and publication authority before its mutation.
+
+If a sequential chain is a planned stack and requires `gh stack`, but focused
+delivery or stack tooling is unavailable, fail closed, preserve local work and
+evidence, and state the recovery action. Do not replace an accepted stack with
+unrelated pull requests or stack independent units only because they belong to
+the same pitch.
 
 Acceptance authorizes only the verified planned unit and named task branch. It
 does not authorize merge, deployment, release, plain force push, cleanup,
