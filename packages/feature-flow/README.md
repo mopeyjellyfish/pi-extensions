@@ -48,12 +48,15 @@ Planning identifies vertical slices first. A vertical slice is one end-to-end
 behavior with a narrow deterministic red/green proof. It then groups dependent
 slices into delivery units: a delivery unit is one coherent review, validation,
 and publication boundary. One delivery unit, one branch, and one pull request is
-the default; it may contain multiple atomic commits for coherent changes.
-Planning documents share the implementation delivery unit's publication unless
-they have independent review or merge value. A stack is justified only when
-every position has independent value, required-check viability, integration
-dependency, CI fan-out,
-and cascade cost that repays coordination. Plans forecast critical path, lanes,
+the default; that pull request is standalone and may contain multiple atomic
+commits for coherent changes. Planning documents share the implementation
+delivery unit's publication unless they have independent review or merge value.
+Two or more delivery units from the same accepted pitch use one ordered GitHub
+stack. Each delivery unit becomes one stack position. Multiple slices or commits
+inside one delivery unit do not create stack positions. Every position retains
+independent value and check viability. Plans record integration dependencies, CI
+fan-out, and cascade cost, and collapse delivery units before approval when that
+cost does not repay review or merge value. Plans forecast critical path, lanes,
 units, integration, expensive gates, and cascade cost; they predeclare evidence
 invalidation and pause to report material forecast variance.
 

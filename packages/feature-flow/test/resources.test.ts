@@ -198,6 +198,9 @@ describe("feature-flow resources", () => {
       read("skills/shape/templates/plan.md"),
       read("README.md"),
     ]);
+    const planningProse = planning.replaceAll(/\s+/gu, " ");
+    const planProse = plan.replaceAll(/\s+/gu, " ");
+    const readmeProse = readme.replaceAll(/\s+/gu, " ");
 
     expect(context).toMatch(
       /delivery unit[^.]*coherent review[^.]*validation[^.]*publication boundary/iu,
@@ -212,22 +215,31 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/fewest coherent delivery units/iu);
     expect(planning).toMatch(/narrow deterministic red.green signal/iu);
     expect(planning).toMatch(/one delivery unit[^.]*pull request[^.]*default/iu);
-    expect(planning).toMatch(
-      /independent value[^.]*required-check viability[^.]*integration[^.]*fan-out[^.]*cascade/iu,
+    expect(planningProse).toContain(
+      "When one accepted pitch has two or more delivery units, plan one ordered GitHub stack.",
+    );
+    expect(planningProse).toContain(
+      "Every stack position must retain independent value and required-check viability. Record its integration dependency, CI fan-out, and cascade cost.",
     );
     expect(planning).toMatch(
       /critical-path forecast[\s\S]*invalidation map[\s\S]*materially exceeds/iu,
     );
-    expect(plan).toMatch(/Delivery unit[^.]*Vertical slices/iu);
     expect(plan).toMatch(
-      /independent value[^.]*check viability[^.]*integration[^.]*fan-out[^.]*cascade/iu,
+      /\|\s*Delivery unit\s*\|\s*Stack position\s*\|\s*Branch\s*\|\s*Pull request base\s*\|\s*Vertical slices\s*\|\s*Dependencies\s*\|\s*Checks\s*\|\s*Cascade cost\s*\|\s*Lane\/worktree owner\s*\|/iu,
     );
-    const planProse = plan.replaceAll(/\s+/gu, " ");
-    expect(planProse).toMatch(
-      /stack[^.]*intentional[^.]*not automatic[\s\S]*large change[^.]*right-sized[^.]*independently reviewable[^.]*ordered dependency/iu,
+    expect(planProse).toContain(
+      "Every position must retain independent value and required-check viability. Record its integration dependency, CI fan-out, and cascade cost.",
     );
-    expect(planProse).toMatch(/not[^.]*stack positions[^.]*multiple slices or commits/iu);
+    expect(planProse).toContain(
+      "For each stacked delivery unit, record its branch, adjacent pull-request base, stack position, dependencies, checks, and cascade cost.",
+    );
+    expect(planProse).toContain(
+      "Multiple slices or commits inside one delivery unit do not create stack positions.",
+    );
     expect(readme).toMatch(/one delivery unit[^.]*one branch[^.]*one pull request[^.]*default/iu);
+    expect(readmeProse).toContain(
+      "Two or more delivery units from the same accepted pitch use one ordered GitHub stack.",
+    );
 
     for (const resource of [shape, planning, plan]) {
       expect(resource).not.toMatch(

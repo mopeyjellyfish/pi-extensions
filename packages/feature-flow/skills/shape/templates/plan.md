@@ -26,23 +26,26 @@ deployment, destructive cleanup, or unrelated work.
 
 ## Delivery topology
 
-| Delivery unit | Branch     | Pull request base | Vertical slices | Dependencies | Lane/worktree owner                      |
-| ------------- | ---------- | ----------------- | --------------- | ------------ | ---------------------------------------- |
-| 1             | `<branch>` | `<base>`          | `001...`        | none         | `<lane>; isolated worktree; sole writer` |
+| Delivery unit | Stack position      | Branch     | Pull request base | Vertical slices | Dependencies | Checks              | Cascade cost | Lane/worktree owner                      |
+| ------------- | ------------------- | ---------- | ----------------- | --------------- | ------------ | ------------------- | ------------ | ---------------------------------------- |
+| 1             | `standalone` or 1/N | `<branch>` | `<base>`          | `001...`        | none         | `<required checks>` | `<forecast>` | `<lane>; isolated worktree; sole writer` |
 
 One delivery unit, branch, and pull request is the default. A delivery unit is
 one coherent review, validation, and publication boundary and may contain
 multiple atomic commits. State whether planning documents share implementation
 publication; split only for independent review or merge value.
 
-A stack is intentional, not automatic. Use one when a large change needs
-multiple right-sized, independently reviewable delivery units with an ordered
-dependency relationship. Do not create stack positions solely because
-implementation has multiple slices or commits. For every stack position, state
-independent value, required-check viability, integration dependency, CI fan-out,
-and justified cascade cost. A planned stack uses `open-pr` and `gh stack`.
-`gh stack link` verifies a Worktrunk-managed chain but creates no local tracked
-view; use `gh stack view --json` only for locally tracked stacks.
+When the accepted pitch has two or more delivery units, use one ordered GitHub
+stack. Each delivery unit becomes one stack position. Multiple slices or commits
+inside one delivery unit do not create stack positions. For each stacked
+delivery unit, record its branch, adjacent pull-request base, stack position,
+dependencies, checks, and cascade cost. Every position must retain independent
+value and required-check viability. Record its integration dependency, CI
+fan-out, and cascade cost. If the recorded cost does not repay the review or
+merge value, collapse delivery units before plan approval. A planned stack uses
+`open-pr` and `gh stack`. `gh stack link` verifies a Worktrunk-managed chain but
+creates no local tracked view; use `gh stack view --json` only for locally
+tracked stacks.
 
 ## Critical path, dependencies, and lanes
 
