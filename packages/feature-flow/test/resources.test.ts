@@ -216,29 +216,41 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/narrow deterministic red.green signal/iu);
     expect(planning).toMatch(/one delivery unit[^.]*pull request[^.]*default/iu);
     expect(planningProse).toContain(
-      "When one accepted pitch has two or more delivery units, plan one ordered GitHub stack.",
+      "Independent delivery units use sibling branches and sibling standalone pull requests from their accepted common base.",
     );
     expect(planningProse).toContain(
-      "Every stack position must retain independent value and required-check viability. Record its integration dependency, CI fan-out, and cascade cost.",
+      "Sequentially dependent delivery units use one ordered GitHub stack.",
+    );
+    expect(planningProse).toContain(
+      "A mixed plan can contain parallel sibling pull requests and one or more dependent stacks.",
+    );
+    expect(planningProse).toContain(
+      "Every delivery unit, sibling or stacked, must retain independent review value and required-check viability.",
+    );
+    expect(planningProse).toContain(
+      "Parallel lanes require separate isolated worktrees, sole writers, non-overlapping ownership, and a named integration point.",
     );
     expect(planning).toMatch(
       /critical-path forecast[\s\S]*invalidation map[\s\S]*materially exceeds/iu,
     );
     expect(plan).toMatch(
-      /\|\s*Delivery unit\s*\|\s*Stack position\s*\|\s*Branch\s*\|\s*Pull request base\s*\|\s*Vertical slices\s*\|\s*Dependencies\s*\|\s*Checks\s*\|\s*Cascade cost\s*\|\s*Lane\/worktree owner\s*\|/iu,
+      /\|\s*Delivery unit\s*\|\s*Topology\s*\|\s*Stack position\s*\|\s*Branch\s*\|\s*Pull request base\s*\|\s*Dependencies\s*\|\s*Checks\s*\|\s*Ownership\s*\|\s*Integration point\s*\|\s*CI fan-out\s*\|\s*Cascade cost\s*\|/iu,
     );
     expect(planProse).toContain(
-      "Every position must retain independent value and required-check viability. Record its integration dependency, CI fan-out, and cascade cost.",
+      "Use sibling standalone pull requests for independent delivery units and an ordered GitHub stack for each sequential dependency chain.",
     );
     expect(planProse).toContain(
-      "For each stacked delivery unit, record its branch, adjacent pull-request base, stack position, dependencies, checks, and cascade cost.",
+      "Every delivery unit, sibling or stacked, must retain independent review value and required-check viability.",
     );
     expect(planProse).toContain(
-      "Multiple slices or commits inside one delivery unit do not create stack positions.",
+      "Multiple slices or commits inside one delivery unit do not create branches, pull requests, or stack positions.",
     );
     expect(readme).toMatch(/one delivery unit[^.]*one branch[^.]*one pull request[^.]*default/iu);
     expect(readmeProse).toContain(
-      "Two or more delivery units from the same accepted pitch use one ordered GitHub stack.",
+      "Independent delivery units use sibling standalone pull requests, while sequential dependency chains use ordered GitHub stacks.",
+    );
+    expect(readmeProse).toContain(
+      "Every delivery unit retains independent review value and required-check viability.",
     );
 
     for (const resource of [shape, planning, plan]) {

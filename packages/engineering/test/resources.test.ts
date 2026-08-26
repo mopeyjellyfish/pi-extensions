@@ -518,10 +518,22 @@ describe("engineering resources", () => {
     );
     expect(implement).toMatch(/planned stack[\s\S]*`gh stack`[\s\S]*fail closed/iu);
     expect(implement.replaceAll(/\s+/gu, " ")).toContain(
-      "When one accepted pitch has two or more delivery units, publish them in dependency and stack order through `open-pr` and `gh stack`.",
+      "Start planned independent ready delivery units in parallel only when they have isolated worktrees, sole writers, non-overlapping ownership, and complete dependencies.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "For a planned ready parallel lane set, start one fixed-role Worker per independent delivery unit concurrently.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "Publish independent delivery units as sibling standalone pull requests from their accepted common base.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "Publish each sequential dependency chain in dependency and stack order through `open-pr` and `gh stack`.",
+    );
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "For a mixed plan, preserve every independent lane and dependent chain from the accepted topology.",
     );
     expect(readme.replaceAll(/\s+/gu, " ")).toContain(
-      "Two or more delivery units from the same accepted pitch publish in dependency and stack order.",
+      "Independent delivery units can run in parallel and publish as sibling standalone pull requests; sequential dependency chains publish as ordered GitHub stacks.",
     );
     expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
     for (const documentation of [readme, rootReadme]) {
