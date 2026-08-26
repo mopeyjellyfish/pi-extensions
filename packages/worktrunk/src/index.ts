@@ -9,7 +9,13 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 
-import { cleanupPreview, revalidationReason, type CleanupPreview } from "./cleanup.ts";
+import {
+  cleanupPreview,
+  formatCleanupPreview,
+  revalidationReason,
+  type CleanupCandidate,
+  type CleanupPreview,
+} from "./cleanup.ts";
 import { GithubClient } from "./github.ts";
 import { routeBashCommand, routeOptionalPath } from "./routing.ts";
 import {
@@ -26,8 +32,17 @@ const OUTPUT_WORKTREE_LIMIT = 20;
 const OUTPUT_IDENTIFIER_LIMIT = 200;
 const OUTPUT_HEAD_LIMIT = 128;
 const OUTPUT_PATH_LIMIT = 400;
+const CLEANUP_APPLY_TIMEOUT_MS = 30 * 60_000;
 
-const ACTIONS = ["status", "list", "create", "activate", "deactivate", "remove", "cleanup"] as const;
+const ACTIONS = [
+  "status",
+  "list",
+  "create",
+  "activate",
+  "deactivate",
+  "remove",
+  "cleanup",
+] as const;
 
 export const WorktreeParameters = Type.Object(
   {
@@ -54,7 +69,10 @@ export const WorktreeParameters = Type.Object(
       }),
     ),
     expectedFingerprint: Type.Optional(
-      Type.String({ description: "Exact cleanup preview fingerprint for action=cleanup apply", maxLength: 128 }),
+      Type.String({
+        description: "Exact cleanup preview fingerprint for action=cleanup apply",
+        maxLength: 128,
+      }),
     ),
     identifier: Type.Optional(
       Type.String({
@@ -76,10 +94,18 @@ export interface PersistedWorktrunkState {
   readonly version: 1;
 }
 
+interface CleanupApplyResult {
+  readonly changed: readonly string[];
+  readonly failed: readonly string[];
+  readonly fingerprint: string;
+  readonly removed: readonly string[];
+  readonly skipped: readonly string[];
+}
+
 export interface WorktreeToolDetails {
   readonly action: WorktreeAction;
   readonly activePath?: string;
-  readonly cleanup?: CleanupPreview | { readonly failed: readonly string[]; readonly removed: readonly string[]; readonly changed: readonly string[]; readonly fingerprint: string; readonly skipped: readonly string[] };
+  readonly cleanup?: CleanupApplyResult | CleanupPreview;
   readonly truncated?: boolean;
   readonly worktrees?: readonly WorktrunkWorktree[];
 }
@@ -125,6 +151,15 @@ export function assertActionFields(input: WorktreeInput): void {
   );
   if (unexpected.length > 0) {
     throw new Error(`action=${input.action} does not accept: ${unexpected.join(", ")}.`);
+  }
+  if (input.action === "cleanup") {
+    const hasConfirm = input.confirm !== undefined;
+    const hasFingerprint = input.expectedFingerprint !== undefined;
+    if (hasConfirm !== hasFingerprint || (hasConfirm && input.confirm !== true)) {
+      throw new Error(
+        "action=cleanup accepts confirm:true and expectedFingerprint only together after preview approval.",
+      );
+    }
   }
 }
 
@@ -218,6 +253,10 @@ function optionalBase(value: string | undefined): string | undefined {
     throw new Error("base cannot contain control characters.");
   }
   return value;
+}
+
+function isSignalAborted(signal: AbortSignal | undefined): boolean {
+  return signal?.aborted === true;
 }
 
 function summarizeWorktree(worktree: WorktrunkWorktree): {
@@ -351,7 +390,11 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     }),
   );
   const github = new GithubClient((arguments_, options) =>
-    pi.exec("gh", [...arguments_], { cwd: options.cwd, timeout: options.timeout, ...(options.signal === undefined ? {} : { signal: options.signal }) }),
+    pi.exec("gh", [...arguments_], {
+      cwd: options.cwd,
+      timeout: options.timeout,
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+    }),
   );
   const localBash = createLocalBashOperations();
   let active: ActiveRoute | undefined;
@@ -383,17 +426,104 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     details,
   });
 
-  const previewCleanup = async (ctx: ExtensionContext, signal: AbortSignal | undefined): Promise<CleanupPreview> => {
+  const previewCleanup = async (
+    ctx: ExtensionContext,
+    signal: AbortSignal | undefined,
+  ): Promise<CleanupPreview> => {
     const list = await client.listFull(ctx.cwd, signal);
-    const evidence = await github.history(ctx.cwd, list.repository, signal);
+    const branches = list.worktrees.flatMap((worktree) =>
+      worktree.branch === undefined || worktree.main ? [] : [worktree.branch],
+    );
+    const evidence = await github.history(ctx.cwd, list.forge, branches, signal);
     return cleanupPreview(list, evidence.pullRequests, evidence.state, active?.activePath);
   };
 
-  const cleanupText = (preview: CleanupPreview): string => {
-    if (preview.overflow) return "Cleanup preview overflowed the 100-worktree safety limit. No cleanup can be approved.";
-    const candidates = preview.candidates.map((item) => `${item.branch} ${item.head} — ${item.path} [${item.reason}]`);
-    const skipped = preview.skipped.map((item) => `${item.branch ?? "[unborn]"} — ${item.path} [${item.reason}]`);
-    return `Cleanup candidates (${String(candidates.length)}):\n${candidates.join("\n") || "none"}\nSkipped:\n${skipped.join("\n") || "none"}\nGitHub evidence: ${preview.githubEvidence}\nFingerprint: ${preview.fingerprint ?? "unavailable"}`;
+  const cleanupResultText = (result: CleanupApplyResult): string =>
+    `Cleanup finished. Removed: ${String(result.removed.length)}; changed: ${String(
+      result.changed.length,
+    )}; skipped: ${String(result.skipped.length)}; failed: ${String(
+      result.failed.length,
+    )}. Branches were preserved.`;
+
+  type CleanupCandidateResult =
+    | { readonly kind: "changed" | "removed"; readonly value: string }
+    | { readonly kind: "discovery_failed" | "failed"; readonly value: string };
+
+  const cleanupFailure = (candidate: CleanupCandidate, error: unknown): string =>
+    `${candidate.path}: ${
+      outputText(error instanceof Error ? error.message : String(error), 1000).text
+    }`;
+
+  const processCleanupCandidate = async (
+    candidate: CleanupCandidate,
+    signal: AbortSignal | undefined,
+    ctx: ExtensionContext,
+  ): Promise<CleanupCandidateResult> => {
+    let local: WorktrunkList;
+    try {
+      local = await client.listLocal(ctx.cwd, signal);
+    } catch (error) {
+      return { kind: "discovery_failed", value: cleanupFailure(candidate, error) };
+    }
+    if (revalidationReason(candidate, local, active?.activePath) !== undefined) {
+      return { kind: "changed", value: candidate.path };
+    }
+    try {
+      await client.remove(candidate.branch, candidate.path, ctx.cwd, signal);
+      return { kind: "removed", value: candidate.path };
+    } catch (error) {
+      return { kind: "failed", value: cleanupFailure(candidate, error) };
+    }
+  };
+
+  const applyCleanup = async (
+    expectedFingerprint: string,
+    signal: AbortSignal | undefined,
+    ctx: ExtensionContext,
+  ): Promise<CleanupApplyResult> => {
+    if (!ctx.hasUI) {
+      throw new Error("worktree cleanup requires interactive TUI or RPC confirmation.");
+    }
+    const preview = await previewCleanup(ctx, signal);
+    if (
+      preview.fingerprint === undefined ||
+      preview.fingerprint !== expectedFingerprint ||
+      preview.overflow === true
+    ) {
+      throw new Error(
+        "Cleanup preview changed; inspect a new preview and approve its fingerprint.",
+      );
+    }
+    const approved = await ctx.ui.confirm(
+      "Remove approved Worktrunk worktrees?",
+      `Remove ${String(preview.candidates.length)} reviewed worktrees from fingerprint ${preview.fingerprint}? Branches are preserved. Ignored output is removed. No processes are reaped.`,
+      signal === undefined ? undefined : { signal },
+    );
+    if (!approved) throw new Error("Worktree cleanup was cancelled by the user.");
+
+    const changed: string[] = [];
+    const failed: string[] = [];
+    const removed: string[] = [];
+    const skipped: string[] = [];
+    const deadline = Date.now() + CLEANUP_APPLY_TIMEOUT_MS;
+
+    for (const [index, candidate] of preview.candidates.entries()) {
+      if (isSignalAborted(signal) || Date.now() >= deadline) {
+        skipped.push(...preview.candidates.slice(index).map((item) => item.path));
+        break;
+      }
+      const result = await processCleanupCandidate(candidate, signal, ctx);
+      if (result.kind === "changed") changed.push(result.value);
+      else if (result.kind === "removed") removed.push(result.value);
+      else failed.push(result.value);
+
+      if (result.kind === "discovery_failed" || isSignalAborted(signal)) {
+        skipped.push(...preview.candidates.slice(index + 1).map((item) => item.path));
+        break;
+      }
+    }
+
+    return { changed, failed, fingerprint: preview.fingerprint, removed, skipped };
   };
 
   const actionHandlers: Readonly<Record<WorktreeAction, WorktreeActionHandler>> = {
@@ -503,26 +633,16 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
       );
     },
     cleanup: async (input, signal, ctx) => {
-      const preview = await previewCleanup(ctx, signal);
-      if (input.confirm === undefined && input.expectedFingerprint === undefined) return toolResult(cleanupText(preview), { action: "cleanup", cleanup: preview });
-      if (input.confirm !== true || input.expectedFingerprint === undefined) throw new Error("cleanup requires confirm:true and expectedFingerprint together.");
-      if (!ctx.hasUI) throw new Error("worktree cleanup requires interactive TUI or RPC confirmation.");
-      if (preview.fingerprint === undefined || preview.fingerprint !== input.expectedFingerprint) throw new Error("Cleanup preview changed; inspect a new preview and approve its fingerprint.");
-      const approved = await ctx.ui.confirm("Remove approved Worktrunk worktrees?", `Remove ${String(preview.candidates.length)} reviewed worktrees? Branches are preserved. Ignored output is removed. No processes are reaped.`, signal === undefined ? undefined : { signal });
-      if (!approved) throw new Error("Worktree cleanup was cancelled by the user.");
-      const removed: string[] = [], changed: string[] = [], skippedItems: string[] = [], failed: string[] = [];
-      for (const candidate of preview.candidates) {
-        if (signal?.aborted) { skippedItems.push(candidate.path); break; }
-        try {
-          const local = await client.list(ctx.cwd, signal);
-          const reason = revalidationReason(candidate, local, active?.activePath);
-          if (reason !== undefined) { changed.push(candidate.path); continue; }
-          await client.remove(candidate.branch, candidate.path, ctx.cwd, signal);
-          removed.push(candidate.path);
-        } catch (error) { failed.push(`${candidate.path}: ${error instanceof Error ? error.message : String(error)}`); }
+      if (input.confirm === undefined) {
+        const preview = await previewCleanup(ctx, signal);
+        return toolResult(formatCleanupPreview(preview), {
+          action: "cleanup",
+          cleanup: preview,
+        });
       }
-      const result = { changed, failed, fingerprint: preview.fingerprint, removed, skipped: skippedItems };
-      return toolResult(`Cleanup finished. Removed: ${String(removed.length)}; changed: ${String(changed.length)}; skipped: ${String(skippedItems.length)}; failed: ${String(failed.length)}. Branches were preserved.`, { action: "cleanup", cleanup: result });
+      const fingerprint = requiredText(input.expectedFingerprint, "expectedFingerprint");
+      const result = await applyCleanup(fingerprint, signal, ctx);
+      return toolResult(cleanupResultText(result), { action: "cleanup", cleanup: result });
     },
     remove: async (input, signal, ctx) => {
       if (!ctx.hasUI) {
@@ -569,15 +689,16 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     name: "worktree",
     label: "Worktrunk worktree",
     description:
-      "Inspect, create, activate, deactivate, safely remove, or preview and apply safe bulk Worktrunk cleanup. Cleanup previews the complete bounded set, requires an exact fingerprint and interactive confirmation, preserves branches, and never uses force or process reaping.",
+      "Inspect, create, activate, deactivate, safely remove, or preview and apply safe bulk Worktrunk cleanup. The worktree cleanup preview reports the complete bounded set. Apply requires its exact approved fingerprint and interactive confirmation, preserves branches, and never uses force or process reaping.",
     executionMode: "sequential",
     promptSnippet: "Manage a safely routed Worktrunk worktree",
     promptGuidelines: [
-      "Preview cleanup first, present every candidate and evidence limitation, obtain explicit approval, then apply only its matching fingerprint.",
-      "Cleanup preserves branches and never uses force or process reaping.",
+      "Call worktree with action=cleanup and no confirmation fields to preview cleanup first. Present every candidate, skipped reason, and evidence limitation.",
+      "Call worktree cleanup apply only after explicit approval, with confirm:true and the exact matching expectedFingerprint from that preview.",
+      "worktree cleanup preserves branches and never uses force or process reaping.",
       "worktree is sequential: a successful create or activate can be followed by normal file or Bash tools in the same assistant tool batch.",
-      "Never ask this tool to bypass Worktrunk hook approval with --yes; a human must review and approve hooks directly.",
-      "Only request remove with confirm:true after explicit user approval and the exact HEAD reported by worktree list.",
+      "Never ask worktree to bypass Worktrunk hook approval with --yes; a human must review and approve hooks directly.",
+      "Only request worktree remove with confirm:true after explicit user approval and the exact HEAD reported by worktree list.",
     ],
     parameters: WorktreeParameters,
     execute(_toolCallId, input, signal, _onUpdate, ctx) {
@@ -587,26 +708,45 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
   });
 
   pi.registerCommand("worktree", {
-    description: "Show Worktrunk status/list, deactivate routing, or safely clean approved worktrees",
+    description:
+      "Show Worktrunk status/list, deactivate routing, or safely clean approved worktrees",
     handler: async (arguments_, ctx) => {
       const action = arguments_.trim() || "status";
       try {
         switch (action) {
-          case "status": { const list = await client.list(ctx.cwd, ctx.signal); ctx.ui.notify(`Main: ${display(list.mainPath)}\n${listText(list).text}`, "info"); break; }
-          case "list": { ctx.ui.notify(listText(await client.list(ctx.cwd, ctx.signal)).text, "info"); break; }
-          case "deactivate": { deactivate(ctx); ctx.ui.notify("Worktree routing deactivated.", "info"); break; }
-          case "cleanup": {
-            const preview = await previewCleanup(ctx, ctx.signal);
-            ctx.ui.notify(cleanupText(preview), "info");
-            if (!ctx.hasUI || preview.fingerprint === undefined) { if (!ctx.hasUI) ctx.ui.notify("Cleanup apply is unavailable in non-interactive mode.", "warning"); break; }
-            const confirmed = await ctx.ui.confirm("Apply cleanup preview?", "Remove the displayed candidates with preserved branches?", ctx.signal === undefined ? undefined : { signal: ctx.signal });
-            if (!confirmed) break;
-            await actionHandlers.cleanup({ action: "cleanup", confirm: true, expectedFingerprint: preview.fingerprint }, ctx.signal, ctx);
-            ctx.ui.notify("Cleanup apply finished.", "info"); break;
+          case "status": {
+            const list = await client.list(ctx.cwd, ctx.signal);
+            ctx.ui.notify(`Main: ${display(list.mainPath)}\n${listText(list).text}`, "info");
+            break;
           }
-          default: { ctx.ui.notify("Usage: /worktree [status|list|deactivate|cleanup]", "warning"); }
+          case "list": {
+            ctx.ui.notify(listText(await client.list(ctx.cwd, ctx.signal)).text, "info");
+            break;
+          }
+          case "deactivate": {
+            deactivate(ctx);
+            ctx.ui.notify("Worktree routing deactivated.", "info");
+            break;
+          }
+          case "cleanup": {
+            if (!ctx.hasUI) {
+              ctx.ui.notify("Cleanup apply is unavailable in non-interactive mode.", "warning");
+              break;
+            }
+            const preview = await previewCleanup(ctx, ctx.signal);
+            ctx.ui.notify(formatCleanupPreview(preview), "info");
+            if (preview.fingerprint === undefined) break;
+            const result = await applyCleanup(preview.fingerprint, ctx.signal, ctx);
+            ctx.ui.notify(cleanupResultText(result), "info");
+            break;
+          }
+          default: {
+            ctx.ui.notify("Usage: /worktree [status|list|deactivate|cleanup]", "warning");
+          }
         }
-      } catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); }
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
     },
   });
 

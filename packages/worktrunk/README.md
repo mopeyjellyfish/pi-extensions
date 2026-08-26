@@ -46,9 +46,25 @@ uses `--no-hooks` with Worktrunk's foreground structured removal.
 
 ## Bulk cleanup
 
-`worktree` with `action: "cleanup"` first returns a complete bounded preview (up to 100 linked worktrees). It lists candidates and skipped worktrees, their protected-state or evidence reason, optional GitHub evidence status, and an SHA-256 fingerprint. `gh` is optional: GitHub terminal PR history can qualify merged or closed branches, while other forges use only Worktrunk integrated or empty evidence. An open review always prevents cleanup.
+`worktree` with `action: "cleanup"` returns a complete cleanup preview for up to
+100 linked worktrees. This cleanup limit is separate from the ordinary 20-item
+`worktree list` limit. The preview lists each candidate and skipped worktree,
+its reason, GitHub evidence status, and the exact SHA-256 fingerprint.
 
-Present the exact preview, obtain explicit approval, then call cleanup with `confirm: true` and the matching `expectedFingerprint`. Apply recomputes the preview and revalidates each worktree. It reports removed, changed, skipped, and failed worktrees. It preserves local and remote branches, does not mutate PRs, never uses force or `--reap`, and does not kill processes. Ignored build output inside a removed worktree is disposable.
+Main, current, routed, dirty, locked, detached, in-progress, path-mismatched,
+prunable, unborn, and open-review worktrees are protected. An open review always
+prevents cleanup. `gh` is optional. GitHub terminal pull-request history can
+qualify merged or closed branches. Other forges use only Worktrunk integrated
+or empty evidence.
+
+Present the exact cleanup preview and obtain explicit approval for its exact
+fingerprint. Then call cleanup with `confirm: true` and the matching
+`expectedFingerprint`. Apply recomputes the preview and revalidates each
+worktree. Apply reports removed, changed, skipped, and failed worktrees.
+
+Cleanup preserves local and remote branches and does not mutate pull requests.
+Cleanup never uses force. Cleanup never uses `--reap` and never kills processes.
+Ignored build output inside a removed worktree is disposable.
 
 Pi keeps its original session root in this first version. Typed relative file
 paths route correctly, but files created only in the active worktree may not
