@@ -61,13 +61,18 @@ with a narrow deterministic red/green signal. Group dependent slices into the
 fewest coherent delivery units. A delivery unit is one review, validation, and
 publication boundary; atomic commits remain coherent-change boundaries within it.
 
-One delivery unit, one branch, and one pull request is the default. Planning
-documents share the implementation delivery unit's publication unless they have
-independent review or merge value. Split only when independent review, ownership, rollback, risk,
-or merge value repays coordination cost. Plan a stack only when every position
-states independent value, required-check viability, integration dependency,
-CI fan-out, and justified cascade cost; otherwise collapse it into fewer units.
-A planned stack uses `open-pr` and `gh stack`.
+One delivery unit, one branch, and one standalone pull request is the default.
+Planning documents share the implementation delivery unit's publication unless
+they have independent review or merge value. Split only when independent review,
+ownership, rollback, risk, or merge value repays coordination cost.
+
+When one accepted pitch has two or more delivery units, plan one ordered GitHub
+stack. Each delivery unit becomes one stack position. Multiple slices or commits
+inside one delivery unit do not create stack positions. Every stack position
+must retain independent value and required-check viability. Record its
+integration dependency, CI fan-out, and cascade cost. If the recorded cost does
+not repay the review or merge value, collapse delivery units before plan
+approval. A planned stack uses `open-pr` and `gh stack`.
 
 Record the critical path and independent lanes in a critical-path forecast:
 active lanes, delivery-unit and pull-request count, integration points, expensive

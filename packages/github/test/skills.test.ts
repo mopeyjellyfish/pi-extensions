@@ -179,9 +179,12 @@ describe("GitHub CLI skill", () => {
 
     expect(openPr).toMatch(/standalone[^.]*one coherent delivery unit[^.]*default/iu);
     expect(openPr).toMatch(/standalone pull request[^.]*multiple verified atomic commits/iu);
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "When the accepted plan has two or more delivery units from one pitch, publish the approved chain as one ordered stack.",
+    );
     expect(openPr).toMatch(/one-commit review units/iu);
-    expect(openPr).toMatch(
-      /independent value[\s\S]*check\s+viability[\s\S]*integration[\s\S]*fan-out[\s\S]*cascade/iu,
+    expect(openPr.replaceAll(/\s+/gu, " ")).toContain(
+      "every position retains independent value and required check viability, plus its recorded integration dependency, CI fan-out, and cascade cost",
     );
     expect(openPr).toMatch(/batch[\s\S]*stable delivery unit/iu);
     expect(openPr).toMatch(
@@ -196,6 +199,9 @@ describe("GitHub CLI skill", () => {
       /configuration[\s\S]*triggering\s+event[\s\S]*current state[\s\S]*bounded logs/iu,
     );
     expect(readme).toMatch(/one coherent delivery unit[\s\S]*multiple verified atomic commits/iu);
+    expect(readme.replaceAll(/\s+/gu, " ")).toContain(
+      "Two or more delivery units from one accepted pitch publish as one ordered stack.",
+    );
 
     for (const resource of [openPr, triage]) {
       expect(resource).not.toMatch(

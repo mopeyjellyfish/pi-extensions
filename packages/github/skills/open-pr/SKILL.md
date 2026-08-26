@@ -38,10 +38,12 @@ commit boundaries do not require separate branches or pull requests. Batch
 related publication operations only after the stable delivery unit has its
 required evidence and fixed review.
 
-Plan a stack only when every position has independent value, required check
-viability, an integration dependency, CI fan-out, and justified cascade cost.
-Otherwise publish fewer delivery units. The one-commit review units safeguard
-applies to each stack position and remains unchanged.
+When the accepted plan has two or more delivery units from one pitch, publish the
+approved chain as one ordered stack. Do not reassess or replace its accepted
+topology during publication. Confirm that every position retains independent
+value and required check viability, plus its recorded integration dependency, CI
+fan-out, and cascade cost. The one-commit review units safeguard applies to each
+stack position and remains unchanged.
 
 If observed coordination materially exceeds an accepted forecast, when one
 exists, pause and report the variance before another remote mutation. Without a

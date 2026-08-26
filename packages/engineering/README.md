@@ -120,6 +120,10 @@ authority change. Every material variance pauses accepted accept-all execution.
 The explicit **Accept and publish** action invokes `commit` and `open-pr` without
 a second mutation prompt; accepted accept-all performs the same steps after
 successful evidence and any selected review.
+Two or more delivery units from the same accepted pitch publish in dependency
+and stack order. Each accepted unit uses `open-pr` and `gh stack`;
+implementation does not replace the accepted stack with unrelated standalone
+pull requests.
 
 When the current checkpointed delivery unit is accepted and committed, and
 authorized publication has completed, the parent summarizes the next planned

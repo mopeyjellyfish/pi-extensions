@@ -517,6 +517,12 @@ describe("engineering resources", () => {
       /Accept\s+and\s+publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no\s+second\s+mutation\s+prompt/iu,
     );
     expect(implement).toMatch(/planned stack[\s\S]*`gh stack`[\s\S]*fail closed/iu);
+    expect(implement.replaceAll(/\s+/gu, " ")).toContain(
+      "When one accepted pitch has two or more delivery units, publish them in dependency and stack order through `open-pr` and `gh stack`.",
+    );
+    expect(readme.replaceAll(/\s+/gu, " ")).toContain(
+      "Two or more delivery units from the same accepted pitch publish in dependency and stack order.",
+    );
     expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
     for (const documentation of [readme, rootReadme]) {
       expect(documentation).toMatch(/`\/just-do-it`/u);

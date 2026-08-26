@@ -285,7 +285,13 @@ publish** action. Acceptance invokes `commit` and `open-pr` with no second
 mutation prompt. For accepted accept-all plans, perform the same commit and
 authorized publication after successful evidence and any selected review without
 that routine question. These focused delivery skills own publication; lifecycle
-guidance must not issue ad hoc Git commands. For a planned stack, `open-pr` must
+guidance must not issue ad hoc Git commands.
+
+When one accepted pitch has two or more delivery units, publish them in dependency
+and stack order through `open-pr` and `gh stack`. Do not replace the accepted
+stack with unrelated standalone pull requests. Wait for each unit's accepted
+evidence and publication authority before its mutation.
+For a planned stack, `open-pr` must
 use `gh stack`; if focused delivery or required stack tooling is unavailable,
 fail closed, preserve local work and evidence, and state the recovery action.
 
