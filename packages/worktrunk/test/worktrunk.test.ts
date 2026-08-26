@@ -866,7 +866,7 @@ describe("WorktrunkClient", () => {
             },
             current: false,
             detached: false,
-            locked: { reason: "review" },
+            locked: null,
             main: false,
             operation: "rebase",
             path: FEATURE_PATH,
@@ -930,5 +930,20 @@ describe("WorktrunkClient", () => {
       ],
       { cwd: MAIN_PATH, signal: undefined, timeout: 120_000 },
     );
+
+    const invalid = JSON.parse(cleanupDocument) as {
+      items: { worktree: Record<string, unknown> }[];
+    };
+    const invalidFeature = invalid.items[1];
+    if (invalidFeature === undefined) throw new Error("cleanup fixture is missing");
+    invalidFeature.worktree["locked"] = "invalid";
+    await expect(
+      new WorktrunkClient(
+        runnerWith(
+          { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+          { code: 0, killed: false, stderr: "", stdout: JSON.stringify(invalid) },
+        ),
+      ).listFull(MAIN_PATH, undefined),
+    ).rejects.toThrow("worktree.locked");
   });
 });

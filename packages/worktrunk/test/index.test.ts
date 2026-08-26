@@ -192,10 +192,48 @@ function githubHistory(): string {
   ]);
 }
 
+const SECOND_PATH = "/projects/example-second";
+const SECOND_HEAD = "4444444444444444444444444444444444444444";
+
+function cleanupWorktreeListWithSecond(secondHead = SECOND_HEAD): string {
+  const parsed = JSON.parse(cleanupWorktreeList()) as { items: Record<string, unknown>[] };
+  const feature = parsed.items[1];
+  if (feature === undefined) throw new Error("feature fixture is missing");
+  const second = structuredClone(feature);
+  const head = second["head"];
+  const worktree = second["worktree"];
+  if (
+    typeof head !== "object" ||
+    head === null ||
+    typeof worktree !== "object" ||
+    worktree === null
+  ) {
+    throw new Error("feature fixture is malformed");
+  }
+  second["branch"] = "feature/second";
+  (head as Record<string, unknown>)["sha"] = secondHead;
+  (worktree as Record<string, unknown>)["path"] = SECOND_PATH;
+  parsed.items.push(second);
+  return JSON.stringify(parsed);
+}
+
+function githubHistoryWithSecond(): string {
+  const history = JSON.parse(githubHistory()) as Record<string, unknown>[];
+  history.push({
+    headRefName: "feature/second",
+    headRepository: { nameWithOwner: "owner/repo" },
+    number: 43,
+    state: "CLOSED",
+    url: "https://github.com/owner/repo/pull/43",
+  });
+  return JSON.stringify(history);
+}
+
 function context(
   harness: Harness,
   options: {
     readonly abort?: () => void;
+    readonly confirm?: () => Promise<boolean>;
     readonly hasUI?: boolean;
     readonly signal?: AbortSignal;
   } = {},
@@ -208,7 +246,9 @@ function context(
     sessionManager: { getBranch: () => harness.entries },
     signal: options.signal,
     ui: {
-      confirm: vi.fn(() => Promise.resolve(harness.confirmations.shift() ?? true)),
+      confirm: vi.fn(
+        options.confirm ?? (() => Promise.resolve(harness.confirmations.shift() ?? true)),
+      ),
       notify: (message: string, level: string) => {
         harness.notifications.push({ level, message });
       },
@@ -903,6 +943,15 @@ describe("pi-worktrunk extension", () => {
     ).rejects.toThrow("interactive");
     await expect(
       nonInteractive.tool.execute(
+        "cleanup",
+        { action: "cleanup", confirm: true, expectedFingerprint: "a".repeat(64) },
+        undefined,
+        undefined,
+        context(nonInteractive, { hasUI: false }),
+      ),
+    ).rejects.toThrow("interactive");
+    await expect(
+      nonInteractive.tool.execute(
         "remove",
         { action: "remove" },
         undefined,
@@ -1244,10 +1293,180 @@ describe("pi-worktrunk extension", () => {
     expect(fresh.exec.mock.calls.flat().join(" ")).not.toContain("remove");
   });
 
+  it("revalidates each approved candidate and continues after a changed worktree", async () => {
+    expect.hasAssertions();
+    const document = cleanupWorktreeListWithSecond();
+    const changedSecond = cleanupWorktreeListWithSecond("5555555555555555555555555555555555555555");
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistoryWithSecond() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistoryWithSecond() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify([
+          {
+            branch: "feature/adapter",
+            branch_deleted: false,
+            kind: "worktree",
+            path: ACTIVE_PATH,
+          },
+        ]),
+      },
+      { code: 0, killed: false, stderr: "", stdout: changedSecond },
+    ]);
+    const ctx = context(harness);
+    const preview = await harness.tool.execute(
+      "cleanup-preview",
+      { action: "cleanup" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const fingerprint = (preview.details["cleanup"] as { readonly fingerprint: string })
+      .fingerprint;
+
+    const result = await harness.tool.execute(
+      "cleanup-apply",
+      { action: "cleanup", confirm: true, expectedFingerprint: fingerprint },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    expect(result.details).toMatchObject({
+      cleanup: {
+        changed: [SECOND_PATH],
+        failed: [],
+        removed: [ACTIVE_PATH],
+        skipped: [],
+      },
+    });
+  });
+
+  it("records one removal failure and continues with the next approved candidate", async () => {
+    expect.hasAssertions();
+    const document = cleanupWorktreeListWithSecond();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistoryWithSecond() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistoryWithSecond() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 7, killed: false, stderr: "candidate failure", stdout: "" },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify([
+          {
+            branch: "feature/second",
+            branch_deleted: false,
+            kind: "worktree",
+            path: SECOND_PATH,
+          },
+        ]),
+      },
+    ]);
+    const ctx = context(harness);
+    const preview = await harness.tool.execute(
+      "cleanup-preview",
+      { action: "cleanup" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const fingerprint = (preview.details["cleanup"] as { readonly fingerprint: string })
+      .fingerprint;
+
+    const result = await harness.tool.execute(
+      "cleanup-apply",
+      { action: "cleanup", confirm: true, expectedFingerprint: fingerprint },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const cleanup = result.details["cleanup"] as {
+      readonly failed: readonly string[];
+      readonly removed: readonly string[];
+    };
+    expect(cleanup.failed).toHaveLength(1);
+    expect(cleanup.failed[0]).toContain("candidate failure");
+    expect(cleanup.removed).toEqual([SECOND_PATH]);
+  });
+
+  it("reports the remaining approved candidates when the apply deadline expires", async () => {
+    expect.hasAssertions();
+    const document = cleanupWorktreeListWithSecond();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistoryWithSecond() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistoryWithSecond() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify([
+          {
+            branch: "feature/adapter",
+            branch_deleted: false,
+            kind: "worktree",
+            path: ACTIVE_PATH,
+          },
+        ]),
+      },
+    ]);
+    const preview = await harness.tool.execute(
+      "cleanup-preview",
+      { action: "cleanup" },
+      undefined,
+      undefined,
+      context(harness),
+    );
+    const fingerprint = (preview.details["cleanup"] as { readonly fingerprint: string })
+      .fingerprint;
+    const now = vi.spyOn(Date, "now").mockReturnValue(0);
+    const ctx = context(harness, {
+      confirm: () => {
+        now
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(0)
+          .mockReturnValueOnce(31 * 60_000);
+        return Promise.resolve(true);
+      },
+    });
+
+    try {
+      const result = await harness.tool.execute(
+        "cleanup-apply",
+        { action: "cleanup", confirm: true, expectedFingerprint: fingerprint },
+        undefined,
+        undefined,
+        ctx,
+      );
+      expect(result.details).toMatchObject({
+        cleanup: { failed: [], removed: [ACTIVE_PATH], skipped: [SECOND_PATH] },
+      });
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it("shows slash-command cleanup and cancels without cleanup state or mutation", async () => {
     expect.hasAssertions();
     const harness = createHarness([
       { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: cleanupWorktreeList() },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
       { code: 0, killed: false, stderr: "", stdout: cleanupWorktreeList() },
       { code: 0, killed: false, stderr: "", stdout: githubHistory() },
     ]);
@@ -1260,6 +1479,12 @@ describe("pi-worktrunk extension", () => {
     expect(harness.notifications.some(({ message }) => message.includes("Fingerprint:"))).toBe(
       true,
     );
+    expect(harness.confirmations).toEqual([]);
+    expect(
+      harness.notifications.some(
+        ({ level, message }) => level === "error" && message.includes("cancelled by the user"),
+      ),
+    ).toBe(true);
     expect(harness.exec.mock.calls.flat().join(" ")).not.toContain("remove");
     expect(harness.entries).toEqual([]);
     await emit(harness, "session_shutdown", {}, context(harness));

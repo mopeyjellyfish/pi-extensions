@@ -12,6 +12,7 @@ import { Type, type Static } from "typebox";
 import {
   cleanupPreview,
   formatCleanupPreview,
+  locallyEligibleBranches,
   revalidationReason,
   type CleanupCandidate,
   type CleanupPreview,
@@ -32,6 +33,7 @@ const OUTPUT_WORKTREE_LIMIT = 20;
 const OUTPUT_IDENTIFIER_LIMIT = 200;
 const OUTPUT_HEAD_LIMIT = 128;
 const OUTPUT_PATH_LIMIT = 400;
+const CLEANUP_PREVIEW_TIMEOUT_MS = 2 * 60_000;
 const CLEANUP_APPLY_TIMEOUT_MS = 30 * 60_000;
 
 const ACTIONS = [
@@ -430,11 +432,16 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     ctx: ExtensionContext,
     signal: AbortSignal | undefined,
   ): Promise<CleanupPreview> => {
-    const list = await client.listFull(ctx.cwd, signal);
-    const branches = list.worktrees.flatMap((worktree) =>
-      worktree.branch === undefined || worktree.main ? [] : [worktree.branch],
+    const deadline = Date.now() + CLEANUP_PREVIEW_TIMEOUT_MS;
+    const list = await client.listFull(ctx.cwd, signal, CLEANUP_PREVIEW_TIMEOUT_MS);
+    const branches = locallyEligibleBranches(list, active?.activePath);
+    const evidence = await github.history(
+      ctx.cwd,
+      list.forge,
+      branches,
+      signal,
+      deadline - Date.now(),
     );
-    const evidence = await github.history(ctx.cwd, list.forge, branches, signal);
     return cleanupPreview(list, evidence.pullRequests, evidence.state, active?.activePath);
   };
 

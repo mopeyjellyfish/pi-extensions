@@ -8,6 +8,12 @@ const MINIMUM_WORKTRUNK_VERSION = "0.67.0";
 
 const ERROR_OUTPUT_BYTES = 4000;
 const ERROR_OUTPUT_LINES = 100;
+const PLAIN_LIST_ARGUMENTS = [
+  "--config-set",
+  "list.json-schema=2",
+  "list",
+  "--format=json",
+] as const;
 
 interface WorktrunkExecution {
   readonly code: number;
@@ -27,11 +33,11 @@ type WorktrunkRunner = (
   options: WorktrunkRunOptions,
 ) => Promise<WorktrunkExecution>;
 
-export type WorktrunkOpenReview = "open" | "none" | "unknown";
-export type WorktrunkOperation = "merge" | "rebase";
-export type WorktrunkIntegrationState = "empty" | "integrated";
+type WorktrunkOpenReview = "open" | "none" | "unknown";
+type WorktrunkOperation = "merge" | "rebase";
+type WorktrunkIntegrationState = "empty" | "integrated";
 
-export interface WorktrunkForge {
+interface WorktrunkForge {
   readonly headRepository: string;
   readonly host: string;
   readonly name: string;
@@ -205,6 +211,7 @@ function optionalBoolean(value: unknown, description: string): boolean | undefin
 
 function optionalStateObject(value: unknown, description: string): boolean {
   if (value === undefined) return false;
+  if (value === null) return true;
   if (!isRecord(value)) {
     throw new WorktrunkError(`Worktrunk returned schema-2 JSON with an invalid ${description}.`);
   }
@@ -486,7 +493,7 @@ export class WorktrunkClient {
 
   public async list(cwd: string, signal: AbortSignal | undefined): Promise<WorktrunkList> {
     return this.listWithArguments(
-      ["--config-set", "list.json-schema=2", "list", "--format=json"],
+      PLAIN_LIST_ARGUMENTS,
       cwd,
       signal,
       WORKTRUNK_DISCOVERY_TIMEOUT_MS,
@@ -495,7 +502,7 @@ export class WorktrunkClient {
 
   public async listLocal(cwd: string, signal: AbortSignal | undefined): Promise<WorktrunkList> {
     return this.listWithArguments(
-      ["--config-set", "list.json-schema=2", "list", "--format=json"],
+      PLAIN_LIST_ARGUMENTS,
       cwd,
       signal,
       WORKTRUNK_DISCOVERY_TIMEOUT_MS,
@@ -503,7 +510,11 @@ export class WorktrunkClient {
     );
   }
 
-  public async listFull(cwd: string, signal: AbortSignal | undefined): Promise<WorktrunkList> {
+  public async listFull(
+    cwd: string,
+    signal: AbortSignal | undefined,
+    timeout = 2 * 60_000,
+  ): Promise<WorktrunkList> {
     return this.listWithArguments(
       [
         "--config-set",
@@ -516,7 +527,7 @@ export class WorktrunkClient {
       ],
       cwd,
       signal,
-      2 * 60_000,
+      timeout,
       { cleanupFacts: true, remoteReviews: true },
     );
   }

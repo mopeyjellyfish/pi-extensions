@@ -20,6 +20,27 @@ function execution(stdout: string, options: { code?: number; killed?: boolean } 
   };
 }
 
+function overflowHistory(): readonly Record<string, unknown>[] {
+  return Array.from({ length: GITHUB_HISTORY_LIMIT + 1 }, (_, index) => ({
+    headRefName: `old-${String(index)}`,
+    headRepository: { nameWithOwner: "owner/repo" },
+    number: index + 1,
+    state: "MERGED",
+    url: `https://github.com/owner/repo/pull/${String(index + 1)}`,
+  }));
+}
+
+function pullRequest(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    headRefName: "feature",
+    headRepository: { nameWithOwner: "owner/repo" },
+    number: 1,
+    state: "OPEN",
+    url: "https://github.com/owner/repo/pull/1",
+    ...overrides,
+  };
+}
+
 describe("GithubClient", () => {
   it("keeps strict same-repository history and sends bounded explicit argv", async () => {
     expect.hasAssertions();
@@ -79,13 +100,7 @@ describe("GithubClient", () => {
 
   it("uses a bounded branch fallback when repository history is incomplete", async () => {
     expect.hasAssertions();
-    const overflow = Array.from({ length: GITHUB_HISTORY_LIMIT + 1 }, (_, index) => ({
-      headRefName: `old-${String(index)}`,
-      headRepository: { nameWithOwner: "owner/repo" },
-      number: index + 1,
-      state: "MERGED",
-      url: `https://github.com/owner/repo/pull/${String(index + 1)}`,
-    }));
+    const overflow = overflowHistory();
     const run = vi
       .fn()
       .mockResolvedValueOnce(execution(JSON.stringify(overflow)))
@@ -101,12 +116,16 @@ describe("GithubClient", () => {
             },
           ]),
         ),
-      );
+      )
+      .mockResolvedValueOnce(execution("[]"));
 
-    const result = await new GithubClient(run).history("/repo", FORGE, ["current"]);
+    const result = await new GithubClient(run).history("/repo", FORGE, ["z", "current", "old-0"]);
     expect(result).toEqual({
       state: "available",
-      pullRequests: [{ branch: "current", number: 20_001, state: "CLOSED" }],
+      pullRequests: [
+        { branch: "old-0", number: 1, state: "MERGED" },
+        { branch: "current", number: 20_001, state: "CLOSED" },
+      ],
     });
     expect(run).toHaveBeenNthCalledWith(
       2,
@@ -128,10 +147,48 @@ describe("GithubClient", () => {
     );
   });
 
+  it("reports partial evidence when an incomplete-history fallback fails", async () => {
+    expect.hasAssertions();
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce(execution(JSON.stringify(overflowHistory())))
+      .mockResolvedValueOnce(execution("[]", { code: 1 }));
+
+    await expect(new GithubClient(run).history("/repo", FORGE, ["current"])).resolves.toEqual({
+      state: "partial",
+      pullRequests: [],
+    });
+  });
+
   it("fails optional evidence closed for malformed, oversized, failed, and cancelled output", async () => {
     expect.hasAssertions();
     const cases = [
       vi.fn().mockResolvedValue(execution("{")),
+      vi.fn().mockResolvedValue(execution("{}")),
+      vi.fn().mockResolvedValue(execution("[42]")),
+      vi.fn().mockResolvedValue(execution(JSON.stringify([pullRequest({ headRefName: null })]))),
+      vi.fn().mockResolvedValue(execution(JSON.stringify([pullRequest({ headRefName: "" })]))),
+      vi
+        .fn()
+        .mockResolvedValue(
+          execution(JSON.stringify([pullRequest({ headRefName: "feature\nunsafe" })])),
+        ),
+      vi.fn().mockResolvedValue(execution(JSON.stringify([pullRequest({ number: 0 })]))),
+      vi.fn().mockResolvedValue(execution(JSON.stringify([pullRequest({ state: "UNKNOWN" })]))),
+      vi.fn().mockResolvedValue(execution(JSON.stringify([pullRequest({ url: null })]))),
+      vi.fn().mockResolvedValue(
+        execution(
+          JSON.stringify([
+            {
+              headRefName: "feature",
+              headRepository: null,
+              number: 1,
+              state: "OPEN",
+              url: "https://github.com/owner/repo/pull/1",
+            },
+          ]),
+        ),
+      ),
       vi.fn().mockResolvedValue(execution(`[]${"x".repeat(5 * 1024 * 1024)}`)),
       vi.fn().mockResolvedValue(execution("[]", { code: 1 })),
       vi.fn().mockResolvedValue(execution("[]", { killed: true })),
