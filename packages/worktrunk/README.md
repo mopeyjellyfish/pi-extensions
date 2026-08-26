@@ -44,6 +44,12 @@ Removal is deliberately narrower: it needs interactive confirmation, an exact
 HEAD from `worktree list`, a clean inactive worktree, preserves its branch, and
 uses `--no-hooks` with Worktrunk's foreground structured removal.
 
+## Bulk cleanup
+
+`worktree` with `action: "cleanup"` first returns a complete bounded preview (up to 100 linked worktrees). It lists candidates and skipped worktrees, their protected-state or evidence reason, optional GitHub evidence status, and an SHA-256 fingerprint. `gh` is optional: GitHub terminal PR history can qualify merged or closed branches, while other forges use only Worktrunk integrated or empty evidence. An open review always prevents cleanup.
+
+Present the exact preview, obtain explicit approval, then call cleanup with `confirm: true` and the matching `expectedFingerprint`. Apply recomputes the preview and revalidates each worktree. It reports removed, changed, skipped, and failed worktrees. It preserves local and remote branches, does not mutate PRs, never uses force or `--reap`, and does not kill processes. Ignored build output inside a removed worktree is disposable.
+
 Pi keeps its original session root in this first version. Typed relative file
 paths route correctly, but files created only in the active worktree may not
 appear in the session's `@` picker. Agent Bash retains Pi's configured shell
