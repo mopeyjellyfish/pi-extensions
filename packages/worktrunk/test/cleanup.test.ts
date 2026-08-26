@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cleanupPreview } from "../src/cleanup.ts";
+import { cleanupPreview, revalidationReason } from "../src/cleanup.ts";
 
 describe("cleanupPreview", () => {
   it("classifies every linked worktree without mutation and fingerprints exact candidates", () => {
@@ -21,5 +21,12 @@ describe("cleanupPreview", () => {
     ]);
     expect(preview.skipped.map((item) => item.reason)).toEqual(["dirty", "open_review", "main"]);
     expect(preview.fingerprint).toMatch(/^[a-f0-9]{64}$/u);
+  });
+
+  it("marks a changed candidate instead of allowing removal", () => {
+    expect(revalidationReason(
+      { branch: "feature", head: "expected", path: "/feature", reason: "github_closed" },
+      { mainPath: "/repo", worktrees: [{ branch: "feature", clean: true, current: false, head: "changed", main: false, path: "/feature" }] },
+    )).toBe("insufficient_evidence");
   });
 });
