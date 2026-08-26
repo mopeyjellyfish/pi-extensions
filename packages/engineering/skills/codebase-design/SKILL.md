@@ -10,6 +10,7 @@ Design **deep modules**: a lot of behaviour behind a small interface, placed at 
 ## Glossary
 
 Use these terms exactly — don't substitute "component," "service," "API," or "boundary." Consistent language is the whole point.
+For Go work, ordinary Go terms retain their meanings; see [Go routing](#go-routing).
 
 **Module** — anything with an interface and an implementation. Deliberately scale-agnostic: a function, class, package, or tier-spanning slice. _Avoid_: unit, component, service.
 
@@ -80,6 +81,9 @@ Good interfaces make testing natural:
    }
    ```
 
+   A composition root may construct concrete dependencies; this does not require
+   a seam or injected interface.
+
 2. **Return results, don't produce side effects.**
 
    ```typescript
@@ -104,11 +108,25 @@ Good interfaces make testing natural:
 
 ## Go routing
 
-When work has Go source, a Go module, a Go CLI, or Go-specific work, resolve
-`go` by its installed name and follow it. Resolve `cobra-viper` only when Cobra
-or Viper commands, flags, or CLI configuration are in scope. Unrelated Go
-toolchain evidence alone does not activate either method. If a companion skill
-is unavailable, record the unmet method and have the direct parent use bounded
+When work has Go source, a Go module, a Go CLI, or Go-specific work,
+target-repository standards remain first. Then resolve `go` by its installed name
+and follow it. Resolve applicable `cobra-viper` guidance only when Cobra or Viper
+commands, flags, or CLI configuration are in scope. Unrelated Go toolchain
+evidence alone does not activate either method.
+
+This skill supplies evidence, depth, locality, and leverage; it does not replace
+idiomatic Go package, API, interface type, composition, fake, or test-boundary
+decisions. Go terms retain their ordinary meanings: a module is not a package,
+an API is not this glossary's interface, and an interface type is a Go type.
+
+Keep concrete types and composition roots as the default. Introduce a small,
+consumer-defined interface only for real interchangeable behavior. Prefer a
+hand-written fake or stub over generated or heavy mocks. Do not create
+layer-named `ports` or `adapters` packages. Keep a justified interface in the
+consuming package or at the location selected by applicable Go guidance.
+
+If an independently installable package cannot resolve a companion skill,
+record the unmet method. Use a bounded fallback: the direct parent uses
 target-repository Go standards without pretending the skill loaded.
 
 ## Rejected framings
