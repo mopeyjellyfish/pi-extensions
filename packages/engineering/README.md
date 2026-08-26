@@ -74,11 +74,14 @@ its named branch only; it never grants merge, deployment, release, plain force
 push, cleanup, or unrelated changes. The parent always inspects the diff and
 evidence.
 
-For a complete accepted plan, `implement` consumes slices in dependency order
-without replanning and uses only planned parallel writer lanes with isolated
-worktrees and sole ownership. Accept-all requires whole-plan approval and
-otherwise defaults to checkpointed implementation. A serial delivery unit
-reuses one writer and worktree. Its validation ladder is focused slice proof,
+For a complete accepted plan, `implement` follows the accepted dependency graph
+without replanning. Planned independent ready delivery units can run concurrently
+in separate worktrees with sole writers, non-overlapping ownership, and named
+integration points. Dependent units stay in order. When concurrent execution is
+unavailable, implementation serializes the work without changing the accepted
+pull-request topology. Accept-all requires whole-plan approval and otherwise
+defaults to checkpointed implementation. A serial delivery unit reuses one
+writer and worktree. Its validation ladder is focused slice proof,
 affected-boundary checks, integration proof, and one stable-boundary required
 gate run against the final frozen diff.
 
@@ -120,10 +123,10 @@ authority change. Every material variance pauses accepted accept-all execution.
 The explicit **Accept and publish** action invokes `commit` and `open-pr` without
 a second mutation prompt; accepted accept-all performs the same steps after
 successful evidence and any selected review.
-Two or more delivery units from the same accepted pitch publish in dependency
-and stack order. Each accepted unit uses `open-pr` and `gh stack`;
-implementation does not replace the accepted stack with unrelated standalone
-pull requests.
+Independent delivery units can run in parallel and publish as sibling standalone
+pull requests; sequential dependency chains publish as ordered GitHub stacks. A
+mixed plan preserves each independent lane and dependent chain. Every accepted
+unit uses `open-pr`, while only sequential chains require `gh stack`.
 
 When the current checkpointed delivery unit is accepted and committed, and
 authorized publication has completed, the parent summarizes the next planned

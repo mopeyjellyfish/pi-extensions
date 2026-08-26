@@ -66,13 +66,22 @@ Planning documents share the implementation delivery unit's publication unless
 they have independent review or merge value. Split only when independent review,
 ownership, rollback, risk, or merge value repays coordination cost.
 
-When one accepted pitch has two or more delivery units, plan one ordered GitHub
-stack. Each delivery unit becomes one stack position. Multiple slices or commits
-inside one delivery unit do not create stack positions. Every stack position
-must retain independent value and required-check viability. Record its
-integration dependency, CI fan-out, and cascade cost. If the recorded cost does
-not repay the review or merge value, collapse delivery units before plan
-approval. A planned stack uses `open-pr` and `gh stack`.
+After grouping slices, model delivery units and their dependencies before
+selecting branches or pull-request bases. Independent delivery units use sibling
+branches and sibling standalone pull requests from their accepted common base.
+Sequentially dependent delivery units use one ordered GitHub stack. A mixed plan
+can contain parallel sibling pull requests and one or more dependent stacks.
+Every delivery unit, sibling or stacked, must retain independent review value and
+required-check viability.
+
+Parallel lanes require separate isolated worktrees, sole writers, non-overlapping
+ownership, and a named integration point. Record their common base, checks,
+integration order, and CI fan-out. For each sequential chain, record every
+branch, adjacent pull-request base, stack position, checks, and cascade cost. If
+coordination cost does not repay review or merge value, collapse delivery units
+before plan approval. Multiple slices or commits inside one delivery unit do not
+create branches, pull requests, or stack positions. Every pull request uses
+`open-pr`; only a planned sequential chain uses `gh stack`.
 
 Record the critical path and independent lanes in a critical-path forecast:
 active lanes, delivery-unit and pull-request count, integration points, expensive
@@ -95,11 +104,11 @@ required only when delivery boundaries or authority change.
 
 For every slice record its observable outcome and requirement trace, public seam
 and files, dependencies, execution lane/worktree ownership, red proof, green
-proof and checks, atomic commit, PR base/stack position, and done conditions.
-Use separate isolated worktrees and a sole writer for every parallel lane.
-Reject overlapping parallel writers, shared mutable boundaries, and unresolved
-dependencies; serialize them instead. Planning does not implement or start
-parallel work.
+proof and checks, atomic commit, delivery-unit topology, pull-request base, stack
+position when applicable, and done conditions. Use separate isolated worktrees
+and a sole writer for every parallel lane. Reject overlapping parallel writers,
+shared mutable boundaries, and unresolved dependencies; serialize them instead.
+Planning defines but does not start parallel work.
 
 When the accepted pitch contains material UI scope, trace its accepted interface
 criteria into vertical slices. Each relevant interface slice names

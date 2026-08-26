@@ -51,27 +51,31 @@ and publication boundary. One delivery unit, one branch, and one pull request is
 the default; that pull request is standalone and may contain multiple atomic
 commits for coherent changes. Planning documents share the implementation
 delivery unit's publication unless they have independent review or merge value.
-Two or more delivery units from the same accepted pitch use one ordered GitHub
-stack. Each delivery unit becomes one stack position. Multiple slices or commits
-inside one delivery unit do not create stack positions. Every position retains
-independent value and check viability. Plans record integration dependencies, CI
-fan-out, and cascade cost, and collapse delivery units before approval when that
-cost does not repay review or merge value. Plans forecast critical path, lanes,
-units, integration, expensive gates, and cascade cost; they predeclare evidence
-invalidation and pause to report material forecast variance.
+
+Independent delivery units use sibling standalone pull requests, while sequential
+dependency chains use ordered GitHub stacks. A mixed plan can combine parallel
+sibling pull requests with dependent stacks. Every delivery unit retains
+independent review value and required-check viability. Safe parallel lanes use
+separate worktrees, sole writers, non-overlapping ownership, and named integration
+points.
+Plans record common or adjacent bases, checks, ownership, CI fan-out, and cascade
+cost. Multiple slices or commits inside one delivery unit do not select another
+branch or pull request. Plans forecast the critical path, lanes, integration,
+expensive gates, and coordination cost; they predeclare evidence invalidation and
+pause to report material forecast variance.
 
 Explicit acceptance bundles bounded commit and later publication authority. An
 accepted pitch uses `commit` before planning, and an accepted plan uses `commit`
 before implementation. `open-pr` runs at those stages only when the planning
 document is an independently valuable delivery unit; otherwise the stable
-implementation unit publishes once. A planned stack requires `open-pr` and
-`gh stack`. Missing focused delivery tooling fails closed for publication with
-local evidence and recovery guidance; the direct parent continues the lifecycle
-handoff without publishing that stage. Lifecycle text does not provide ad hoc
-Git commands. Approval never covers merge, release, deployment, destructive
-cleanup, or unrelated remote changes. For Worktrunk-managed branches, `gh stack link` verifies the chain but
-does not make a locally tracked view; use `gh stack view --json` only for a
-locally tracked stack.
+implementation unit publishes once. Every pull request requires `open-pr`; only
+a planned sequential chain requires `gh stack`. Missing focused delivery tooling
+fails closed for publication with local evidence and recovery guidance; the
+direct parent continues the lifecycle handoff without publishing that stage.
+Lifecycle text does not provide ad hoc Git commands. Approval never covers merge,
+release, deployment, destructive cleanup, or unrelated remote changes. For
+Worktrunk-managed branches, `gh stack link` verifies the chain but does not make a
+locally tracked view; use `gh stack view --json` only for a locally tracked stack.
 
 Install from a repository checkout:
 

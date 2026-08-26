@@ -38,12 +38,16 @@ commit boundaries do not require separate branches or pull requests. Batch
 related publication operations only after the stable delivery unit has its
 required evidence and fixed review.
 
-When the accepted plan has two or more delivery units from one pitch, publish the
-approved chain as one ordered stack. Do not reassess or replace its accepted
-topology during publication. Confirm that every position retains independent
-value and required check viability, plus its recorded integration dependency, CI
-fan-out, and cascade cost. The one-commit review units safeguard applies to each
-stack position and remains unchanged.
+Follow the accepted plan's topology. Publish independent delivery units as
+sibling standalone pull requests from their accepted common base. Publish each
+sequential dependency chain as one ordered stack. A mixed plan can contain
+several sibling standalone pull requests and one or more stacks. Do not reassess
+or combine units, and do not turn independent units into a dependency chain
+during publication.
+
+For each stack position, confirm independent review value, required check
+viability, adjacent ancestry, CI fan-out, and cascade cost. The one-commit review
+units safeguard applies to each stack position and remains unchanged.
 
 If observed coordination materially exceeds an accepted forecast, when one
 exists, pause and report the variance before another remote mutation. Without a
@@ -100,10 +104,10 @@ repository, base, head, title, draft/ready state, and exact body for review.
 
 ## Publish a planned stack
 
-A planned stack requires the `github/gh-stack` extension. Before the first
-stack mutation, run `gh stack --version`. If it fails, stop and give exactly
-`gh extension install github/gh-stack` as recovery. Do not install it, offer a
-standalone path, or substitute `gh pr create`: **Never fall back from a planned
+The `github/gh-stack` extension is required only for a planned sequential chain.
+Before the first stack mutation, run `gh stack --version`. If it fails, stop and
+give exactly `gh extension install github/gh-stack` as recovery. Do not install
+it or offer a standalone path. Do not substitute `gh pr create`: **Never fall back from a planned
 stack to `gh pr create`**.
 
 1. Confirm every adjacent pair from trunk through the named branches with
