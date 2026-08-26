@@ -29,15 +29,24 @@ type WorktrunkRunner = (
 
 export interface WorktrunkWorktree {
   readonly branch?: string;
+  readonly branchMismatch?: boolean;
   readonly clean: boolean;
   readonly current: boolean;
+  readonly detached?: boolean;
   readonly head?: string;
+  readonly integrationReason?: string;
+  readonly locked?: boolean;
   readonly main: boolean;
+  readonly operation?: boolean;
   readonly path: string;
+  readonly prunable?: boolean;
+  readonly openReview?: boolean;
 }
 
 export interface WorktrunkList {
+  readonly forge?: string;
   readonly mainPath: string;
+  readonly repository?: string;
   readonly worktrees: readonly WorktrunkWorktree[];
 }
 
@@ -169,38 +178,39 @@ function commandFailure(command: string, result: WorktrunkExecution): WorktrunkE
   );
 }
 
-function parseList(output: string): WorktrunkList {
+function optionalBoolean(value: unknown, description: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  return requiredBoolean(value, description);
+}
+
+function parseList(output: string, includeCleanupFacts = false): WorktrunkList {
   let document: unknown;
   try {
     document = JSON.parse(output) as unknown;
   } catch {
-    throw new WorktrunkError(
-      "Worktrunk returned malformed JSON; expected schema 2 from `wt list`.",
-    );
+    throw new WorktrunkError("Worktrunk returned malformed JSON; expected schema 2 from `wt list`.");
   }
   if (!isRecord(document) || document["schema"] !== 2 || !Array.isArray(document["items"])) {
     throw new WorktrunkError("Worktrunk returned an unsupported list schema; expected schema 2.");
   }
-
+  const repo = isRecord(document["repo"]) ? document["repo"] : {};
   const paths = new Set<string>();
   const worktrees = document["items"].map((item, index): WorktrunkWorktree => {
     if (!isRecord(item) || !isRecord(item["worktree"])) {
-      throw new WorktrunkError(
-        `Worktrunk returned schema-2 JSON with an invalid worktree item at index ${String(index)}.`,
-      );
+      throw new WorktrunkError(`Worktrunk returned schema-2 JSON with an invalid worktree item at index ${String(index)}.`);
     }
     const worktree = item["worktree"];
     const path = requiredString(worktree["path"], `items[${String(index)}].worktree.path`);
-    if (!isAbsolute(path)) {
-      throw new WorktrunkError(
-        `Worktrunk returned a non-absolute worktree path at index ${String(index)}.`,
-      );
-    }
+    if (!isAbsolute(path)) throw new WorktrunkError(`Worktrunk returned a non-absolute worktree path at index ${String(index)}.`);
     const canonicalPath = resolve(path);
-    if (paths.has(canonicalPath)) {
-      throw new WorktrunkError("Worktrunk returned duplicate worktree paths.");
-    }
+    if (paths.has(canonicalPath)) throw new WorktrunkError("Worktrunk returned duplicate worktree paths.");
     paths.add(canonicalPath);
+    const defaultBranch = isRecord(item["default_branch"]) ? item["default_branch"] : undefined;
+    const integration = defaultBranch !== undefined && isRecord(defaultBranch["integration"])
+      ? optionalString(defaultBranch["integration"]["reason"], `items[${String(index)}].default_branch.integration.reason`)
+      : undefined;
+    const pr = optionalBoolean(item["pr"], `items[${String(index)}].pr`);
+    const collected = isRecord(item["collected"]) ? optionalBoolean(item["collected"]["ci"], `items[${String(index)}].collected.ci`) : undefined;
     const branch = optionalString(item["branch"], `items[${String(index)}].branch`);
     const head = optionalHead(item["head"], `items[${String(index)}].head`);
     return {
@@ -210,13 +220,24 @@ function parseList(output: string): WorktrunkList {
       ...(head === undefined ? {} : { head }),
       main: requiredBoolean(worktree["main"], `items[${String(index)}].worktree.main`),
       path: canonicalPath,
-    };
+      ...(includeCleanupFacts
+        ? {
+            branchMismatch: optionalBoolean(worktree["branch_mismatch"], `items[${String(index)}].worktree.branch_mismatch`) ?? false,
+            detached: optionalBoolean(worktree["detached"], `items[${String(index)}].worktree.detached`) ?? false,
+            ...(integration === undefined ? {} : { integrationReason: integration }),
+            locked: optionalBoolean(worktree["locked"], `items[${String(index)}].worktree.locked`) ?? false,
+            operation: optionalBoolean(worktree["operation"], `items[${String(index)}].worktree.operation`) ?? false,
+            prunable: optionalBoolean(worktree["prunable"], `items[${String(index)}].worktree.prunable`) ?? false,
+            openReview: collected === true ? (pr ?? false) : undefined,
+          }
+        : {}),
+    } as WorktrunkWorktree;
   });
   const main = worktrees.filter((worktree) => worktree.main);
-  if (main.length !== 1 || main[0] === undefined) {
-    throw new WorktrunkError("Worktrunk schema-2 JSON must contain exactly one main worktree.");
-  }
-  return { mainPath: main[0].path, worktrees };
+  if (main.length !== 1 || main[0] === undefined) throw new WorktrunkError("Worktrunk schema-2 JSON must contain exactly one main worktree.");
+  const forge = includeCleanupFacts ? optionalString(repo["forge"], "repo.forge") : undefined;
+  const repository = includeCleanupFacts ? optionalString(repo["repository"], "repo.repository") : undefined;
+  return { ...(forge === undefined ? {} : { forge }), mainPath: main[0].path, ...(repository === undefined ? {} : { repository }), worktrees };
 }
 
 function parseSwitchResult(output: string): { readonly action?: string; readonly path: string } {
@@ -268,18 +289,19 @@ export class WorktrunkClient {
   }
 
   public async list(cwd: string, signal: AbortSignal | undefined): Promise<WorktrunkList> {
+    return this.listWithArguments(["--config-set", "list.json-schema=2", "list", "--format=json"], cwd, signal);
+  }
+
+  public async listFull(cwd: string, signal: AbortSignal | undefined): Promise<WorktrunkList> {
+    return this.listWithArguments(["--config-set", "list.json-schema=2", "--config-set", "list.summary=false", "list", "--full", "--format=json"], cwd, signal, true);
+  }
+
+  private async listWithArguments(arguments_: readonly string[], cwd: string, signal: AbortSignal | undefined, includeCleanupFacts = false): Promise<WorktrunkList> {
     await this.ensureCompatible(cwd, signal);
-    const result = await this.#run(
-      ["--config-set", "list.json-schema=2", "list", "--format=json"],
-      { cwd, signal, timeout: WORKTRUNK_DISCOVERY_TIMEOUT_MS },
-    );
-    if (signal?.aborted === true || result.killed) {
-      throw new WorktrunkError("Worktrunk list was cancelled.");
-    }
-    if (result.code !== 0) {
-      throw commandFailure("wt list", result);
-    }
-    return parseList(result.stdout);
+    const result = await this.#run(arguments_, { cwd, signal, timeout: WORKTRUNK_DISCOVERY_TIMEOUT_MS });
+    if (signal?.aborted === true || result.killed) throw new WorktrunkError("Worktrunk list was cancelled.");
+    if (result.code !== 0) throw commandFailure("wt list", result);
+    return parseList(result.stdout, includeCleanupFacts);
   }
 
   public async create(
