@@ -53,26 +53,32 @@ An independent installation without the root agent profiles uses the direct
 parent; it does not automatically provide companion extensions, agents, tools,
 or skills.
 
-`developing-changes` uses an impact-and-uncertainty decision: a mechanical
-low-risk request goes to `/just-do-it`; one clear coherent outcome can implement
-now; a reported broken, failing, or slow behavior with an unresolved cause goes
-to `diagnosing-bugs`; coordinated clear work plans first; uncertain,
-hard-to-reverse, or risky work Shapes then plans. A confirmed bug outcome then
-goes to `implement`. It uses uncertainty, reversibility, risk, affected
+`developing-changes` uses an impact-and-uncertainty decision. A small, bounded
+fix during active work goes to `/just-do-it` when the requested outcome, local
+cause, and objective check are clear. This includes obvious breakage, cleanup,
+and local behavior corrections. A coherent standalone outcome uses `implement`.
+A reported failure with an unresolved cause goes to `diagnosing-bugs`.
+Coordinated clear work plans first. Uncertain, hard-to-reverse, or risky work
+Shapes then plans. The router uses uncertainty, reversibility, risk, affected
 boundaries, and coordination cost, not file count alone. It asks one focused
-question only at a material boundary.
-Accepted material UI evidence and selected installed frontend methods continue
-into `implement`; bounded mechanical UI work remains direct.
+question only at a material boundary. Accepted material UI evidence and selected
+installed frontend methods continue into `implement`. Bounded mechanical UI work
+remains direct.
 
-`/just-do-it <request>` sets up the worktree first and keeps an obvious
-mechanical change with the direct parent by default. It uses one fresh Worker
-only when broad repetition materially shortens the critical path or protects
-parent context. It stops and returns to the router for ambiguity, behavior
-design, security or migration risk, or scope expansion. Invocation grants
-bounded implementation, `commit`, and `open-pr` delivery after verification for
-its named branch only; it never grants merge, deployment, release, plain force
-push, cleanup, or unrelated changes. The parent always inspects the diff and
-evidence.
+`/just-do-it <request>` reuses the current safe task worktree and branch, or sets
+up an isolated task worktree before repository reads. The direct parent fixes
+the bounded problem immediately and uses one fresh Worker only when broad
+repetition saves critical-path time or parent context. The route permits one
+bounded inspection pass for obvious local breakage. It stops for broad diagnosis,
+product decisions, security or migration risk, dependency changes, irreversible
+actions, or scope expansion.
+
+The route runs focused verification and parent diff inspection. It does not run
+independent QA, a Reviewer, or formal review. Successful verification authorizes
+the named fix to be committed and pushed on the current branch without another
+approval prompt. It does not open a pull request unless the user asks. It never
+grants merge, deployment, release, plain force push, worktree cleanup,
+destructive actions, or unrelated changes.
 
 For a complete accepted plan, `implement` follows the accepted dependency graph
 without replanning. Planned independent ready delivery units can run concurrently

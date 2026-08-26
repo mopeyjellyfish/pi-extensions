@@ -220,8 +220,10 @@ describe("engineering resources", () => {
       expect(implement).toContain(concern);
     }
     expect(implement).toMatch(/`reviewer`[\s\S]*load and\s+follow[\s\S]*`code-review`/iu);
-    expect(justDoIt).toMatch(/does not mandate[^.]*QA[^.]*Reviewer/iu);
-    expect(justDoIt).toMatch(/material risk[\s\S]*`reviewer`[\s\S]*`code-review`/iu);
+    expect(justDoIt.replaceAll(/\s+/gu, " ")).toContain(
+      "Do not run independent QA, a Reviewer, or formal review for this route.",
+    );
+    expect(justDoIt).toMatch(/return to `developing-changes`[\s\S]*security or migration/iu);
     expect(router).toMatch(
       /reported[\s\S]*broken[\s\S]*unresolved cause[\s\S]*`diagnosing-bugs`/iu,
     );
@@ -517,7 +519,7 @@ describe("engineering resources", () => {
     expect(skill.slice(separatorIndex)).toMatch(/`test-driven-development` skill/iu);
   });
 
-  it("routes change requests by impact and uncertainty and keeps delivery bounded", async () => {
+  it("routes small fixes through immediate commit and push without review", async () => {
     expect.hasAssertions();
     const [router, implement, justDoIt, readme, rootReadme] = await Promise.all([
       read("skills/developing-changes/SKILL.md"),
@@ -526,6 +528,8 @@ describe("engineering resources", () => {
       read("README.md"),
       readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
     ]);
+    const compactRouter = router.replaceAll(/\s+/gu, " ");
+    const compactJustDoIt = justDoIt.replaceAll(/\s+/gu, " ");
 
     expect(router).toMatch(
       /just[- ]do[- ]it[\s\S]*implement now[\s\S]*plan first[\s\S]*Shape then plan/iu,
@@ -535,24 +539,32 @@ describe("engineering resources", () => {
     );
     expect(router).toMatch(/not[\s\S]*file count alone/iu);
     expect(router).toMatch(/one focused question[\s\S]*material boundary/iu);
+    expect(compactRouter).toContain(
+      "Use `just-do-it` for a small, bounded fix during active work when the requested outcome and objective check are clear.",
+    );
     expect(router).toMatch(
       /`shape`[\s\S]*`planning-changes`[\s\S]*unavailable[\s\S]*direct parent[\s\S]*pitch[\s\S]*slice plan/iu,
     );
     expect(justDoIt).toMatch(/worktree setup[\s\S]*first/iu);
+    expect(compactJustDoIt).toContain(
+      "Reuse the current task worktree and branch when they are safe for this request. Otherwise, create or activate an isolated task worktree.",
+    );
     expect(justDoIt).toMatch(/direct parent[^.]*default/iu);
     expect(justDoIt).toMatch(/exactly one fresh `worker`[^.]*only when/iu);
-    expect(justDoIt).toMatch(
-      /mechanical scope[\s\S]*objective check[\s\S]*setup evidence[\s\S]*delivery authority/iu,
+    expect(compactJustDoIt).toContain(
+      "Accept a bounded fix, small breakage, cleanup, or obvious follow-up with a clear objective check.",
+    );
+    expect(compactJustDoIt).toContain(
+      "Do not run independent QA, a Reviewer, or formal review for this route.",
+    );
+    expect(compactJustDoIt).toContain(
+      "After verification, commit the change and push the current named branch.",
+    );
+    expect(compactJustDoIt).toContain(
+      "Do not open or update a pull request unless the user asks for it.",
     );
     expect(justDoIt).toMatch(
-      /ambiguity[\s\S]*behavior design[\s\S]*security[\s\S]*migration[\s\S]*expanding scope/iu,
-    );
-    expect(justDoIt).toMatch(/Utility[\s\S]*QA[\s\S]*only when useful/iu);
-    expect(justDoIt).toMatch(/material risk[\s\S]*reviewer/iu);
-    expect(justDoIt).toMatch(/explicit\s+approval[\s\S]*higher-capability/iu);
-    expect(justDoIt).toMatch(/named branch[\s\S]*`commit`[\s\S]*`open-pr`/iu);
-    expect(justDoIt).toMatch(
-      /not authorize[\s\S]*merge[\s\S]*deploy[\s\S]*plain[\s\S]*force[\s\S]*cleanup/iu,
+      /does not authorize[\s\S]*merge[\s\S]*deploy[\s\S]*plain[\s\S]*force[\s\S]*cleanup/iu,
     );
     expect(implement).toMatch(
       /complete accepted plan[\s\S]*dependency order[\s\S]*without replanning/iu,
@@ -719,14 +731,17 @@ describe("engineering resources", () => {
       "checkout flow",
     );
     expect(piPromptTemplates.expandPromptTemplate("/just-do-it", templates)).toContain(
-      "Ask only for the mechanical request",
+      "Ask only for the bounded request",
     );
     const justDoIt = piPromptTemplates.expandPromptTemplate(
-      "/just-do-it remove Y from all files",
+      "/just-do-it fix the broken retry assertion",
       templates,
     );
-    expect(justDoIt).toContain("remove Y from all files");
+    expect(justDoIt).toContain("fix the broken retry assertion");
     expect(justDoIt).toContain("`just-do-it` skill");
+    expect(justDoIt.replaceAll(/\s+/gu, " ")).toContain(
+      "Execute it immediately, verify it, commit it, and push the current branch.",
+    );
   });
 
   it("preserves accepted frontend evidence through material UI implementation", async () => {
@@ -802,12 +817,7 @@ describe("engineering resources", () => {
         "code-review",
       ].map((name) => read(`skills/${name}/SKILL.md`)),
     );
-    const [implement, justDoIt, diagnosis, review] = [
-      entries[4],
-      entries[1],
-      entries[2],
-      entries[8],
-    ];
+    const [implement, diagnosis, review] = [entries[4], entries[2], entries[8]];
 
     for (const entry of entries) {
       expect(entry).toMatch(/Go source[\s\S]*Go module[\s\S]*Go-specific work/iu);
@@ -818,7 +828,6 @@ describe("engineering resources", () => {
     }
     expect(diagnosis?.slice(diagnosis.indexOf("\n## Pi debug additions\n"))).toMatch(/Go source/iu);
     expect(implement).toMatch(/Review mode: fixed-diff code/iu);
-    expect(justDoIt).toMatch(/Review mode: fixed-diff code/iu);
     expect(review).toMatch(
       /target-repository instructions[\s\S]*module contracts[\s\S]*Go and Cobra\/Viper[\s\S]*references\/go\.md/iu,
     );
@@ -841,7 +850,9 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/one prioritized repair packet[\s\S]*retained Worker/iu);
     expect(implement).toMatch(/green command[\s\S]{0,80}does not require[\s\S]{0,40}model QA/iu);
     expect(justDoIt).toMatch(/direct parent[^.]*default[\s\S]*Worker[^.]*only when/iu);
-    expect(justDoIt).not.toMatch(/completed unit[\s\S]*reviewer[\s\S]*must/iu);
+    expect(justDoIt.replaceAll(/\s+/gu, " ")).toContain(
+      "Do not run independent QA, a Reviewer, or formal review for this route.",
+    );
     expect(reviewer).toMatch(/do not run QA gates/iu);
   });
 });
