@@ -7,7 +7,7 @@ import type { WorktrunkList, WorktrunkWorktree } from "./worktrunk.ts";
 
 export const MAX_CLEANUP_WORKTREES = 100;
 
-export type CandidateReason =
+type CandidateReason =
   "github_merged" | "github_closed" | "worktrunk_integrated" | "worktrunk_empty";
 
 export type SkippedReason =
@@ -32,7 +32,7 @@ export interface CleanupCandidate {
   readonly pullRequest?: number;
 }
 
-export interface CleanupSkipped {
+interface CleanupSkipped {
   readonly branch?: string;
   readonly path: string;
   readonly reason: SkippedReason;
@@ -66,7 +66,9 @@ function terminal(
 
 function localCandidateReason(worktree: WorktrunkWorktree): CandidateReason | undefined {
   if (worktree.integrationState === "empty") return "worktrunk_empty";
-  if (worktree.integrationState === "integrated") return "worktrunk_integrated";
+  if (worktree.integrationState === "integrated" && worktree.integrationReason !== undefined) {
+    return "worktrunk_integrated";
+  }
   return undefined;
 }
 
@@ -85,6 +87,16 @@ function localProtectionReason(
   if (worktree.branchMismatch === true) return "branch_mismatch";
   if (worktree.branch === undefined || worktree.head === undefined) return "unborn";
   return undefined;
+}
+
+export function locallyEligibleBranches(
+  list: WorktrunkList,
+  activePath?: string,
+): readonly string[] {
+  return list.worktrees
+    .filter((worktree) => localProtectionReason(worktree, activePath) === undefined)
+    .flatMap((worktree) => (worktree.branch === undefined ? [] : [worktree.branch]))
+    .sort(compareText);
 }
 
 function remoteProtectionReason(

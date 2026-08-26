@@ -4,6 +4,7 @@ import {
   MAX_CLEANUP_WORKTREES,
   cleanupPreview,
   formatCleanupPreview,
+  locallyEligibleBranches,
   revalidationReason,
 } from "../src/cleanup.ts";
 
@@ -177,6 +178,43 @@ describe("cleanupPreview", () => {
       skippedCount: 1,
     });
     expect(Buffer.byteLength(JSON.stringify(preview))).toBeLessThan(1000);
+  });
+
+  it("skips a clean branch without terminal or Worktrunk integration evidence", () => {
+    expect.hasAssertions();
+    const preview = cleanupPreview(
+      list([
+        tree("main", "/repo", { main: true }),
+        tree("plain", "/plain", { openReview: "none" }),
+      ]),
+      [],
+      "available",
+    );
+    expect(preview.candidates).toEqual([]);
+    expect(preview.skipped.find(({ branch }) => branch === "plain")?.reason).toBe(
+      "insufficient_evidence",
+    );
+  });
+
+  it("limits terminal-history fallback to locally eligible branches", () => {
+    expect.hasAssertions();
+    expect(
+      locallyEligibleBranches(
+        list([
+          tree("main", "/repo", { main: true }),
+          tree("current", "/current", { current: true }),
+          tree("dirty", "/dirty", { clean: false }),
+          tree("locked", "/locked", { locked: true }),
+          tree("prunable", "/prunable", { prunable: true }),
+          tree("detached", "/detached", { detached: true }),
+          tree("mismatch", "/mismatch", { branchMismatch: true }),
+          tree("routed", "/routed"),
+          { clean: true, current: false, main: false, path: "/unborn" },
+          tree("eligible", "/eligible"),
+        ]),
+        "/routed",
+      ),
+    ).toEqual(["eligible"]);
   });
 
   it("revalidates exact local state without requiring another remote review lookup", () => {

@@ -31,10 +31,10 @@ interface RunOptions {
 type Runner = (arguments_: readonly string[], options: RunOptions) => Promise<Execution>;
 
 export const GITHUB_HISTORY_LIMIT = 10_000;
-export const GITHUB_BRANCH_HISTORY_LIMIT = 100;
-export const GITHUB_FALLBACK_LIMIT = 20;
-export const GITHUB_PREVIEW_TIMEOUT_MS = 2 * 60_000;
-export const GITHUB_OUTPUT_BYTES = 5 * 1024 * 1024;
+const GITHUB_BRANCH_HISTORY_LIMIT = 100;
+const GITHUB_FALLBACK_LIMIT = 20;
+const GITHUB_PREVIEW_TIMEOUT_MS = 2 * 60_000;
+const GITHUB_OUTPUT_BYTES = 5 * 1024 * 1024;
 
 const JSON_FIELDS = "headRefName,headRepository,number,state,url";
 
@@ -73,7 +73,7 @@ function parsePullRequest(
     return INVALID_PULL_REQUEST;
   }
   if (!isRecord(headRepository) || !safeText(headRepository["nameWithOwner"])) {
-    return undefined;
+    return INVALID_PULL_REQUEST;
   }
   return headRepository["nameWithOwner"] === forge.headRepository
     ? { branch, number: number as number, state }
@@ -164,7 +164,7 @@ async function completeCandidateHistory(
   forge: GithubForge,
   candidateBranches: readonly string[],
   initial: readonly TerminalPullRequest[],
-  startedAt: number,
+  deadline: number,
   signal: AbortSignal | undefined,
 ): Promise<HistoryResult> {
   const pullRequests = [...initial];
@@ -175,7 +175,7 @@ async function completeCandidateHistory(
   let partial = unresolved.length > GITHUB_FALLBACK_LIMIT;
 
   for (const branch of unresolved.slice(0, GITHUB_FALLBACK_LIMIT)) {
-    const remaining = GITHUB_PREVIEW_TIMEOUT_MS - (Date.now() - startedAt);
+    const remaining = deadline - Date.now();
     if (remaining <= 0 || isAborted(signal)) {
       partial = true;
       break;
@@ -219,18 +219,20 @@ export class GithubClient {
     forge: GithubForge | undefined,
     candidateBranches: readonly string[],
     signal?: AbortSignal,
+    timeout = GITHUB_PREVIEW_TIMEOUT_MS,
   ): Promise<HistoryResult> {
     if (forge?.provider !== "github") return { state: "not_github", pullRequests: [] };
     if (isAborted(signal)) return { state: "unavailable", pullRequests: [] };
+    if (timeout <= 0) return { state: "unavailable", pullRequests: [] };
 
-    const startedAt = Date.now();
+    const deadline = Date.now() + timeout;
     const initial = await executeQuery(
       this.#run,
       queryArguments(forge, GITHUB_HISTORY_LIMIT + 1),
       cwd,
       forge,
       signal,
-      GITHUB_PREVIEW_TIMEOUT_MS,
+      timeout,
     );
     if (initial === undefined) return { state: "unavailable", pullRequests: [] };
 
@@ -247,7 +249,7 @@ export class GithubClient {
       forge,
       candidateBranches,
       relevantInitial,
-      startedAt,
+      deadline,
       signal,
     );
   }
