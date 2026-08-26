@@ -22,4 +22,27 @@ describe("Worktrunk resources", () => {
       expect.soft(prose).toMatch(/setup fails[^.]*diagnose[^.]*do not rerun/iu);
     }
   });
+
+  it("keeps bulk cleanup guidance aligned across the README and skill", async () => {
+    expect.hasAssertions();
+    const [skill, readme] = await Promise.all([
+      readFile(join(PACKAGE_ROOT, "skills", "pi-worktrunk", "SKILL.md"), "utf8"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+    ]);
+
+    for (const resource of [skill, readme]) {
+      const prose = resource.replaceAll(/\s+/gu, " ");
+      expect.soft(prose).toMatch(/cleanup[^.]*preview/iu);
+      expect.soft(prose).toMatch(/exact (?:preview )?fingerprint/iu);
+      expect.soft(prose).toMatch(/explicit approval|confirmation/iu);
+      expect.soft(prose).toMatch(/main[^.]*current[^.]*dirty[^.]*open/iu);
+      expect.soft(prose).toMatch(/preserv(?:e|es)[^.]*branches/iu);
+      expect.soft(prose).toMatch(/gh[^.]*optional/iu);
+      expect.soft(prose).toMatch(/never uses? force/iu);
+      expect.soft(prose).toMatch(/(?:never uses?|no) `?--reap`?/iu);
+      expect.soft(prose).toMatch(/removed[^.]*changed[^.]*skipped[^.]*failed/iu);
+      expect.soft(prose).toMatch(/20[^.]*list|list[^.]*20/iu);
+      expect.soft(prose).toMatch(/100[^.]*cleanup|cleanup[^.]*100/iu);
+    }
+  });
 });

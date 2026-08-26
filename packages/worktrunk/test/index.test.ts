@@ -117,6 +117,81 @@ function detachedWorktreeList(): string {
   return JSON.stringify(parsed);
 }
 
+function cleanupWorktreeList(
+  featureHead = "2222222222222222222222222222222222222222",
+  featurePath = ACTIVE_PATH,
+): string {
+  return JSON.stringify({
+    collected: { ci: true, summary: false },
+    items: [
+      {
+        branch: "main",
+        head: { sha: "1111111111111111111111111111111111111111" },
+        worktree: {
+          branch_mismatch: false,
+          changes: {
+            conflicted: false,
+            deleted: false,
+            modified: false,
+            renamed: false,
+            staged: false,
+            untracked: false,
+          },
+          current: true,
+          detached: false,
+          main: true,
+          path: MAIN_PATH,
+        },
+      },
+      {
+        branch: "feature/adapter",
+        default_branch: { integration: null, merge_conflicts: true, orphan: false },
+        display: { state: "would_conflict" },
+        head: { sha: featureHead },
+        worktree: {
+          branch_mismatch: false,
+          changes: {
+            conflicted: false,
+            deleted: false,
+            modified: false,
+            renamed: false,
+            staged: false,
+            untracked: false,
+          },
+          current: false,
+          detached: false,
+          main: false,
+          path: featurePath,
+        },
+      },
+    ],
+    repo: {
+      default_branch: "main",
+      forge: {
+        host: "github.com",
+        name: "repo",
+        owner: "owner",
+        provider: "github",
+        remote: "origin",
+        url: "https://github.com/owner/repo",
+      },
+    },
+    schema: 2,
+  });
+}
+
+function githubHistory(): string {
+  return JSON.stringify([
+    {
+      headRefName: "feature/adapter",
+      headRepository: { nameWithOwner: "owner/repo" },
+      number: 42,
+      state: "MERGED",
+      url: "https://github.com/owner/repo/pull/42",
+    },
+  ]);
+}
+
 function context(
   harness: Harness,
   options: {
@@ -1064,5 +1139,130 @@ describe("pi-worktrunk extension", () => {
         context(inactive),
       ),
     ).resolves.toEqual([undefined]);
+  });
+
+  it("previews and applies one exact cleanup fingerprint through the public tool", async () => {
+    expect.hasAssertions();
+    const document = cleanupWorktreeList();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
+      { code: 0, killed: false, stderr: "", stdout: document },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: JSON.stringify([
+          {
+            branch: "feature/adapter",
+            branch_deleted: false,
+            kind: "worktree",
+            path: ACTIVE_PATH,
+          },
+        ]),
+      },
+    ]);
+    const ctx = context(harness);
+
+    const preview = await harness.tool.execute(
+      "cleanup-preview",
+      { action: "cleanup" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    const cleanup = preview.details["cleanup"] as {
+      readonly candidates: readonly { readonly branch: string; readonly reason: string }[];
+      readonly fingerprint?: string;
+    };
+    expect(cleanup.candidates).toEqual([
+      {
+        branch: "feature/adapter",
+        head: "2222222222222222222222222222222222222222",
+        path: ACTIVE_PATH,
+        pullRequest: 42,
+        reason: "github_merged",
+      },
+    ]);
+    expect(cleanup.fingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect(harness.exec.mock.calls.flat().join(" ")).not.toContain("remove");
+
+    const result = await harness.tool.execute(
+      "cleanup-apply",
+      { action: "cleanup", confirm: true, expectedFingerprint: cleanup.fingerprint },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(result.details).toMatchObject({
+      action: "cleanup",
+      cleanup: { changed: [], failed: [], removed: [ACTIVE_PATH], skipped: [] },
+    });
+    expect(harness.exec.mock.calls.flat().join(" ")).not.toContain("--force");
+    expect(harness.exec.mock.calls.flat().join(" ")).not.toContain("--reap");
+  });
+
+  it("rejects a prior-instance cleanup fingerprint after the exact set changes", async () => {
+    expect.hasAssertions();
+    const first = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: cleanupWorktreeList() },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
+    ]);
+    const preview = await first.tool.execute(
+      "cleanup-preview",
+      { action: "cleanup" },
+      undefined,
+      undefined,
+      context(first),
+    );
+    const fingerprint = (preview.details["cleanup"] as { readonly fingerprint: string })
+      .fingerprint;
+
+    const fresh = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: cleanupWorktreeList("3333333333333333333333333333333333333333"),
+      },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
+    ]);
+    await expect(
+      fresh.tool.execute(
+        "cleanup-apply",
+        { action: "cleanup", confirm: true, expectedFingerprint: fingerprint },
+        undefined,
+        undefined,
+        context(fresh),
+      ),
+    ).rejects.toThrow("preview changed");
+    expect(fresh.exec.mock.calls.flat().join(" ")).not.toContain("remove");
+  });
+
+  it("shows slash-command cleanup and cancels without cleanup state or mutation", async () => {
+    expect.hasAssertions();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: cleanupWorktreeList() },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
+    ]);
+    harness.confirmations.push(false);
+    const command = harness.commands.get("worktree");
+    if (command === undefined) throw new Error("worktree command was not registered");
+
+    await command.handler("cleanup", context(harness));
+
+    expect(harness.notifications.some(({ message }) => message.includes("Fingerprint:"))).toBe(
+      true,
+    );
+    expect(harness.exec.mock.calls.flat().join(" ")).not.toContain("remove");
+    expect(harness.entries).toEqual([]);
+    await emit(harness, "session_shutdown", {}, context(harness));
+    expect(harness.entries).toEqual([]);
   });
 });
