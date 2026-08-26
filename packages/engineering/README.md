@@ -171,8 +171,11 @@ only practical, non-tool-duplicate findings are reported. Worker preloads both
 Go skills, and fixed-diff handoffs explicitly send `Review mode: fixed-diff
 code`. `codebase-design` includes the complete adapted deep-module method, its
 dependency-deepening and alternative-interface references, and explicit
-testability guidance. Its alternative-interface flow keeps architecture judgment
-in the parent and prevents ordinary child agents from orchestrating fanout.
+testability guidance. For Go work, its precedence is target-repository standards
+first, then installed `go` and applicable `cobra-viper`; generic design guidance
+contributes evidence, depth, locality, and leverage without overriding them. Its
+alternative-interface flow keeps architecture judgment in the parent and prevents
+ordinary child agents from orchestrating fanout.
 
 The focused implementation, TDD, `codebase-design`, `code-review`, debugging, and
 architecture-discovery methods use MIT-licensed guidance from [mattpocock/skills](https://github.com/mattpocock/skills)

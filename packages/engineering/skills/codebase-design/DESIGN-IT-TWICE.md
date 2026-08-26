@@ -25,6 +25,11 @@ Use genuinely different constraints for each interface rather than small variati
 - Optimize for the most common caller — make the default case trivial.
 - When applicable, design around ports and adapters for cross-seam dependencies.
 
+Before presenting Go alternatives, discard generic repositories and services,
+layer-named packages, and up-front interfaces rejected by installed `go` or
+applicable `cobra-viper` guidance. Compare only idiomatic Go candidates, using
+this method for evidence, depth, locality, and leverage.
+
 For each interface, provide:
 
 1. Interface: types, methods, parameters, invariants, ordering, and error modes
