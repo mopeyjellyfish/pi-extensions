@@ -82,18 +82,16 @@ describe("productivity resources", () => {
     expect(skill).toMatch(
       /recommendation[\s\S]*practical\s+reason[\s\S]*next\s+transition[\s\S]*before details/iu,
     );
+    expect(skill).toMatch(/prompt entry points[\s\S]*before[\s\S]*Agent Skills/iu);
+    expect(skill).toMatch(/no appropriate prompt[\s\S]*specific Agent Skill/iu);
     expect(skill).toMatch(/mechanical[\s\S]*explicit[\s\S]*low-risk[\s\S]*\/just-do-it/iu);
     expect(skill).toMatch(/one clear coherent outcome[\s\S]*\/implement/iu);
     expect(skill).toMatch(/clear coordinated work[\s\S]*\/plan[\s\S]*\/implement/iu);
     expect(skill).toMatch(
       /uncertain[\s\S]*risky[\s\S]*hard-to-reverse[\s\S]*\/shape[\s\S]*\/plan[\s\S]*\/implement/iu,
     );
-    expect(skill).toMatch(
-      /broken[\s\S]*failing[\s\S]*slow[\s\S]*diagnosing-bugs[\s\S]*implement/iu,
-    );
-    expect(skill).toMatch(
-      /architecture upkeep[\s\S]*improve-codebase-architecture[\s\S]*Shape[\s\S]*planning/iu,
-    );
+    expect(skill).toMatch(/broken[\s\S]*failing[\s\S]*slow[\s\S]*\/debug[\s\S]*\/implement/iu);
+    expect(skill).toMatch(/architecture upkeep[\s\S]*\/improve[\s\S]*\/shape[\s\S]*\/plan/iu);
     expect(skill).toMatch(/pull-request feedback[\s\S]*triage/iu);
     expect(skill).toMatch(/merge[\s\S]*rebase conflict[\s\S]*resolving-merge-conflicts/iu);
     expect(skill).toMatch(/check available resources[\s\S]*unavailable[\s\S]*honestly/iu);

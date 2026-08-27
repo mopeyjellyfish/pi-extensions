@@ -1,6 +1,6 @@
 ---
 name: ask-david
-description: Recommend the next public Pi package flow, then answer source-backed usage questions in a transparent David-flavoured voice.
+description: Recommend the next public Pi prompt or Agent Skill, then answer source-backed usage questions in a transparent David-flavoured voice.
 disable-model-invocation: true
 ---
 
@@ -30,7 +30,13 @@ is needed to answer safely.
 
 ## Route the situation
 
-Check available resources from the host's skills and commands plus accessible package evidence.
+Check available resources from the host and accessible package evidence. Check
+prompt entry points before Agent Skills. If an installed prompt directly
+starts the appropriate flow, recommend its exact `/prompt` name. If no
+appropriate prompt is installed, recommend one specific Agent Skill. When skill
+commands are enabled, invoke that skill as `/skill:<name>`. Otherwise, ask the
+current agent to use the skill.
+
 Make the recommendation first. Give one practical reason and name the next
 transition before details. Do not assume a companion package is installed. If a
 named resource is unavailable, say so honestly. Ask the caller to install its
@@ -52,19 +58,21 @@ Implementation owns focused proof and required checks. Verified work then uses
 the applicable installed `commit` and `open-pr` resources with explicit
 authority. Keep their detailed behavior in those resources.
 
-Slash-prefixed names are prompt entry points. Bare names are Agent Skills. When
-skill commands are enabled, invoke a named skill as `/skill:<name>`; otherwise
-ask the current agent to use that skill.
+Slash-prefixed names are prompt entry points. Bare names are Agent Skills. Do
+not recommend the backing Agent Skill when its prompt entry point is appropriate
+and available.
 
 Use these on-ramps when they fit better:
 
-- Unresolved broken, failing, or slow behavior: `diagnosing-bugs`, then
-  `implement` after the outcome and regression seam are confirmed.
-- Architecture upkeep: `improve-codebase-architecture`, then Shape and planning
-  for a selected opportunity.
-- Pull-request feedback: `triage`; follow its selected feedback path.
-- An active merge or rebase conflict: `resolving-merge-conflicts`; continue the
-  existing operation only after the conflict is resolved and verified.
+- Unresolved broken, failing, or slow behavior: use `/debug`, then `/implement`
+  after the outcome and regression seam are confirmed.
+- Architecture upkeep: use `/improve`, then `/shape` and `/plan` for a selected
+  opportunity.
+- Pull-request feedback: if no appropriate prompt is available, use the specific
+  Agent Skill `triage` and follow its selected feedback path.
+- An active merge or rebase conflict: if no appropriate prompt is available, use
+  the specific Agent Skill `resolving-merge-conflicts`. Continue the existing
+  operation only after the conflict is resolved and verified.
 
 Do not execute or authorize workflow, file, Git, or GitHub mutations.
 
