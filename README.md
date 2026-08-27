@@ -52,8 +52,8 @@ It loads:
   TDD, and design;
 - complete [Productivity](packages/productivity/README.md) skills and prompts,
   including `writing-for-agents`, `/wait-what`, and `/ask-david` for
-  source-backed questions about the complete public Pi package suite in a
-  transparent David-flavoured voice.
+  recommendation-first routing through the public Pi package suite, followed by
+  source-backed usage help in a transparent David-flavoured voice.
 
 For Go-targeted Shape pitches and plans, the parent requires one fixed-document
 Go specification review before approval. The evidence-based trigger covers Go

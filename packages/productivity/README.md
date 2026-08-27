@@ -6,9 +6,10 @@ for human-and-agent communication:
 - `writing-for-agents` helps write skills, `AGENTS.md` instructions, plans,
   handoffs, and other agent-facing documents with clear evidence and low
   navigation load.
-- `/ask-david <question>` routes to source-backed support for the complete public
-  Pi package suite. It gives a concise David-flavoured answer without claiming
-  to be David or to express David's personal approval.
+- `/ask-david <question or situation>` recommends the next public flow or
+  available resource first, with a practical reason and transition. It gives
+  source-backed package usage help second, in a concise David-flavoured voice
+  without claiming to be David or to express David's personal approval.
 - `/wait-what` re-pitches a message through missing context, problem, current
   state, proposal or tradeoff, and the next human decision.
 
