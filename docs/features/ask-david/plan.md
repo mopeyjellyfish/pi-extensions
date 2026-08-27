@@ -62,7 +62,7 @@ Evidence invalidation:
 - Any change after the final `npm run check` invalidates that final gate. Run the
   complete gate again on the final tree.
 
-## [ ] 001 — Route questions to evidence-first David-flavoured support
+## [x] 001 — Route questions to evidence-first David-flavoured support
 
 ### Outcome and requirement trace
 
@@ -141,7 +141,7 @@ standalone change from `feat/ask-david-skill` to `main`.
   read-only boundaries.
 - The focused Productivity test passes.
 
-## [ ] 002 — Ship and document the independent package resources
+## [x] 002 — Ship and document the independent package resources
 
 ### Outcome and requirement trace
 
