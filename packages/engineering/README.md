@@ -168,10 +168,31 @@ Install the complete independent package from a repository checkout:
 pi install /path/to/pi-extensions/packages/engineering
 ```
 
-`/improve` uses `improve-codebase-architecture` to rank evidence-backed
-architecture-deepening opportunities. It asks the human to select a candidate,
-then hands the selection to Shape and planning; it does not edit production
-code.
+`/improve [low|medium|high|max] [scope]` uses
+`improve-codebase-architecture` for read-only, evidence-backed discovery. The
+default improvement depth is `medium`: `low` finds up to three independent,
+reversible quick wins; `medium` finds coherent bounded improvements; `high`
+examines adjacent modules and coordination; and `max` declares broad coverage
+and exclusions. Scope can name a module, package, vertical feature slice,
+architecture pattern, test surface, pain point, or change-history area. A scope
+without a leading level remains valid at `medium`; prefix a reserved leading
+scope token with `medium`, for example `medium low latency path`.
+
+`/improve` offers at most three candidates plus an exclusive no-change option.
+It allows quick-win multi-selection only when candidates are independent. One
+clear bounded candidate routes to `implement`; multiple independent candidates
+route to `planning-changes` for possible `parallel-ready` lanes; coordinated
+work routes to planning; unresolved, hard-to-reverse, cross-cutting, migration,
+or major architecture work routes to Shape then planning. Missing route skills
+return a self-contained brief and do not start implementation, workers, edits,
+commits, or publication.
+
+Test-surface candidates use the target language's normal pattern and consolidate
+only cases with the same behavior, setup, and assertions. For Go work,
+target-repository standards take precedence, then the installed `go` skill, then
+generic architecture guidance. Table-driven subtests remain the Go default;
+`cobra-viper` remains conditional on Cobra or Viper commands, flags, or CLI
+configuration.
 
 `code-review` evaluates the accepted pitch and plan plus repository Standards.
 It loads only the applicable TypeScript, React, Go, or SQL guide from its

@@ -498,7 +498,7 @@ describe("engineering resources", () => {
     ]);
 
     expect(skill).toMatch(
-      /optional[\s\S]*module[\s\S]*subsystem[\s\S]*pain point[\s\S]*change-history scope/iu,
+      /optional scope[\s\S]*module[\s\S]*subsystem[\s\S]*pain point[\s\S]*change-history area/iu,
     );
     expect(skill).toMatch(/nearest domain context[\s\S]*architecture decisions/iu);
     expect(skill).toMatch(/one optional bounded Researcher handoff[\s\S]*direct parent/iu);
@@ -513,9 +513,80 @@ describe("engineering resources", () => {
     expect(skill).toMatch(/do not edit production code directly/iu);
     expect(prompt).toMatch(/`improve-codebase-architecture` skill/iu);
     expect(prompt).toMatch(/\$\{ARGUMENTS:-/u);
+    expect(prompt).toMatch(/argument-hint:\s*"\[low\|medium\|high\|max\] \[optional scope\]"/u);
     expect(readme).toMatch(/`\/improve`/u);
     expect(notice).toMatch(
       /skills\/improve-codebase-architecture\/SKILL\.md[\s\S]*adapted[\s\S]*068b6e0c62393147daf03530149cdce209c93da8/iu,
+    );
+  });
+
+  it("defines appetite-aware, safe architecture discovery", async () => {
+    expect.hasAssertions();
+    const [skill, readme] = await Promise.all([
+      read("skills/improve-codebase-architecture/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(skill).toContain("improvement depth");
+    expect(skill).toMatch(
+      /accepted improvement depths are\s+`low`,\s+`medium`,\s+`high`,\s+and\s+`max`/u,
+    );
+    expect(skill).toMatch(/default[^.]*`medium`/iu);
+    expect(skill).toMatch(
+      /leading level token[^.]*without regard to letter case[\s\S]*normalize[^.]*lowercase/iu,
+    );
+    expect(skill).toMatch(/level-only[^.]*infer[^.]*scope/iu);
+    expect(skill).toMatch(
+      /scope[^.]*reserved token[^.]*explicit level[\s\S]*`medium low latency path`/iu,
+    );
+    expect(skill).toMatch(
+      /module[\s\S]*package[\s\S]*subsystem[\s\S]*vertical feature slice[\s\S]*architecture pattern[\s\S]*test surface[\s\S]*pain point[\s\S]*change-history/iu,
+    );
+    expect(skill).toMatch(
+      /`low`[\s\S]*three independent, reversible quick wins[\s\S]*public-contract changes[\s\S]*migrations[\s\S]*cross-package redesign/iu,
+    );
+    expect(skill).toMatch(
+      /`medium`[\s\S]*direct dependencies[\s\S]*callers[\s\S]*tests[\s\S]*history/iu,
+    );
+    expect(skill).toMatch(/`high`[\s\S]*adjacent modules[\s\S]*alternatives[\s\S]*coordination/iu);
+    expect(skill).toMatch(
+      /`max`[\s\S]*coverage[\s\S]*exclusions[\s\S]*cross-package[\s\S]*migration/iu,
+    );
+    expect(skill).toMatch(/do not[\s\S]*force[^.]*finding[\s\S]*no supported improvement/iu);
+    expect(skill).toMatch(/improvement depth[\s\S]*not[\s\S]*`codebase-design`[\s\S]*Depth/iu);
+    expect(skill).toMatch(
+      /selected improvement depth[\s\S]*scanned scope[\s\S]*coverage[\s\S]*exclusions[\s\S]*evidence strength[\s\S]*impact[\s\S]*reversibility[\s\S]*overlap[\s\S]*integration points[\s\S]*route[\s\S]*reason/iu,
+    );
+    expect(skill).toMatch(/at most three top candidates[\s\S]*no-change[\s\S]*exclusive/iu);
+    expect(skill).toMatch(/multiple selection only[\s\S]*independent/iu);
+    expect(skill).toMatch(/one clear, bounded candidate[\s\S]*`implement`/iu);
+    expect(skill).toMatch(/multiple independent[\s\S]*`planning-changes`[\s\S]*parallel-ready/iu);
+    expect(skill).toMatch(/coordinated[\s\S]*dependent[\s\S]*`planning-changes`/iu);
+    expect(skill).toMatch(/unresolved[\s\S]*hard-to-reverse[\s\S]*Shape[\s\S]*planning/iu);
+    expect(skill).toContain(
+      "If a selected route skill is unavailable, return the same self-contained\ncandidate brief to the direct parent.",
+    );
+    expect(skill).toContain("implementation has not started.");
+    expect(skill).toMatch(
+      /same behavior[\s\S]*shared setup[\s\S]*assertions[\s\S]*target language/iu,
+    );
+    expect(skill).toMatch(
+      /target-repository[\s\S]*standards[\s\S]*first[\s\S]*installed `go` skill[\s\S]*before generic architecture guidance/iu,
+    );
+    expect(skill).toMatch(
+      /table-driven subtests[\s\S]*Go default[\s\S]*unclear Go test-pattern cases/iu,
+    );
+    expect(skill).toMatch(/Cobra[\s\S]*Viper[\s\S]*commands, flags, or CLI[\s\S]*configuration/iu);
+    expect(skill).toMatch(/never starts workers[\s\S]*commits[\s\S]*publishes/iu);
+
+    expect(readme).toMatch(/`low`[\s\S]*`medium`[\s\S]*`high`[\s\S]*`max`/u);
+    expect(readme).toMatch(/scope[\s\S]*vertical feature slice[\s\S]*test surface/iu);
+    expect(readme).toMatch(/quick wins[\s\S]*multiple[\s\S]*independent/iu);
+    expect(readme).toMatch(
+      /one[\s\S]*clear[\s\S]*`implement`[\s\S]*multiple independent[\s\S]*`planning-changes`[\s\S]*Shape/iu,
+    );
+    expect(readme).toMatch(
+      /target-repository standards[\s\S]*installed `go`[\s\S]*table-driven subtests/iu,
     );
   });
 
@@ -806,12 +877,21 @@ describe("engineering resources", () => {
     expect(
       piPromptTemplates.expandPromptTemplate("/debug export crashes after sign-in", templates),
     ).toContain("export crashes after sign-in");
-    expect(piPromptTemplates.expandPromptTemplate("/improve", templates)).toContain(
-      "Infer a bounded scope",
-    );
+    const improveDefault = piPromptTemplates.expandPromptTemplate("/improve", templates);
+    expect(improveDefault).toContain("medium improvement depth");
+    expect(improveDefault).toContain("Infer a bounded scope");
     expect(piPromptTemplates.expandPromptTemplate("/improve checkout flow", templates)).toContain(
       "checkout flow",
     );
+    expect(
+      piPromptTemplates.expandPromptTemplate("/improve HIGH checkout flow", templates),
+    ).toContain("HIGH checkout flow");
+    const improveHigh = piPromptTemplates.expandPromptTemplate("/improve high", templates);
+    expect(improveHigh).toContain("improvement request:\nhigh");
+    expect(improveHigh).not.toContain("Use medium improvement depth");
+    expect(
+      piPromptTemplates.expandPromptTemplate("/improve medium low latency path", templates),
+    ).toContain("medium low latency path");
     expect(piPromptTemplates.expandPromptTemplate("/just-do-it", templates)).toContain(
       "Ask only for the bounded request",
     );
