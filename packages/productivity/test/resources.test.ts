@@ -64,6 +64,64 @@ describe("productivity resources", () => {
     expect(prompt).toMatch(/Simplified Technical English|simple-english/iu);
   });
 
+  it("ships a manual, evidence-first ask-david skill", async () => {
+    expect.hasAssertions();
+    const skill = await read("skills", "ask-david", "SKILL.md");
+
+    expect(skill).toContain("name: ask-david");
+    expect(skill).toContain("disable-model-invocation: true");
+    expect(skill).toMatch(/complete public Pi package suite/iu);
+    expect(skill).toMatch(
+      /target-repository instructions[\s\S]*package README[\s\S]*manifest[\s\S]*source contract/iu,
+    );
+    expect(skill).toMatch(/one focused clarification/iu);
+    expect(skill).toMatch(/version uncertainty/iu);
+    expect(skill).toMatch(/recommendation first/iu);
+    expect(skill).toMatch(/never claim to be David/iu);
+    expect(skill).toMatch(/read-only/iu);
+  });
+
+  it("routes ask-david arguments to the skill with a question fallback", async () => {
+    expect.hasAssertions();
+    const prompt = await read("prompts", "ask-david.md");
+    const piPromptTemplates = (await import(
+      pathToFileURL(
+        join(
+          REPOSITORY_ROOT,
+          "node_modules",
+          "@earendil-works",
+          "pi-coding-agent",
+          "dist",
+          "core",
+          "prompt-templates.js",
+        ),
+      ).href
+    )) as {
+      loadPromptTemplates(options: {
+        cwd: string;
+        agentDir: string;
+        promptPaths: string[];
+        includeDefaults: boolean;
+      }): { name: string; content: string }[];
+      expandPromptTemplate(text: string, templates: { name: string; content: string }[]): string;
+    };
+    const templates = piPromptTemplates.loadPromptTemplates({
+      cwd: ROOT,
+      agentDir: ROOT,
+      promptPaths: [join(ROOT, "prompts")],
+      includeDefaults: false,
+    });
+
+    expect(prompt).toContain("${ARGUMENTS:-");
+    expect(prompt).toMatch(/load and follow[\s\S]*ask-david/iu);
+    expect(piPromptTemplates.expandPromptTemplate("/ask-david", templates)).toMatch(
+      /ask.*question/iu,
+    );
+    expect(
+      piPromptTemplates.expandPromptTemplate("/ask-david How do I use pi-hashline?", templates),
+    ).toContain("How do I use pi-hashline?");
+  });
+
   it("declares only skills and prompts and packs their resources", async () => {
     expect.hasAssertions();
     const manifest = JSON.parse(await read("package.json")) as Record<string, unknown>;
@@ -85,7 +143,12 @@ describe("productivity resources", () => {
     expect(manifest).not.toHaveProperty("peerDependencies");
     expect(manifest).not.toHaveProperty("pi.extensions");
     expect(paths).toEqual(
-      expect.arrayContaining(["skills/writing-for-agents/SKILL.md", "prompts/wait-what.md"]),
+      expect.arrayContaining([
+        "skills/writing-for-agents/SKILL.md",
+        "skills/ask-david/SKILL.md",
+        "prompts/wait-what.md",
+        "prompts/ask-david.md",
+      ]),
     );
   });
 });
