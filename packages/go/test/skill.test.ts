@@ -87,22 +87,13 @@ describe("Go skill package", () => {
     expect(functionalOptions).toContain(
       "func NewServer(addr string, opts ...Option) (*Server, error)",
     );
-    expect(functionalOptions).toMatch(/duplicate options/u);
     expect(functionalOptions).toMatch(/applied in call order/u);
-    expect(functionalOptions).toContain("https://go.dev/blog/module-compatibility");
-    expect(functionalOptions).toContain("https://go.dev/blog/context-and-structs");
-    expect(functionalOptions).toContain("First-party guidance includes the Go project and Google");
-    expect(functionalOptions).toContain("Go co-creator Rob Pike");
-    expect(functionalOptions).toContain("Steve Francia");
-    expect(functionalOptions).toContain(
-      "https://google.github.io/styleguide/go/best-practices.html#options",
-    );
-    expect(functionalOptions).toContain(
-      "https://cloud.google.com/blog/products/gcp/go-1-18-and-google-cloud-go-now-with-google-cloud",
-    );
-    expect(functionalOptions).toContain("third-party language tutorial");
-    expect(functionalOptions).not.toContain("dave.cheney.net");
-    expect(functionalOptions).toContain("https://github.com/spf13/viper/blob/master/viper.go");
-    expect(functionalOptions).toContain("https://gobyexample.com/variadic-functions");
+    expect(functionalOptions).toContain("Let the last duplicate scalar option win");
+    expect(functionalOptions).toContain("Keep `context.Context` explicit");
+    expect(functionalOptions).toContain("Do not perform I/O");
+    expect(functionalOptions).toContain("Copy mutable caller data");
+    expect(functionalOptions).not.toMatch(/https?:\/\//u);
+    expect(functionalOptions).not.toContain("source boundaries");
+    expect(functionalOptions).not.toContain("source guidance");
   });
 });

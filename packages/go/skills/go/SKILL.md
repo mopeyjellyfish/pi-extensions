@@ -236,9 +236,9 @@ Do not use functional options by default. Select the simplest API that keeps cal
 - **Use a configuration struct when** callers usually set several related values, configuration is data that must be inspected or serialized, or callers reuse the same configuration. Prefer keyed literals. Define how zero values and `nil` select defaults. If zero is also a valid explicit value, use a presence field, pointer, or option to distinguish it from "unset."
 - **Use functional options when** most callers use defaults, settings are optional or uncommon, individual options need substantial documentation or validation, and a public constructor needs an additive path for future settings.
 
-Keep required identity and resource inputs as ordinary parameters. The official Go article [Contexts and structs](https://go.dev/blog/context-and-structs) requires `context.Context` to stay explicit as the first parameter of operations that need it. `NewClient(baseURL, WithTimeout(d))` is clearer than hiding `baseURL` in an option.
+Keep required identity and resource inputs as ordinary parameters. Keep `context.Context` explicit as the first parameter of operations that need it. `NewClient(baseURL, WithTimeout(d))` is clearer than hiding `baseURL` in an option.
 
-For a published function, adding a variadic options parameter later can still break callers that use the function's exact type. Add a new constructor or method instead. The [Go module compatibility guidance](https://go.dev/blog/module-compatibility) explains this trade-off and also requires a defined policy for duplicate options.
+For a published function, adding a variadic options parameter later can still break callers that use the function's exact type. Add a new constructor or method instead. Define a clear duplicate-option policy in either case.
 
 #### Use a private configuration value
 
@@ -289,7 +289,7 @@ Use `type Option func(*serverConfig)` when every option is infallible. Do not hi
 
 #### Define the option contract
 
-- Options are applied in call order. Follow Google's default contract: the last duplicate scalar option wins, and cumulative options accumulate. Reject duplicates or conflicts only when that policy is safer, and document the exception.
+- Options are applied in call order. Let the last duplicate scalar option win, and let cumulative options accumulate. Reject duplicates or conflicts only when that policy is safer, and document the exception.
 - Avoid hidden order dependencies. Validate conflicting or incomplete combinations after all options run.
 - Use descriptive option names and one predictable convention. `Timeout(d)` is concise. Use `WithTimeout(d)` when `With` usefully distinguishes an option constructor from another API. For booleans and enums, prefer a value parameter over presence-only names when callers can select the value dynamically.
 - Keep options deterministic and reusable. Do not make an option depend on how many times it ran.
@@ -299,21 +299,6 @@ Use `type Option func(*serverConfig)` when every option is infallible. Do not hi
 - Treat each exported option as supported public API. Do not expose a mutable internal configuration type only to let callers create arbitrary options.
 
 Test the default call, each option, invalid values, meaningful combinations, duplicate and conflicting options, option ordering, and mutable-input ownership. Confirm that failed validation does not start or leak resources.
-
-#### Authority and source boundaries
-
-First-party guidance includes the Go project and Google. Use it for language, compatibility, and general API recommendations:
-
-- The Go team's [module compatibility guidance](https://go.dev/blog/module-compatibility) treats configuration structs and functional options as valid alternatives. It says the choice is largely style, explains exact-function-type breakage and zero-value trade-offs, and requires duplicate-option behavior to be defined.
-- [Google's Go variadic-options guidance](https://google.github.io/styleguide/go/best-practices.html#options) gives concrete selection and contract advice. It prefers an options struct when configuration is common, numerous, or shared. It recommends functional options when settings are uncommon, need substantial documentation or validation, or benefit from custom composition. It specifies ordered application, last-wins scalar options, explicit boolean values, and an unexported target type by default.
-- The Go team's [Contexts and structs](https://go.dev/blog/context-and-structs) explains why `context.Context` stays an explicit operation parameter.
-
-Go creators and experienced Go leadership provide additional high-value design evidence:
-
-- [Go co-creator Rob Pike's original self-referential options](https://commandcenter.blogspot.com/2014/01/self-referential-functions-and-design.html) return an inverse option for temporary state restoration. This creator source describes a specialized form, not a general constructor requirement.
-- [`spf13/viper`](https://github.com/spf13/viper/blob/master/viper.go) is implementation evidence from Steve Francia. Google identified Francia as [Strategy and Product Lead for the Go language and ecosystem](https://cloud.google.com/blog/products/gcp/go-1-18-and-google-cloud-go-now-with-google-cloud), and he [authored articles for the Go team](https://go.dev/blog/go.dev). Viper uses a sealed `Option` interface and applies options sequentially in `NewWithOptions`. Treat that design as experienced Go leadership advice, not as a language specification.
-
-The remaining contract, validation, ownership, and testing rules are conservative engineering synthesis. Go by Example remains a third-party language tutorial. It covers [variadic functions](https://gobyexample.com/variadic-functions) and [closures](https://gobyexample.com/closures), which are the language mechanisms. It does not provide functional-options design guidance.
 
 ## Error Handling
 
