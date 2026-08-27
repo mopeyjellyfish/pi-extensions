@@ -74,4 +74,35 @@ describe("Go skill package", () => {
     expect(testingPatterns).toContain('"Thursday, February 29, 2024"');
     expect(testingPatterns).toMatch(/days, months, years/u);
   });
+  it("explains when and how to use functional options", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "go", "SKILL.md"), "utf8");
+    const functionalOptions = /### Functional Options[\s\S]*?(?=\n## |$)/u.exec(skill)?.[0];
+
+    expect(functionalOptions).toContain("Do not use functional options by default.");
+    expect(functionalOptions).toContain("Use ordinary parameters when");
+    expect(functionalOptions).toContain("Use a configuration struct when");
+    expect(functionalOptions).toContain("Use functional options when");
+    expect(functionalOptions).toContain("type Option func(*serverConfig) error");
+    expect(functionalOptions).toContain(
+      "func NewServer(addr string, opts ...Option) (*Server, error)",
+    );
+    expect(functionalOptions).toMatch(/duplicate options/u);
+    expect(functionalOptions).toMatch(/applied in call order/u);
+    expect(functionalOptions).toContain("https://go.dev/blog/module-compatibility");
+    expect(functionalOptions).toContain("https://go.dev/blog/context-and-structs");
+    expect(functionalOptions).toContain("First-party guidance includes the Go project and Google");
+    expect(functionalOptions).toContain("Go co-creator Rob Pike");
+    expect(functionalOptions).toContain("Steve Francia");
+    expect(functionalOptions).toContain(
+      "https://google.github.io/styleguide/go/best-practices.html#options",
+    );
+    expect(functionalOptions).toContain(
+      "https://cloud.google.com/blog/products/gcp/go-1-18-and-google-cloud-go-now-with-google-cloud",
+    );
+    expect(functionalOptions).toContain("third-party language tutorial");
+    expect(functionalOptions).not.toContain("dave.cheney.net");
+    expect(functionalOptions).toContain("https://github.com/spf13/viper/blob/master/viper.go");
+    expect(functionalOptions).toContain("https://gobyexample.com/variadic-functions");
+  });
 });
