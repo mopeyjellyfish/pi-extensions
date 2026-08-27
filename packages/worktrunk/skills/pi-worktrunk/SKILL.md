@@ -54,6 +54,24 @@ Agent Bash keeps Pi's configured shell path and command prefix. Routed `!` and
 at the active worktree because the extension API does not expose the configured
 shell path.
 
+## Bulk cleanup
+
+1. Call `worktree` with `action: "cleanup"` to preview cleanup first. Do not
+   mutate from an ordinary list result.
+2. Present every candidate, skipped reason, GitHub evidence limitation, and the
+   exact fingerprint.
+3. Obtain explicit approval for that fingerprint.
+4. Call cleanup with `confirm: true` and the matching `expectedFingerprint`.
+5. Report removed, changed, skipped, and failed worktrees.
+
+The ordinary worktree list is capped at 20 items. The complete cleanup preview
+is separately bounded to 100 linked worktrees. Main, current, routed, dirty,
+locked, detached, in-progress, path-mismatched, prunable, unborn, and
+open-review worktrees are protected. Cleanup preserves branches. Cleanup never
+uses force. Cleanup never uses `--reap` and never kills processes. `gh` is
+optional. Only GitHub has terminal pull-request lookup. Worktrunk integrated or
+empty evidence remains available for other forges.
+
 ## Finish safely
 
 1. Run tests and inspect the active worktree.

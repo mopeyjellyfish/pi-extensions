@@ -820,4 +820,130 @@ describe("WorktrunkClient", () => {
       ).rejects.toThrow(message);
     }
   });
+
+  it("parses documented cleanup facts without changing ordinary list behavior", async () => {
+    expect.hasAssertions();
+    const cleanupDocument = JSON.stringify({
+      collected: { ci: true, summary: false },
+      items: [
+        {
+          branch: "main",
+          head: { sha: "1111111111111111111111111111111111111111" },
+          worktree: {
+            branch_mismatch: false,
+            changes: {
+              conflicted: false,
+              deleted: false,
+              modified: false,
+              renamed: false,
+              staged: false,
+              untracked: false,
+            },
+            current: true,
+            detached: false,
+            main: true,
+            path: MAIN_PATH,
+          },
+        },
+        {
+          branch: "feature/adapter",
+          default_branch: {
+            integration: { reason: "patch_id_match" },
+            merge_conflicts: true,
+            orphan: false,
+          },
+          display: { state: "integrated", statusline: "\u{1B}[31muntrusted\u{1B}[0m" },
+          head: { sha: "2222222222222222222222222222222222222222" },
+          worktree: {
+            branch_mismatch: false,
+            changes: {
+              conflicted: false,
+              deleted: false,
+              modified: false,
+              renamed: false,
+              staged: false,
+              untracked: false,
+            },
+            current: false,
+            detached: false,
+            locked: null,
+            main: false,
+            operation: "rebase",
+            path: FEATURE_PATH,
+          },
+        },
+      ],
+      repo: {
+        default_branch: "main",
+        forge: {
+          host: "github.com",
+          name: "repo",
+          owner: "owner",
+          provider: "github",
+          remote: "origin",
+          url: "https://github.com/owner/repo",
+        },
+      },
+      schema: 2,
+    });
+    const run = runnerWith(
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: cleanupDocument },
+      { code: 0, killed: false, stderr: "", stdout: cleanupDocument },
+    );
+    const client = new WorktrunkClient(run);
+
+    const remote = await client.listFull(MAIN_PATH, undefined);
+    expect(remote.forge).toEqual({
+      headRepository: "owner/repo",
+      host: "github.com",
+      name: "repo",
+      owner: "owner",
+      provider: "github",
+      repository: "owner/repo",
+    });
+    expect(remote.worktrees[1]).toMatchObject({
+      branchMismatch: false,
+      integrationReason: "patch_id_match",
+      integrationState: "integrated",
+      locked: true,
+      openReview: "none",
+      operation: "rebase",
+    });
+
+    const local = await client.listLocal(MAIN_PATH, undefined);
+    expect(local.worktrees[1]).toMatchObject({
+      locked: true,
+      openReview: "unknown",
+      operation: "rebase",
+    });
+    expect(run).toHaveBeenNthCalledWith(
+      2,
+      [
+        "--config-set",
+        "list.json-schema=2",
+        "--config-set",
+        "list.summary=false",
+        "list",
+        "--full",
+        "--format=json",
+      ],
+      { cwd: MAIN_PATH, signal: undefined, timeout: 120_000 },
+    );
+
+    const invalid = JSON.parse(cleanupDocument) as {
+      items: { worktree: Record<string, unknown> }[];
+    };
+    const invalidFeature = invalid.items[1];
+    if (invalidFeature === undefined) throw new Error("cleanup fixture is missing");
+    invalidFeature.worktree["locked"] = "invalid";
+    await expect(
+      new WorktrunkClient(
+        runnerWith(
+          { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+          { code: 0, killed: false, stderr: "", stdout: JSON.stringify(invalid) },
+        ),
+      ).listFull(MAIN_PATH, undefined),
+    ).rejects.toThrow("worktree.locked");
+  });
 });

@@ -226,9 +226,23 @@ Every `go func()` must have a clear exit condition, usually governed by a `conte
 
 ## Configuration and Struct Design
 
-### Functional Options for Complex Initialization
+### Functional Options Are a Trade-off
 
-When a struct has many optional configuration parameters, avoid massive constructors. Use the Functional Options pattern.
+Do not use functional options by default. Select the simplest API that keeps call sites clear and leaves credible room for change.
+
+#### Choose the simplest configuration shape
+
+- **Use ordinary parameters when** the values are few, required, and clear at the call site.
+- **Use a configuration struct when** callers usually set several related values, configuration is data that must be inspected or serialized, or callers reuse the same configuration. Prefer keyed literals. Define how zero values and `nil` select defaults. If zero is also a valid explicit value, use a presence field, pointer, or option to distinguish it from "unset."
+- **Use functional options when** most callers use defaults, settings are optional or uncommon, individual options need substantial documentation or validation, and a public constructor needs an additive path for future settings.
+
+Keep required identity and resource inputs as ordinary parameters. Keep `context.Context` explicit as the first parameter of operations that need it. `NewClient(baseURL, WithTimeout(d))` is clearer than hiding `baseURL` in an option.
+
+For a published function, adding a variadic options parameter later can still break callers that use the function's exact type. Add a new constructor or method instead. Define a clear duplicate-option policy in either case.
+
+#### Use a private configuration value
+
+Apply options to a private configuration value, not to a partially initialized live object. Establish defaults first. Validate all settings before the constructor opens files, starts goroutines, or acquires other resources.
 
 ```go
 type Server struct {
@@ -236,23 +250,55 @@ type Server struct {
     timeout time.Duration
 }
 
-type Option func(*Server)
+type serverConfig struct {
+    timeout time.Duration
+}
+
+type Option func(*serverConfig) error
 
 func WithTimeout(d time.Duration) Option {
-    return func(s *Server) { s.timeout = d }
+    return func(cfg *serverConfig) error {
+        if d <= 0 {
+            return fmt.Errorf("timeout must be positive: %s", d)
+        }
+        cfg.timeout = d
+        return nil
+    }
 }
 
-func NewServer(addr string, opts ...Option) *Server {
-    s := &Server{
-        addr:    addr,
-        timeout: 30 * time.Second, // Sane default
+func NewServer(addr string, opts ...Option) (*Server, error) {
+    cfg := serverConfig{
+        timeout: 30 * time.Second,
     }
-    for _, opt := range opts {
-        opt(s)
+
+    for i, opt := range opts {
+        if opt == nil {
+            return nil, fmt.Errorf("server option %d is nil", i)
+        }
+        if err := opt(&cfg); err != nil {
+            return nil, fmt.Errorf("apply server option %d: %w", i, err)
+        }
     }
-    return s
+
+    // Validate cross-field invariants here, before starting resources.
+    return &Server{addr: addr, timeout: cfg.timeout}, nil
 }
 ```
+
+Use `type Option func(*serverConfig)` when every option is infallible. Do not hide invalid input merely to keep that simpler signature.
+
+#### Define the option contract
+
+- Options are applied in call order. Let the last duplicate scalar option win, and let cumulative options accumulate. Reject duplicates or conflicts only when that policy is safer, and document the exception.
+- Avoid hidden order dependencies. Validate conflicting or incomplete combinations after all options run.
+- Use descriptive option names and one predictable convention. `Timeout(d)` is concise. Use `WithTimeout(d)` when `With` usefully distinguishes an option constructor from another API. For booleans and enums, prefer a value parameter over presence-only names when callers can select the value dynamically.
+- Keep options deterministic and reusable. Do not make an option depend on how many times it ran.
+- Do not perform I/O, start goroutines, or mutate package globals inside an option.
+- Do not use constructor options to mutate an object after publication. Use synchronized methods for intentional live reconfiguration.
+- Define ownership for captured pointers, maps, slices, callbacks, and transports. Copy mutable caller data when later caller mutation must not change the object.
+- Treat each exported option as supported public API. Do not expose a mutable internal configuration type only to let callers create arbitrary options.
+
+Test the default call, each option, invalid values, meaningful combinations, duplicate and conflicting options, option ordering, and mutable-input ownership. Confirm that failed validation does not start or leak resources.
 
 ## Error Handling
 

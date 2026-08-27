@@ -11,11 +11,11 @@ Classify the request by intent uncertainty, whether it is reversible, risk,
 affected boundaries, and coordination cost. Do not use file count alone. Choose one
 route:
 
-1. **Just do it** — explicit, mechanical, low-risk, broadly repetitive work
-   with an objective check. Use `just-do-it`.
-2. **Implement now** — a bounded behavior, confirmed bug outcome, refactor,
-   documentation, or metadata outcome with clear intent and one coherent result.
-   Use `implement`.
+1. **Just do it** — a small, bounded correction during active work. The request,
+   local cause, and objective check are clear. Use `just-do-it`.
+2. **Implement now** — a coherent standalone behavior, confirmed bug outcome,
+   refactor, documentation, or metadata outcome with clear intent. Use
+   `implement`.
 3. **Diagnose first** — a reported broken, failing, or slow behavior with an
    unresolved cause. Use `diagnosing-bugs`, then route its confirmed bug outcome
    to `implement`.
@@ -24,6 +24,8 @@ route:
 5. **Shape then plan** — unresolved product intent, material solution tradeoffs,
    major or hard-to-reverse behavior, or security, privacy, or migration risk.
    Use `shape`, then `planning-changes` after acceptance.
+
+Use `just-do-it` for a small, bounded fix during active work when the requested outcome and objective check are clear. This route can include obvious breakage, cleanup, or a local behavior correction. It verifies, commits, and pushes without review. Do not require broad repetition or route it through `implement` only because behavior is involved.
 
 Ask one focused question only when a material boundary ambiguity prevents safe
 classification. Otherwise select the lightest route and let that skill own its

@@ -74,4 +74,26 @@ describe("Go skill package", () => {
     expect(testingPatterns).toContain('"Thursday, February 29, 2024"');
     expect(testingPatterns).toMatch(/days, months, years/u);
   });
+  it("explains when and how to use functional options", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "go", "SKILL.md"), "utf8");
+    const functionalOptions = /### Functional Options[\s\S]*?(?=\n## |$)/u.exec(skill)?.[0];
+
+    expect(functionalOptions).toContain("Do not use functional options by default.");
+    expect(functionalOptions).toContain("Use ordinary parameters when");
+    expect(functionalOptions).toContain("Use a configuration struct when");
+    expect(functionalOptions).toContain("Use functional options when");
+    expect(functionalOptions).toContain("type Option func(*serverConfig) error");
+    expect(functionalOptions).toContain(
+      "func NewServer(addr string, opts ...Option) (*Server, error)",
+    );
+    expect(functionalOptions).toMatch(/applied in call order/u);
+    expect(functionalOptions).toContain("Let the last duplicate scalar option win");
+    expect(functionalOptions).toContain("Keep `context.Context` explicit");
+    expect(functionalOptions).toContain("Do not perform I/O");
+    expect(functionalOptions).toContain("Copy mutable caller data");
+    expect(functionalOptions).not.toMatch(/https?:\/\//u);
+    expect(functionalOptions).not.toContain("source boundaries");
+    expect(functionalOptions).not.toContain("source guidance");
+  });
 });
