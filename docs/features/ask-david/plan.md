@@ -224,7 +224,7 @@ remain earlier atomic documentation commits on the same branch.
 - The final diff contains no runtime dependency, generated artifact, duplicate
   resource, private path, or unrelated change.
 
-## [ ] 003 — Route each situation to the next public flow
+## [x] 003 — Route each situation to the next public flow
 
 ### Outcome and requirement trace
 
