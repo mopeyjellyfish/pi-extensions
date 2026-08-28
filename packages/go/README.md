@@ -21,3 +21,7 @@ instructions and Go toolchain:
   CLI configuration, including when Cobra or Viper are not named.
 - `go-spec-reviewer` activates when a Go specification, design document, RFC,
   PRD, or pitch needs review before implementation.
+
+The `go` skill treats tautological tests as harmful. Test expectations must come
+from independent literals, worked examples, external contracts, or oracles, not
+from the implementation under test.

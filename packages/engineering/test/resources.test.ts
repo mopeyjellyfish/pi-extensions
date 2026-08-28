@@ -181,6 +181,27 @@ describe("engineering resources", () => {
     }
   });
 
+  it("rejects tautological tests during TDD and code review", async () => {
+    expect.hasAssertions();
+    const [tdd, review] = await Promise.all([
+      read("skills/test-driven-development/SKILL.md"),
+      read("skills/code-review/SKILL.md"),
+    ]);
+
+    for (const resource of [tdd, review]) {
+      expect(resource).toContain("Tautological tests are harmful.");
+    }
+    expect(tdd).toMatch(
+      /independent\s+expected\s+value[\s\S]*plausible\s+wrong\s+implementation/iu,
+    );
+    expect(tdd).toMatch(
+      /derives[\s\S]*expected\s+value[\s\S]*calling[\s\S]*implementation\s+under\s+test[\s\S]*same\s+algorithm[\s\S]*production\s+helper[\s\S]*rewrite\s+or\s+remove/iu,
+    );
+    expect(review).toMatch(/expected\s+value[\s\S]*implementation\s+under\s+test/iu);
+    expect(review).toMatch(/same\s+algorithm[\s\S]*production\s+helper[\s\S]*not\s+evidence/iu);
+    expect(review).toMatch(/plausible\s+wrong\s+implementation/iu);
+  });
+
   it("composes coordinating skills through their specialized methods", async () => {
     expect.hasAssertions();
     const [implement, justDoIt, router, readme] = await Promise.all([

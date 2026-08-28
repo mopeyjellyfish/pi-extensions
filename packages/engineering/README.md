@@ -104,6 +104,10 @@ Behavioral `implement` work loads `test-driven-development`; an unresolved
 failure loads `diagnosing-bugs` before implementation. Missing methods use the
 documented direct-parent proof fallback.
 
+The TDD and review methods treat tautological tests as harmful. Expected values
+must be independent of the implementation under test. Each test must fail for a
+plausible wrong implementation.
+
 After a joined failure, the retained Worker receives one prioritized packet.
 The writer reruns focused invalidated evidence, then the parent or selected QA
 runs invalidated required gates and the final complete gate once. The parent

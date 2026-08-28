@@ -130,6 +130,12 @@ proportion to risk. Review correctness, regression, security, performance, edge
 cases, falsifiable tests, architecture, testability, and maintainability. Apply
 `codebase-design` vocabulary when module shape or a test seam changed.
 
+**Tautological tests are harmful.** Detect tests that derive an expected value
+from the implementation under test, repeat the same algorithm in the test, or
+use a production helper that encodes the same rule. Treat such a test as not
+evidence. Report a finding when a plausible wrong implementation would still
+pass it, and request an independent expected value as the smallest correction.
+
 Evaluate supplied work for right-sized engineering; do not open a design
 exercise. Calibrate practical impact to business impact, plausible failure cost,
 expected lifetime and scale, reversibility, repository conventions, and
