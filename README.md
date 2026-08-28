@@ -44,7 +44,7 @@ It loads:
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
 - `github-cli`, `open-pr`, and `triage` for repository-aware GitHub operations, approved pull-request delivery, and review-feedback processing;
 - pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
-- pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
+- pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.58.0`, composed unchanged through [`pi-herdr-subagents`](packages/herdr-subagents/README.md), with its prompt templates selected explicitly;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - complete [Engineering](packages/engineering/README.md) skills and prompts,
@@ -157,7 +157,7 @@ in `~/.pi/agent/claude-bridge.json` only when you use it:
 AskClaude is available only to a non-claude-bridge parent; a Fable parent cannot
 call it. Use the fixed Opus Reviewer when risk selects formal review.
 
-Hide pi-subagents built-ins in the pinned pi-subagents **Pi settings** object
+Hide pi-subagents built-ins in the pinned upstream runtime's **Pi settings** object
 at `~/.pi/agent/settings.json` (not its extension config file):
 
 ```json
@@ -168,7 +168,7 @@ at `~/.pi/agent/settings.json` (not its extension config file):
 }
 ```
 
-A `subagents.defaultModel` is unnecessary: pinned pi-subagents gives each
+A `subagents.defaultModel` is unnecessary: the pinned upstream runtime gives each
 explicit agent frontmatter model precedence. Do not use a per-run model
 override unless the human explicitly approves that exception. Keep these
 bounded extension controls in
@@ -192,20 +192,25 @@ bounded extension controls in
 We evaluated
 [`pi-subagents-lite`](https://github.com/AlexParamonov/pi-subagents-lite) for
 this workflow. Its smaller parent tool schema may reduce orchestration context,
-but replacing the pinned runtime now would remove contracts used by this
-profile: retained-Worker resume, structured usage telemetry, acceptance gates,
-and the status RPC consumed by the status line. Those capabilities support
-progress-bounded repair and concurrent read-only assurance. Keep the current
-runtime and measure representative end-to-end runs before considering a
-smaller tool description; schema size alone does not reduce implementation,
-repair, or repository-check work.
+but replacing the pinned runtime would remove contracts used by this profile:
+retained-Worker resume, structured usage telemetry, acceptance gates, terminal
+handoffs, Herdr status, and the status RPC consumed by the status line. Those
+capabilities support progress-bounded repair and concurrent read-only assurance.
+Measure representative end-to-end runs before considering a smaller tool
+description; schema size alone does not reduce implementation, repair, or
+repository-check work.
 
-Pinned `pi-subagents` 0.50.0 is affected by
-[issue #1207](https://github.com/nicobailon/pi-subagents/issues/1207). Remove
-`contact_supervisor` from every explicit agent `tools` list. The default bridge
-adds `contact_supervisor` at runtime when a supervisor target exists, preserving
-coordination without triggering the strict-allowlist regression. Recheck this
-workaround when the pinned dependency changes.
+Pinned `pi-subagents` 0.58.0 includes the fix for
+[issue #1207](https://github.com/nicobailon/pi-subagents/issues/1207), so an
+explicit allowlist can name `contact_supervisor` without the legacy `intercom`
+companion. The six root agents do not need a tool-list workaround: their bridge
+instructions use the native supervisor tool only when the runtime supplies it.
+
+In Herdr 0.7.5 or later, `pi-herdr-subagents` keeps the parent pane focused and
+wide on the left and opens one full-scrollback pane for every publicly identified
+current-session child on the right. Pane closure never changes run state. Missing
+or incompatible Herdr disables only automatic panes; upstream FleetView,
+artifacts, controls, recovery, and completion behavior remain available.
 
 Merge settings you intentionally keep. Installation never changes user or
 project settings. The root profile loads complete Engineering and Productivity
@@ -298,6 +303,7 @@ license.
 | [`pi-go`](packages/go/README.md)                                 | Idiomatic Go programming guidance.                                                |
 | [`pi-grafana-skills`](packages/grafana-skills/README.md)         | Grafana OSS administration, dashboard authoring, and PromQL guidance.             |
 | [`pi-hashline`](packages/hashline/README.md)                     | Anchored reads and fail-closed Hashline edits without the root profile.           |
+| [`pi-herdr-subagents`](packages/herdr-subagents/README.md)       | Live full-scrollback Herdr panes for published `pi-subagents` runs.               |
 | [`pi-lsp`](packages/lsp/README.md)                               | Semantic navigation, diagnostics, or refactoring for a supported language server. |
 | [`pi-playwright-cleanup`](packages/playwright-cleanup/README.md) | Ownership and cleanup of browser sessions.                                        |
 | [`pi-productivity`](packages/productivity/README.md)             | Clearer agent instructions.                                                       |

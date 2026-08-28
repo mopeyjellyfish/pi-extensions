@@ -117,6 +117,9 @@ describe("engineering resources", () => {
     );
     expect(implement).toMatch(/do not impose hard turn, tool, token, or cost budgets/iu);
     expect(implement).toMatch(
+      /explicit(?:ly)? supplied[^.]*budget[^.]*unchanged[\s\S]*partial or failed[^.]*changed files[^.]*validation[^.]*recovery/iu,
+    );
+    expect(implement).toMatch(
       /parent owns[\s\S]*required completion gates[\s\S]*risk determines[^.]*formal review/iu,
     );
     expect(implement).toMatch(

@@ -143,6 +143,11 @@ slice is buildable. Use runtime counters as telemetry; enforce the boundary
 through evidence of progress, explicit scope variance, and the Worker's
 repeated-failure stop.
 
+Preserve an explicitly supplied caller budget unchanged. If that budget ends a
+mutation-capable Worker, return a partial or failed terminal handoff that names
+changed files when available, validation that did not run, and the exact recovery
+action; stop waiting and do not launch an automatic retry or replacement writer.
+
 Do not silently select a higher-capability role. A high-capability run requires
 an explicit approval stating evidence, expected benefit, and bounded task. State
 a delegation's critical-path, parent-context, or independent evidence benefit;

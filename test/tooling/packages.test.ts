@@ -31,7 +31,7 @@ const ROOT_PROFILE = {
     "./packages/web-search/src/index.ts",
     "./packages/worktrunk/src/index.ts",
     "./node_modules/pi-claude-bridge/src/index.ts",
-    "./node_modules/pi-subagents/index.ts",
+    "./packages/herdr-subagents/src/index.ts",
   ],
   skills: [
     "./packages/feature-flow/skills",
@@ -59,7 +59,7 @@ const ROOT_PROFILE = {
 const ROOT_DEPENDENCIES = {
   "@playwright/cli": "0.1.18",
   "pi-claude-bridge": "0.7.0",
-  "pi-subagents": "0.50.0",
+  "pi-subagents": "0.58.0",
 } as const;
 
 function parseAgentFrontmatter(source: string): Record<string, unknown> {
@@ -386,7 +386,7 @@ describe("package contracts", () => {
     );
   });
 
-  it("works around pi-subagents issue 1207 for every configured agent", async () => {
+  it("uses the pi-subagents issue 1207 fix for every configured agent", async () => {
     expect.hasAssertions();
     const agentsRoot = join(repositoryRoot, "agents");
     const entries = (await readdir(agentsRoot)).filter((entry) => entry.endsWith(".md"));
@@ -404,9 +404,9 @@ describe("package contracts", () => {
     }
 
     const readme = await readFile(join(repositoryRoot, "README.md"), "utf8");
-    expect(readme).toMatch(/pi-subagents[^.]*0\.50\.0[\s\S]*issue\s+#?1207/iu);
-    expect(readme).toMatch(/remove[^.]*`contact_supervisor`[^.]*explicit[^.]*`tools`/iu);
-    expect(readme).toMatch(/bridge[^.]*adds[^.]*`contact_supervisor`[^.]*runtime/iu);
+    expect(readme).toMatch(/pi-subagents[^.]*0\.58\.0[\s\S]*issue\s+#?1207/iu);
+    expect(readme).toMatch(/fix[\s\S]*explicit allowlist[\s\S]*`contact_supervisor`/iu);
+    expect(readme).toMatch(/root agents[^.]*do not need[^.]*tool-list workaround/iu);
   });
 
   it("gives read-only support agents bounded retry contracts", async () => {
@@ -687,6 +687,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-go",
       "@mopeyjellyfish/pi-grafana-skills",
       "@mopeyjellyfish/pi-hashline",
+      "@mopeyjellyfish/pi-herdr-subagents",
       "@mopeyjellyfish/pi-lsp",
       "@mopeyjellyfish/pi-playwright-cleanup",
       "@mopeyjellyfish/pi-productivity",

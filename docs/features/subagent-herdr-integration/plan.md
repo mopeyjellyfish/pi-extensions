@@ -128,7 +128,7 @@ ledger against the accepted image. Do not claim browser or screenshot proof. The
 ledger must record hierarchy, rail geometry, readable width, state labels, focus,
 scrollback, likely causes, and recheck targets.
 
-## [ ] 001 — Compose the latest upstream runtime exactly once
+## [x] 001 — Compose the latest upstream runtime exactly once
 
 ### Outcome and requirement trace
 
@@ -228,7 +228,7 @@ real source-smoke Pi process, child Pi runtimes do not start the supervisor, sel
 prompts and agents remain unchanged, the #1207 workaround is resolved against 0.58.0,
 compatibility failure does not block upstream behavior, and focused checks pass.
 
-## [ ] 002 — Show one direct async child in one live Herdr pane
+## [x] 002 — Show one direct async child in one live Herdr pane
 
 ### Outcome and requirement trace
 
@@ -342,7 +342,7 @@ incompatible evidence is bounded, no test or idle smoke process mutates live Her
 each new TypeScript source meets the repository's per-file 90% line, statement, and
 function plus 85% branch coverage floor, and focused plus native Herdr proof passes.
 
-## [ ] 003 — Supervise workflow, nested, and foreground children in the rail
+## [x] 003 — Supervise workflow, nested, and foreground children in the rail
 
 ### Outcome and requirement trace
 
@@ -442,7 +442,7 @@ compact overflow remain usable with native zoom and scrollback, every changed
 TypeScript source retains the per-file coverage floor, and the mismatch ledger has no
 unresolved blocker.
 
-## [ ] 004 — Preserve upstream control and exact pane lifecycle ownership
+## [x] 004 — Preserve upstream control and exact pane lifecycle ownership
 
 ### Outcome and requirement trace
 
@@ -546,7 +546,7 @@ close, terminal outcomes wake the exact parent, changed TypeScript sources retai
 per-file coverage floor, and the manual idle `/reload` loop shows no duplicate or
 stale state.
 
-## [ ] 005 — Make partial mutation handoffs explicit in the Implement contract
+## [x] 005 — Make partial mutation handoffs explicit in the Implement contract
 
 ### Outcome and requirement trace
 
@@ -609,7 +609,7 @@ The resource test proves that generated mutation workers have no hard execution
 budgets by default, explicit caller limits remain authoritative, and budget-terminated
 work returns a complete recovery handoff without blind waiting or replacement writes.
 
-## [ ] 006 — Synchronize user guidance and verify the complete delivery unit
+## [x] 006 — Synchronize user guidance and verify the complete delivery unit
 
 ### Outcome and requirement trace
 

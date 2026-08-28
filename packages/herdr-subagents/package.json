@@ -1,0 +1,45 @@
+{
+  "name": "@mopeyjellyfish/pi-herdr-subagents",
+  "version": "0.0.0",
+  "description": "Safe Herdr Supervisor Rail panes for published pi-subagents runs.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-extension",
+    "pi-package",
+    "herdr",
+    "subagents"
+  ],
+  "dependencies": {
+    "pi-subagents": "0.58.0"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/herdr-subagents"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. packages/herdr-subagents/test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
