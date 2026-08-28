@@ -74,6 +74,19 @@ describe("Go skill package", () => {
     expect(testingPatterns).toContain('"Thursday, February 29, 2024"');
     expect(testingPatterns).toMatch(/days, months, years/u);
   });
+  it("rejects tautological Go tests", async () => {
+    expect.hasAssertions();
+    const skill = await readFile(join(PACKAGE_ROOT, "skills", "go", "SKILL.md"), "utf8");
+    const testingPatterns = /## Testing Patterns\n([\s\S]*?)(?=\n## |$)/u.exec(skill)?.[1];
+
+    expect(testingPatterns).toContain("Tautological tests are harmful.");
+    expect(testingPatterns).toMatch(/`want`[\s\S]*independent[\s\S]*function\s+under\s+test/iu);
+    expect(testingPatterns).toMatch(/same\s+algorithm[\s\S]*production\s+helper/iu);
+    expect(testingPatterns).toMatch(/plausible\s+incorrect\s+implementation/iu);
+    expect(testingPatterns).toMatch(
+      /literal[\s\S]*worked\s+example[\s\S]*external\s+contract[\s\S]*independent\s+oracle/iu,
+    );
+  });
   it("explains when and how to use functional options", async () => {
     expect.hasAssertions();
     const skill = await readFile(join(PACKAGE_ROOT, "skills", "go", "SKILL.md"), "utf8");

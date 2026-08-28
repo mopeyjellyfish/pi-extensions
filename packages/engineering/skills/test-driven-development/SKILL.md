@@ -29,6 +29,12 @@ approved seam that still proves the behavior. An accepted request, accepted
 pitch, or accepted plan counts as seam approval; ask only when the seam is
 unresolved.
 
+**Tautological tests are harmful.** A test is tautological when it derives the
+expected value by calling the implementation under test, repeats the same
+algorithm, uses a production helper that encodes the same rule, or compares an
+output with itself. Rewrite or remove a tautological test because it cannot
+provide independent evidence.
+
 For each vertical behavior, use a narrow red, green, refactor sequence:
 
 1. Add the smallest behavior test with an independent expected value from

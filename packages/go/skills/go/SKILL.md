@@ -360,6 +360,13 @@ func TestThingWorks(t *testing.T) {
 }
 ```
 
+**Tautological tests are harmful.** Build `want` independently of the function
+under test. Do not call that function, repeat the same algorithm, use a
+production helper that encodes the same rule, or compare an output with itself
+to construct the expectation. A useful test fails for at least one plausible
+incorrect implementation. If it does not, rewrite the expectation from a
+literal, worked example, external contract, or independent oracle.
+
 ### 3. Meaningful Helpers with `t.Helper()`
 
 When extracting repeated assertion logic, always call `t.Helper()` to ensure failures point to the actual test case, not the helper function line.
