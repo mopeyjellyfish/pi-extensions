@@ -69,6 +69,14 @@ The viewer removes active terminal control sequences from untrusted transcript
 text while preserving normal text and package-owned ANSI state labels. It
 follows append and replacement updates without deleting host scrollback.
 
+For session JSONL, the viewer renders transcript evidence as structured role,
+tool-call, and tool-result sections. Package-owned ANSI labels distinguish
+read, write, edit, bash, and other tools, and failed results use an error label.
+Multiline code, diffs, arguments, and results remain readable. Visible custom
+messages retain their transcript type, while messages marked as hidden stay
+hidden. The viewer shows diagnostics only when an assistant message or tool
+result contains them; it does not generate diagnostics or run Pi in the pane.
+
 ## Compatibility and fallback
 
 Automatic panes require all of these conditions:

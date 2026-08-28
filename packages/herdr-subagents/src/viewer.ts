@@ -13,15 +13,15 @@ const ANSI_CSI = new RegExp(
   `${ESCAPE}\\[[\\u0030-\\u003F]*[\\u0020-\\u002F]*[\\u0040-\\u007E]`,
   "gu",
 );
-const COLOR: Readonly<Record<string, string>> = {
-  complete: "\u{1B}[32m",
-  completed: "\u{1B}[32m",
-  failed: "\u{1B}[31m",
-  needs_attention: "\u{1B}[33m",
-  partial: "\u{1B}[33m",
-  running: "\u{1B}[32m",
-  stopped: "\u{1B}[33m",
-};
+const COLOR = new Map<string, string>([
+  ["complete", "\u{1B}[32m"],
+  ["completed", "\u{1B}[32m"],
+  ["failed", "\u{1B}[31m"],
+  ["needs_attention", "\u{1B}[33m"],
+  ["partial", "\u{1B}[33m"],
+  ["running", "\u{1B}[32m"],
+  ["stopped", "\u{1B}[33m"],
+]);
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -31,14 +31,14 @@ function record(value: unknown): Record<string, unknown> | undefined {
 
 function safeCharacter(character: string, allowNewline: boolean): string {
   const code = character.codePointAt(0) ?? 0;
-  if (allowNewline && (code === 9 || code === 10 || code === 13)) return character;
+  if (allowNewline && (code === 9 || code === 10)) return character;
   if ((code >= 32 && code <= 126) || code >= 160) return character;
   return "";
 }
 
 function safeLabel(value: unknown): string {
   return typeof value === "string"
-    ? Array.from(value, (character) => safeCharacter(character, false) || " ")
+    ? Array.from(safeTerminalText(value), (character) => safeCharacter(character, false) || " ")
         .join("")
         .slice(0, 160)
     : "unknown";
@@ -50,19 +50,152 @@ export function safeTerminalText(value: string): string {
   ).join("");
 }
 
-function sessionContent(value: unknown): string {
-  if (typeof value === "string") return value;
+const TOOL_BACKGROUND = new Map<string, string>([
+  ["bash", "\u{1B}[48;5;130m"],
+  ["edit", "\u{1B}[48;5;90m"],
+  ["read", "\u{1B}[48;5;31m"],
+  ["write", "\u{1B}[48;5;28m"],
+]);
+const ROLE_BACKGROUND = new Map<string, string>([
+  ["assistant", "\u{1B}[48;5;24m"],
+  ["system", "\u{1B}[48;5;240m"],
+  ["user", "\u{1B}[48;5;25m"],
+]);
+const ERROR_BACKGROUND = "\u{1B}[48;5;124m";
+const PANEL_FOREGROUND = "\u{1B}[97m";
+const PANEL_RESET = "\u{1B}[0m";
+const UNKNOWN_BACKGROUND = "\u{1B}[48;5;240m";
+
+function panel(label: string, background: string): string {
+  return `${background}${PANEL_FOREGROUND} ${label.toUpperCase()} ${PANEL_RESET}`;
+}
+
+function toolName(value: unknown): string {
+  const name = safeLabel(value).trim().replaceAll(/\s+/gu, " ");
+  return name === "" || name === "unknown" ? "unknown" : name;
+}
+
+function toolPanel(name: string, outcome: "call" | "error" | "result"): string {
+  const label = outcome === "call" ? name : `${outcome === "error" ? "ERROR " : ""}RESULT ${name}`;
+  const background =
+    outcome === "error"
+      ? ERROR_BACKGROUND
+      : (TOOL_BACKGROUND.get(name.toLowerCase()) ?? UNKNOWN_BACKGROUND);
+  return panel(label, background);
+}
+
+function indent(value: string): string {
+  return value
+    .split("\n")
+    .map((line) => `  ${line}`)
+    .join("\n");
+}
+
+function structuredValue(value: unknown): string {
+  if (typeof value === "string") return safeTerminalText(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    return value
+      .map((item, index) => `[${String(index)}]:\n${indent(structuredValue(item))}`)
+      .join("\n");
+  }
+  const object = record(value);
+  if (object !== undefined) {
+    const entries = Object.entries(object);
+    if (entries.length === 0) return "{}";
+    return entries
+      .map(([key, item]) => {
+        const rendered = structuredValue(item);
+        return typeof item === "object" || rendered.includes("\n")
+          ? `${safeLabel(key)}:\n${indent(rendered)}`
+          : `${safeLabel(key)}: ${rendered}`;
+      })
+      .join("\n");
+  }
+  if (value === null) return "null";
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "unknown";
+}
+
+function textContent(value: unknown): string {
+  if (typeof value === "string") return safeTerminalText(value);
   if (!Array.isArray(value)) return "";
   return value
     .map((part) => {
       const item = record(part);
-      if (item?.["type"] === "text" && typeof item["text"] === "string") return item["text"];
-      if (item?.["type"] === "toolCall" && typeof item["name"] === "string") {
-        return `\n› ${item["name"]} ${JSON.stringify(item["arguments"] ?? {})}\n`;
-      }
-      return "";
+      return item?.["type"] === "text" && typeof item["text"] === "string"
+        ? safeTerminalText(item["text"])
+        : "";
     })
     .join("");
+}
+
+function nonTextPlaceholder(value: unknown): string {
+  return Array.isArray(value) && value.some((part) => record(part)?.["type"] === "image")
+    ? "[image content]"
+    : "[no textual content]";
+}
+
+function diagnosticPanels(message: Record<string, unknown>): string {
+  const rendered: string[] = [];
+  if (typeof message["errorMessage"] === "string" && message["errorMessage"] !== "") {
+    rendered.push(
+      `\n${panel("error", ERROR_BACKGROUND)}\n${safeTerminalText(message["errorMessage"])}\n`,
+    );
+  }
+  if (Array.isArray(message["diagnostics"])) {
+    for (const value of message["diagnostics"]) {
+      const diagnostic = record(value);
+      if (diagnostic === undefined) continue;
+      const kind = safeLabel(diagnostic["type"]);
+      const error = record(diagnostic["error"]);
+      const body =
+        error !== undefined && typeof error["message"] === "string"
+          ? safeTerminalText(error["message"])
+          : structuredValue(diagnostic["details"] ?? {});
+      rendered.push(`\n${panel(`diagnostic ${kind}`, ERROR_BACKGROUND)}\n${body}\n`);
+    }
+  }
+  return rendered.join("");
+}
+
+function rolePanel(role: string, body: string): string {
+  return body === ""
+    ? ""
+    : `\n${panel(role, ROLE_BACKGROUND.get(role) ?? UNKNOWN_BACKGROUND)}\n${body}\n`;
+}
+
+function renderContentPart(role: string, value: unknown): string {
+  const item = record(value);
+  if (item?.["type"] === "text" && typeof item["text"] === "string") {
+    return rolePanel(role, safeTerminalText(item["text"]));
+  }
+  if (item?.["type"] === "thinking" && typeof item["thinking"] === "string") {
+    const thinking = safeTerminalText(item["thinking"]);
+    return thinking === "" ? "" : `\n${panel("thinking", UNKNOWN_BACKGROUND)}\n${thinking}\n`;
+  }
+  if (item?.["type"] === "toolCall") {
+    const name = toolName(item["name"]);
+    return `\n${toolPanel(name, "call")}\nArguments:\n${structuredValue(item["arguments"] ?? {})}\n`;
+  }
+  return item?.["type"] === "image" ? rolePanel(role, "[image content]") : "";
+}
+
+function renderRoleContent(role: string, content: unknown): string {
+  if (typeof content === "string") return rolePanel(role, safeTerminalText(content));
+  return Array.isArray(content)
+    ? content.map((part) => renderContentPart(role, part)).join("")
+    : "";
+}
+
+function renderMessage(message: Record<string, unknown>): string {
+  const role = safeLabel(message["role"]);
+  if (role === "toolResult") {
+    const content = textContent(message["content"]) || nonTextPlaceholder(message["content"]);
+    const outcome = message["isError"] === true ? "error" : "result";
+    return `\n${toolPanel(toolName(message["toolName"]), outcome)}\n${content}\n`;
+  }
+  return `${renderRoleContent(role, message["content"])}${diagnosticPanels(message)}`;
 }
 
 export function renderSessionJsonl(value: string): string {
@@ -73,21 +206,21 @@ export function renderSessionJsonl(value: string): string {
       const entry = record(JSON.parse(line));
       if (entry?.["type"] === "message") {
         const message = record(entry["message"]);
-        const content = sessionContent(message?.["content"]);
-        if (content !== "") {
-          const role = safeLabel(message?.["role"]);
-          const tool =
-            typeof message?.["toolName"] === "string" ? ` ${safeLabel(message["toolName"])}` : "";
-          rendered.push(`\n[${role}${tool}]\n${content}\n`);
-        }
-      } else if (entry?.["type"] === "custom_message" && typeof entry["content"] === "string") {
-        rendered.push(`\n${entry["content"]}\n`);
+        if (message !== undefined) rendered.push(renderMessage(message));
+      } else if (entry?.["type"] === "custom_message" && entry["display"] !== false) {
+        const content = textContent(entry["content"]);
+        const body = content || nonTextPlaceholder(entry["content"]);
+        const customType =
+          typeof entry["customType"] === "string"
+            ? `custom ${safeLabel(entry["customType"])}`
+            : "note";
+        rendered.push(`\n${panel(customType, UNKNOWN_BACKGROUND)}\n${body}\n`);
       }
     } catch {
       // Ignore an incomplete final JSONL line while the child is writing it.
     }
   }
-  return safeTerminalText(rendered.join(""));
+  return rendered.join("");
 }
 
 export function statusLine(value: {
@@ -98,7 +231,7 @@ export function statusLine(value: {
   const agent = safeLabel(value.agent);
   const runId = safeLabel(value.runId);
   const state = safeLabel(value.state);
-  const color = COLOR[state] ?? "\u{1B}[36m";
+  const color = COLOR.get(state) ?? "\u{1B}[36m";
   return `${color}● ${state.toUpperCase()}\u{1B}[0m  ${agent}  \u{1B}[2m${runId}\u{1B}[0m`;
 }
 

@@ -64,17 +64,146 @@ describe("viewer rendering", () => {
         },
         type: "message",
       }),
-      JSON.stringify({ content: "Attention notice", type: "custom_message" }),
+      JSON.stringify({
+        content: "Attention notice",
+        customType: "notice",
+        display: true,
+        type: "custom_message",
+      }),
       "",
       "incomplete",
     ].join("\n");
 
-    expect(renderSessionJsonl(transcript)).toContain("[assistant]\nWorking");
-    expect(renderSessionJsonl(transcript)).toContain('› read {"path":"README.md"}');
-    expect(renderSessionJsonl(transcript)).toContain("[toolResult read]\nResult");
+    expect(renderSessionJsonl(transcript)).toContain(" ASSISTANT \u{1B}[0m\nWorking");
+    expect(renderSessionJsonl(transcript)).toContain(
+      " READ \u{1B}[0m\nArguments:\npath: README.md",
+    );
+    expect(renderSessionJsonl(transcript)).toContain(" RESULT READ \u{1B}[0m\nResult");
     expect(renderSessionJsonl(transcript)).toContain("String content");
-    expect(renderSessionJsonl(transcript)).toContain("› list {}");
-    expect(renderSessionJsonl(transcript)).toContain("Attention notice");
+    expect(renderSessionJsonl(transcript)).toContain(" LIST \u{1B}[0m\nArguments:\n{}");
+    expect(renderSessionJsonl(transcript)).toContain(" CUSTOM NOTICE \u{1B}[0m\nAttention notice");
+  });
+
+  it("renders structured tool activity with package styling and sanitized multiline text", () => {
+    expect.hasAssertions();
+    const transcript = [
+      JSON.stringify({
+        message: {
+          content: [
+            { text: "```ts\nconst answer = 42;\n```", type: "text" },
+            { thinking: "Checking the change", type: "thinking" },
+            { thinking: "", type: "thinking" },
+          ],
+          diagnostics: [{ error: { message: "retry failed" }, type: "retry" }],
+          errorMessage: "provider warning",
+          role: "assistant",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: [
+            {
+              arguments: { patch: "-old\n+new", path: "src/viewer.ts" },
+              name: "edit\u{1B}]52;clipboard\u{7}",
+              type: "toolCall",
+            },
+          ],
+          role: "assistant",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: "diff --git a/src/viewer.ts b/src/viewer.ts\n-old\n+new\n\u{1B}[31mhidden",
+          isError: true,
+          role: "toolResult",
+          toolName: "edit",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: [{ arguments: { path: "README.md" }, name: "Read", type: "toolCall" }],
+          role: "assistant",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: [{ arguments: { content: "hello" }, name: "write", type: "toolCall" }],
+          role: "assistant",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: [
+            {
+              arguments: { command: "printf '\\\\n'\nnpm test" },
+              name: "bash",
+              type: "toolCall",
+            },
+          ],
+          role: "assistant",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: [{ arguments: { values: [true, null] }, name: "constructor", type: "toolCall" }],
+          role: "assistant",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        message: {
+          content: [{ data: "ignored", mimeType: "image/png", type: "image" }],
+          isError: false,
+          role: "toolResult",
+          toolName: "playwright_browser",
+        },
+        type: "message",
+      }),
+      JSON.stringify({
+        content: [{ text: "Late diagnostics", type: "text" }],
+        customType: "lsp-diagnostics",
+        display: true,
+        type: "custom_message",
+      }),
+      JSON.stringify({
+        content: "hidden context",
+        customType: "internal",
+        display: false,
+        type: "custom_message",
+      }),
+    ].join("\n");
+
+    const rendered = renderSessionJsonl(transcript);
+    const initial = renderSessionJsonl(transcript.split("\n").slice(0, 3).join("\n"));
+    expect(rendered.startsWith(initial)).toBe(true);
+    expect(rendered).toContain("\u{1B}[48;5;24m\u{1B}[97m ASSISTANT \u{1B}[0m");
+    expect(rendered).toContain("\u{1B}[48;5;90m\u{1B}[97m EDIT \u{1B}[0m");
+    expect(rendered).toContain("\u{1B}[48;5;124m\u{1B}[97m ERROR RESULT EDIT \u{1B}[0m");
+    expect(rendered).toContain("\u{1B}[48;5;31m\u{1B}[97m READ \u{1B}[0m");
+    expect(rendered).toContain("\u{1B}[48;5;28m\u{1B}[97m WRITE \u{1B}[0m");
+    expect(rendered).toContain("\u{1B}[48;5;130m\u{1B}[97m BASH \u{1B}[0m");
+    expect(rendered).toContain("\u{1B}[48;5;240m\u{1B}[97m CONSTRUCTOR \u{1B}[0m");
+    expect(rendered).toContain("patch:\n  -old\n  +new");
+    expect(rendered).toContain("command:\n  printf '\\\\n'\n  npm test");
+    expect(rendered).toContain("diff --git a/src/viewer.ts b/src/viewer.ts\n-old\n+new\nhidden");
+    expect(rendered).toContain("values:\n  [0]:\n    true\n  [1]:\n    null");
+    expect(rendered.match(/ THINKING /gu)).toHaveLength(1);
+    expect(rendered).toContain("```ts\nconst answer = 42;\n```");
+    expect(rendered).toContain(" THINKING \u{1B}[0m\nChecking the change");
+    expect(rendered).toContain(" ERROR \u{1B}[0m\nprovider warning");
+    expect(rendered).toContain(" DIAGNOSTIC RETRY \u{1B}[0m\nretry failed");
+    expect(rendered).toContain(" RESULT PLAYWRIGHT_BROWSER \u{1B}[0m\n[image content]");
+    expect(rendered).toContain(" CUSTOM LSP-DIAGNOSTICS \u{1B}[0m\nLate diagnostics");
+    expect(rendered).not.toContain("hidden context");
+    expect(rendered).not.toContain("function Object");
+    expect(rendered).not.toContain("\u{1B}]52;");
+    expect(rendered).not.toContain("\u{1B}[31mhidden");
   });
 
   it("parses bounded pane commands without exposing the control capability", () => {
