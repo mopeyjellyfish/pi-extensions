@@ -34,7 +34,8 @@ and treat all arguments as the request. To use a scope that starts with a
 reserved token, give an explicit level first. For example, `medium low latency
 path` uses `low latency path` as the scope. An empty or level-only request has no
 specific area and uses the adaptive quick start instead of silently inferring a
-scope.
+scope. Treat `find improvements` as explicit agent-led discovery, not as the
+literal name of a repository area.
 
 The optional scope can name a module, package, subsystem, vertical feature
 slice, architecture pattern, test surface, pain point, or change-history area.
@@ -53,22 +54,34 @@ application, pane agent, or repository-specific path is available.
 
 ## Ask the adaptive quick start
 
-When the request does not name a specific area, do one lightweight parent-only
-orientation. Read target-repository instructions and bounded topology, history,
-and test signals. Detect tracker and Herdr-or-equivalent pane capability. Do not
-write, start support lanes, or make an architecture recommendation yet.
+When the request does not name a specific area, or asks to find improvements,
+do one lightweight parent-only orientation. Read target-repository instructions
+and bounded topology, history, and test signals. Detect tracker and
+Herdr-or-equivalent pane capability. Do not write, start support lanes, or make
+an architecture recommendation yet.
 
 Use one `question` tool call and ask only questions the request did not answer:
 
-1. **Where should this review focus?** Offer up to three repository-specific
-   focus choices supported by named orientation evidence, plus the whole
-   declared repository. The built-in custom response lets the user name another
-   area. Do not show an unsupported generic hotspot.
+1. **Where should this review focus?** Offer **Find improvements**, up to two
+   repository-specific focus choices supported by named orientation evidence,
+   and the whole declared repository. Find improvements lets the parent choose
+   a level-appropriate, evidence-backed focus: one localized area for `low`, one
+   focused module or slice for `medium`, a broad module or pattern for `high`,
+   and the declared repository as thoroughly as practical for `max`. State the
+   chosen focus and coverage before deeper discovery. The built-in custom
+   response lets the user name another area. Do not show an unsupported generic
+   hotspot.
 2. **What should this review prepare for?** Offer **Work now**, **Prepare
    issues**, **Both**, and **Report only**. Label Work now with detected pane
    support or `current session`. Label Prepare issues with the detected Linear,
    GitHub, Jira, or other supported tracker; use `choose tracker` when ambiguous
    and `draft only` when no tracker capability exists.
+
+If the user already said find improvements, do not repeat the Focus question;
+apply the same level-appropriate agent-led discovery. A user-supplied specific
+area is authoritative: do not ask the Focus question and do not broaden beyond
+that area unless the user explicitly requests broader coverage. Improvement
+depth controls thoroughness inside that focus.
 
 If the `question` tool is unavailable, present the same choices in conversation.
 Do not repeat an area or outcome the user already supplied. Quick-start answers
