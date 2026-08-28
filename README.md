@@ -88,6 +88,16 @@ and sole writers. A coherent delivery unit normally keeps its atomic commits in
 one branch and pull request; a stack needs independent value and check viability
 at each position. No lifecycle stage works in the main-branch checkout.
 
+For a direct bounded implementation request or accepted plan, `/implement`
+implements, verifies, reviews when selected, commits, pushes, and opens or
+updates a ready pull request by default for its named task branch and delivery
+unit. `local-only`, `no push`, or `no PR` permits a local commit but prevents
+`open-pr` and every remote mutation. `no commit` prevents all publication.
+Publication follows successful tests, gates, and
+selected review, uses the installed `commit` and `open-pr` methods, and never
+includes merge, release, deployment, cleanup, branch deletion, plain force push,
+or unrelated changes.
+
 The human selects a Fable or Sol parent for Shape and planning; installation
 does not overwrite parent settings. The fixed child catalog is:
 

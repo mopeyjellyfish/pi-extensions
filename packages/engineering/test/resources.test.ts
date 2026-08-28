@@ -592,10 +592,10 @@ describe("engineering resources", () => {
     );
     expect(implement).toMatch(/planned parallel lanes[\s\S]*worktrees/iu);
     expect(implement).toMatch(
-      /risk determines[^.]*formal review[\s\S]*stable completed delivery unit/iu,
+      /risk\s+determines[^.]*formal review[\s\S]*stable completed delivery unit/iu,
     );
     expect(implement).toMatch(
-      /Accept\s+and\s+publish[\s\S]*`commit`[\s\S]*`open-pr`[\s\S]*no\s+second\s+mutation\s+prompt/iu,
+      /publication starts only after[\s\S]*`commit`[\s\S]*then[\s\S]*`open-pr`/iu,
     );
     expect(implement).toMatch(/planned stack[\s\S]*`gh stack`[\s\S]*fail closed/iu);
     expect(implement.replaceAll(/\s+/gu, " ")).toContain(
@@ -658,8 +658,66 @@ describe("engineering resources", () => {
       /plan-less requests[\s\S]*single-unit plans[\s\S]*must not[\s\S]*next-unit prompt/iu,
     );
     expect(readme).toMatch(
-      /accepted and committed,[\s\S]*authorized\s+publication\s+has\s+completed[\s\S]*next planned\s+unit[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss[\s\S]*same checkpoint[\s\S]*plan completion/iu,
+      /checkpointed implementation[^.]*no final publication prompt[\s\S]*committed and published[\s\S]*next planned\s+unit[\s\S]*Continue[\s\S]*Review next unit[\s\S]*Discuss[\s\S]*same checkpoint[\s\S]*plan completion/iu,
     );
+  });
+
+  it("automatically publishes a verified bounded implementation unit", async () => {
+    expect.hasAssertions();
+    const [implementText, prompt, readme, rootReadme] = await Promise.all([
+      read("skills/implement/SKILL.md"),
+      read("prompts/implement.md"),
+      read("README.md"),
+      readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
+    ]);
+    const implement = implementText.replaceAll(/\s+/gu, " ");
+
+    expect(implement).toMatch(
+      /direct bounded implementation request[\s\S]*accepted plan[\s\S]*named task branch[\s\S]*delivery unit[\s\S]*commit[\s\S]*normal push[\s\S]*creates or updates the ready pull request/iu,
+    );
+    expect(implement).toMatch(
+      /tests[\s\S]*required gates[\s\S]*selected review[\s\S]*accepted repairs[\s\S]*invalidated evidence[\s\S]*`commit`[\s\S]*then[\s\S]*`open-pr`/iu,
+    );
+    expect(implement).toMatch(
+      /checkpointed and accept-all[\s\S]*commit[\s\S]*then[\s\S]*open-pr[\s\S]*without[^.]*final publication question/iu,
+    );
+    expect(implement).toMatch(
+      /complete work evidence[\s\S]*not a publication approval prompt[\s\S]*continue directly to Publication[\s\S]*without requesting user acceptance/iu,
+    );
+    expect(implement).toMatch(
+      /checkpointed[\s\S]*only[\s\S]*next[- ]delivery[- ]unit checkpoint/iu,
+    );
+    expect(implement).toMatch(
+      /local-only[\s\S]*no push[\s\S]*no PR[\s\S]*local commit[\s\S]*prevents[\s\S]*every remote mutation/iu,
+    );
+    expect(implement).toMatch(/no commit[\s\S]*prevents[\s\S]*dependent publication action/iu);
+    expect(implement).toMatch(
+      /Apply each recorded opt-out[\s\S]*no commit[\s\S]*skip `commit` and `open-pr`[\s\S]*local-only[\s\S]*no push[\s\S]*no PR[\s\S]*skip `open-pr`[\s\S]*no remote mutation/iu,
+    );
+    expect(implement).toMatch(
+      /publication failure[\s\S]*preserve[\s\S]*local evidence[\s\S]*stop[\s\S]*diagnosis/iu,
+    );
+    expect(implement).toMatch(
+      /never authorizes merge[\s\S]*release[\s\S]*deployment[\s\S]*cleanup[\s\S]*branch deletion[\s\S]*plain force push[\s\S]*unrelated changes/iu,
+    );
+    expect(implement).toMatch(
+      /installed `commit` and `open-pr`[\s\S]*unavailable[\s\S]*preserve[\s\S]*local evidence/iu,
+    );
+    expect(implement).not.toMatch(/Accept and publish/iu);
+    expect(implement).not.toMatch(/git commit|git push|gh pr create/iu);
+    expect(prompt).toMatch(
+      /implements[\s\S]*verifies[\s\S]*reviews when selected[\s\S]*commits[\s\S]*pushes[\s\S]*opens or updates a ready pull request by default/iu,
+    );
+    for (const documentation of [readme, rootReadme]) {
+      expect(documentation).toMatch(/by default/iu);
+      expect(documentation).toMatch(
+        /commit[\s\S]*push[\s\S]*open\w*\s+or\s+update[\s\S]*ready\s+pull request/iu,
+      );
+      for (const optOut of ["local-only", "no commit", "no push", "no PR"]) {
+        expect(documentation).toContain(optOut);
+      }
+      expect(documentation).not.toMatch(/Accept and publish/iu);
+    }
   });
 
   it("uses accepted accept-all authority without removing verification or safety pauses", async () => {
@@ -670,20 +728,18 @@ describe("engineering resources", () => {
     ]);
 
     expect(implement).toMatch(
-      /whole-plan approval[^.]*accept-all authority[^.]*named accepted plan/iu,
+      /whole-plan approval[^.]*accept-all\s+authority[^.]*named accepted plan/iu,
     );
-    expect(implement).toMatch(/checkpointed[^.]*retain[^.]*routine prompts/iu);
+    expect(implement).toMatch(/checkpointed[^.]*only[^.]*next delivery unit/iu);
     expect(implement).toMatch(
       /accept-all[^.]*every named delivery unit[\s\S]*tests[\s\S]*required gates[\s\S]*risk-selected assurance[\s\S]*commit[\s\S]*authorized publication/iu,
     );
-    expect(implement).toMatch(
-      /accept-all[^.]*without[^.]*routine[^.]*Accept and publish[^.]*Continue questions/iu,
-    );
+    expect(implement).toMatch(/accept-all[^.]*without[^.]*routine questions/iu);
     expect(implement).toMatch(
       /pause[^.]*setup[^.]*test[^.]*check[^.]*commit[^.]*publication failure[^.]*material review findings[^.]*material forecast variance[^.]*scope[^.]*delivery boundaries[^.]*dependencies[^.]*authority/iu,
     );
     expect(implement).toMatch(
-      /accept-all[^.]*never authorizes merge[^.]*release[^.]*deployment[^.]*destructive\s+cleanup[^.]*unrelated\s+work/iu,
+      /accept-all[^.]*never authorizes merge[^.]*release[^.]*deployment[^.]*destructive\s+cleanup[^.]*unrelated\s+changes/iu,
     );
     expect(implement).toMatch(
       /review repair resume[^.]*same retained Worker[\s\S]*writer reruns focused invalidated evidence[\s\S]*invalidated required gates[\s\S]*without starting a second full review/iu,
@@ -699,7 +755,7 @@ describe("engineering resources", () => {
     );
     expect(readme).toMatch(/accept-all[^.]*whole-plan approval[^.]*checkpointed/iu);
     expect(readme).toMatch(
-      /test[\s\S]*required gate[\s\S]*risk-selected assurance[\s\S]*commit[\s\S]*authorized publication/iu,
+      /Publication follows tests[\s\S]*required gates[\s\S]*risk-selected assurance[\s\S]*accepted repairs[\s\S]*invalidated evidence/iu,
     );
   });
 
@@ -736,9 +792,14 @@ describe("engineering resources", () => {
     expect(piPromptTemplates.expandPromptTemplate("/implement", templates)).toContain(
       "Ask for an approved slice",
     );
-    expect(
-      piPromptTemplates.expandPromptTemplate("/implement tighten retry limit", templates),
-    ).toContain("tighten retry limit");
+    const expandedImplement = piPromptTemplates.expandPromptTemplate(
+      "/implement tighten retry limit",
+      templates,
+    );
+    expect(expandedImplement).toContain("tighten retry limit");
+    expect(expandedImplement).toMatch(
+      /implements[\s\S]*verifies[\s\S]*reviews when selected[\s\S]*commits[\s\S]*pushes[\s\S]*opens or updates a ready pull request/iu,
+    );
     expect(piPromptTemplates.expandPromptTemplate("/debug", templates)).toContain(
       "diagnosing-bugs",
     );
