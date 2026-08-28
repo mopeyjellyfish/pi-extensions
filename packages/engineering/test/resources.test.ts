@@ -296,6 +296,8 @@ describe("engineering resources", () => {
     expect(paths).toEqual(
       expect.arrayContaining([
         "skills/improve-codebase-architecture/SKILL.md",
+        "skills/improve-codebase-architecture/HTML-REPORT.md",
+        "skills/improve-codebase-architecture/scripts/report-server.js",
         "prompts/improve.md",
       ]),
     );
@@ -490,37 +492,62 @@ describe("engineering resources", () => {
 
   it("ships a safe, evidence-backed architecture discovery route", async () => {
     expect.hasAssertions();
-    const [skill, prompt, notice, readme] = await Promise.all([
+    const [skill, prompt, notice, readme, guide] = await Promise.all([
       read("skills/improve-codebase-architecture/SKILL.md"),
       read("prompts/improve.md"),
       read("THIRD_PARTY_NOTICES.md"),
       read("README.md"),
+      read("skills/improve-codebase-architecture/HTML-REPORT.md"),
     ]);
 
     expect(skill).toMatch(
       /optional scope[\s\S]*module[\s\S]*subsystem[\s\S]*pain point[\s\S]*change-history area/iu,
     );
     expect(skill).toMatch(/nearest domain context[\s\S]*architecture decisions/iu);
-    expect(skill).toMatch(/one optional bounded Researcher handoff[\s\S]*direct parent/iu);
-    expect(skill).toMatch(/hot-spot[\s\S]*caller scan/iu);
+    expect(skill).toMatch(/hot spots[\s\S]*callers[\s\S]*tests[\s\S]*change history/iu);
     expect(skill).toMatch(/`codebase-design`/u);
+    expect(skill).toContain("[HTML-REPORT.md](HTML-REPORT.md)");
+    expect(skill).toMatch(/OS temp directory[\s\S]*report-server\.js[\s\S]*loopback URL/iu);
     expect(skill).toMatch(
-      /ranked[\s\S]*current friction[\s\S]*involved files[\s\S]*proposed deeper module[\s\S]*locality[\s\S]*leverage[\s\S]*test effect[\s\S]*decision conflicts[\s\S]*strength/iu,
+      /rank[\s\S]*current friction[\s\S]*involved files[\s\S]*proposed deeper module[\s\S]*locality[\s\S]*leverage[\s\S]*test effect[\s\S]*decision conflicts[\s\S]*strength/iu,
     );
-    expect(skill).toMatch(/before[\s\S]*after[\s\S]*diagram/iu);
-    expect(skill).toMatch(/`question`[\s\S]*select[\s\S]*tool is unavailable[\s\S]*conversation/iu);
-    expect(skill).toMatch(/Shape[\s\S]*planning[\s\S]*Shape is unavailable[\s\S]*parent/iu);
-    expect(skill).toMatch(/do not edit production code directly/iu);
+    expect(skill).toMatch(/before[\s\S]*after[\s\S]*visual/iu);
+    expect(skill).toMatch(/`question` tool call[\s\S]*tool is unavailable[\s\S]*conversation/iu);
+    expect(skill).toMatch(/Shape[\s\S]*planning[\s\S]*direct parent/iu);
+    expect(skill).toMatch(/discovery and report generation[\s\S]*read-only/iu);
     expect(prompt).toMatch(/`improve-codebase-architecture` skill/iu);
     expect(prompt).toMatch(/\$\{ARGUMENTS:-/u);
     expect(prompt).toMatch(/argument-hint:\s*"\[low\|medium\|high\|max\] \[optional scope\]"/u);
-    expect(readme).toMatch(/`\/improve`/u);
+    expect(readme).toMatch(/`\/improve/iu);
     expect(notice).toMatch(
       /skills\/improve-codebase-architecture\/SKILL\.md[\s\S]*adapted[\s\S]*068b6e0c62393147daf03530149cdce209c93da8/iu,
     );
+    expect(notice).toMatch(/HTML-REPORT\.md[\s\S]*321658273cb1d20b76026717d027d505790106d4/iu);
+
+    expect(guide).toMatch(/<!doctype html>[\s\S]*<main[\s\S]*report-data/iu);
+    expect(guide).toContain("https://cdn.tailwindcss.com/3.4.17");
+    expect(guide).toContain("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs");
+    expect(guide).toMatch(/securityLevel:\s*["']strict["']/u);
+    expect(guide).toMatch(/<pre[^>]*class=["'][^"']*mermaid/iu);
+    expect(guide).toMatch(/Mermaid only[\s\S]*graph-shaped[\s\S]*inline SVG/iu);
+    expect(guide).toMatch(
+      /Problem[\s\S]*Proposed change[\s\S]*Expected wins[\s\S]*Delivery notes/iu,
+    );
+    expect(guide).toMatch(/prefers-color-scheme/iu);
+    expect(guide).toMatch(/localStorage[\s\S]*Toggle color theme/iu);
+    expect(guide).toContain("prefers-reduced-motion");
+    expect(guide).toMatch(/@media print[\s\S]*semantic fallback/iu);
+    expect(guide).toMatch(/no supported findings/iu);
+    expect(guide).toMatch(/stale or\s+expired report/iu);
+    expect(guide).toMatch(
+      /Declared coverage[\s\S]*Depth[\s\S]*Files[\s\S]*Modules[\s\S]*Tests[\s\S]*History[\s\S]*Found[\s\S]*Excluded/iu,
+    );
+    expect(guide).toMatch(/data-candidate-id[\s\S]*indexEntry\.hidden/iu);
+    expect(guide).toMatch(/controls\[name\]\?\.value[\s\S]*control\?\.addEventListener/iu);
+    expect(guide).toMatch(/@media print[\s\S]*data-theme="dark"[\s\S]*--muted:\s*#555555/iu);
   });
 
-  it("defines appetite-aware, safe architecture discovery", async () => {
+  it("defines appetite-aware live architecture discovery and triage", async () => {
     expect.hasAssertions();
     const [skill, readme] = await Promise.all([
       read("skills/improve-codebase-architecture/SKILL.md"),
@@ -535,12 +562,12 @@ describe("engineering resources", () => {
     expect(skill).toMatch(
       /leading level token[^.]*without regard to letter case[\s\S]*normalize[^.]*lowercase/iu,
     );
-    expect(skill).toMatch(/level-only[^.]*infer[^.]*scope/iu);
+    expect(skill).toMatch(/level-only[^.]*adaptive quick start/iu);
     expect(skill).toMatch(
-      /scope[^.]*reserved token[^.]*explicit level[\s\S]*`medium low latency path`/iu,
+      /scope that starts with a\s+reserved token, give an explicit level[\s\S]*`medium low latency\s+path`/iu,
     );
     expect(skill).toMatch(
-      /module[\s\S]*package[\s\S]*subsystem[\s\S]*vertical feature slice[\s\S]*architecture pattern[\s\S]*test surface[\s\S]*pain point[\s\S]*change-history/iu,
+      /optional scope can name a\s+module, package, subsystem, vertical feature\s+slice, architecture pattern, test surface, pain point, or change-history area/iu,
     );
     expect(skill).toMatch(
       /`low`[\s\S]*three independent, reversible quick wins[\s\S]*public-contract changes[\s\S]*migrations[\s\S]*cross-package redesign/iu,
@@ -554,36 +581,54 @@ describe("engineering resources", () => {
     );
     expect(skill).toMatch(/do not[\s\S]*force[^.]*finding[\s\S]*no supported improvement/iu);
     expect(skill).toMatch(/improvement depth[\s\S]*not[\s\S]*`codebase-design`[\s\S]*Depth/iu);
+
+    expect(skill).toMatch(
+      /one `question` tool call[\s\S]*Where should this review focus[\s\S]*What should this review prepare for/iu,
+    );
+    expect(skill).toMatch(/Work now[\s\S]*Prepare issues[\s\S]*Both[\s\S]*Report only/iu);
+    expect(skill).toMatch(
+      /Work now[^.]*up to three[\s\S]*Prepare issues[^.]*all supported[\s\S]*Report only[^.]*stops/iu,
+    );
+    expect(skill).toMatch(
+      /`low`[^.]*one[^.]*scan[\s\S]*`medium`[^.]*two[\s\S]*`high`[^.]*four[\s\S]*`max`[^.]*bounded waves/iu,
+    );
+    expect(skill).toMatch(
+      /AskClaude[^.]*at most once[\s\S]*Deepen[^.]*does not call AskClaude again/iu,
+    );
+    expect(skill).toMatch(/two-hour default[\s\S]*`100`[\s\S]*`7200000`/iu);
+
     expect(skill).toMatch(
       /selected improvement depth[\s\S]*scanned scope[\s\S]*coverage[\s\S]*exclusions[\s\S]*evidence strength[\s\S]*impact[\s\S]*reversibility[\s\S]*overlap[\s\S]*integration points[\s\S]*route[\s\S]*reason/iu,
     );
-    expect(skill).toMatch(/at most three top candidates[\s\S]*no-change[\s\S]*exclusive/iu);
-    expect(skill).toMatch(/multiple selection only[\s\S]*independent/iu);
-    expect(skill).toMatch(/one clear, bounded candidate[\s\S]*`implement`/iu);
-    expect(skill).toMatch(/multiple independent[\s\S]*`planning-changes`[\s\S]*parallel-ready/iu);
-    expect(skill).toMatch(/coordinated[\s\S]*dependent[\s\S]*`planning-changes`/iu);
-    expect(skill).toMatch(/unresolved[\s\S]*hard-to-reverse[\s\S]*Shape[\s\S]*planning/iu);
-    expect(skill).toContain(
-      "If a selected route skill is unavailable, return the same self-contained\ncandidate brief to the direct parent.",
+    expect(skill).toMatch(/stable candidate IDs[\s\S]*atomic[\s\S]*rename/iu);
+    expect(skill).toMatch(
+      /OS cleanup removed the artifact[\s\S]*new unique temp[\s\S]*new path and URL[\s\S]*old URL/iu,
     );
-    expect(skill).toContain("implementation has not started.");
+    expect(skill).toMatch(/Action[\s\S]*Track[\s\S]*Won't do[\s\S]*Deepen/iu);
+    expect(skill).toMatch(/Action[\s\S]*`implement`[\s\S]*`planning-changes`[\s\S]*Shape/iu);
+    expect(skill).toMatch(/Herdr-or-equivalent[\s\S]*current-session[\s\S]*isolated worktree/iu);
+    expect(skill).toMatch(
+      /Track[^.]*queues[\s\S]*exact bounded draft set[\s\S]*batch confirmation/iu,
+    );
+    expect(skill).toMatch(/changed\s+draft or target[\s\S]*new confirmation/iu);
+    expect(skill).toMatch(/browser controls[\s\S]*never[\s\S]*implementation[\s\S]*issue/iu);
+
     expect(skill).toMatch(
       /same behavior[\s\S]*shared setup[\s\S]*assertions[\s\S]*target language/iu,
     );
     expect(skill).toMatch(
-      /target-repository[\s\S]*standards[\s\S]*first[\s\S]*installed `go` skill[\s\S]*before generic architecture guidance/iu,
-    );
-    expect(skill).toMatch(
-      /table-driven subtests[\s\S]*Go default[\s\S]*unclear Go test-pattern cases/iu,
+      /target-repository[\s\S]*standards[\s\S]*installed `go`[\s\S]*before generic[\s\S]*each capable lane[\s\S]*evidence only[\s\S]*unmet method[\s\S]*omit/iu,
     );
     expect(skill).toMatch(/Cobra[\s\S]*Viper[\s\S]*commands, flags, or CLI[\s\S]*configuration/iu);
-    expect(skill).toMatch(/never starts workers[\s\S]*commits[\s\S]*publishes/iu);
+    expect(skill).toMatch(
+      /unrelated toolchain evidence[\s\S]*does not activate[\s\S]*bare `go\.mod`/iu,
+    );
 
     expect(readme).toMatch(/`low`[\s\S]*`medium`[\s\S]*`high`[\s\S]*`max`/u);
-    expect(readme).toMatch(/scope[\s\S]*vertical feature slice[\s\S]*test surface/iu);
-    expect(readme).toMatch(/quick wins[\s\S]*multiple[\s\S]*independent/iu);
+    expect(readme).toMatch(/adaptive Focus and\s+Outcome[\s\S]*Blueprint Ledger[\s\S]*loopback/iu);
+    expect(readme).toMatch(/Mermaid[\s\S]*graph-shaped[\s\S]*HTML,\s+CSS, and inline SVG/iu);
     expect(readme).toMatch(
-      /one[\s\S]*clear[\s\S]*`implement`[\s\S]*multiple independent[\s\S]*`planning-changes`[\s\S]*Shape/iu,
+      /Action[\s\S]*Track[\s\S]*batch confirmation[\s\S]*Herdr-or-equivalent/iu,
     );
     expect(readme).toMatch(
       /target-repository standards[\s\S]*installed `go`[\s\S]*table-driven subtests/iu,
@@ -879,7 +924,7 @@ describe("engineering resources", () => {
     ).toContain("export crashes after sign-in");
     const improveDefault = piPromptTemplates.expandPromptTemplate("/improve", templates);
     expect(improveDefault).toContain("medium improvement depth");
-    expect(improveDefault).toContain("Infer a bounded scope");
+    expect(improveDefault).toMatch(/adaptive quick start[\s\S]*do not silently infer a scope/iu);
     expect(piPromptTemplates.expandPromptTemplate("/improve checkout flow", templates)).toContain(
       "checkout flow",
     );

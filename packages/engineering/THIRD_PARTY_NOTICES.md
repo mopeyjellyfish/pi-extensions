@@ -36,6 +36,8 @@ Files and pinned sources:
   additions;
 - `skills/diagnosing-bugs/scripts/hitl-loop.template.sh`, verbatim from
   <https://github.com/mattpocock/skills/blob/068b6e0c62393147daf03530149cdce209c93da8/skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh>
+- `skills/improve-codebase-architecture/HTML-REPORT.md`, adapted from
+  <https://github.com/mattpocock/skills/blob/321658273cb1d20b76026717d027d505790106d4/skills/engineering/improve-codebase-architecture/HTML-REPORT.md>.
 
 Copyright (c) 2026 Matt Pocock
 

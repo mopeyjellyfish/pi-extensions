@@ -169,30 +169,53 @@ pi install /path/to/pi-extensions/packages/engineering
 ```
 
 `/improve [low|medium|high|max] [scope]` uses
-`improve-codebase-architecture` for read-only, evidence-backed discovery. The
-default improvement depth is `medium`: `low` finds up to three independent,
-reversible quick wins; `medium` finds coherent bounded improvements; `high`
-examines adjacent modules and coordination; and `max` declares broad coverage
-and exclusions. Scope can name a module, package, vertical feature slice,
-architecture pattern, test surface, pain point, or change-history area. A scope
-without a leading level remains valid at `medium`; prefix a reserved leading
-scope token with `medium`, for example `medium low latency path`.
+`improve-codebase-architecture` for evidence-backed discovery. An empty or
+level-only request uses `medium` by default and asks one adaptive Focus and
+Outcome intake instead of silently choosing a scope. Focus offers evidence-named
+areas. Outcome offers Work now, Prepare issues, Both, and Report only with
+truthful pane and tracker labels. Work now reports up to three immediate
+candidates. Prepare issues and Both report all supported findings inside the
+selected depth coverage. Report only opens the report and stops automatic
+triage.
 
-`/improve` offers at most three candidates plus an exclusive no-change option.
-It allows quick-win multi-selection only when candidates are independent. One
-clear bounded candidate routes to `implement`; multiple independent candidates
-route to `planning-changes` for possible `parallel-ready` lanes; coordinated
-work routes to planning; unresolved, hard-to-reverse, cross-cutting, migration,
-or major architecture work routes to Shape then planning. Missing route skills
-return a self-contained brief and do not start implementation, workers, edits,
-commits, or publication.
+The accepted depths are `low`, `medium`, `high`, and `max`. Scope can name a
+module, package, vertical feature slice, architecture pattern, test surface,
+pain point, or history area. Low keeps independent reversible quick wins. One
+clear candidate routes to `implement`; independent or coordinated groups route
+to `planning-changes`; unresolved or risky work routes to Shape then planning.
 
-Test-surface candidates use the target language's normal pattern and consolidate
-only cases with the same behavior, setup, and assertions. For Go work,
-target-repository standards take precedence, then the installed `go` skill, then
-generic architecture guidance. Table-driven subtests remain the Go default;
-`cobra-viper` remains conditional on Cobra or Viper commands, flags, or CLI
-configuration.
+The skill creates one Blueprint Ledger HTML report in a unique OS temp
+directory. It returns a tokenized loopback URL and the standalone absolute path.
+The Node-built-in helper expires after a bounded lifetime and stops
+idempotently. A missing Node runtime or server failure leaves the standalone
+HTML readable. The report follows the system theme until the reader selects a
+light or dark override. It uses version-pinned Tailwind and Mermaid CDNs only
+when target-repository policy permits that trust. Semantic content remains
+readable without them. Mermaid is reserved for graph-shaped evidence. HTML,
+CSS, and inline SVG show architecture-specific module Depth, mass, and
+cross-sections.
+
+The report is a reading surface, not an authority surface. Action, Track, Won't
+do, Deepen, and custom decisions occur in the terminal. A later request can
+resume by candidate ID. Track queues a complete draft only. One exact displayed
+draft set needs a separate batch confirmation before remote creation. Action
+uses a Herdr-or-equivalent pane only when that capability is available; the
+fallback stays in the current session. Parallel writers require independent
+isolated worktrees.
+
+For Go source, modules, Go CLIs, or Go-specific work, target-repository standards
+come first, then the installed `go` skill, then generic guidance. Every capable
+evidence lane loads `go`; a lane that cannot load it returns evidence only. An
+unavailable skill records the unmet method and uses bounded target-repository Go
+standards. Without either source, the report omits the unsupported Go-specific
+candidate. Table-driven subtests remain the Go default where applicable.
+`cobra-viper` stays conditional on Cobra or Viper commands, flags, or CLI
+configuration. Unrelated toolchain evidence does not activate either method.
+
+High and max can use one read-only AskClaude second opinion when repository
+network, privacy, and source-disclosure rules permit it. Deepen does not call it
+again. Tracker, pane, Node, CDN, server, and companion-skill failures have
+explicit, honest fallbacks.
 
 `code-review` evaluates the accepted pitch and plan plus repository Standards.
 It loads only the applicable TypeScript, React, Go, or SQL guide from its
