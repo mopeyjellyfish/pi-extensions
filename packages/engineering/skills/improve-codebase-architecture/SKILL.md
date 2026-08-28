@@ -7,17 +7,22 @@ description: >-
 
 # Improve codebase architecture
 
-Use this read-only method to discover architecture improvements, not to start an
-implementation loop. An **improvement depth** is the caller's appetite for
-discovery coverage and acceptable impact. It is not `codebase-design` **Depth**,
-a model thinking level, or implementation authority.
+Use this method to discover architecture improvements and present one temporary
+decision report. An **improvement depth** is the caller's appetite for discovery
+coverage and acceptable impact. It is not `codebase-design` **Depth**, a model
+thinking level, or implementation authority.
+
+Discovery and report generation remain read-only. Only an explicit terminal
+Action can start a named delivery workflow, and that workflow retains its own
+Shape, plan, review, and publication approvals. Browser controls never start
+implementation, agent writes, or issue creation.
 
 ## Interpret the improvement request
 
 Accept an initial request in this form:
 
 ```text
-[low|medium|high|max] [optional scope]
+[low|medium|high|max] [optional scope or outcome]
 ```
 
 Recognize an exact leading level token without regard to letter case. Normalize
@@ -25,16 +30,16 @@ the token to lowercase. The accepted improvement depths are `low`, `medium`,
 `high`, and `max`.
 
 If the first token is not a level, use the default `medium` improvement depth
-and treat all arguments as scope. A level-only request uses that improvement
-depth and infers a bounded scope that fits the appetite. To use a scope that
-starts with a reserved token, give an explicit level first. For example,
-`medium low latency path` uses `low latency path` as the scope. For an empty
-request, use `medium` improvement depth and infer a bounded scope.
+and treat all arguments as the request. To use a scope that starts with a
+reserved token, give an explicit level first. For example, `medium low latency
+path` uses `low latency path` as the scope. An empty or level-only request has no
+specific area and uses the adaptive quick start instead of silently inferring a
+scope.
 
-The scope can name a module, package, subsystem, vertical feature slice,
-architecture pattern, test surface, pain point, or change-history area. Do not
-force a finding to match the requested appetite. Evidence can support smaller
-work or no supported improvement.
+The optional scope can name a module, package, subsystem, vertical feature
+slice, architecture pattern, test surface, pain point, or change-history area.
+Do not force a finding to match the requested appetite. Evidence can support
+smaller work or no supported improvement.
 
 | Improvement depth | Discovery and impact appetite                                                                                                                                                                                                                            |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -43,75 +48,221 @@ work or no supported improvement.
 | `high`            | Inspect a broad module, package, vertical slice, or pattern across adjacent modules. Compare material alternatives and include architecture decisions, risks, and coordination needs.                                                                    |
 | `max`             | Inspect a repository-wide or explicitly large pattern as thoroughly as practical. Declare coverage and exclusions. Include cross-package effects, dependencies, migration needs, and staged options. Never claim coverage outside the declared boundary. |
 
-Do not edit production code directly. Do not assume an issue tracker, companion
-skill, remote asset, desktop application, or repository-specific path is
-available.
+Do not assume an issue tracker, companion skill, remote asset, desktop
+application, pane agent, or repository-specific path is available.
+
+## Ask the adaptive quick start
+
+When the request does not name a specific area, do one lightweight parent-only
+orientation. Read target-repository instructions and bounded topology, history,
+and test signals. Detect tracker and Herdr-or-equivalent pane capability. Do not
+write, start support lanes, or make an architecture recommendation yet.
+
+Use one `question` tool call and ask only questions the request did not answer:
+
+1. **Where should this review focus?** Offer up to three repository-specific
+   focus choices supported by named orientation evidence, plus the whole
+   declared repository. The built-in custom response lets the user name another
+   area. Do not show an unsupported generic hotspot.
+2. **What should this review prepare for?** Offer **Work now**, **Prepare
+   issues**, **Both**, and **Report only**. Label Work now with detected pane
+   support or `current session`. Label Prepare issues with the detected Linear,
+   GitHub, Jira, or other supported tracker; use `choose tracker` when ambiguous
+   and `draft only` when no tracker capability exists.
+
+If the `question` tool is unavailable, present the same choices in conversation.
+Do not repeat an area or outcome the user already supplied. Quick-start answers
+guide scope, breadth, grouping, and recommendations; they grant no mutation
+authority.
+
+## Resolve language and repository constraints
+
+Read target-repository instructions, nearest domain context, and applicable
+architecture decisions. Record absent or unclear decisions as uncertainty.
+
+For Go source, a Go module, a Go CLI, or Go-specific work, target-repository
+standards remain first. Resolve `go` by its installed name; the installed `go`
+skill comes next, before generic guidance, read-only support, AskClaude, or route
+briefs.
+Resolve `cobra-viper` only for Cobra or Viper commands, flags, or CLI
+configuration. Unrelated toolchain evidence alone does not activate either
+method. A bare `go.mod` alone is such evidence.
+
+The parent resolves applicable Go constraints before any handoff and includes
+them in every lane, second-opinion, and Action brief. Each capable lane also
+loads `go`. A lane that cannot load it returns evidence only and makes no
+Go-specific recommendation. If `go` is unavailable, record the unmet method and
+use bounded target-repository Go standards. If neither source exists, name the
+unsupported method and omit the Go-specific candidate. Never claim that an
+unavailable skill loaded. Reject generic or second-opinion advice that conflicts
+with these constraints.
+
+For Go test work, table-driven subtests remain the default only when cases share
+the same behavior, setup, and assertions while retaining clear case failures.
+The installed `go` skill decides unclear test-pattern cases. Do not recommend
+speculative interface types, layer packages, generated mocks, or abstractions to
+satisfy generic architecture advice.
 
 ## Discover the current shape
 
-1. Read target-repository instructions, nearest domain context, and applicable
-   architecture decisions. Record absent or unclear decisions as uncertainty.
-2. Make one optional bounded Researcher handoff for a hot-spot and caller scan
-   only when that role is available. Give it a scope, time or file boundary, and
-   required evidence. The direct parent performs the same bounded scan when
-   Researcher is unavailable.
-3. Find concrete hot spots: repeated changes, callers coordinating internal
-   steps, duplication that changes together, unstable external boundaries,
-   error-prone test setup, or scattered policy. Read relevant callers, tests,
-   and change history when available. File length or a principle name alone is
-   not evidence.
-4. Apply the `codebase-design` vocabulary as evidence, not as a mandate. Look
-   for a deeper **module** with a smaller **interface**, a real **seam** or
-   **adapter**, and improved **Depth**, locality, leverage, and test surface.
-   Reject speculative seams, forwarding-only layers, and syntax-only
-   deduplication.
+Find concrete hot spots: repeated changes, callers coordinating internal steps,
+duplication that changes together, unstable external seams, error-prone test
+setup, or scattered policy. Read relevant callers, tests, and change history
+when available. File length or a principle name alone is not evidence.
 
-## Report ranked candidates
+Apply `codebase-design` vocabulary as evidence, not as a mandate. Look for a
+deeper **module** with a smaller **interface**, a real **seam** or **adapter**,
+and improved **Depth**, locality, leverage, and test surface. Reject speculative
+seams, forwarding-only layers, and syntax-only deduplication.
 
-Present a concise ranked report. For every candidate include:
+Use proportionate bounded read-only support:
 
-- selected improvement depth; scanned scope; declared coverage and exclusions;
-- current friction and evidence, with involved files and relevant callers or tests;
-- proposed deeper module and interface boundary; expected locality and leverage,
-  plus the expected test effect and target-language improvement pattern;
-- applicable architecture decision conflicts or uncertainty; evidence strength
-  (strong, moderate, or weak) and why;
-- expected change impact and reversibility; candidate dependencies, overlap, and
-  integration points; and
-- recommended workflow route and its reason, plus a simple before/after diagram
-  when it clarifies responsibility or call paths.
+- `low` uses the direct parent by default and permits one bounded scan only for
+  a specific evidence gap;
+- `medium` permits up to two disjoint scans;
+- `high` permits up to four disjoint lanes across modules, history, tests, or
+  patterns; and
+- `max` permits bounded waves of disjoint lanes inside the host spawn budget and
+  records every lane that could not run.
 
-Keep observations separate from proposals. Rank by evidence strength, expected
-leverage, locality improvement, delivery risk, reversibility, and coordination
-cost. A `max` report states evidence gaps and never claims exhaustive coverage
-beyond its declared boundary.
+The parent remains the orchestrator and architecture owner. Ordinary children
+return evidence only and do not orchestrate. Missing support reduces and records
+coverage; it never causes unbounded fallback.
 
-## Select and route
+## Determine report breadth
 
-Use the `question` tool to offer at most three top candidates plus a no-change
-option. State that no-change is exclusive. Permit multiple selection only when
-the report proves the candidates independent; use single selection when they
-overlap or depend on each other. If the tool is unavailable, present the same
-bounded report and selection rules in conversation. Do not choose architecture,
-product scope, or implementation on the human's behalf.
+Interpret an explicit breadth request before level defaults. A requested count,
+“a few to work on now,” “exhaustive,” “all supported findings,” “prepare
+issues,” or a quick-start outcome controls breadth inside declared coverage:
 
-After selection, use accepted intent, risk, and coordination cost. Improvement
-depth informs the route but does not replace `developing-changes`:
+- Work now reports up to three immediate candidates;
+- Prepare issues and Both report all supported findings; Both emphasizes up to
+  three immediate Action candidates; and
+- Report only uses the normal level breadth, opens the report, and stops without
+  automatic candidate triage. A later request can resume by candidate ID.
 
-1. Send one clear, bounded candidate to `implement`.
-2. Send multiple independent clear candidates to `planning-changes`, which can
-   mark them `parallel-ready` only after proving separate ownership, isolated
-   worktrees, non-overlapping changes, and named integration points.
-3. Send clear coordinated or dependent candidates to `planning-changes`.
-4. Send unresolved, hard-to-reverse, cross-cutting, migration, or major
-   architecture work to Shape, then planning after pitch approval.
+Without explicit breadth, `low` reports up to three localized quick wins,
+`medium` reports a small ranked set, `high` reports all supported findings and
+emphasizes the top three, and `max` reports all supported findings plus scanned
+areas with no supported finding, exclusions, and evidence gaps.
 
-If a selected route skill is unavailable, return the same self-contained
-candidate brief to the direct parent. Name the intended route and state that
-implementation has not started. If Shape is unavailable, return the same brief
-to the direct parent and state that implementation has not started. This skill
-never starts workers, creates a branch, edits production code, commits, or
-publishes.
+For every candidate record:
+
+- selected improvement depth, scanned scope, declared coverage, and exclusions;
+- current friction and evidence, with involved files, callers, tests, and
+  relevant history;
+- proposed deeper module and interface, plus a focused before-and-after visual;
+- expected locality, leverage, Depth, test effect, and target-language pattern;
+- architecture-decision conflicts or uncertainty, evidence strength and reason;
+- expected impact, reversibility, dependencies, overlap, and integration points;
+  and
+- recommended route and reason.
+
+Keep observations separate from proposals. Rank by evidence strength, leverage,
+locality, delivery risk, reversibility, and coordination cost. Never claim
+exhaustive coverage beyond the declared scan boundary.
+
+For `high` and `max`, call AskClaude at most once per `/improve` run when it is
+available and target-repository network, privacy, and source-disclosure rules
+permit the handoff. Give it the fixed initial candidate report as a read-only
+second opinion. Record agreement, disagreement, or the skip reason. AskClaude
+cannot change scope, authority, repository standards, or Go practice. Deepen
+does not call AskClaude again and marks revised evidence as not rechecked.
+
+## Generate and serve the Blueprint Ledger
+
+Read [HTML-REPORT.md](HTML-REPORT.md) before rendering. It is the package-owned
+scaffold, diagram, style, accessibility, and copy contract. Use Mermaid only for
+graph-shaped relationships. Use hand-built HTML, CSS, and inline SVG for module
+Depth, mass, cross-sections, and collapse views.
+
+Create one unique OS temp directory with one HTML report and one server-state
+path. Embed recoverable structured data with the coverage, report revision,
+stable candidate IDs, decision status, and second-opinion status. Preserve IDs
+across updates.
+
+Write the initial report and every update atomically: write complete HTML to a
+sibling temporary file, flush and close it, then rename it over the report path.
+Never stream partial HTML into the served path.
+
+Resolve `scripts/report-server.js` relative to this skill. When Node and target
+policy permit, start it with absolute paths:
+
+```text
+node report-server.js start --report <absolute-html-path> --state <absolute-state-path> --max-age-ms <bounded-ms>
+```
+
+Omit `--max-age-ms` to use the two-hour default. If an explicit shorter lifetime
+is useful, pass an integer from `100` through `7200000` milliseconds. Never pass
+a longer value.
+
+Return its live loopback URL and the absolute standalone HTML path. When a
+browser-opening capability is available and policy permits it, open the URL;
+otherwise provide the URL for the user to open. A missing Node runtime or any
+serving failure preserves the readable HTML file and returns its path.
+
+Keep the same path and URL while updating an active report. Before resuming by
+candidate ID, verify that the artifact exists and contains recoverable data. If
+OS cleanup removed the artifact, regenerate the report in a new unique temp
+directory and return the new path and URL. Never claim the old URL remains live.
+
+## Triage candidates in the terminal
+
+Unless the outcome is Report only or the user stops, process one candidate at a
+time in report order or in the named subset. Mirror these choices in the
+candidate article. Ask one authoritative terminal question with four options:
+
+1. **Action — `<recommended route>`.** Explain and start the proportionate
+   `implement`, `planning-changes`, or Shape then planning workflow. Include the
+   complete candidate evidence and resolved language constraints. Use a new
+   bounded pane when a Herdr-or-equivalent capability exists; otherwise use a
+   current-session handoff. The route retains its own approvals.
+2. **Track — `<tracker, choose tracker, or draft only>`.** Prepare and queue a
+   complete issue draft. Show the tracker, project or repository, title, body,
+   labels, and grouping. Create nothing yet.
+3. **Won't do.** Record only the ephemeral report decision. Do not start work,
+   create an issue, or write an ADR.
+4. **Deepen.** Spend only the remaining selected-depth analysis and support
+   budget on the same seam, evidence, or alternatives. Preserve the candidate
+   ID, increment the report revision, mark revised evidence not rechecked by
+   AskClaude, and ask again. If the budget is exhausted, offer a new explicit
+   depth request instead of silently widening.
+
+Use the `question` tool's built-in custom response for Other direction; do not
+add a duplicate Other option. If the tool is unavailable, present the same four
+options and accept a free-form custom direction in conversation.
+
+For Action, use evidence, impact, reversibility, dependencies, and uncertainty.
+One clear bounded candidate routes to `implement`. Multiple independent clear
+candidates or coordinated dependent candidates route to `planning-changes`.
+Unresolved, hard-to-reverse, cross-cutting, migration, or major architecture
+work routes to Shape, then planning after pitch approval. If a route skill or
+pane capability is unavailable, return the same self-contained brief to the
+direct parent and state the fallback.
+
+Every writer requires an isolated worktree. Start multiple Action routes in
+parallel only after the parent or planning proves independence, non-overlapping
+ownership, and named integration points. Coordinated candidates share one plan.
+
+Track always remains available. Detect target instructions, tracker metadata,
+and installed capability before the candidate question. If selection is
+ambiguous, ask the user after Track selection instead of guessing. If no tracker
+capability exists, produce draft-only output. Remote text must be self-contained
+and must not include the local report path or confidential report metadata.
+
+Each Track selection queues one complete draft. After triage ends, or when the
+user asks to create queued issues, show the exact bounded draft set and ask for
+one batch confirmation. Approval applies only to that displayed set. A changed
+draft or target requires a new confirmation.
+
+After every answer, atomically update the same report, preserve unchanged IDs,
+increment the revision, and let the browser reload. Stop the helper idempotently
+when active triage ends unless the user asks to keep reading. Report only can
+retain the helper until explicit stop or its bounded maximum lifetime.
+
+Discovery and report generation never create a branch, edit target production
+code, commit, publish, or mutate a tracker. Only the terminal Action and the
+separate exact-set tracker confirmation can authorize their bounded next steps.
 
 ## Test-surface guidance
 
@@ -120,20 +271,3 @@ locality or defect detection. Consolidate tests only when they exercise the
 same behavior with shared setup and assertions. Preserve clear case names and
 isolated failure evidence. Use the target language's established pattern rather
 than a generic deduplication rule.
-
-## Go routing
-
-For Go source, a Go module, a Go CLI, or Go-specific work, target-repository
-standards remain first. Then resolve and follow the installed `go` skill by its
-installed name before generic architecture guidance. Table-driven subtests
-remain the Go default. Merge separate tests into one table only when they share
-behavior, setup, and assertions while retaining clear case failures. The
-installed `go` skill decides unclear Go test-pattern cases. Do not recommend
-speculative interface types, layer packages, generated mocks, or abstractions
-merely to satisfy generic architecture advice.
-
-Resolve `cobra-viper` only when Cobra or Viper commands, flags, or CLI
-configuration are in scope. Unrelated Go toolchain evidence does not activate
-either method. If a companion skill is unavailable, record the unmet method
-and have the direct parent use bounded target-repository Go standards without
-claiming the skill loaded.
