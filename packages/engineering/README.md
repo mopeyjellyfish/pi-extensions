@@ -171,12 +171,15 @@ pi install /path/to/pi-extensions/packages/engineering
 `/improve [low|medium|high|max] [scope]` uses
 `improve-codebase-architecture` for evidence-backed discovery. An empty or
 level-only request uses `medium` by default and asks one adaptive Focus and
-Outcome intake instead of silently choosing a scope. Focus offers evidence-named
-areas. Outcome offers Work now, Prepare issues, Both, and Report only with
-truthful pane and tracker labels. Work now reports up to three immediate
-candidates. Prepare issues and Both report all supported findings inside the
-selected depth coverage. Report only opens the report and stops automatic
-triage.
+Outcome intake instead of silently choosing a scope. Focus offers **Find
+improvements** for a level-appropriate, evidence-backed focus, up to two
+evidence-named areas, the whole repository, and a custom response. A
+user-supplied focus is authoritative; depth controls discovery inside it and
+does not silently broaden it. Outcome offers Work now, Prepare issues, Both, and
+Report only with truthful pane and tracker labels. Work now reports up to three
+immediate candidates. Prepare issues and Both report all supported findings
+inside the selected depth coverage. Report only opens the report and stops
+automatic triage.
 
 The accepted depths are `low`, `medium`, `high`, and `max`. Scope can name a
 module, package, vertical feature slice, architecture pattern, test surface,

@@ -585,6 +585,12 @@ describe("engineering resources", () => {
     expect(skill).toMatch(
       /one `question` tool call[\s\S]*Where should this review focus[\s\S]*What should this review prepare for/iu,
     );
+    expect(skill).toMatch(
+      /Find improvements[\s\S]*level-appropriate[\s\S]*evidence-backed[\s\S]*focus/iu,
+    );
+    expect(skill).toMatch(
+      /user[^.]*specific\s+area[^.]*authoritative[\s\S]*do not ask[^.]*focus[\s\S]*do not broaden/iu,
+    );
     expect(skill).toMatch(/Work now[\s\S]*Prepare issues[\s\S]*Both[\s\S]*Report only/iu);
     expect(skill).toMatch(
       /Work now[^.]*up to three[\s\S]*Prepare issues[^.]*all supported[\s\S]*Report only[^.]*stops/iu,
@@ -626,6 +632,9 @@ describe("engineering resources", () => {
 
     expect(readme).toMatch(/`low`[\s\S]*`medium`[\s\S]*`high`[\s\S]*`max`/u);
     expect(readme).toMatch(/adaptive Focus and\s+Outcome[\s\S]*Blueprint Ledger[\s\S]*loopback/iu);
+    expect(readme).toMatch(
+      /Find\s+improvements[\s\S]*level-appropriate[\s\S]*user-\s*supplied\s+focus[\s\S]*authoritative/iu,
+    );
     expect(readme).toMatch(/Mermaid[\s\S]*graph-shaped[\s\S]*HTML,\s+CSS, and inline SVG/iu);
     expect(readme).toMatch(
       /Action[\s\S]*Track[\s\S]*batch confirmation[\s\S]*Herdr-or-equivalent/iu,
