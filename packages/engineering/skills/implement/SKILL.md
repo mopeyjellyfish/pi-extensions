@@ -28,18 +28,26 @@ tool is available and treat setup failures separately from behavior failures.
 
 ## Select execution
 
-A complete accepted plan records its execution mode. Checkpointed implementation
-is the default: checkpointed plans retain all routine prompts. Accept-all is
-authority only when whole-plan approval confirms accept-all authority for the
-named accepted plan; otherwise treat an accept-all preference as checkpointed.
-An accept-all plan runs every named delivery unit through tests, required gates,
-risk-selected assurance, commit, and authorized publication in dependency order
-without routine Accept and publish or Continue questions. Accept-all plans pause
-for setup, test, check, commit, or publication failure and return control to the
-human; they also pause for material review findings, material forecast variance,
-or any change to accepted scope, delivery boundaries, dependencies, or
-authority. Accept-all never authorizes merge, release, deployment, destructive
-cleanup, or unrelated work.
+A direct bounded implementation request or a complete accepted plan grants
+bounded publication authority for its named task branch and delivery unit. The
+default flow implements, verifies, reviews when selected, commits, pushes, and
+opens or updates a ready pull request. Checkpointed implementation is the
+default and retains only its next delivery unit checkpoint.
+Accept-all is authority only when whole-plan approval confirms accept-all
+authority for the named accepted plan; otherwise treat an accept-all preference
+as checkpointed. An accept-all plan runs every named delivery unit through tests,
+required gates, risk-selected assurance, commit, and authorized publication in
+dependency order without routine questions. Accept-all plans pause for setup,
+test, check, commit, or publication failure and return control to the human;
+they also pause for material review findings, material forecast variance, or any
+change to accepted scope, delivery boundaries, dependencies, or authority.
+
+An explicit opt-out narrows this authority. `local-only`, `no push`, or `no PR`
+permits a local commit but prevents `open-pr` and every remote mutation. `no
+commit` prevents commit and every dependent publication action. Record each
+opt-out and skipped action in the final state.
+Accept-all never authorizes merge, release, deployment, destructive cleanup,
+branch deletion, plain force push, or unrelated changes.
 
 Complete accepted plan execution follows the accepted dependency graph without
 replanning. Consume dependent slices and delivery units in dependency order.
@@ -271,10 +279,14 @@ toolchain evidence alone does not activate either method. If a companion skill
 is unavailable, record the unmet method and have the direct parent use bounded
 target-repository Go standards without pretending the skill loaded.
 
-## Concurrent assurance and acceptance
+## Concurrent assurance and publication readiness
 
-The complete work evidence document supports Review, Revise, Deepen verification,
-or Pause before acceptance. Risk determines whether a formal review is needed.
+The parent uses the complete work evidence document to select Review, Revise,
+Deepen verification, or Pause. This is not a publication approval prompt. Risk
+determines whether a formal review is needed. When no stop condition remains,
+continue directly to Publication without requesting user acceptance for remote
+actions.
+
 For a stable completed delivery unit that needs independent review, run one fixed
 formal review. A configured `reviewer` capability must load and follow
 `code-review` with fresh read-only context. Give it the worktree, fixed-point
@@ -292,15 +304,29 @@ review findings without starting a second full review; pause if repair changes
 architecture or accepted scope. For an accepted accept-all plan, pause and
 return control to the human before resolving any material finding. Publication
 requires every selected gate green and every material review finding resolved.
-
 For formal review, send `Review mode: fixed-diff code` with the handoff.
 
-For checkpointed plans, present the evidence and an explicit **Accept and
-publish** action. Acceptance invokes `commit` and `open-pr` with no second
-mutation prompt. For accepted accept-all plans, perform the same commit and
-authorized publication after successful evidence and any selected review without
-that routine question. These focused delivery skills own publication; lifecycle
-guidance must not issue ad hoc Git commands.
+## Publication
+
+Publication starts only after tests, required gates, selected review, accepted
+repairs, and invalidated evidence are complete. Apply each recorded opt-out
+first. If `no commit` applies, skip `commit` and `open-pr`. If `local-only`, `no
+push`, or `no PR` applies, invoke installed `commit` and skip `open-pr`, so no
+remote mutation occurs. Otherwise, invoke installed `commit` and then installed
+`open-pr` without a final publication question. `commit` creates the verified
+atomic local commit or commits. `open-pr` performs the normal push and creates or
+updates the ready pull request. Report each skipped action in the final state.
+These focused delivery skills own publication; lifecycle guidance must not issue
+ad hoc Git commands.
+
+Installed `commit` and `open-pr` are the publication methods. If a method needed
+for the permitted actions is unavailable in an independent installation, fail
+closed: preserve verified local evidence, report the unmet method, and give one
+bounded recovery action. If
+authentication, base branch, remote branch, required tooling, commit, push, or
+pull-request verification is unsafe or fails, preserve local evidence, stop for
+diagnosis, and give one clear recovery action. Do not retry a failed mutation
+without diagnosis and new evidence.
 
 Publish independent delivery units as sibling standalone pull requests from their
 accepted common base. Publish each sequential dependency chain in dependency and
@@ -314,9 +340,9 @@ evidence, and state the recovery action. Do not replace an accepted stack with
 unrelated pull requests or stack independent units only because they belong to
 the same pitch.
 
-Acceptance authorizes only the verified planned unit and named task branch. It
-does not authorize merge, deployment, release, plain force push, cleanup,
-destructive actions, or unrelated changes.
+Publication authorizes only the verified planned unit and named task branch. It
+never authorizes merge, release, deployment, cleanup, branch deletion, plain
+force push, destructive actions, or unrelated changes.
 
 ## Continue an accepted plan
 

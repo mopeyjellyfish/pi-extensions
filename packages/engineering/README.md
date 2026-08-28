@@ -123,33 +123,39 @@ destructive cleanup, or unrelated work. Delegation must provide a critical-path,
 parent-context, or independent-evidence benefit. Bounded one-unit routes do not
 gain forecast overhead.
 
-Every accepted unit runs tests, required gates, risk-selected assurance, commit,
-and authorized publication. For checkpointed plans, the parent asks before
-publication; accepted accept-all omits that routine prompt.
+Every direct bounded implementation request and accepted plan authorizes its
+named task branch and delivery unit to commit, push, and open or update a ready
+pull request by default. Publication follows tests, required gates,
+risk-selected assurance, accepted repairs, and invalidated evidence. `implement`
+composes installed `commit` and `open-pr`; an independent installation that lacks
+either preserves local evidence, reports the unmet method, and stops with a
+recovery action. `local-only`, `no push`, or `no PR` allows a local commit but
+prevents `open-pr` and every remote mutation. `no commit` prevents every
+publication action. Publication never includes merge, release, deployment,
+cleanup, branch deletion, plain force push, or unrelated changes.
 
-For checkpointed plans, pause and report material coordination variance against
-the accepted forecast and seek fresh approval only when delivery boundaries or
-authority change. Every material variance pauses accepted accept-all execution.
-The explicit **Accept and publish** action invokes `commit` and `open-pr` without
-a second mutation prompt; accepted accept-all performs the same steps after
-successful evidence and any selected review.
+For checkpointed plans, report material coordination variance against the
+accepted forecast. Seek fresh approval only when delivery boundaries or
+authority change.
 Independent delivery units can run in parallel and publish as sibling standalone
 pull requests; sequential dependency chains publish as ordered GitHub stacks. A
 mixed plan preserves each independent lane and dependent chain. Every accepted
 unit uses `open-pr`, while only sequential chains require `gh stack`.
 
-When the current checkpointed delivery unit is accepted and committed, and
-authorized publication has completed, the parent summarizes the next planned
+Checkpointed implementation has no final publication prompt. After the current
+delivery unit is committed and published, the parent summarizes the next planned
 unit's outcome, dependencies, proof, checks, and remaining progress. It offers
-**Continue**, **Review next unit**, and **Discuss**; review or discussion returns
-to the same checkpoint when the accepted plan does not change. Accepted
-accept-all continues in dependency order after successful evidence, any selected
-review, commit, and publication. Scope, delivery boundaries, dependencies, or
-authority changes return through planning and approval. Repeat until the
-remaining units are complete, then report plan completion. Plan-less requests
-and single-unit plans do not receive a next-unit prompt. Planned stacks require
-`gh stack`; unavailable delivery tools fail closed while preserving local work
-and recovery evidence.
+**Continue**, **Review next unit**, and **Discuss** only before starting that
+unit. Review or discussion returns to the same checkpoint when the accepted plan
+does not change.
+
+Accepted accept-all continues in dependency order after successful evidence, any
+selected review, commit, and publication. Scope, delivery boundaries,
+dependencies, or authority changes return through planning and approval. Repeat
+until the remaining units are complete, then report plan completion. Plan-less
+requests and single-unit plans do not receive a next-unit prompt. Planned stacks
+require `gh stack`; unavailable delivery tools fail closed while preserving
+local work and recovery evidence.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
 worker worktree. The direct parent integrates and verifies the result. When the

@@ -76,7 +76,7 @@ Invalidation map:
 - A base-branch change before publication invalidates the verified tree and
   requires the applicable focused and complete checks after rebase.
 
-## [ ] 001 — Implementation finishes with bounded publication
+## [x] 001 — Implementation finishes with bounded publication
 
 ### Outcome and requirement trace
 
@@ -146,11 +146,9 @@ Update `implement` so that:
 - checkpointed and accept-all execution invoke `commit` and then `open-pr`
   without a final **Accept and publish** question;
 - checkpointed execution retains only the next-delivery-unit checkpoint;
-- `local-only` permits a local commit but prevents push and pull-request
-  mutation;
+- `local-only`, `no push`, or `no PR` permits a local commit but prevents
+  `open-pr` and every remote mutation;
 - `no commit` prevents commit and every dependent publication action;
-- `no push` permits a local commit but prevents push and pull-request mutation;
-- `no PR` permits commit and normal push but prevents pull-request mutation;
 - publication failure preserves local evidence and stops for diagnosis; and
 - merge, release, deployment, cleanup, branch deletion, plain force push, and
   unrelated changes remain prohibited.
