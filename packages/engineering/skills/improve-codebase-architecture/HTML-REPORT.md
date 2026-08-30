@@ -30,6 +30,22 @@ them. Apply target-repository network, privacy, and source-disclosure rules
 first. If those rules prohibit a CDN, omit the imports and preserve the semantic
 fallback.
 
+## Test-candidate evidence
+
+For each applicable test candidate, the semantic fallback and recoverable
+structured data must include effectiveness risk and plausible missed wrong
+behavior, suite timing boundary and holistic evidence, measured hot cases or an
+evidence gap, branch/base comparison with comparability limits, reliability,
+failure-isolation, and maintenance effects, applicable constraints, primary
+sources, expected defect-detection and performance effects, tradeoffs, route,
+and proof. Keep this evidence in headings and lists as well as `report-data`;
+browser controls do not own it.
+
+Omit both the **Test evidence** section and the `testEvidence` structured-data
+object from candidates where test evidence does not apply. The scaffold comments
+that mark these conditional regions are authoring guidance; do not emit them in
+the generated report.
+
 ## Complete scaffold
 
 Generate a complete document from this scaffold. Replace placeholder evidence,
@@ -558,6 +574,31 @@ flowchart LR
                 <li><strong>Test effect:</strong> cases remain isolated while setup collapses.</li>
               </ul>
             </section>
+            <!-- Include this section only for an applicable test candidate. -->
+            <section class="prose-section py-6">
+              <h3 class="font-semibold">Test evidence</h3>
+              <div>
+                <p>
+                  <strong>Effectiveness risk:</strong> state the plausible wrong behavior and missed
+                  public seam, or no supported risk.
+                </p>
+                <p class="mt-2">
+                  <strong>Suite timing boundary:</strong> state the measured suite or CI stage and
+                  conditions.
+                </p>
+                <p class="mt-2">
+                  <strong>Hot cases:</strong> list measured cases, or state the evidence gap.
+                </p>
+                <p class="mt-2">
+                  <strong>Branch/base comparison:</strong> state compatible refs, SHAs, run
+                  identifiers, samples, confounders, or limits.
+                </p>
+                <p class="mt-2">
+                  <strong>Constraints and sources:</strong> state applicable methods, primary
+                  sources, reliability, failure isolation, maintenance, tradeoffs, and proof.
+                </p>
+              </div>
+            </section>
             <section class="prose-section py-6">
               <h3 class="font-semibold">Delivery notes</h3>
               <div>
@@ -599,6 +640,7 @@ flowchart LR
       </div>
     </main>
 
+    <!-- Within report-data, omit testEvidence from non-test candidates. -->
     <script id="report-data" type="application/json">
       {
         "revision": 4,
@@ -620,7 +662,21 @@ flowchart LR
             "impact": "localized",
             "route": "implement",
             "decisionStatus": "awaiting-decision",
-            "secondOpinionStatus": "agreed"
+            "secondOpinionStatus": "agreed",
+            "testEvidence": {
+              "effectivenessRisk": "plausible missed wrong behavior or evidence gap",
+              "suiteTimingBoundary": "suite or CI-stage boundary and conditions",
+              "hotCases": [],
+              "branchBaseComparison": "refs, SHAs, runs, samples, confounders, or limits",
+              "reliabilityFailureIsolationAndMaintenance": "applicable effects",
+              "constraints": [],
+              "primarySources": [],
+              "evidenceGaps": [],
+              "defectDetectionEffect": "expected effect",
+              "performanceEffect": "expected effect",
+              "tradeoffs": "accepted tradeoffs",
+              "proof": "required proof"
+            }
           }
         ]
       }
