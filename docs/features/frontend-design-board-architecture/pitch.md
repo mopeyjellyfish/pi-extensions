@@ -37,9 +37,14 @@ Deliver one coordinated architecture and behavior change on
    persistence, lifecycle, reachability, and URL opening in
    `DesignBoardService`. Keep shared policy explicit at the seam, including the
    notes limit, image URL shape, generated path and token invariants, and CSP.
-2. Correct the CLI comparison grid so unused tracks collapse and two to eight
-   directions use the available evidence surface. Preserve board-feedback
-   controls, full-size viewers, image containment, themes, and narrow layouts.
+2. Replace the narrow split workspace with the accepted evidence-first comparison
+   canvas. Keep equal-scale direction evidence as the focal surface. Put the
+   section heading outside the repeated grid so unused tracks collapse. In
+   board-feedback mode, use one sticky bottom decision strip for the selected
+   direction, notes, and submit action instead of a right panel that reduces
+   evidence width. In CLI mode, keep the same comparison canvas without form
+   controls. Preserve full-size viewers, image containment, themes, and narrow
+   layouts.
 3. Add deterministic routing invariants over existing skill frontmatter and
    references. Detect overlapping first-owner claims and circular delegation.
    Keep attribution, forbidden-path, package-hygiene, lifecycle, and security
@@ -55,7 +60,8 @@ Deliver one coordinated architecture and behavior change on
 Planning will preserve three dependent vertical slices:
 
 - isolate rendering without changing public board behavior;
-- fix and prove the CLI comparison layout through the public board URL; and
+- implement and prove the accepted comparison canvas through the public board
+  URL; and
 - add routing invariants before changing discovery descriptions and delegation.
 
 The pitch and plan have no independent merge value. They will publish with one
@@ -63,30 +69,64 @@ stable implementation delivery unit.
 
 ### Interface evidence
 
-- **Person and task:** A developer or product owner compares two to eight UI
-  directions and chooses what the implementation should carry forward.
+- **Person and task:** A developer or product owner has just asked an agent for
+  frontend directions. They must compare two to eight pieces of visual evidence,
+  inspect details, and return one unambiguous decision with optional notes.
 - **Surface mode:** A localhost browser board, with CLI feedback by default and
   optional board-native feedback.
-- **Design authority:** Preserve the current implemented board and the accepted
-  live-board contract. This work does not establish a new visual identity.
-- **Desired result:** Keep the restrained inspection surface. Use available
-  width for evidence and keep the comparison path clear.
-- **Focal workflow:** Read the checkpoint, compare equal direction evidence,
-  inspect full size when needed, then return to the CLI or submit explicit board
-  feedback.
+- **Desired feel:** A calm evidence workstation, not a generic SaaS dashboard.
+  The review must feel precise, quiet, and ready for a decision.
+- **Domain:** visual evidence, comparison scale, direction index, revision,
+  recommendation, decision, and implementation handoff.
+- **Color world:** browser-paper white, blueprint cobalt, graphite ink, quiet
+  cool-gray canvas, verification green, and low-contrast divider gray.
+- **Signature:** Equal-scale evidence occupies the full canvas while one compact
+  decision strip floats at the bottom. The strip keeps choice, notes, and submit
+  context visible without taking horizontal space from the evidence.
+- **Rejected defaults:** Do not use a dashboard sidebar, card metrics, decorative
+  gradients, a generic settings form, or a permanent right panel that shrinks
+  the comparison. Use a purpose-built comparison surface instead.
+- **Accepted direction:** The user selected **B — Evidence-first comparison
+  canvas** from three image-backed specimens. Direction A kept only the existing
+  grid correction. Direction C used an index, one focused specimen, and a right
+  decision dossier. B won because side-by-side evidence remains primary while
+  decision controls stay available.
+- **Hierarchy:** Direction evidence is the focal element. The checkpoint title,
+  revision, recommendation, and live-site link form quiet orientation chrome.
+  Selection controls and descriptions sit directly with each direction. The
+  decision strip is the only persistent action surface.
+- **Palette and depth:** Keep the incumbent light/dark semantic palette and
+  cobalt accent. Use whitespace, low-contrast dividers, one quiet card elevation,
+  and one stronger elevation for the sticky decision strip. Do not introduce a
+  new brand palette, gradient, or font dependency.
+- **Density and spacing:** Use the existing 4 px spacing base. Keep the header and
+  evidence labels compact, give visual evidence most of the viewport, and use a
+  12–16 px workbench density in controls.
+- **Board-feedback behavior:** Keep native radio, textarea, and button controls.
+  The sticky decision strip reflects the selected direction and provides one
+  notes field and submit action. Reserve layout space so it never obscures card
+  content. At narrow widths it returns to normal flow and stacks controls.
+- **CLI behavior:** Show equal-scale evidence, labels, descriptions,
+  recommendation, full-size controls, and live-site context without selection or
+  submission controls.
 - **Representative states:** CLI and board feedback modes; two and eight
-  directions; recommendation; long labels and descriptions; separate live-site
-  link; full-size viewer; saved feedback; light and dark color schemes.
+  directions; no selection and selected direction; recommendation; long labels
+  and descriptions; separate live-site link; full-size viewer; saved feedback;
+  light and dark color schemes.
 - **Responsive and accessibility constraints:** Verify narrow, intermediate,
   and wide widths. Keep DOM and focus order aligned with visual order. Preserve
-  semantic groups, native controls, visible focus, reduced motion, keyboard
-  access, zoom, long content, and image containment.
-- **Operation:** Use `interface-craft` `layout` for the bounded grid correction.
-  The renderer split is architecture work, not a visual redesign.
-- **Visual direction:** Preserve the incumbent board direction. No image-backed
-  direction choice is required for this bounded correction.
-- **`DESIGN.md` disposition:** Do not create or modify `DESIGN.md`. This change
-  does not establish durable new visual-system decisions.
+  `fieldset` and `legend` in board mode, native controls, visible focus, reduced
+  motion, keyboard access, zoom, long content, and image containment.
+- **Frontend methods:** Use `interface-design` for the accepted material
+  direction, `frontend-development` for implementation discipline, and
+  `visual-validation` for the final matrix and mismatch ledger. Use the
+  `interface-craft` `layout` reference for responsive structure.
+- **Mock-up disposition:** The temporary specimens are design evidence only and
+  were removed after selection. They do not define hidden behavior and will not
+  ship in the package.
+- **`DESIGN.md` disposition:** Do not create or modify `DESIGN.md`. This package
+  change records its accepted component-level direction in the pitch and tests;
+  it does not establish a repository-wide visual system.
 
 ## Boundaries and no-gos
 
@@ -100,8 +140,12 @@ stable implementation delivery unit.
   I/O, production scaffolding, or another local server.
 - Do not combine the renderer refactor and grid correction without separate
   proof. The refactor must remain behavior-preserving.
-- Do not redesign board color, typography, copy, navigation, or feedback
-  behavior beyond changes required by the accepted layout correction.
+- Do not turn the board into a dashboard, add persistent navigation, introduce a
+  font or icon dependency, or copy the mock-up's abstract specimen content into
+  production.
+- Do not add keyboard shortcuts, new feedback fields, autosave, multi-select,
+  sorting, filtering, or other product behavior that the selected comparison
+  canvas did not authorize.
 - Do not add a shared skill-ownership matrix. It would become a second source of
   truth and weaken package independence.
 - Do not promise deterministic model skill selection. The testable contract is
@@ -121,9 +165,10 @@ stable implementation delivery unit.
   by rendering and feedback validation. Image URL construction must agree with
   HTTP route parsing. The generated token and path are safe to interpolate only
   because their current format is constrained.
-- Browser evidence covers Chrome at 1280 × 720 in CLI and board modes with two
-  directions. Mobile, keyboard, popover, zoom, long-content, and eight-direction
-  proof remain implementation acceptance work.
+- Existing browser evidence covers Chrome at 1280 × 720 in CLI and board modes
+  with two directions. The selected mock-up proves direction, not implementation.
+  Mobile, keyboard, sticky-strip overlap, popover, zoom, long-content,
+  eight-direction, and dark-theme proof remain implementation acceptance work.
 - Pi documentation confirms that descriptions determine when agents load
   skills. Model choice is still probabilistic, so deterministic tests must
   check source properties rather than claim model behavior.
@@ -172,31 +217,38 @@ approved publication boundary.
 - **AC-003 — Explicit shared policy:** Notes limits, image route construction,
   generated token/path invariants, escaping, and CSP responsibilities remain
   explicit and covered at the renderer/service seam.
-- **AC-004 — Full comparison width:** In default CLI mode, two to eight direction
-  articles use the available comparison width without a heading-created empty
-  grid track.
-- **AC-005 — Responsive and accessible layout:** Named narrow, intermediate, and
-  wide browser checks cover two and eight directions, long content, zoom,
-  keyboard focus, full-size viewers, image containment, reduced motion, and DOM
-  versus visual order without console errors.
-- **AC-006 — One first owner:** Frontend skill descriptions give focused
+- **AC-004 — Evidence-first comparison canvas:** In CLI and board-feedback
+  modes, two to eight direction articles use the available comparison width
+  without a heading-created empty track or a permanent side panel. Equal-scale
+  evidence remains the focal surface.
+- **AC-005 — Clear decision surface:** Board-feedback mode uses one sticky bottom
+  decision strip that reflects the selected direction and contains the existing
+  notes and submit controls. It does not obscure evidence, returns to normal flow
+  on narrow screens, and preserves `fieldset`, `legend`, labels, native controls,
+  visible focus, and useful saved-feedback status.
+- **AC-006 — Responsive and accessible layout:** Named narrow, intermediate, and
+  wide browser checks cover CLI and board modes, two and eight directions, no
+  selection and selection, long content, zoom, keyboard focus, full-size viewers,
+  image containment, reduced motion, light/dark themes, and DOM versus visual
+  order without console errors.
+- **AC-007 — One first owner:** Frontend skill descriptions give focused
   operation selection to `interface-craft` and material app direction to
   `frontend-design` and `interface-design` without overlapping broad claims.
-- **AC-007 — Acyclic delegation:** No frontend design reference routes back into
+- **AC-008 — Acyclic delegation:** No frontend design reference routes back into
   a router that can select the same reference. Existing implementation, proof,
   documentation, image, and React ownership remains explicit.
-- **AC-008 — Effective routing tests:** A plausible overlapping-description or
+- **AC-009 — Effective routing tests:** A plausible overlapping-description or
   circular-delegation case fails before the minimum contract change. Tests use
   independent expected ownership and do not create a second production source
   of truth.
-- **AC-009 — Package independence:** Frontend, feature-flow, and engineering
+- **AC-010 — Package independence:** Frontend, feature-flow, and engineering
   resources keep capability-based language and do not assume companion packages,
   private agents, monorepo paths, or unavailable tools exist in target
   repositories.
-- **AC-010 — No dependency expansion:** The delivery adds no runtime or DOM test
-  dependency, framework, template loader, server, generated artifact, or
-  repository-specific production scaffold.
-- **AC-011 — Verified delivery:** Focused board and resource tests, package tests,
+- **AC-011 — No dependency expansion:** The delivery adds no runtime or DOM test
+  dependency, framework, template loader, server, generated artifact, font,
+  icon library, or repository-specific production scaffold.
+- **AC-012 — Verified delivery:** Focused board and resource tests, package tests,
   typecheck, browser evidence, deterministic Pi reload acceptance,
   `npm run smoke:source`, and `npm run check` pass on the final worktree. The
   final diff, status, and packed contents contain no credentials, sessions,
