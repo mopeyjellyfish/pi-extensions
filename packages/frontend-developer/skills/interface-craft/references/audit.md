@@ -15,10 +15,10 @@ Use applicable target-owned automated checks across 5 dimensions. Score each dim
 - **Contrast issues**: Text contrast ratios < 4.5:1 (or 7:1 for AAA)
 - **Motion sensitivity**: `prefers-reduced-motion` needs an intentional alternative that preserves state change and hierarchy; flag a global `0.01ms` kill that destroys useful feedback, flashing above threshold, and motion that blocks focus, reading, or task completion
 - **Missing ARIA**: Interactive elements without proper roles, labels, or states
-- **Keyboard navigation**: Missing focus indicators, illogical tab order, keyboard traps
+- **Keyboard navigation**: Missing visible, unobscured focus indicators, illogical tab order, keyboard traps, or sticky and fixed elements that cover focus
 - **Semantic HTML**: Improper heading hierarchy, missing landmarks, divs instead of buttons
-- **Alt text**: Missing or poor image descriptions
-- **Form issues**: Inputs without labels, poor error messaging, missing required indicators
+- **Alt text and media alternatives**: Missing image descriptions, captions/transcripts/descriptions, or keyboard-operable media controls
+- **Form issues**: Inputs without labels, poor error messaging, missing required indicators, blocked paste, or hydration-safe input failures that lose focus or value
 
 **Score 0-4**: 0=Inaccessible (fails WCAG A), 1=Major gaps (few ARIA labels, no keyboard nav), 2=Partial (some a11y effort, significant gaps), 3=Good (WCAG AA mostly met, minor gaps), 4=Excellent (WCAG AA fully met, approaches AAA)
 
@@ -50,7 +50,7 @@ Use applicable target-owned automated checks across 5 dimensions. Score each dim
 
 **Check for**:
 
-- **Fixed widths**: Hard-coded widths that break on mobile
+- **Fixed widths and safe areas**: Hard-coded widths that break on mobile or layouts that ignore safe areas
 - **Touch targets**: Interactive elements < 44x44px
 - **Horizontal scroll**: Content overflow on narrow viewports
 - **Text scaling**: Layouts that break when text size increases
@@ -61,6 +61,11 @@ Use applicable target-owned automated checks across 5 dimensions. Score each dim
 ### 5. Implementation Integrity (CRITICAL)
 
 Run the available target-owned automated checks and verify each finding in context. Look for repeated implementation shortcuts, design-system drift, misleading or decorative content, and structure that is interchangeable with an unrelated product. Keep deterministic findings separate from visual judgment and call out false positives.
+
+**Check for**:
+
+- **Deep-link state preservation**: URL/deep-link state does not preserve filters, tabs, pagination, or expanded panels.
+- **Locale-aware formatting**: Dates, times, and numbers do not use the target's formatting conventions.
 
 **Score 0-4**: 0=systemic drift, 1=major repeated failures, 2=several verified issues, 3=minor isolated issues, 4=coherent and intentional
 
@@ -102,7 +107,7 @@ Tag every issue with **P0-P3 severity**:
 For each issue, document:
 
 - **[P?] Issue name**
-- **Location**: Component, file, line
+- **Location**: `file:line` evidence, with the smallest useful component context
 - **Category**: Accessibility / Performance / Theming / Responsive / Implementation Integrity
 - **Impact**: How it affects users
 - **WCAG/Standard**: Which standard it violates (if applicable)

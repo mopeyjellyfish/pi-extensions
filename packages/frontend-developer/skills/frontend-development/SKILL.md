@@ -15,8 +15,10 @@ navigation, forms, and meaningful content as native accessible UI.
 
 Choose only methods the request and target technology require.
 `interface-design` preserves the target framework and selects an applicable
-implementation specialist; use `react-interface` only for an existing React
-product or an explicitly accepted React greenfield surface. After a stable UI
-change, use `visual-validation` if the target offers browser or screenshot
-capability. Continue honestly when a method or optional capability is
-unavailable.
+implementation specialist. Use `react-best-practices` only for an existing React
+product or an explicitly accepted React greenfield surface; use
+`react-native-skills` only for React Native or Expo work; use
+`react-view-transitions` only for applicable React view-transition animation
+work. After a stable UI change, use `visual-validation` if the target offers
+browser or screenshot capability. Continue honestly when a method or optional
+capability is unavailable.

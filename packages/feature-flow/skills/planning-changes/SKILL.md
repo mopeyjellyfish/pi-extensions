@@ -114,7 +114,9 @@ When the accepted pitch contains material UI scope, trace its accepted interface
 criteria into vertical slices. Each relevant interface slice names
 `frontend-development`, the accepted design or operation method, representative
 states, responsive surfaces, accessibility paths, design-system reuse, and
-operation-specific checks. Name `react-interface` only for a React target. When
+operation-specific checks. Name `react-best-practices` only for a React target;
+name `react-native-skills` only for React Native or Expo work; name
+`react-view-transitions` only for applicable React view-transition animation work. When
 an evidence capability exists, name `visual-validation`, target-owned browser
 evidence, and a visual mismatch ledger: a prioritized list of observed
 differences, likely causes, and recheck targets. If direction remains

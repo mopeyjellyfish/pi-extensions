@@ -50,9 +50,10 @@ replacement, or material rewrite.
    use `frontend-design` as needed. `interface-design` preserves the target
    framework and implementation conventions. When available, `implement` or
    `developing-changes` owns the general engineering loop; otherwise the method
-   uses the one-Worker/TDD fallback. It uses `react-interface` only when the
-   target uses React and an applicable specialist is available. Target-owned
-   commands own hot reload and cleanup.
+   uses the one-Worker/TDD fallback. It uses `react-best-practices` only for a
+   React target, `react-native-skills` only for React Native or Expo work, and
+   `react-view-transitions` only for applicable React view-transition animation
+   work. Target-owned commands own hot reload and cleanup.
 4. Use `/generate-image` only when a reference is useful and the human
    explicitly consents to provider privacy exposure, separately billed cost,
    and available credentials through Pi's `question` tool when available. Use
@@ -73,6 +74,15 @@ permission notice ships in `skills/interface-design/LICENSE.txt`.
 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48`. The package remains
 MIT-owned for its original work and ships the Apache-2.0 text and retained
 upstream notice in `LICENSE` and `NOTICE.md` for those references.
+
+The `react-best-practices`, `react-native-skills`, and
+`react-view-transitions` resources vendor Vercel's MIT-licensed guidance from
+`vercel-labs/agent-skills` at
+`063bee94c3f4df8453406c830b0a7df0f2860278`. `interface-craft` includes
+portable audit checks informed by `vercel-labs/web-interface-guidelines` at
+`e3d624baaf29dc1fc645aff3e38f03e564d2d6b1`; it does not use that project's
+live-fetch workflow or Vercel-specific copywriting preferences. `NOTICE.md`
+retains the required provenance and license notices.
 
 Browser automation and general engineering, planning, Git, and review workflows
 are optional companion capabilities, not bundled dependencies. When they are

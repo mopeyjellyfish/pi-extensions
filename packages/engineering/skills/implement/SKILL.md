@@ -199,8 +199,10 @@ that detects the intended error; do not manufacture a behavioral test.
 
 For material UI implementation, the executor must consume accepted design
 evidence and follow installed `frontend-development` plus the accepted
-implementation-time method. Load `react-interface` only when the target uses
-React. When an evidence capability exists, finish with `visual-validation`, a
+implementation-time method. Load `react-best-practices` only when the target uses
+React, `react-native-skills` only for React Native or Expo work, and
+`react-view-transitions` only for applicable React view-transition animation work.
+When an evidence capability exists, finish with `visual-validation`, a
 visual mismatch ledger, and recheck targets; otherwise return honest unmet-proof
 evidence. This routing does not take design approval ownership: the parent keeps
 that gate and unresolved direction decisions. If frontend methods are
