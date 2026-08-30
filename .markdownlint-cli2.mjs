@@ -23,5 +23,9 @@ export default {
     "!packages/go/skills/go/SKILL.md",
     "!packages/go/skills/cobra-viper/SKILL.md",
     "!packages/go/skills/go-spec-reviewer/SKILL.md",
+    // Preserve source-derived Vercel React skill trees, including bounded local integration.
+    "!packages/frontend-developer/skills/react-best-practices/**",
+    "!packages/frontend-developer/skills/react-native-skills/**",
+    "!packages/frontend-developer/skills/react-view-transitions/**",
   ],
 };

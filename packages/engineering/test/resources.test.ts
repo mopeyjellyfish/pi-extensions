@@ -1039,7 +1039,7 @@ describe("engineering resources", () => {
     expect(router).toMatch(/`implement`[^.]*unavailable[\s\S]*direct-parent fallback/iu);
     expect(implement).toMatch(/material UI[\s\S]*accepted\s+design\s+evidence/iu);
     expect(implement).toMatch(/`frontend-development`/u);
-    expect(implement).toMatch(/`react-interface`[^.]*only when[^.]*target uses[\s\S]*React/iu);
+    expect(implement).toMatch(/`react-best-practices`[^.]*only when[^.]*target uses[\s\S]*React/iu);
     expect(implement).toMatch(/`visual-validation`[\s\S]*(?:mismatch ledger|honest unmet-proof)/iu);
     expect(implement).toMatch(/does not take design approval ownership/iu);
     expect(implement).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);

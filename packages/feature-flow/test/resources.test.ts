@@ -399,7 +399,7 @@ describe("feature-flow resources", () => {
     expect(shape).toMatch(/direct-parent fallback[\s\S]*`frontend-design`[^.]*unavailable/iu);
     expect(planning).toMatch(/material UI[\s\S]*`frontend-development`/iu);
     expect(planning).toMatch(/accepted design or operation method/iu);
-    expect(planning).toMatch(/`react-interface`[^.]*only for a React target/iu);
+    expect(planning).toMatch(/`react-best-practices`[^.]*only for a React target/iu);
     expect(planning).toMatch(/evidence capability[\s\S]*`visual-validation`/iu);
     expect(planning).toMatch(/parent-owned[\s\S]*`design-documentation`[\s\S]*approval/iu);
     expect(planning).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);

@@ -15,5 +15,9 @@
 - Let content constraints drive breakpoints. Test narrow, intermediate, and wide layouts, RTL, and localized text expansion.
 - Respect reduced motion, zoom, text expansion, contrast, forced-colors or high contrast, and pointer-independent controls.
 - Support coarse pointer/touch targets and safe area insets where applicable. Data visualizations need labels, patterns, tables, or text alternatives so color is not the only signal.
-- Gather performance evidence where relevant: prevent layout shift with explicit image dimensions, verify font loading, and exercise large-data or table behavior.
+- Gather measured evidence where performance is relevant: prevent layout shift with explicit image dimensions, verify font loading, and exercise large-data or table behavior.
 - Prefer existing tokens and components; justify every new asset and client-side dependency.
+
+## Avoid speculative optimization
+
+Avoid speculative component layers and blanket memoization. Use performance guidance only when measured evidence identifies a relevant cost; generic memo rules do not authorize blanket memoization.
