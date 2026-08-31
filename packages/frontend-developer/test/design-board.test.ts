@@ -196,7 +196,7 @@ describe("design_board", () => {
     expect(markup).toContain("http://127.0.0.1:3000/");
     expect(markup).toContain('class="review-header"');
     expect(markup).toContain('class="comparison"');
-    expect(markup).toContain('class="decision-panel feedback"');
+    expect(markup).toContain('class="decision-strip feedback"');
     expect(markup).toContain("select the strongest direction");
     expect(markup).not.toContain("return to the CLI");
     expect(markup).toContain('class="direction recommended-direction"');
@@ -286,8 +286,8 @@ describe("design_board", () => {
     expect(markup).toContain('class="board-form cli-board"');
     expect(markup.match(/popover=""/gu)).toHaveLength(2);
     expect(markup).not.toContain("<form");
-    expect(markup).not.toContain('name="directionId"');
-    expect(markup).not.toContain('class="decision-panel feedback"');
+    expect(markup).not.toMatch(/<input[^>]+name="directionId"/u);
+    expect(markup).not.toContain('class="decision-strip feedback"');
     const url = String(presented.details["url"]);
     expect(await postFeedback(url, {}, { origin: new URL(url).origin })).toMatchObject({
       status: 404,
@@ -907,5 +907,46 @@ describe("design_board", () => {
         context(root, [], "tui"),
       ),
     ).toMatchObject({ details: { reachable: false, state: "closed" } });
+  });
+  it("serves a full-width comparison grid and bottom decision strip", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "design-board-comparison-"));
+    await images(root);
+    const cli = register();
+    const cliInput = presentation();
+    Reflect.deleteProperty(cliInput, "feedbackMode");
+    const cliResult = await cli.tool.execute(
+      "present",
+      cliInput,
+      undefined,
+      undefined,
+      context(root),
+    );
+    const cliMarkup = await (await fetch(String(cliResult.details["url"]))).text();
+    expect.soft(cliMarkup).toContain('class="directions-section"');
+    expect.soft(cliMarkup).toContain('class="direction-grid"');
+    expect
+      .soft(cliMarkup.indexOf('class="directions-heading"'))
+      .toBeLessThan(cliMarkup.indexOf('class="direction-grid"'));
+    await close(cli, root);
+
+    const board = register();
+    const boardResult = await board.tool.execute(
+      "present",
+      presentation(),
+      undefined,
+      undefined,
+      context(root),
+    );
+    const boardMarkup = await (await fetch(String(boardResult.details["url"]))).text();
+    expect.soft(boardMarkup).toContain('<fieldset class="directions"><legend>');
+    expect.soft(boardMarkup).toContain('class="direction-grid"');
+    expect.soft(boardMarkup).toContain('class="decision-strip feedback"');
+    expect
+      .soft(boardMarkup.indexOf('class="direction-grid"'))
+      .toBeLessThan(boardMarkup.indexOf('class="decision-strip feedback"'));
+    expect.soft(boardMarkup).toContain(".decision-strip{position:sticky;bottom:");
+    expect.soft(boardMarkup).not.toContain("grid-template-columns:minmax(0,72fr)");
+    await close(board, root);
   });
 });
