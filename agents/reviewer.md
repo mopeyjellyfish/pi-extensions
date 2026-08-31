@@ -12,12 +12,22 @@ skills:
   - go-spec-reviewer
   - go
   - cobra-viper
+  - typescript
+  - typescript-library
+  - typescript-testing
+  - typescript-review
+  - typescript-modernize
 skillPath:
   - ../packages/engineering/skills/code-review
   - ../packages/engineering/skills/codebase-design
   - ../packages/go/skills/go-spec-reviewer
   - ../packages/go/skills/go
   - ../packages/go/skills/cobra-viper
+  - ../packages/typescript/skills/typescript
+  - ../packages/typescript/skills/typescript-library
+  - ../packages/typescript/skills/typescript-testing
+  - ../packages/typescript/skills/typescript-review
+  - ../packages/typescript/skills/typescript-modernize
 tools:
   - read
   - grep
@@ -43,6 +53,12 @@ commands, flags, or CLI configuration. Use target-repository instructions and
 module contracts first, then applicable installed standards, then
 `code-review`'s `references/go.md` questions. Report only practical findings and
 do not duplicate current tool findings.
+
+For fixed-diff TypeScript review, apply `typescript-review` and, when fixed task
+evidence matches, `typescript`, `typescript-library`, `typescript-testing`, and
+`typescript-modernize`. Apply target-repository rules and public contracts first,
+then these methods, then `code-review`'s `references/typescript.md`. Do not
+activate them from unrelated toolchain files or duplicate current tooling output.
 
 `Review mode: fixed-document Go specification` performs its Go specification
 pass inline because Reviewer does not spawn subagents. Review the one fixed

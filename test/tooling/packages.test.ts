@@ -230,6 +230,10 @@ describe("package contracts", () => {
           "visual-validation",
           "go",
           "cobra-viper",
+          "typescript",
+          "typescript-library",
+          "typescript-testing",
+          "typescript-modernize",
         ],
         skillPaths: [
           "../packages/engineering/skills/test-driven-development",
@@ -244,6 +248,10 @@ describe("package contracts", () => {
           "../packages/frontend-developer/skills/visual-validation",
           "../packages/go/skills/go",
           "../packages/go/skills/cobra-viper",
+          "../packages/typescript/skills/typescript",
+          "../packages/typescript/skills/typescript-library",
+          "../packages/typescript/skills/typescript-testing",
+          "../packages/typescript/skills/typescript-modernize",
         ],
       },
       researcher: {
@@ -270,13 +278,29 @@ describe("package contracts", () => {
         role: "read-only",
         completionGuard: false,
         tools: ["read", "grep", "find", "ls", "bash"],
-        skills: ["code-review", "codebase-design", "go-spec-reviewer", "go", "cobra-viper"],
+        skills: [
+          "code-review",
+          "codebase-design",
+          "go-spec-reviewer",
+          "go",
+          "cobra-viper",
+          "typescript",
+          "typescript-library",
+          "typescript-testing",
+          "typescript-review",
+          "typescript-modernize",
+        ],
         skillPaths: [
           "../packages/engineering/skills/code-review",
           "../packages/engineering/skills/codebase-design",
           "../packages/go/skills/go-spec-reviewer",
           "../packages/go/skills/go",
           "../packages/go/skills/cobra-viper",
+          "../packages/typescript/skills/typescript",
+          "../packages/typescript/skills/typescript-library",
+          "../packages/typescript/skills/typescript-testing",
+          "../packages/typescript/skills/typescript-review",
+          "../packages/typescript/skills/typescript-modernize",
         ],
       },
       git: {
@@ -365,6 +389,9 @@ describe("package contracts", () => {
     );
     expect(reviewer).toMatch(/fixed-document[^.]*inline/iu);
     expect(reviewer).toMatch(/fixed-diff[^.]*Go[^.]*`go`[^.]*`cobra-viper`/iu);
+    expect(reviewer).toMatch(
+      /fixed-diff TypeScript review[\s\S]*when fixed task\s+evidence matches[\s\S]*`typescript`[\s\S]*`typescript-library`[\s\S]*`typescript-testing`[\s\S]*`typescript-modernize`/iu,
+    );
   });
 
   it("gives Worker and Reviewer focused intent and review duties", async () => {

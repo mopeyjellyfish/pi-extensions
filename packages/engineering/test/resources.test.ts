@@ -1120,6 +1120,53 @@ describe("engineering resources", () => {
     expect(review).toMatch(/practical[\s\S]*consequence[\s\S]*do not duplicate[^.]*tool/iu);
   });
 
+  it("routes applicable installed TypeScript methods through Engineering entry skills", async () => {
+    expect.hasAssertions();
+    const [implement, review, improve, implementPrompt, reviewPrompt, improvePrompt, readme] =
+      await Promise.all([
+        read("skills/implement/SKILL.md"),
+        read("skills/code-review/SKILL.md"),
+        read("skills/improve-codebase-architecture/SKILL.md"),
+        read("prompts/implement.md"),
+        read("prompts/review-change.md"),
+        read("prompts/improve.md"),
+        read("README.md"),
+      ]);
+
+    for (const entry of [implement, review, improve]) {
+      expect(entry).toContain("`typescript`");
+      expect(entry).toContain("`typescript-library`");
+      expect(entry).toContain("`typescript-testing`");
+      expect(entry).toContain("`typescript-modernize`");
+      expect(entry).toMatch(/substantial TypeScript or TSX[\s\S]*reusable[\s\S]*public types/iu);
+      expect(entry).toMatch(/TypeScript runtime[\s\S]*type-level[\s\S]*asynchronous/iu);
+      expect(entry).toMatch(/legacy/iu);
+      expect(entry).toContain("unmet method");
+      expect(entry).toMatch(/target-repository TypeScript\s+standards/iu);
+    }
+    expect(implement).toMatch(/before[^.]*Worker[\s\S]*applicable TypeScript methods[\s\S]*task/iu);
+    const typeScriptRouting = review.slice(
+      review.indexOf("## TypeScript routing"),
+      review.indexOf("## Go routing"),
+    );
+    expect(typeScriptRouting).toMatch(/do\s+not duplicate current compiler or linter output/iu);
+    expect(typeScriptRouting).toMatch(
+      /`typescript-review`[\s\S]*before[^.]*`references\/typescript\.md`/iu,
+    );
+    expect(improve).toMatch(/before generic[\s\S]*evidence lane[\s\S]*Action brief/iu);
+    expect(improve).toMatch(
+      /lane unable to load[\s\S]*evidence only[\s\S]*no TypeScript-specific recommendation[\s\S]*Reject generic or second-opinion advice[\s\S]*resolved TypeScript constraints/iu,
+    );
+    for (const prompt of [implementPrompt, reviewPrompt, improvePrompt]) {
+      expect(prompt).toMatch(/automatically resolve/iu);
+      expect(prompt).toContain("installed TypeScript methods");
+      expect(prompt).toMatch(/applicable/iu);
+    }
+    expect(readme).toMatch(
+      /TypeScript methods[\s\S]*independent\s+installation[\s\S]*direct-parent fallback/iu,
+    );
+  });
+
   it("selects assurance by risk and joins independent read-only lanes on one frozen diff", async () => {
     expect.hasAssertions();
     const [router, implement, justDoIt, reviewer] = await Promise.all([

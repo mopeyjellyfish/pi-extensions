@@ -106,7 +106,7 @@ Frontend Developer, Hashline, Playwright-cleanup, Question, Simple English,
 Status Line, Todo, Web Search, and Worktrunk extensions; Feature Flow; complete
 Engineering and Productivity skills and prompts; Simple English, Git, GitHub,
 Worktrunk, Frontend Developer—including `interface-craft` and
-`design-documentation`—Go, and Grafana skills; their existing prompt
+`design-documentation`—Go, TypeScript, and Grafana skills; their existing prompt
 coverage; and the pinned `pi-claude-bridge` and `pi-subagents` extensions,
 subagent prompts, and six model-routed package agents. LSP remains independently
 installable, but Pi rejects its `write` and `edit` tool-name conflicts with
@@ -132,6 +132,17 @@ Worker preloads both skills. Fixed-diff Go review follows target-repository
 instructions and module contracts, applicable installed Go and Cobra/Viper
 standards, then `code-review`'s `references/go.md`, and reports only practical
 non-tool-duplicate findings.
+
+`/implement`, `/review-change`, and `/improve` resolve installed TypeScript
+methods from task evidence: `typescript` for substantial TypeScript or TSX;
+`typescript-library` for reusable package exports, declarations, ESM boundaries,
+public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
+test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
+for legacy cleanup or migration. Unrelated toolchain evidence alone does not
+activate a method. Worker preloads implementation methods and Reviewer preloads all
+five. Independent installation records an unavailable companion and uses bounded
+direct-parent target-repository TypeScript standards without claiming it loaded.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash

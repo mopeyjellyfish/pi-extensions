@@ -126,6 +126,17 @@ Behavioral `implement` work loads `test-driven-development`; an unresolved
 failure loads `diagnosing-bugs` before implementation. Missing methods use the
 documented direct-parent proof fallback.
 
+`/implement`, `/review-change`, and `/improve` automatically resolve
+`typescript` for substantial TypeScript or TSX. They also resolve
+`typescript-library` for reusable package exports, declarations, ESM boundaries,
+public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
+test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
+for legacy cleanup or migration. These TypeScript methods keep target-repository
+rules first. An independent installation records a missing companion as an unmet
+method and uses a bounded direct-parent fallback with target-repository TypeScript
+standards; it never claims the method loaded.
+
 The TDD and review methods treat tautological tests as harmful. Expected values
 must be independent of the implementation under test. Each test must fail for a
 plausible wrong implementation.

@@ -47,6 +47,18 @@ Fixed-diff Go review applies target-repository instructions and module contracts
 installed Go and applicable Cobra/Viper standards, then `references/go.md`;
 findings need practical consequences and must not duplicate current tool output.
 
+The `/implement`, `/review-change`, and `/improve` entries use evidence-based
+TypeScript routing: `typescript` for substantial TypeScript or TSX;
+`typescript-library` for reusable package exports, declarations, ESM boundaries,
+public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
+test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
+for legacy cleanup or migration. Target-repository rules remain first, and
+unrelated toolchain evidence alone does not activate a method. Worker preloads
+implementation methods, while Reviewer preloads all five. An unavailable companion
+is recorded and uses bounded direct-parent target-repository TypeScript standards
+without claiming it loaded.
+
 Each directory under `packages/` is an independent npm package with its own Pi
 manifest, runtime dependencies, documentation, tests, and optional native
 helper. Production resources install into unrelated target repositories and
