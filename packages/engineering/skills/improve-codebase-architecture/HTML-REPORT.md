@@ -618,7 +618,10 @@ flowchart LR
             >
               <div>
                 <h3 class="font-semibold">Continue in your terminal</h3>
-                <p class="mt-1 text-sm">Action · Track — GitHub · Won't do · Deepen</p>
+                <p class="mt-1 text-sm">
+                  Action all · Track all · Select candidates · Review individually
+                </p>
+                <p class="mt-1 text-sm">Individual: Action · Track · Won't do · Deepen</p>
               </div>
               <p class="text-xs font-bold uppercase tracking-wider">Awaiting decision</p>
             </footer>
@@ -810,8 +813,8 @@ Render the applicable state honestly: generating, partial update, complete,
 report-only, awaiting decision, action started, issue draft pending, won't do,
 deepening, no supported findings, CDN failure, server unavailable, or stale or
 expired report. Keep the terminal handoff visible. Browser filters, theme,
-selection, and copy controls are conveniences only; they never start work or
-create issues.
+selection, and copy controls are conveniences only; they never select candidates,
+start work, or create issues.
 
 For no supported findings, set the coverage count to zero, replace the finding
 index with `No candidates`, remove filters, the top recommendation, and candidate

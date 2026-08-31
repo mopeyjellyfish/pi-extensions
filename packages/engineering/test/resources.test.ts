@@ -1268,4 +1268,59 @@ describe("engineering resources", () => {
       );
     }
   });
+  it("defines awaiting-only bulk improve triage with ticket-workflow classification", async () => {
+    expect.hasAssertions();
+    const [improve, guide, readme, prompt] = await Promise.all([
+      read("skills/improve-codebase-architecture/SKILL.md"),
+      read("skills/improve-codebase-architecture/HTML-REPORT.md"),
+      read("README.md"),
+      read("prompts/improve.md"),
+    ]);
+
+    const ordered = (resource: string, labels: readonly string[]): void => {
+      let position = -1;
+      for (const label of labels) {
+        const next = resource.indexOf(label, position + 1);
+        expect(next).toBeGreaterThan(position);
+        position = next;
+      }
+    };
+    ordered(improve, ["Action all", "Track all", "Select candidates", "Review individually"]);
+    ordered(improve, [
+      "Action selected",
+      "Track selected",
+      "Won't do selected",
+      "Review selected individually",
+    ]);
+    expect(improve).toMatch(/awaiting candidate[\s\S]*never reprocess a decided candidate/iu);
+    expect(improve).toMatch(
+      /count-unbounded multi-select Question[\s\S]*stable candidate ID[\s\S]*concise title[\s\S]*recommended route/iu,
+    );
+    expect(improve).toMatch(/Do\s+not\s+add\s+Next, Submit, Other, or Chat/iu);
+    expect(improve).toMatch(
+      /unavailable[\s\S]*cancelled[\s\S]*empty[\s\S]*aggregate[\s\S]*no decision or report revision[\s\S]*individual or conversational stable-ID fallback/iu,
+    );
+    expect(improve).toMatch(
+      /Bulk Action[\s\S]*dependencies[\s\S]*overlap[\s\S]*integration points[\s\S]*uncertainty[\s\S]*route reasons[\s\S]*never\s+starts\s+a writer[\s\S]*never proves parallel\s+readiness/iu,
+    );
+    expect(improve).toMatch(
+      /grouped Track[\s\S]*ticket-workflow[\s\S]*policy once per target[\s\S]*each candidate[\s\S]*target[\s\S]*taxonomy[\s\S]*route[\s\S]*grouping[\s\S]*privacy state[\s\S]*one\s+separate exact-set/iu,
+    );
+    expect(improve).toMatch(
+      /Deepen[\s\S]*remaining selected-depth analysis[\s\S]*same seam[\s\S]*preserve the candidate ID[\s\S]*increment the report revision/iu,
+    );
+    expect(improve).toMatch(
+      /one accepted group\s+decision[\s\S]*atomically[\s\S]*once[\s\S]*every affected\s+candidate article[\s\S]*revision once/iu,
+    );
+    expect(improve).toMatch(
+      /Discovery and report generation[\s\S]*never create a branch[\s\S]*mutate a tracker/iu,
+    );
+    expect(guide).toMatch(/Action all[\s\S]*Track all[\s\S]*Review individually/u);
+    expect(guide).toMatch(/Individual:[\s\S]*Action[\s\S]*Track[\s\S]*Won't do[\s\S]*Deepen/u);
+    expect(guide).toMatch(/browser[\s\S]*never select candidates/iu);
+    expect(readme).toMatch(
+      /Action all[\s\S]*Track all[\s\S]*Select candidates[\s\S]*Review individually[\s\S]*ticket-workflow[\s\S]*exact\s+classified draft set/iu,
+    );
+    expect(prompt).toMatch(/bulk terminal decisions[\s\S]*browser controls remain read-only/iu);
+  });
 });
