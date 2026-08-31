@@ -1143,6 +1143,12 @@ describe("engineering resources", () => {
       expect(entry).toMatch(/legacy/iu);
       expect(entry).toContain("unmet method");
       expect(entry).toMatch(/target-repository TypeScript\s+standards/iu);
+      expect(entry).toMatch(
+        /(?:unrelated toolchain files\s+alone do not activate a method|Resolve only methods supported by[\s\S]*not unrelated toolchain files)/iu,
+      );
+      expect(entry).toMatch(
+        /target-repository (?:rules|instructions)[\s\S]*public contracts[\s\S]*first/iu,
+      );
     }
     expect(implement).toMatch(/before[^.]*Worker[\s\S]*applicable TypeScript methods[\s\S]*task/iu);
     const typeScriptRouting = review.slice(
