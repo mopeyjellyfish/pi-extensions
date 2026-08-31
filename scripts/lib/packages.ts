@@ -478,6 +478,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/frontend-developer/skills",
     "./packages/go/skills",
     "./packages/grafana-skills/skills",
+    "./packages/typescript/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",

@@ -40,6 +40,7 @@ It loads:
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `pi-simple-english`, including its pragmatic ASD-STE100 writing guidance;
 - complete `pi-go` skills for Go programming and delivery;
+- [`pi-typescript`](packages/typescript/README.md), with five progressive-disclosure skills for JavaScript-native TypeScript implementation, library design, testing, review, and incremental modernization;
 - [`pi-grafana-skills`](packages/grafana-skills/README.md), which redistributes
   Grafana's official `grafana-oss`, `dashboarding`, and `promql` skills;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;

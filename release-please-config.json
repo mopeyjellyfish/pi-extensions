@@ -71,6 +71,9 @@
     "packages/web-search": {
       "release-type": "node"
     },
+    "packages/typescript": {
+      "release-type": "node"
+    },
     "packages/worktrunk": {
       "release-type": "node"
     }

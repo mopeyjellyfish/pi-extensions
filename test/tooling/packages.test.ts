@@ -44,6 +44,7 @@ const ROOT_PROFILE = {
     "./packages/frontend-developer/skills",
     "./packages/go/skills",
     "./packages/grafana-skills/skills",
+    "./packages/typescript/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -698,6 +699,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-simple-english",
       "@mopeyjellyfish/pi-status-line",
       "@mopeyjellyfish/pi-todo",
+      "@mopeyjellyfish/pi-typescript",
       "@mopeyjellyfish/pi-web-search",
       "@mopeyjellyfish/pi-worktrunk",
     ]);
