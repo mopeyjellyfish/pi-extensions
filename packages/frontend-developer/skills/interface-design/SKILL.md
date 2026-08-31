@@ -99,14 +99,25 @@ This is where defaults get caught — or don't. Generic path: Task type → visu
 ## Image evidence for material direction
 
 For material direction, greenfield apps, major redesigns, or unresolved visual
-direction, create two to eight coherent directions with inspectable image evidence
-for each. Use `image-generation` only when it is available and useful, after the
-human explicitly consents to external-provider privacy exposure, separately billed
-cost, and available credentials. Otherwise use rendered specimens or browser
-captures. Inspect every artifact and reject generic SaaS, illegible text, and
-off-domain palettes before presentation. If no image evidence can be produced,
-report the unmet review surface and do not ask the human to choose from prose.
-Generated pixels never define hidden behavior or replace native accessible controls.
+direction, create two to eight coherent directions with inspectable image
+evidence for each.
+
+For a greenfield web application or materially new application surface, when an
+installed `image-generation` capability, explicit consent, and credentials
+permit it, use one bounded generation-first initial design pass to create those
+directions. Further provider work, including refinement, requires a newly stated
+bound and consent. If generation is unavailable, declined, or failed, make no
+unauthorized request, continue normal UI design, and record no generated
+evidence.
+
+For other applicable material direction, use `image-generation` only when it is
+available and useful after explicit consent. Otherwise use rendered specimens or
+browser captures. Inspect each direction and reject generic SaaS, illegible text,
+and off-domain palettes. Present valid directions through a verified
+`design_board` URL, then obtain an explicit human selection and notes before
+handoff. If no image evidence can be produced, report the unmet review surface
+and do not ask the human to choose from prose. Generated pixels never define
+hidden behavior or replace native accessible controls.
 
 ## Render It When You Can
 

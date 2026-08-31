@@ -45,7 +45,11 @@ replacement, or material rewrite.
    routing. Use `interface-design` for material app work: it establishes
    person, task, feel, domain, a color world, signature, rejected defaults,
    hierarchy, type, density, tokens, depth, states, feedback, and visual proof
-   without imposing a framework.
+   without imposing a framework. For a greenfield web application or materially
+   new application surface, use an available image-generation capability for a
+   consented, bounded generation-first initial pass. If generation cannot run,
+   continue normal UI design without generated evidence.
+
 3. For implementation or a frontend change, use `frontend-development`. It may
    use `frontend-design` as needed. `interface-design` preserves the target
    framework and implementation conventions. When available, `implement` or
@@ -54,12 +58,13 @@ replacement, or material rewrite.
    React target, `react-native-skills` only for React Native or Expo work, and
    `react-view-transitions` only for applicable React view-transition animation
    work. Target-owned commands own hot reload and cleanup.
-4. Use `/generate-image` only when a reference is useful and the human
-   explicitly consents to provider privacy exposure, separately billed cost,
-   and available credentials through Pi's `question` tool when available. Use
-   a concise conversational fallback only when that tool is unavailable;
-   cancellation or decline is not consent. It collects feedback after coherent
-   material groups using the same capability.
+4. Use `/generate-image` for the accepted initial pass or another useful
+   reference. Before the first provider request, obtain explicit consent for
+   privacy exposure and separate billing. State one bounded pass; further
+   provider work needs a new bound and consent. Inspect two to eight directions,
+   verify the `design_board` URL, and record explicit human selection and notes.
+   If generation is unavailable, declined, or failed, make no unauthorized
+   request and continue normal UI design without generated evidence.
 5. Use `visual-validation` after a stable non-trivial UI change when browser or
    screenshot capability is available. It defines named routes, states, and
    desktop and mobile viewports and returns a mismatch ledger. Without proof,

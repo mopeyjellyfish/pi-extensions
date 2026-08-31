@@ -63,6 +63,9 @@ describe("design review resource contract", () => {
     expect(interfaceDesign).toMatch(/at\s+most four/iu);
     expect(interfaceDesign).toMatch(/two to eight[\s\S]*image evidence/iu);
     expect(interfaceDesign).toMatch(
+      /material direction[\s\S]*greenfield apps[\s\S]*major redesigns[\s\S]*unresolved visual[\s\S]*two to eight/iu,
+    );
+    expect(interfaceDesign).toMatch(
       /design_board[\s\S]*verif[\s\S]*URL[\s\S]*before requesting[\s\S]*feedback/iu,
     );
     expect(interfaceDesign).toMatch(/feedbackMode:[^\n]*cli[\s\S]*question/iu);
@@ -81,6 +84,38 @@ describe("design review resource contract", () => {
     expect(readme).toMatch(/localhost-only/iu);
     expect(readme).toMatch(/full-width visual[\s\S]*feedbackMode: "board"/iu);
     expect(readme).toMatch(/unavailable review surface/iu);
+  });
+});
+
+describe("image-first design resource contract", () => {
+  it("uses one consented bounded generation pass before normal design fallback", async () => {
+    expect.hasAssertions();
+    const [frontendDesign, interfaceDesign, imageGeneration, prompt, readme] = await Promise.all([
+      resource("skills/frontend-design/SKILL.md"),
+      resource("skills/interface-design/SKILL.md"),
+      resource("skills/image-generation/SKILL.md"),
+      resource("prompts/design.md"),
+      resource("README.md"),
+    ]);
+
+    expect(frontendDesign).toMatch(
+      /greenfield web application[\s\S]*installed `image-generation`[\s\S]*initial design pass/iu,
+    );
+    expect(imageGeneration).toMatch(
+      /before the first provider request in a pass[\s\S]*consent authorizes only the stated pass[\s\S]*new bound and consent/iu,
+    );
+    expect(interfaceDesign).toMatch(
+      /unavailable,\s+declined,\s+or\s+failed[\s\S]*continue\s+normal\s+UI\s+design[\s\S]*no\s+generated\s+evidence/iu,
+    );
+    expect(interfaceDesign).toMatch(
+      /inspect each direction[\s\S]*verified[\s\S]*`design_board`[\s\S]*explicit human\s+selection and notes/iu,
+    );
+    expect(prompt).toMatch(
+      /greenfield web[\s\S]*application or materially new application surface[\s\S]*explicitly bounded[\s\S]*generation-first[\s\S]*consent[\s\S]*first provider request/iu,
+    );
+    expect(readme).toMatch(
+      /2\. For design direction[\s\S]*generation-first[\s\S]*3\. For implementation[\s\S]*4\. Use `\/generate-image`/iu,
+    );
   });
 });
 

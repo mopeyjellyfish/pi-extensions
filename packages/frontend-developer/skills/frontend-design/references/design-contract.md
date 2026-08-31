@@ -2,11 +2,16 @@
 
 ## Evidence extraction
 
-For each mock-up, record visible regions, hierarchy, grid and alignment,
-typographic roles, color roles, spacing rhythm, shape language, imagery,
-interaction cues, and represented states. Separate observations from hypotheses.
-List missing mobile, overflow, loading, empty, error, focus, hover, and disabled
-behavior as ambiguity; pixels do not authorize invented product behavior.
+For each selected mock-up or board direction, record the evidence path or
+direction identifier, person and task, desired feel, and focal workflow. Record
+visible regions, hierarchy, grid and alignment, typographic roles, color roles,
+spacing rhythm, shape language, imagery, interaction cues, and represented
+states. Separate visible decisions from assumptions. List missing mobile,
+overflow, loading, empty, error, focus, hover, and disabled behavior as
+ambiguity; pixels do not authorize invented product behavior. Record responsive
+and accessibility constraints, reusable target components and semantic tokens
+when known, unresolved behavior or visual ambiguity, and the `DESIGN.md`
+disposition. Generated pixels are not production assets by default.
 
 ## Precedence and reconciliation
 
