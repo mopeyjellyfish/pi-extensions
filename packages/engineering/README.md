@@ -191,17 +191,19 @@ pi install /path/to/pi-extensions/packages/engineering
 ```
 
 `/improve [low|medium|high|max] [scope]` uses
-`improve-codebase-architecture` for evidence-backed discovery. An empty or
-level-only request uses `medium` by default and asks one adaptive Focus and
-Outcome intake instead of silently choosing a scope. Focus offers **Find
-improvements** for a level-appropriate, evidence-backed focus, up to two
-evidence-named areas, the whole repository, and a custom response. A
-user-supplied focus is authoritative; depth controls discovery inside it and
-does not silently broaden it. Outcome offers Work now, Prepare issues, Both, and
-Report only with truthful pane and tracker labels. Work now reports up to three
-immediate candidates. Prepare issues and Both report all supported findings
-inside the selected depth coverage. Report only opens the report and stops
-automatic triage.
+`improve-codebase-architecture` for evidence-backed discovery. When Improvement
+depth, Focus, or Outcome is missing, one initial `question` call asks only for
+the missing dimensions. Improvement depth offers `low`, `medium`, `high`, and
+`max`, with `medium` recommended. Focus offers **Find improvements** for a
+level-appropriate, evidence-backed focus, up to two evidence-named areas, the
+whole repository, and a custom response. A user-supplied focus is authoritative;
+depth controls discovery inside it and does not silently broaden it. Outcome
+offers Work now, Prepare issues, Both, and Report only with truthful pane and
+tracker labels. If `question` is unavailable, only a missing level defaults to
+`medium`; other missing choices use conversation. Skip or cancel stops before
+discovery. Work now reports up to three immediate candidates. Prepare issues and
+Both report all supported findings inside the selected depth coverage. Report
+only opens the report and stops automatic triage.
 
 The accepted depths are `low`, `medium`, `high`, and `max`. Scope can name a
 module, package, vertical feature slice, architecture pattern, test surface,
@@ -228,14 +230,35 @@ uses a Herdr-or-equivalent pane only when that capability is available; the
 fallback stays in the current session. Parallel writers require independent
 isolated worktrees.
 
-For Go source, modules, Go CLIs, or Go-specific work, target-repository standards
-come first, then the installed `go` skill, then generic guidance. Every capable
-evidence lane loads `go`; a lane that cannot load it returns evidence only. An
-unavailable skill records the unmet method and uses bounded target-repository Go
-standards. Without either source, the report omits the unsupported Go-specific
-candidate. Table-driven subtests remain the Go default where applicable.
-`cobra-viper` stays conditional on Cobra or Viper commands, flags, or CLI
-configuration. Unrelated toolchain evidence does not activate either method.
+Test effectiveness and performance are normal `/improve` discovery behavior, not
+a test mode. An explicit test, CI, coverage, flake, or test-performance scope
+uses one dedicated, bounded, evidence-only test-analysis subagent when available;
+broader reviews select it only from material repository evidence. The lane shares
+the `low` one, `medium` two, `high` four, and bounded-`max` support budget with
+external lookups. At `low`, the parent remains the default and an explicit test
+scope consumes the sole support slot. The parent owns recommendations. It
+assesses falsifiability, independent expected values, public seams, reliability,
+and failure isolation. It separates holistic suite and CI-stage costs from
+measured hot cases. Comparable branch/base
+CI evidence names compatible workflow conditions, refs, SHAs, run identifiers,
+samples, timing boundaries, and confounders; unavailable evidence remains a gap.
+CI discovery is provider-neutral and read-only, including the available GitHub
+CLI and REST `GET` path. Temporary artifacts stay in a non-served OS-temp child
+and are removed after bounded extraction.
+
+All test work resolves the installed `test-driven-development` method. Go test
+work applies target-repository standards, then installed `go`, then applicable
+`cobra-viper`, then `test-driven-development`, then generic guidance.
+`cobra-viper` applies only to Cobra or Viper commands, flags, or CLI
+configuration; unrelated toolchain evidence activates neither Go skill.
+Table-driven subtests remain the Go default when cases share behavior, setup, and
+assertions while retaining clear failures. Repository evidence comes first,
+then official documentation and canonical maintainer sources, including Go team
+repositories and spf13 sources when applicable. External claims must connect to
+repository evidence. Faster but weaker tests are not improvements. The
+Blueprint Ledger displays effectiveness risks, timing
+boundaries, hot cases, branch/base comparison, constraints, sources, gaps,
+tradeoffs, and proof while browser controls remain non-authoritative.
 
 High and max can use one read-only AskClaude second opinion when repository
 network, privacy, and source-disclosure rules permit it. Deepen does not call it
