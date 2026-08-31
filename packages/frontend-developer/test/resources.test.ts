@@ -135,8 +135,7 @@ describe("frontend skill routing ownership", () => {
     };
     const firstOwners = Object.entries(skillDescriptions)
       .filter(([, description]) => /first owner/iu.test(description))
-      .map(([name]) => name)
-      .sort();
+      .map(([name]) => name);
 
     expect.soft(firstOwners).toEqual(["frontendDesign", "interfaceCraft"]);
     expect
