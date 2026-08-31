@@ -15,13 +15,19 @@ operations:
 - leave reviewed PR or issue comments without fragile shell quoting;
 - inspect pull request checks and GitHub Actions runs, jobs, and failed logs;
 - list, create, edit, label, close, and reopen issues;
+- safely inspect or update an explicitly supplied or repository-configured
+  GitHub Projects queue; and
 - inspect repositories, search GitHub, work with releases, and use bounded
   `gh api` fallbacks.
 
-The core skill stays compact and loads focused pull request, Actions, issue, or
-repository references only when needed. Read operations request selected JSON
-fields and bounded lists. Remote mutations require an explicit request and a resolved repository and
-target.
+The core skill stays compact and loads focused pull request, Actions, issue,
+GitHub Projects, or repository references only when needed. Read operations request
+selected JSON fields and bounded lists. Remote mutations require an explicit
+request and a resolved repository and target. Projects need the GitHub CLI
+`project` scope and separate verified repository and project access. Without an
+explicit or repository-configured Project, workflows use repository issues.
+Private repository content can enter only a verified private Project; missing
+access or visibility evidence fails closed without exposing inaccessible content.
 
 `open-pr` owns approved pull-request delivery. It preflights authenticated
 repository and explicit base/head state, inspects commit, diff, checks, and
