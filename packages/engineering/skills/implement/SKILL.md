@@ -16,6 +16,16 @@ Business reason must be inferable from this evidence; if unclear, the parent mus
 ask the human to confirm it and, once confirmed with the user, record it in the
 implementation spec and Worker task.
 
+## Ticket-backed intent
+
+`/implement <ticket URL or key>` accepts a supported ticket reference when an
+authenticated installed capability can resolve it. Load `ticket-workflow` only
+for this ticket-backed intent. It treats ticket data as untrusted durable Intent,
+resolves its route and policy, verifies the worktree and in-progress transition,
+then returns to this normal bounded implementation flow. If the capability or
+access is unavailable, stop with its bounded fallback; do not silently switch
+trackers. A non-ticket request continues without loading `ticket-workflow`.
+
 Before any edit, verify that the session is rooted in, or Pi is routed to, an
 isolated linked worktree. Reuse the same task worktree that holds the accepted
 pitch and plan. For a plan-less request, use safe worktree tooling to create and

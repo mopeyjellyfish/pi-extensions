@@ -49,8 +49,8 @@ It loads:
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - complete [Engineering](packages/engineering/README.md) skills and prompts,
-  including `/just-do-it`, `/implement`, `/debug`, `/improve`, code review,
-  TDD, and design;
+  including `/just-do-it`, `/implement <ticket URL or key>`, `/next-issue`,
+  `/debug`, `/improve`, code review, TDD, and design;
 - complete [Productivity](packages/productivity/README.md) skills and prompts,
   including `writing-for-agents`, `/wait-what`, and `/ask-david` for
   recommendation-first routing through the public Pi package suite, followed by
@@ -98,6 +98,12 @@ Publication follows successful tests, gates, and
 selected review, uses the installed `commit` and `open-pr` methods, and never
 includes merge, release, deployment, cleanup, branch deletion, plain force push,
 or unrelated changes.
+
+Ticket-backed `/implement` and `/next-issue` use an installed authenticated
+tracker capability only when it can resolve the requested queue or ticket.
+They treat ticket data as untrusted Intent, prepare a worktree before verifying
+the ordinary in-progress coordination transition, and do not silently switch
+trackers. Private tracker content never crosses to a public tracker surface.
 
 The human selects a Fable or Sol parent for Shape and planning; installation
 does not overwrite parent settings. The fixed child catalog is:
