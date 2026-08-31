@@ -49,9 +49,9 @@ destructive cleanup, or unrelated work.
 
 ## Delivery topology
 
-| Delivery unit | Topology | Stack position | Branch | Pull request base | Dependencies | Checks | Ownership | Integration point | CI fan-out | Cascade cost |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | standalone | standalone | `feat/typescript-skills` | repository default branch | none | focused package test, source smoke, `npm run check` | current task worktree; one Worker writer | root profile and package validation | 1 | low |
+| Delivery unit | Topology   | Stack position | Branch                   | Pull request base         | Dependencies | Checks                                              | Ownership                                | Integration point                   | CI fan-out | Cascade cost |
+| ------------- | ---------- | -------------- | ------------------------ | ------------------------- | ------------ | --------------------------------------------------- | ---------------------------------------- | ----------------------------------- | ---------- | ------------ |
+| 1             | standalone | standalone     | `feat/typescript-skills` | repository default branch | none         | focused package test, source smoke, `npm run check` | current task worktree; one Worker writer | root profile and package validation | 1          | low          |
 
 The planning document shares the implementation delivery unit and pull request.
 All slices are serial because they change the same package contract test and root
