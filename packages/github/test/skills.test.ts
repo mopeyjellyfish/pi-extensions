@@ -45,37 +45,46 @@ describe("GitHub CLI skill", () => {
 
   it("routes configured GitHub Projects through a safe bounded contract", async () => {
     expect.hasAssertions();
-    const [skill, readme, projects] = await Promise.all([
+    const [skill, readme, projects, issues] = await Promise.all([
       readSkillFile("SKILL.md"),
       readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
       readSkillFile("references/projects.md"),
+      readSkillFile("references/issues.md"),
     ]);
 
     expect(skill).toContain("references/projects.md");
     expect(readme).toContain("GitHub Projects");
-    expect(projects).toContain("gh project list");
-    expect(projects).toContain("gh project view");
-    expect(projects).toContain("gh project field-list");
-    expect(projects).toContain("gh project item-list");
-    expect(projects).toContain("gh project item-add");
-    expect(projects).toContain("gh project item-edit");
-    expect(projects).toContain("explicitly supplied");
-    expect(projects).toContain("repository-configured");
-    expect(projects).toContain("repository issues");
-    expect(projects).toContain("project scope");
-    expect(projects).toContain("repository access");
-    expect(projects).toContain("project access");
-    expect(projects).toContain("visibility");
-    expect(projects).toContain("owner");
-    expect(projects).toContain("project number");
-    expect(projects).toContain("item URL");
-    expect(projects).toContain("field");
-    expect(projects).toContain("option");
-    expect(projects).toContain("resulting state");
-    expect(projects).toContain("Private repository");
-    expect(projects).toContain("public project");
-    expect(projects).toContain("fail closed");
-    expect(projects).toContain("without showing inaccessible content");
+    for (const command of [
+      "gh project list",
+      "gh project view",
+      "gh project field-list",
+      "gh project item-list",
+      "gh project item-add",
+      "gh project item-edit",
+    ]) {
+      expect(projects).toContain(command);
+    }
+    expect(projects).toMatch(
+      /request explicitly supplies a project[\s\S]*repository policy names a configured project[\s\S]*otherwise, use repository issues/iu,
+    );
+    expect(projects).toMatch(
+      /Confirm the authenticated account has project access, the project scope, and\s*repository access[\s\S]*owner[\s\S]*project number[\s\S]*visibility[\s\S]*fail closed without showing inaccessible content/iu,
+    );
+    expect(projects).toMatch(
+      /Private repository content may enter only a private project[\s\S]*must never enter a public project[\s\S]*never expose private project metadata/iu,
+    );
+    expect(projects).toMatch(
+      /Before mutation[\s\S]*repository visibility[\s\S]*owner[\s\S]*project number[\s\S]*project visibility[\s\S]*item URL[\s\S]*field[\s\S]*option[\s\S]*intended resulting state/iu,
+    );
+    expect(projects).toMatch(
+      /Re-read the item[\s\S]*verify its project ID[\s\S]*item URL[\s\S]*field[\s\S]*option[\s\S]*resulting state[\s\S]*verification fails/iu,
+    );
+    expect(projects).toMatch(/partial result[\s\S]*do not blindly retry/iu);
+    expect(projects).toContain("--jq '.fields[] | {id,name,type,options}'");
+    expect(projects).toContain(".content |= {number,repository,title,type,url}");
+    expect(projects).not.toMatch(/dataType|fieldValues/u);
+    expect(projects).toMatch(/created time[\s\S]*underlying\s+issue/iu);
+    expect(issues).toMatch(/--json[^\n]*createdAt/iu);
   });
 
   it("requires authenticated, bounded, repository-aware gh usage", async () => {
