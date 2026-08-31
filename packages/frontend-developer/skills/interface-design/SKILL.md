@@ -1,6 +1,8 @@
 ---
 name: interface-design
-description: Craft-first interface design for dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces, and interactive products. Use when designing, building, reviewing, auditing, or refining product UI where visual craft, layout hierarchy, tokens, states, visual direction, or design-system consistency matter. Not for marketing pages, landing pages, campaigns, or brand-only work.
+description: >-
+  Material app-interface method after classification. Establish evidence-backed
+  direction and implementation handoff for product interfaces, not marketing work.
 ---
 
 # Interface Design

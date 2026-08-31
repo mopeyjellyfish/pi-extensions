@@ -119,6 +119,36 @@ describe("image-first design resource contract", () => {
   });
 });
 
+describe("frontend skill routing ownership", () => {
+  it("gives each accepted request class one first owner without a design back-route", async () => {
+    expect.hasAssertions();
+    const [interfaceCraft, frontendDesign, interfaceDesign, designReference] = await Promise.all([
+      resource("skills/interface-craft/SKILL.md"),
+      resource("skills/frontend-design/SKILL.md"),
+      resource("skills/interface-design/SKILL.md"),
+      resource("skills/interface-craft/references/design.md"),
+    ]);
+    const descriptions = [interfaceCraft, frontendDesign, interfaceDesign]
+      .map((source) => /^---\n[\s\S]*?^---/mu.exec(source)?.[0] ?? "")
+      .join("\n");
+
+    expect
+      .soft(interfaceCraft)
+      .toMatch(/focused polish, audit, layout, clarify, adapt, optimize, bolder/iu);
+    expect
+      .soft(frontendDesign)
+      .toMatch(
+        /material app direction, a\s+new app surface, a\s+major redesign, or\s+unclear visual direction/iu,
+      );
+    expect.soft(interfaceDesign).toMatch(/material app-interface method after\s+classification/iu);
+    expect
+      .soft(descriptions)
+      .not.toMatch(/designing, building, reviewing, auditing, or refining/iu);
+    expect.soft(designReference).not.toMatch(/repository-native `\/design` workflow/iu);
+    expect.soft(designReference).not.toMatch(/frontend-design/iu);
+  });
+});
+
 describe("interface craft resource contract", () => {
   const operations = [
     "design",
@@ -171,9 +201,8 @@ describe("interface craft resource contract", () => {
     ]);
     expect(catalog).toMatch(/^---\nname: interface-craft\ndescription:[\s\S]*web-interface/imu);
     expect(catalog).toMatch(/first-class.*natural-language.*router/isu);
-    expect(catalog).toMatch(
-      /settings flow.*mobile layout.*make this calmer.*document.*design system/isu,
-    );
+    for (const request of ["settings flow", "mobile layout", "make this calmer"])
+      expect(catalog).toMatch(new RegExp(request, "iu"));
     expect(catalog).toMatch(/`\/shape` remains the feature pitch lifecycle/iu);
     expect(catalog).toMatch(/package-level Apache attribution[\s\S]*`NOTICE\.md`/iu);
     const frontmatter = catalog.slice(0, catalog.indexOf("\n---", 4));

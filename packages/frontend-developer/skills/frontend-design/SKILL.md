@@ -1,6 +1,8 @@
 ---
 name: frontend-design
-description: Establish deliberate, repository-grounded visual direction for a frontend request.
+description: >-
+  First owner for material app direction, a new app surface, a major redesign, or
+  unclear visual direction. Classify the request before implementation.
 ---
 
 # Frontend design

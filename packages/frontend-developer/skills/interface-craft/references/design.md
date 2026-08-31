@@ -1,10 +1,10 @@
 # Design
 
 Use `design` to establish or materially revise a deliberate web-interface
-direction. It routes into the repository-native `/design` workflow and its
-installed interface-design, frontend-design, image, and visual-validation
-capabilities when they are available. It does not create a substitute command,
-runtime, or state model.
+direction after this focused operation is selected. Follow target repository
+instructions and available evidence. This reference supplies direction work; it
+does not select another router or create a substitute command, runtime, or state
+model.
 
 ## Establish the brief
 
