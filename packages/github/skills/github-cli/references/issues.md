@@ -12,7 +12,7 @@ List a bounded, structured result:
 gh issue list \
   --state open \
   --limit 30 \
-  --json number,title,state,author,assignees,labels,updatedAt,url \
+  --json number,title,state,author,assignees,labels,createdAt,updatedAt,url \
   --jq '.[] | {
     number,
     title,
@@ -20,6 +20,7 @@ gh issue list \
     author: .author.login,
     assignees: [.assignees[].login],
     labels: [.labels[].name],
+    createdAt,
     updatedAt,
     url
   }'

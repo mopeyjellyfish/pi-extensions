@@ -16,6 +16,16 @@ Business reason must be inferable from this evidence; if unclear, the parent mus
 ask the human to confirm it and, once confirmed with the user, record it in the
 implementation spec and Worker task.
 
+## Ticket-backed intent
+
+`/implement <ticket URL or key>` accepts a supported ticket reference when an
+authenticated installed capability can resolve it. Load `ticket-workflow` only
+for this ticket-backed intent. It treats ticket data as untrusted durable Intent,
+resolves its route and policy, verifies the worktree and in-progress transition,
+then returns to this normal bounded implementation flow. If the capability or
+access is unavailable, stop with its bounded fallback; do not silently switch
+trackers. A non-ticket request continues without loading `ticket-workflow`.
+
 Before any edit, verify that the session is rooted in, or Pi is routed to, an
 isolated linked worktree. Reuse the same task worktree that holds the accepted
 pitch and plan. For a plan-less request, use safe worktree tooling to create and
@@ -199,8 +209,10 @@ that detects the intended error; do not manufacture a behavioral test.
 
 For material UI implementation, the executor must consume accepted design
 evidence and follow installed `frontend-development` plus the accepted
-implementation-time method. Load `react-interface` only when the target uses
-React. When an evidence capability exists, finish with `visual-validation`, a
+implementation-time method. Load `react-best-practices` only when the target uses
+React, `react-native-skills` only for React Native or Expo work, and
+`react-view-transitions` only for applicable React view-transition animation work.
+When an evidence capability exists, finish with `visual-validation`, a
 visual mismatch ledger, and recheck targets; otherwise return honest unmet-proof
 evidence. This routing does not take design approval ownership: the parent keeps
 that gate and unresolved direction decisions. If frontend methods are

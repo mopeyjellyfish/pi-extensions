@@ -5,14 +5,14 @@ Ask structured clarifying questions in Pi instead of making the model guess.
 ## Features
 
 - `presentation: "inline"` keeps a contextual clarification below the visible transcript; omit presentation or use `"fullscreen"` for the existing capturing overlay.
-- Inline questions use the same one-to-four question dialog, choices, multi-select, notes, custom answers, redirection, and final review at their natural height when space permits. They scroll only when the complete question exceeds the terminal height.
+- Inline questions use the same count-unbounded dialog, choices, multi-select, notes, custom answers, redirection, and final review at their natural height when space permits. They scroll only when the complete question exceeds the terminal height.
 - Full-screen questions use every terminal row and column.
 - At 100 terminal columns or wider, options and final-review controls stay in a one-third left rail while an attached document, focused preview, or blank space uses the remaining two-thirds; narrower overlays stack content.
 - Optional full-document review with persistent, independently scrollable Markdown (including bulleted and numbered nested lists, spacing, rules, and language-highlighted fenced code in theme-aware background blocks), YAML, JSON, XML, or text rendering in a stable full-screen overlay viewport.
 - Per-option notes, an **Other…** free-text answer, and a review/Submit tab for multi-question dialogs.
 - Immediate submission after a single question is answered, without a redundant review step.
 - **Chat about this…** redirects the conversation, then lets the model reopen revised questions with an opaque continuation ID while preserving compatible draft answers.
-- Terminal-row-aware scrolling with sticky chrome and clipping indicators.
+- Compact progress navigation, focused option and review viewports, and terminal-row-aware scrolling with sticky chrome and clipping indicators.
 - A sequential dialog fallback for RPC clients and explicit unavailable results in JSON/print modes.
 
 ## Install
@@ -25,7 +25,7 @@ Restart Pi after installation.
 
 ## Tool
 
-The package registers the `question` tool. Each call accepts one to four questions. Questions and options require stable IDs; retain an ID across a redirected continuation only when its meaning is unchanged.
+The package registers the `question` tool. Each call accepts any finite number of questions and options, subject to the complete result-details budget. Questions and options require stable IDs; retain an ID across a redirected continuation only when its meaning is unchanged.
 
 ````ts
 question({
@@ -105,8 +105,9 @@ A redirected result contains `continuationId`, the bounded clarification, struct
 
 ## Controls
 
-- `Tab` / `Shift+Tab` or left/right: switch tabs.
-- Up/down: move through rows.
+- `Tab` / `Shift+Tab` or left/right: switch questions or review.
+- Up/down: move through options or sticky review actions.
+- PageUp/PageDown and Home/End: move through focused option and review viewports.
 - `Enter`: select, toggle, advance, or submit.
 - `Space`: toggle a multi-select option.
 - `n`: edit the note for a focused option with a preview.
@@ -124,7 +125,7 @@ The complete dialog and document viewer require TUI mode. `presentation` affects
 
 Attached documents are limited to 100,000 characters and are never copied into result details or continuation snapshots. Accepted content is scrollable without UI truncation. Document-only changes preserve compatible continuation drafts, like preview-only changes.
 
-Detail-field bounds are measured by JSON-encoded UTF-8 cost after sanitization, so escaped characters and multibyte Unicode count at their serialized size. User-authored notes are capped at 512 encoded bytes. **Other…** answers and **Chat about this…** redirects are capped at 2,000 encoded bytes. Model-facing tool content is capped at 8,000 decoded UTF-8 bytes, and compact transcript rendering is capped at 320 decoded UTF-8 bytes. Truncated values end with `… [truncated]`. Carriage returns normalize to newlines; tabs/newlines are preserved; other C0 controls and DEL become `�`. Structural IDs, headers, document names, and option labels containing controls are rejected. The maximum valid result details, including a continuation snapshot, remain below Pi's 50 KB tool-result guidance.
+Detail-field bounds are measured by JSON-encoded UTF-8 cost after sanitization, so escaped characters and multibyte Unicode count at their serialized size. Complete `details` are capped at 48,000 JSON UTF-8 bytes; structural IDs, selections, and continuation signatures stay complete while user-authored text is explicitly truncated when needed. User-authored notes are capped at 512 encoded bytes. **Other…** answers and **Chat about this…** redirects are capped at 2,000 encoded bytes. Model-facing tool content is separately capped at 8,000 decoded UTF-8 bytes, and compact transcript rendering is separately capped at 320 decoded UTF-8 bytes. Truncated values end with `… [truncated]`. Carriage returns normalize to newlines; tabs/newlines are preserved; other C0 controls and DEL become `�`. Structural IDs, headers, document names, and option labels containing controls are rejected. Attached documents are not copied into details or continuation snapshots.
 
 ## Development
 

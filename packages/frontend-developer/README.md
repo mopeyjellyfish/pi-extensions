@@ -45,20 +45,26 @@ replacement, or material rewrite.
    routing. Use `interface-design` for material app work: it establishes
    person, task, feel, domain, a color world, signature, rejected defaults,
    hierarchy, type, density, tokens, depth, states, feedback, and visual proof
-   without imposing a framework.
+   without imposing a framework. For a greenfield web application or materially
+   new application surface, use an available image-generation capability for a
+   consented, bounded generation-first initial pass. If generation cannot run,
+   continue normal UI design without generated evidence.
+
 3. For implementation or a frontend change, use `frontend-development`. It may
    use `frontend-design` as needed. `interface-design` preserves the target
    framework and implementation conventions. When available, `implement` or
    `developing-changes` owns the general engineering loop; otherwise the method
-   uses the one-Worker/TDD fallback. It uses `react-interface` only when the
-   target uses React and an applicable specialist is available. Target-owned
-   commands own hot reload and cleanup.
-4. Use `/generate-image` only when a reference is useful and the human
-   explicitly consents to provider privacy exposure, separately billed cost,
-   and available credentials through Pi's `question` tool when available. Use
-   a concise conversational fallback only when that tool is unavailable;
-   cancellation or decline is not consent. It collects feedback after coherent
-   material groups using the same capability.
+   uses the one-Worker/TDD fallback. It uses `react-best-practices` only for a
+   React target, `react-native-skills` only for React Native or Expo work, and
+   `react-view-transitions` only for applicable React view-transition animation
+   work. Target-owned commands own hot reload and cleanup.
+4. Use `/generate-image` for the accepted initial pass or another useful
+   reference. Before the first provider request, obtain explicit consent for
+   privacy exposure and separate billing. State one bounded pass; further
+   provider work needs a new bound and consent. Inspect two to eight directions,
+   verify the `design_board` URL, and record explicit human selection and notes.
+   If generation is unavailable, declined, or failed, make no unauthorized
+   request and continue normal UI design without generated evidence.
 5. Use `visual-validation` after a stable non-trivial UI change when browser or
    screenshot capability is available. It defines named routes, states, and
    desktop and mobile viewports and returns a mismatch ledger. Without proof,
@@ -73,6 +79,15 @@ permission notice ships in `skills/interface-design/LICENSE.txt`.
 4.1.1 at `56f44523f76efdcec813e67b38ee550e49b16f48`. The package remains
 MIT-owned for its original work and ships the Apache-2.0 text and retained
 upstream notice in `LICENSE` and `NOTICE.md` for those references.
+
+The `react-best-practices`, `react-native-skills`, and
+`react-view-transitions` resources vendor Vercel's MIT-licensed guidance from
+`vercel-labs/agent-skills` at
+`063bee94c3f4df8453406c830b0a7df0f2860278`. `interface-craft` includes
+portable audit checks informed by `vercel-labs/web-interface-guidelines` at
+`e3d624baaf29dc1fc645aff3e38f03e564d2d6b1`; it does not use that project's
+live-fetch workflow or Vercel-specific copywriting preferences. `NOTICE.md`
+retains the required provenance and license notices.
 
 Browser automation and general engineering, planning, Git, and review workflows
 are optional companion capabilities, not bundled dependencies. When they are

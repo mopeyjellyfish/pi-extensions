@@ -1,6 +1,8 @@
 ---
 name: frontend-design
-description: Establish deliberate, repository-grounded visual direction for a frontend request.
+description: >-
+  First owner for material app direction, a new app surface, a major redesign, or
+  unclear visual direction. Classify the request before implementation.
 ---
 
 # Frontend design
@@ -16,7 +18,12 @@ take precedence over DESIGN.md. Its absence does not block work.
   on product UI, load `interface-craft` and select one operation. Route design
   documentation to `design-documentation`. Audits and critiques remain
   evaluation-only unless a follow-on is requested.
-- For a non-trivial app interface, major redesign, or unclear product-UI
+- For a greenfield web application or materially new application surface, load
+  `interface-design` before implementation. When an installed `image-generation`
+  capability, explicit consent, and credentials permit it, use one bounded,
+  generation-first initial design pass. If any is unavailable, declined, or
+  fails, continue normal UI design without claiming generated evidence.
+- For another non-trivial app interface, major redesign, or unclear product-UI
   direction, load `interface-design` before implementation. Its material-design
   loop requires image-backed directions on a verified local `design_board` URL
   before requesting a visual choice.

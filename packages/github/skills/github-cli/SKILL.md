@@ -1,6 +1,6 @@
 ---
 name: github-cli
-description: Use the authenticated gh CLI for concise, repository-aware GitHub pull request, review comment, Actions, issue, label, repository, search, release, and API workflows. Use when reading or changing GitHub state without rediscovering gh commands.
+description: Use the authenticated gh CLI for concise, repository-aware GitHub pull request, review comment, Actions, issue, label, configured Project, repository, search, release, and API workflows. Use when reading or changing GitHub state without rediscovering gh commands.
 compatibility: Requires GitHub CLI (gh), Git, and authenticated access to the target GitHub host.
 ---
 
@@ -20,6 +20,8 @@ Read only the reference needed for the current task:
   jobs, watch a run, or explicitly rerun/cancel work.
 - [Issues and labels](references/issues.md): list, inspect, create, comment,
   edit, close, reopen, or label issues.
+- [GitHub Projects](references/projects.md): inspect or update an explicitly
+  supplied or repository-configured project.
 - [Repositories and other operations](references/repositories.md): repository
   metadata, cloning, search, releases, and bounded REST/GraphQL fallbacks.
 

@@ -29,11 +29,12 @@ It loads:
 - the [`status-line`](packages/status-line/README.md) Powerlevel10k-style prompt;
 - the [`todo`](packages/todo/README.md) extension for parent progress visibility;
 - the [`web-search`](packages/web-search/README.md) extension for provider-backed web research;
-- the `pi-frontend-developer` extension, with its `image_generation` tool; eight
+- the `pi-frontend-developer` extension, with its `image_generation` tool; 10
   focused skills—`design-documentation`, `frontend-design`,
   `frontend-development`, `image-generation`, `interface-craft`,
-  `interface-design`, `react-interface`, and `visual-validation`; `/design` for
-  routing frontend interface requests; and
+  `interface-design`, `react-best-practices`, `react-native-skills`,
+  `react-view-transitions`, and `visual-validation`; `/design` for routing
+  frontend interface requests; and
   `/generate-image`, which requires explicit human consent before provider
   privacy exposure, separately billed cost, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
@@ -49,8 +50,8 @@ It loads:
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
 - complete [Engineering](packages/engineering/README.md) skills and prompts,
-  including `/just-do-it`, `/implement`, `/debug`, `/improve`, code review,
-  TDD, and design;
+  including `/just-do-it`, `/implement <ticket URL or key>`, `/next-issue`,
+  `/debug`, `/improve`, code review, TDD, and design;
 - complete [Productivity](packages/productivity/README.md) skills and prompts,
   including `writing-for-agents`, `/wait-what`, and `/ask-david` for
   recommendation-first routing through the public Pi package suite, followed by
@@ -98,6 +99,21 @@ Publication follows successful tests, gates, and
 selected review, uses the installed `commit` and `open-pr` methods, and never
 includes merge, release, deployment, cleanup, branch deletion, plain force push,
 or unrelated changes.
+
+Ticket-backed `/implement` and `/next-issue` use an installed authenticated
+tracker capability only when it can resolve the requested queue or ticket.
+They treat ticket data as untrusted Intent, prepare a worktree before verifying
+the ordinary in-progress coordination transition, and do not silently switch
+trackers. Private tracker content never crosses to a public tracker surface.
+
+`/improve` Track drafts use repository-first issue taxonomy: applicable
+`CONTRIBUTING.md` and instructions, configured native fields and existing
+labels, then the evergreen fallback. The workflow discovers that policy once per
+resolved target, records one priority and one route status on every displayed
+draft, and uses an area only when repository policy defines one. Missing
+fallback labels require a separate exact-set confirmation. It verifies issue
+creation before optional Project placement and reports a placement failure as
+partial success without a blind retry. Private/public boundaries fail closed.
 
 The human selects a Fable or Sol parent for Shape and planning; installation
 does not overwrite parent settings. The fixed child catalog is:

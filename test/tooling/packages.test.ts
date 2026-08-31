@@ -224,7 +224,9 @@ describe("package contracts", () => {
           "domain-modeling",
           "writing-for-agents",
           "frontend-development",
-          "react-interface",
+          "react-best-practices",
+          "react-native-skills",
+          "react-view-transitions",
           "visual-validation",
           "go",
           "cobra-viper",
@@ -236,7 +238,9 @@ describe("package contracts", () => {
           "../packages/engineering/skills/domain-modeling",
           "../packages/productivity/skills/writing-for-agents",
           "../packages/frontend-developer/skills/frontend-development",
-          "../packages/frontend-developer/skills/react-interface",
+          "../packages/frontend-developer/skills/react-best-practices",
+          "../packages/frontend-developer/skills/react-native-skills",
+          "../packages/frontend-developer/skills/react-view-transitions",
           "../packages/frontend-developer/skills/visual-validation",
           "../packages/go/skills/go",
           "../packages/go/skills/cobra-viper",
@@ -725,7 +729,7 @@ describe("package contracts", () => {
     await expect(resolvePackageEntrypoints(frontendDeveloper)).resolves.toEqual([
       expect.stringMatching(/packages\/frontend-developer\/src\/index\.ts$/u),
     ]);
-    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(8);
+    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(10);
     await expect(resolvePackagePrompts(frontendDeveloper)).resolves.toEqual([
       expect.stringMatching(/packages\/frontend-developer\/prompts\/design\.md$/u),
       expect.stringMatching(/packages\/frontend-developer\/prompts\/generate-image\.md$/u),

@@ -357,7 +357,7 @@ describe("feature-flow resources", () => {
       /unresolved\s+material\s+visual\s+direction[\s\S]*image-backed[\s\S]*explicit\s+human\s+choice/iu,
     );
     expect(shape).toMatch(/mechanical[\s\S]*direct/iu);
-    expect(planning).toMatch(/accepted interface\s+criteria[\s\S]*vertical slices/iu);
+    expect(planning).toMatch(/accepted\s+interface\s+criteria[\s\S]*vertical\s+slices/iu);
     for (const term of [
       "representative states",
       "responsive surfaces",
@@ -370,9 +370,12 @@ describe("feature-flow resources", () => {
     ])
       expect(planning).toMatch(new RegExp(term.replaceAll(" ", "\\s+"), "iu"));
     expect(planning).toMatch(/`DESIGN\.md`/u);
-    expect(planning).toMatch(/design-evidence slice[\s\S]*before[\s\S]*UI\s+implementation/iu);
-    expect(planning).toMatch(/`implement`[\s\S]*engineering orchestration/iu);
+    expect(planning).toMatch(/design-evidence\s+slice[\s\S]*before[\s\S]*UI\s+implementation/iu);
+    expect(planning).toMatch(/`implement`[\s\S]*engineering\s+orchestration/iu);
     expect(pitch).toMatch(/material interface scope[\s\S]*design evidence/iu);
+    for (const term of ["design authority", "chosen visual direction", "operation needs"])
+      expect(pitch).toMatch(new RegExp(term.replaceAll(" ", "\\s+"), "iu"));
+    expect(planning).toMatch(/target-owned[\s\S]*browser\s+evidence/iu);
     expect(plan).toMatch(/interface slice[\s\S]*states[\s\S]*responsive[\s\S]*visual proof/iu);
     expect(readme).toMatch(
       /conditional[\s\S]*interface evidence[\s\S]*independently installable/iu,
@@ -398,8 +401,8 @@ describe("feature-flow resources", () => {
     );
     expect(shape).toMatch(/direct-parent fallback[\s\S]*`frontend-design`[^.]*unavailable/iu);
     expect(planning).toMatch(/material UI[\s\S]*`frontend-development`/iu);
-    expect(planning).toMatch(/accepted design or operation method/iu);
-    expect(planning).toMatch(/`react-interface`[^.]*only for a React target/iu);
+    expect(planning).toMatch(/accepted\s+design\s+or\s+operation\s+method/iu);
+    expect(planning).toMatch(/`react-best-practices`[^.]*only for a React target/iu);
     expect(planning).toMatch(/evidence capability[\s\S]*`visual-validation`/iu);
     expect(planning).toMatch(/parent-owned[\s\S]*`design-documentation`[\s\S]*approval/iu);
     expect(planning).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);
@@ -407,5 +410,36 @@ describe("feature-flow resources", () => {
     for (const resource of [shape, planning]) {
       expect(resource).not.toMatch(/pi-extensions|packages\//iu);
     }
+  });
+});
+
+describe("image-first UI delivery resource contract", () => {
+  it("carries selected image evidence into native implementation and visual proof", async () => {
+    expect.hasAssertions();
+    const [shape, planning, pitch, plan, readme] = await Promise.all([
+      read("skills/shape/SKILL.md"),
+      read("skills/planning-changes/SKILL.md"),
+      read("skills/shape/templates/pitch.md"),
+      read("skills/shape/templates/plan.md"),
+      read("README.md"),
+    ]);
+
+    expect(shape).toMatch(
+      /greenfield\s+web\s+application[\s\S]*generation-first[\s\S]*before\s+pitch\s+approval/iu,
+    );
+    expect(shape).toMatch(/selected evidence[\s\S]*image-to-interface contract/iu);
+    expect(planning).toMatch(
+      /image-to-interface contract[\s\S]*native accessible structure[\s\S]*target components[\s\S]*semantic tokens/iu,
+    );
+    expect(planning).toMatch(
+      /representative\s+desktop\s+and\s+mobile\s+browser\s+evidence[\s\S]*resolved\s+or\s+explicitly\s+accepted\s+visual\s+mismatch\s+ledger/iu,
+    );
+    expect(pitch).toMatch(/selected evidence[\s\S]*image-to-interface contract/iu);
+    expect(plan).toMatch(
+      /native\s+accessible structure[\s\S]*semantic tokens[\s\S]*mismatch\s+ledger/iu,
+    );
+    expect(readme).toMatch(
+      /Material UI scope[\s\S]*greenfield web application[\s\S]*generation-first[\s\S]*direct-parent fallback[\s\S]*independently installable/iu,
+    );
   });
 });

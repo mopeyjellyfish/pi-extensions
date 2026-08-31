@@ -29,13 +29,13 @@ Recognize an exact leading level token without regard to letter case. Normalize
 the token to lowercase. The accepted improvement depths are `low`, `medium`,
 `high`, and `max`.
 
-If the first token is not a level, use the default `medium` improvement depth
-and treat all arguments as the request. To use a scope that starts with a
-reserved token, give an explicit level first. For example, `medium low latency
-path` uses `low latency path` as the scope. An empty or level-only request has no
-specific area and uses the adaptive quick start instead of silently inferring a
-scope. Treat `find improvements` as explicit agent-led discovery, not as the
-literal name of a repository area.
+When the first token is not a level, treat all arguments as the request and
+leave Improvement depth unanswered. To use a scope that starts with a reserved
+token, give an explicit level first. For example, `medium low latency path` uses
+`low latency path` as the scope. An empty or level-only request has no specific
+area and uses the adaptive quick start instead of silently inferring a scope.
+Treat `find improvements` as explicit agent-led discovery, not as the literal
+name of a repository area.
 
 The optional scope can name a module, package, subsystem, vertical feature
 slice, architecture pattern, test surface, pain point, or change-history area.
@@ -54,61 +54,69 @@ application, pane agent, or repository-specific path is available.
 
 ## Ask the adaptive quick start
 
-When the request does not name a specific area, or asks to find improvements,
-do one lightweight parent-only orientation. Read target-repository instructions
-and bounded topology, history, and test signals. Detect tracker and
-Herdr-or-equivalent pane capability. Do not write, start support lanes, or make
-an architecture recommendation yet.
+Resolve Improvement depth, Focus, and Outcome before discovery. Use one initial
+`question` tool call whenever any dimension is unanswered. Ask separate
+single-select questions only for the unanswered dimensions:
 
-Use one `question` tool call and ask only questions the request did not answer:
+1. **What improvement depth should this review use?** Ask when no explicit
+   leading level was supplied. Offer `low`, `medium`, `high`, and `max` with the
+   appetite descriptions above and recommend `medium`.
+2. **Where should this review focus?** Ask when there is no specific scope and
+   the user did not request `find improvements`. Offer **Find improvements**, up
+   to two repository-specific focus choices supported by named orientation
+   evidence, and the whole declared repository. The built-in custom response
+   lets the user name another area. Do not show an unsupported generic hotspot.
+3. **What should this review prepare for?** Ask when no outcome was supplied.
+   Offer **Work now**, **Prepare issues**, **Both**, and **Report only**. Label
+   Work now with detected pane support or `current session`. Label Prepare issues
+   with the detected Linear, GitHub, Jira, or other supported tracker; use
+   `choose tracker` when ambiguous and `draft only` when no tracker capability
+   exists.
 
-1. **Where should this review focus?** Offer **Find improvements**, up to two
-   repository-specific focus choices supported by named orientation evidence,
-   and the whole declared repository. Find improvements lets the parent choose
-   a level-appropriate, evidence-backed focus: one localized area for `low`, one
-   focused module or slice for `medium`, a broad module or pattern for `high`,
-   and the declared repository as thoroughly as practical for `max`. State the
-   chosen focus and coverage before deeper discovery. The built-in custom
-   response lets the user name another area. Do not show an unsupported generic
-   hotspot.
-2. **What should this review prepare for?** Offer **Work now**, **Prepare
-   issues**, **Both**, and **Report only**. Label Work now with detected pane
-   support or `current session`. Label Prepare issues with the detected Linear,
-   GitHub, Jira, or other supported tracker; use `choose tracker` when ambiguous
-   and `draft only` when no tracker capability exists.
+Do lightweight parent-only orientation when the Focus question will be asked or
+when agent-led `find improvements` must choose an evidence-backed focus. Read
+target-repository instructions and bounded topology, history, and test signals.
+Detect tracker and Herdr-or-equivalent pane capability. Do not write, start
+support lanes, or make an architecture recommendation yet. A user-supplied
+specific area is authoritative: do not ask Focus or broaden it. A specific scope
+that only lacks Improvement depth or Outcome needs no orientation.
 
-If the user already said find improvements, do not repeat the Focus question;
-apply the same level-appropriate agent-led discovery. A user-supplied specific
-area is authoritative: do not ask the Focus question and do not broaden beyond
-that area unless the user explicitly requests broader coverage. Improvement
-depth controls thoroughness inside that focus.
+Find improvements lets the parent choose a level-appropriate, evidence-backed
+focus: one localized area for `low`, one focused module or slice for `medium`, a
+broad module or pattern for `high`, and the declared repository as thoroughly as
+practical for `max`. State the chosen focus and coverage before deeper discovery.
 
-If the `question` tool is unavailable, present the same choices in conversation.
-Do not repeat an area or outcome the user already supplied. Quick-start answers
-guide scope, breadth, grouping, and recommendations; they grant no mutation
-authority.
+If `question` is unavailable, use `medium` only for an unanswered Improvement
+depth and present other unanswered choices in conversation. Do not repeat an
+explicit area or outcome. If the user skips or cancels the intake, stop before
+discovery without re-prompting or silently selecting missing values. Quick-start
+answers guide scope, breadth, grouping, and recommendations; they grant no
+mutation authority.
 
 ## Resolve language and repository constraints
 
 Read target-repository instructions, nearest domain context, and applicable
 architecture decisions. Record absent or unclear decisions as uncertainty.
 
-For Go source, a Go module, a Go CLI, or Go-specific work, target-repository
-standards remain first. Resolve `go` by its installed name; the installed `go`
-skill comes next, before generic guidance, read-only support, AskClaude, or route
-briefs.
-Resolve `cobra-viper` only for Cobra or Viper commands, flags, or CLI
-configuration. Unrelated toolchain evidence alone does not activate either
-method. A bare `go.mod` alone is such evidence.
+For all test work, resolve `test-driven-development` by its installed name and
+apply it as the test-effectiveness method. For Go source, a Go module, a Go CLI,
+or Go-specific work, apply target-repository standards first, then resolve `go`
+by its installed name and apply the installed `go` skill, then `cobra-viper`
+only for Cobra or Viper commands, flags, or CLI configuration, then
+`test-driven-development`, then generic guidance. Command testing is command
+scope. Unrelated toolchain evidence does not activate either Go skill,
+including a bare `go.mod`. The installed constraints remain before generic
+guidance.
 
-The parent resolves applicable Go constraints before any handoff and includes
-them in every lane, second-opinion, and Action brief. Each capable lane also
-loads `go`. A lane that cannot load it returns evidence only and makes no
-Go-specific recommendation. If `go` is unavailable, record the unmet method and
-use bounded target-repository Go standards. If neither source exists, name the
-unsupported method and omit the Go-specific candidate. Never claim that an
-unavailable skill loaded. Reject generic or second-opinion advice that conflicts
-with these constraints.
+The parent resolves applicable constraints before any handoff and includes them
+in every lane, second opinion, and Action brief. Each capable lane loads the
+applicable methods. A lane that cannot load an applicable language skill returns
+evidence only and makes no language-specific claim. Record an unmet method and
+use bounded target-repository Go standards; if neither supports a candidate, omit
+it. Official Go documentation can support a mechanism, but does not replace
+repository evidence or applicable skill constraints for a candidate. Record a
+skill-coverage gap when it supplies a needed mechanism absent from the installed
+skill, including a newer repository Go version.
 
 For Go test work, table-driven subtests remain the default only when cases share
 the same behavior, setup, and assertions while retaining clear case failures.
@@ -128,19 +136,34 @@ deeper **module** with a smaller **interface**, a real **seam** or **adapter**,
 and improved **Depth**, locality, leverage, and test surface. Reject speculative
 seams, forwarding-only layers, and syntax-only deduplication.
 
-Use proportionate bounded read-only support:
+Use proportionate bounded read-only support. Test-analysis lanes and external
+lookups share one support-action budget. `low` has one slot, but uses the direct
+parent by default and permits that slot only for a specific evidence gap;
+`medium` has two slots; `high` has four; and `max` uses declared bounded waves
+within the host budget. AskClaude remains its separate existing second-opinion
+allowance.
 
-- `low` uses the direct parent by default and permits one bounded scan only for
-  a specific evidence gap;
-- `medium` permits up to two disjoint scans;
-- `high` permits up to four disjoint lanes across modules, history, tests, or
-  patterns; and
-- `max` permits bounded waves of disjoint lanes inside the host spawn budget and
-  records every lane that could not run.
+Test analysis is normal `/improve` discovery, not a test mode or toggle. An
+explicit test request is an ordinary scope and uses one dedicated, bounded,
+read-only test-analysis subagent when that capability exists; explicit CI,
+coverage, flake, or test-performance scope does the same. At `low`, the direct
+parent remains the default, the explicit test scope supplies the required
+evidence gap, and the lane fills the sole slot. At other depths it consumes one
+slot. For a broader scope, use the lane only after orientation finds material
+test quality or cost evidence. The lane is evidence only: it returns
+observations, measurements, source references, and evidence gaps. The parent
+owns recommendations, ranking, architecture, and report fields. If subagent
+capability is unavailable, record reduced coverage and use the bounded
+direct-parent fallback.
 
-The parent remains the orchestrator and architecture owner. Ordinary children
-return evidence only and do not orchestrate. Missing support reduces and records
-coverage; it never causes unbounded fallback.
+Each remaining support action is a disjoint bounded scan or external lookup.
+External lookup requires read-only capability plus target network, privacy, and
+source-disclosure permission. At `low`, an explicit test lane leaves no external
+lookup slot.
+
+The parent remains the orchestrator and architecture owner. All ordinary support
+children return evidence only and do not orchestrate. Missing support reduces
+and records coverage; it never causes unbounded fallback.
 
 ## Determine report breadth
 
@@ -162,18 +185,24 @@ areas with no supported finding, exclusions, and evidence gaps.
 For every candidate record:
 
 - selected improvement depth, scanned scope, declared coverage, and exclusions;
-- current friction and evidence, with involved files, callers, tests, and
-  relevant history;
+- current friction and repository evidence, with involved files, callers, tests,
+  and relevant history;
 - proposed deeper module and interface, plus a focused before-and-after visual;
 - expected locality, leverage, Depth, test effect, and target-language pattern;
 - architecture-decision conflicts or uncertainty, evidence strength and reason;
-- expected impact, reversibility, dependencies, overlap, and integration points;
-  and
-- recommended route and reason.
+- expected impact, reversibility, dependencies, overlap, integration points, and
+  recommended route and reason; and
+- for a test candidate, effectiveness risk and plausible missed wrong behavior,
+  suite timing boundary, measured hot cases or an evidence gap, branch/base CI
+  comparison limits, reliability, failure-isolation, and maintenance effects,
+  applicable constraints, primary sources, expected defect-detection and
+  performance effects, tradeoffs, and proof needed.
 
 Keep observations separate from proposals. Rank by evidence strength, leverage,
-locality, delivery risk, reversibility, and coordination cost. Never claim
-exhaustive coverage beyond the declared scan boundary.
+locality, delivery risk, reversibility, and coordination cost. Never rank a
+faster but weaker suite as an improvement. A stronger but materially slower suite
+must state its cost and why it is acceptable. Never claim exhaustive coverage
+beyond the declared scan boundary.
 
 For `high` and `max`, call AskClaude at most once per `/improve` run when it is
 available and target-repository network, privacy, and source-disclosure rules
@@ -190,9 +219,11 @@ graph-shaped relationships. Use hand-built HTML, CSS, and inline SVG for module
 Depth, mass, cross-sections, and collapse views.
 
 Create one unique OS temp directory with one HTML report and one server-state
-path. Embed recoverable structured data with the coverage, report revision,
-stable candidate IDs, decision status, and second-opinion status. Preserve IDs
-across updates.
+path. Embed recoverable structured data with coverage, report revision, stable
+candidate IDs, decision and second-opinion status, plus each applicable test
+candidate's effectiveness risk, suite timing boundary, hot cases, branch/base CI
+comparison, reliability, failure-isolation, and maintenance effects, constraints,
+sources, evidence gaps, tradeoffs, route, and proof. Preserve IDs across updates.
 
 Write the initial report and every update atomically: write complete HTML to a
 sibling temporary file, flush and close it, then rename it over the report path.
@@ -221,66 +252,167 @@ directory and return the new path and URL. Never claim the old URL remains live.
 
 ## Triage candidates in the terminal
 
-Unless the outcome is Report only or the user stops, process one candidate at a
-time in report order or in the named subset. Mirror these choices in the
-candidate article. Ask one authoritative terminal question with four options:
+Unless the outcome is Report only or the user stops, identify awaiting candidates
+in report order or in the named subset. Never reprocess a decided candidate.
+When at least two await a decision, offer this authoritative batch entry:
 
-1. **Action — `<recommended route>`.** Explain and start the proportionate
-   `implement`, `planning-changes`, or Shape then planning workflow. Include the
-   complete candidate evidence and resolved language constraints. Use a new
-   bounded pane when a Herdr-or-equivalent capability exists; otherwise use a
-   current-session handoff. The route retains its own approvals.
-2. **Track — `<tracker, choose tracker, or draft only>`.** Prepare and queue a
-   complete issue draft. Show the tracker, project or repository, title, body,
-   labels, and grouping. Create nothing yet.
-3. **Won't do.** Record only the ephemeral report decision. Do not start work,
-   create an issue, or write an ADR.
-4. **Deepen.** Spend only the remaining selected-depth analysis and support
-   budget on the same seam, evidence, or alternatives. Preserve the candidate
-   ID, increment the report revision, mark revised evidence not rechecked by
-   AskClaude, and ask again. If the budget is exhausted, offer a new explicit
-   depth request instead of silently widening.
+1. **Action all**
+2. **Track all**
+3. **Select candidates**
+4. **Review individually**
 
-Use the `question` tool's built-in custom response for Other direction; do not
-add a duplicate Other option. If the tool is unavailable, present the same four
-options and accept a free-form custom direction in conversation.
+All means every awaiting candidate in the active report or named subset. For
+**Select candidates**, use one count-unbounded multi-select Question. Give each
+option a stable candidate ID, concise title, and recommended route. Do not add
+Next, Submit, Other, or Chat controls as candidate options. This is one
+`question` tool call. If the tool is unavailable, cancelled, empty, or rejects
+the aggregate selector, make no decision or report revision. Offer the complete
+individual or conversational stable-ID fallback.
+
+For a non-empty selection, offer exactly:
+
+1. **Action selected**
+2. **Track selected**
+3. **Won't do selected**
+4. **Review selected individually**
+
+Review individually and Review selected individually use the existing
+per-candidate question with these options:
+
+- **Action** — state the recommended delivery route and reason. Ask for
+  confirmation, then invoke `implement`, `planning-changes`, or Shape then
+  planning. Include the complete candidate evidence and resolved language
+  constraints. Use a Herdr-or-equivalent pane only when available; otherwise
+  keep the handoff in the current-session. The route retains its own approvals.
+- **Track** — prepare one classified issue draft through `ticket-workflow`, then
+  request its required exact-set confirmation before remote creation. If no
+  tracker is available, return a copyable draft and stop.
+- **Won't do** — record only an ephemeral report decision. Do not start work,
+  create an issue, or write an ADR.
+- **Deepen** — spend the remaining selected-depth analysis on the same seam.
+  Preserve the candidate ID, update evidence and ranking, note that the second
+  opinion was not rerun, and increment the report revision. Ask the individual
+  question again. Deepen is individual-only. If the budget is exhausted, offer
+  a new explicit depth request instead of silently widening.
+
+Use the Question tool's built-in custom response for a user-authored direction.
+Do not add separate Other or Chat options. If Question is unavailable for an
+individual review, present the same four options and accept a free-form custom
+direction in conversation.
 
 For Action, use evidence, impact, reversibility, dependencies, and uncertainty.
 One clear bounded candidate routes to `implement`. Multiple independent clear
 candidates or coordinated dependent candidates route to `planning-changes`.
-Unresolved, hard-to-reverse, cross-cutting, migration, or major architecture
-work routes to Shape, then planning after pitch approval. If a route skill or
-pane capability is unavailable, return the same self-contained brief to the
-direct parent and state the fallback.
+Unresolved, hard-to-reverse, cross-cutting, migration, or major architecture work
+routes to Shape, then planning after pitch approval. A missing route skill or
+pane returns the same self-contained brief to the direct parent.
 
-Every writer requires an isolated worktree. Start multiple Action routes in
-parallel only after the parent or planning proves independence, non-overlapping
+Bulk Action creates one self-contained handoff that records dependencies,
+overlap, integration points, uncertainty, and route reasons before it applies
+those route rules. Bulk Action never starts a writer and never proves parallel
+readiness. Every writer still requires an isolated worktree. Multiple writers can
+start only after the parent or planning proves independence, non-overlapping
 ownership, and named integration points. Coordinated candidates share one plan.
 
-Track always remains available. Detect target instructions, tracker metadata,
-and installed capability before the candidate question. If selection is
-ambiguous, ask the user after Track selection instead of guessing. If no tracker
-capability exists, produce draft-only output. Remote text must be self-contained
-and must not include the local report path or confidential report metadata.
+Track always remains available. Load and follow `ticket-workflow`; do not
+duplicate tracker policy here. Detect target instructions, tracker metadata, and
+installed capability before the candidate question. If target selection is
+ambiguous, ask after Track selection instead of guessing. For one candidate,
+classify its target, taxonomy, route, grouping, priority, route status, and
+privacy state before the existing exact displayed draft-set confirmation. Track
+queues the exact bounded draft set before its batch confirmation. Remote text
+must be self-contained and must not include the local report path or confidential
+report metadata.
 
-Each Track selection queues one complete draft. After triage ends, or when the
-user asks to create queued issues, show the exact bounded draft set and ask for
-one batch confirmation. Approval applies only to that displayed set. A changed
-draft or target requires a new confirmation.
+For grouped Track, load `ticket-workflow` and resolve its policy once per target.
+Classify each candidate draft with its exact target, taxonomy, route, grouping,
+priority, route status, and privacy state. Queue the exact bounded draft set, but
+create nothing yet. Show the exact classified draft set. Then require one
+separate exact-set batch confirmation for that set and target before remote
+creation. A changed draft or target requires a new confirmation. If no supported
+tracker can be resolved, return the classified copyable drafts and stop.
 
-After every answer, atomically update the same report, preserve unchanged IDs,
-increment the revision, and let the browser reload. Stop the helper idempotently
-when active triage ends unless the user asks to keep reading. Report only can
-retain the helper until explicit stop or its bounded maximum lifetime.
+After an accepted individual decision, atomically update the same Blueprint
+Ledger, mirror the decision on its candidate article, preserve unchanged IDs,
+and increment the revision once. After one accepted group decision, atomically
+update the same Blueprint Ledger once, mirror the decision on every affected
+candidate article, preserve unchanged IDs, and increment the revision once.
+Continue with awaiting candidates.
+
+Stop the helper idempotently when triage ends unless the user asks to keep
+reading. Report only can retain it until explicit stop or its bounded maximum
+lifetime. Browser controls never select candidates, start implementation, or
+create issues.
 
 Discovery and report generation never create a branch, edit target production
-code, commit, publish, or mutate a tracker. Only the terminal Action and the
-separate exact-set tracker confirmation can authorize their bounded next steps.
+code, commit, publish, mutate a tracker, or treat a browser control as mutation
+authority. Only a terminal Action and the separate exact-set tracker confirmation
+can authorize their bounded next steps.
 
-## Test-surface guidance
+## Test-analysis evidence
 
-Test-focused discovery is valid architecture work when it improves maintenance
-locality or defect detection. Consolidate tests only when they exercise the
-same behavior with shared setup and assertions. Preserve clear case names and
-isolated failure evidence. Use the target language's established pattern rather
-than a generic deduplication rule.
+Test-focused discovery is normal architecture work. Map accepted behavior and
+public seams to existing tests. Assess falsifiability: each important test should
+fail for a plausible wrong behavior or implementation and use independent
+expected values.
+Consolidate tests only when they exercise the same behavior with shared setup and
+assertions. Preserve clear case names and isolated failure evidence. Use the
+target language's established pattern rather than a generic deduplication rule.
+Identify tautological assertions, mock-call-only tests, private-helper coupling,
+missing boundary or error behavior, nondeterministic waits, weak failure
+isolation, and gaps at real process, filesystem, network, provider, concurrency,
+or UI boundaries. Coverage and test count are signals, not proof of
+effectiveness. Do not recommend tests merely to increase a percentage.
+
+Separate two performance views. The holistic suite view maps test commands, CI
+workflows, packages, shards, setup, cache use, retries, artifacts, and total test
+steps. Separate queue, setup, test execution, artifact upload, and teardown time
+when evidence permits. Specific hot cases require measured timing or reliability
+evidence for packages, files, tests, subtests, benchmarks, fixtures, flakes,
+contention, or allocation. Do not infer a hot test from a slow job, and never sum
+overlapping parallel test or subtest elapsed values as suite wall-clock duration.
+
+When branch and base refs are provided, or a verified current branch and pull
+request base are available, compare only recent compatible CI runs: workflow,
+job or matrix, runner class, event type, relevant workflow revision, and cache
+conditions. Report exact refs and SHAs, run URL or identifier, sample size,
+timing boundary, range or distribution, and confounders. Do not claim a
+regression from one noisy observation or incompatible runs; stale, unavailable,
+retention-limited, or permission-restricted CI is an explicit evidence gap.
+
+Keep CI discovery provider-neutral and read-only. Prefer an available provider's
+official API, CLI, logs, and artifacts. For GitHub Actions, authenticated
+read-only `gh run list`, `gh run view`, `gh run download`, `gh pr checks`, and
+REST `GET` requests are allowed. Never dispatch, rerun, cancel, approve, or edit
+a workflow. Before deeper CI discovery or an artifact download, the parent
+creates the report run's unique OS temp directory and uses an explicit non-served
+child destination. Remove downloaded artifacts immediately after bounded evidence
+extraction; helper shutdown is only a cleanup backstop. Never expose private logs
+or artifact content in a report.
+
+Run a local test, benchmark, profile, trace, race, repetition, shuffle, coverage,
+or structured-output command only when it is bounded, non-destructive, and
+repository-documented after inspecting its definition. Ask before an unclear
+external effect; do not automatically run integration or end-to-end tests that
+can mutate external systems. Record command, cache state, runtime,
+instrumentation, repetition, shuffle seed, race or coverage mode, and parallelism
+when relevant. Bypass result caching with the documented control or label cached
+data unsuitable for timing; never delete caches to manufacture evidence.
+
+For Go tests, use applicable mechanisms from the installed `go` skill or
+official Go toolchain documentation, such as structured JSON events, benchmarks,
+profiles, coverage, fuzzing, race detection, repetition, shuffle, and
+`testing/synctest`. Confirm that the repository's Go version supports each
+mechanism. Record a skill-coverage gap when official documentation supplies a
+needed mechanism that the installed skill does not cover. If the repository uses
+a newer Go version than the skill covers, consult official Go release notes and
+record the gap.
+
+Use primary sources in order: target-repository instructions, code, tests, CI
+configuration, run evidence, and dependency versions; official language,
+standard-library, toolchain, and CI-provider documentation; canonical maintainer
+sources for the exact dependency version, including Go team repositories and
+spf13 sources when applicable; then labeled secondary sources only when primary
+sources do not answer. Connect every external recommendation to repository
+evidence. Omit an unsupported decision-changing claim and record its evidence
+gap.

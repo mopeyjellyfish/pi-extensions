@@ -8,10 +8,14 @@ import questionExtension, {
   MAX_CUSTOM_JSON_BYTES,
   MAX_NOTE_JSON_BYTES,
   MAX_REDIRECT_JSON_BYTES,
+  MAX_RESULT_DETAILS_JSON_BYTES,
   QuestionDialog,
   applyAction,
   buildResult,
   createInitialState,
+  focusedItemWindowByRows,
+  preflightResultDetailsBytes,
+  resultDetailsBytes,
   sanitizeText,
   validateQuestions,
 } from "../src/index.ts";
@@ -120,6 +124,25 @@ describe("final review regressions", () => {
       rpcContext(["A", "A", "Submit answers"]),
     );
     expect(review.details).toMatchObject({ status: "cancelled", reason: "abort" });
+
+    const largeQuestions = Array.from({ length: 24 }, (_, questionIndex) => ({
+      ...question,
+      id: `large-${String(questionIndex)}`,
+      header: `Q${String(questionIndex + 1)}`,
+      options: Array.from({ length: 10 }, (__, optionIndex) => ({
+        id: `o-${String(optionIndex)}`,
+        label: `Option ${String(optionIndex + 1)}`,
+        description: `Description ${String(optionIndex + 1)}`,
+      })),
+    }));
+    const large = await tool().execute(
+      "large-rpc-abort",
+      { questions: largeQuestions },
+      abortOnRead(2),
+      undefined,
+      rpcContext(["Option 1"]),
+    );
+    expect(large.details).toMatchObject({ status: "cancelled", reason: "abort" });
   });
 
   it("keeps maximum Unicode result details below 50KB without previews", () => {
@@ -347,5 +370,382 @@ describe("final review regressions", () => {
     expect(errors.join("\n")).toContain("duplicate option label");
     expect(errors.join("\n")).not.toContain("\u{0}");
     expect(errors.join("\n")).not.toContain("\u{1B}");
+  });
+
+  it("accepts count-unbounded structures while enforcing the 48,000-byte details budget", () => {
+    expect.hasAssertions();
+    const many = Array.from({ length: 5 }, (_, index) => ({
+      ...question,
+      id: `q-${String(index)}`,
+      header: `Q${String(index)}`,
+      options: Array.from({ length: 5 }, (_, optionIndex) => ({
+        id: `o-${String(optionIndex)}`,
+        label: `Option ${String(optionIndex)}`,
+        description: "A valid option",
+      })),
+    }));
+
+    expect(validateQuestions(many)).toEqual([]);
+  });
+
+  it("builds focused windows from measured option rows", () => {
+    expect.hasAssertions();
+    expect(focusedItemWindowByRows(0, 5, 0, () => 1)).toEqual({
+      start: 0,
+      end: 0,
+      hiddenBefore: 0,
+      hiddenAfter: 0,
+    });
+    expect(focusedItemWindowByRows(5, 8, 2, () => 5)).toEqual({
+      start: 2,
+      end: 3,
+      hiddenBefore: 2,
+      hiddenAfter: 2,
+    });
+    const calls = [0, 0, 0, 0, 0];
+    const heights = [5, 1, 1, 1, 1];
+    expect(
+      focusedItemWindowByRows(5, 5, 2, (index) => {
+        calls[index] = (calls[index] ?? 0) + 1;
+        return heights[index] ?? 1;
+      }),
+    ).toEqual({ start: 1, end: 5, hiddenBefore: 1, hiddenAfter: 0 });
+    expect(calls[0]).toBe(1);
+  });
+
+  it("renders a compact progress navigator for large questionnaires", () => {
+    expect.hasAssertions();
+    const many = Array.from({ length: 47 }, (_, index) => ({
+      ...question,
+      id: `question-${String(index)}`,
+      header: `Q${String(index + 1)}`,
+    }));
+    const state = applyAction(createInitialState(many), { kind: "tab", tab: 23 }, many);
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 24 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      { matches: () => false },
+      many,
+      state,
+      () => {
+        return;
+      },
+    );
+
+    const output = dialog.render(80).join("\n");
+    expect(output).toContain("Question 24 of 47");
+    expect(output).not.toContain("Q1  □ Q2");
+  });
+
+  it("preflights the complete worst-case structural result before opening RPC", async () => {
+    expect.hasAssertions();
+    const oversized: QuestionDefinition = {
+      ...question,
+      id: "q".repeat(64),
+      multiSelect: true,
+      options: Array.from({ length: 500 }, (_, index) => ({
+        id: `${String(index).padStart(3, "0")}-${"i".repeat(60)}`,
+        label: `${String(index).padStart(3, "0")}-${"L".repeat(76)}`,
+        description: "D".repeat(400),
+      })),
+    };
+    const context = rpcContext([]);
+    let calls = 0;
+    context.ui.select = () => {
+      calls++;
+      return Promise.resolve(undefined);
+    };
+
+    const measured = preflightResultDetailsBytes([oversized]);
+    expect(measured).toBeGreaterThan(MAX_RESULT_DETAILS_JSON_BYTES);
+    const selectedIds = oversized.options.map((option) => option.id);
+    const structuralState: QuestionnaireState = {
+      tab: 0,
+      cursorByQuestion: { [oversized.id]: 0 },
+      drafts: {
+        [oversized.id]: {
+          selectedIds,
+          notes: Object.fromEntries(selectedIds.map((optionId) => [optionId, "note"])),
+          custom: "custom",
+        },
+      },
+      complete: true,
+    };
+    expect(() =>
+      buildResult("redirected", [oversized], structuralState, {
+        continuationId: "question-oversized",
+        redirect: "redirect",
+      }),
+    ).toThrow("Question result details exceed the 48000-byte structural contract");
+    await expect(
+      tool().execute("oversized", { questions: [oversized] }, undefined, undefined, context),
+    ).rejects.toThrow(
+      `Invalid question input: result details require ${String(measured)} JSON bytes; maximum is 48000`,
+    );
+    expect(calls).toBe(0);
+  });
+
+  it("keeps complete structure and useful ordered text inside the details budget", () => {
+    expect.hasAssertions();
+    const many: QuestionDefinition[] = Array.from({ length: 40 }, (_, questionIndex) => ({
+      ...question,
+      id: `q-${String(questionIndex)}`,
+      header: `Q${String(questionIndex)}`,
+      multiSelect: true,
+      options: Array.from({ length: 4 }, (_, optionIndex) => ({
+        id: `o-${String(optionIndex)}`,
+        label: `Option ${String(optionIndex)} for question ${String(questionIndex)}`,
+        description: "A stable choice",
+      })),
+    }));
+    let state: QuestionnaireState = createInitialState(many);
+    for (const [questionIndex, definition] of many.entries()) {
+      state = applyAction(state, { kind: "tab", tab: questionIndex }, many);
+      for (const option of definition.options) {
+        state = applyAction(state, { kind: "toggle", optionId: option.id }, many);
+        state = applyAction(
+          state,
+          {
+            kind: "note",
+            optionId: option.id,
+            text: `note-${String(questionIndex)}-${"n".repeat(480)}`,
+          },
+          many,
+        );
+      }
+      state = applyAction(
+        state,
+        { kind: "other", text: `custom-${String(questionIndex)}-${"c".repeat(1900)}` },
+        many,
+      );
+    }
+
+    const details = buildResult("redirected", many, state, {
+      continuationId: `question-${"a".repeat(36)}`,
+      continuedFrom: "prior-".repeat(20),
+      redirect: "redirect-".repeat(240),
+    });
+    expect(resultDetailsBytes(details)).toBe(MAX_RESULT_DETAILS_JSON_BYTES);
+    expect(details.answers).toHaveLength(40);
+    expect(details.answers.every((answer) => answer.selections.length === 4)).toBe(true);
+    expect(details.answers[39]?.selections.map((selection) => selection.optionId)).toEqual([
+      "o-0",
+      "o-1",
+      "o-2",
+      "o-3",
+    ]);
+    expect(details.answers[39]?.selections[3]?.label).toBe("Option 3 for question 39");
+    expect(details.snapshot?.questions).toHaveLength(40);
+    expect(details.answers[0]?.selections[0]?.note).toContain("note-0-");
+    expect(JSON.stringify(details)).toContain("… [truncated]");
+    const cancelled = buildResult("cancelled", many, state, { reason: "abort" });
+    const unavailable = buildResult("unavailable", many, createInitialState(many), {
+      reason: "no_ui",
+    });
+    expect(resultDetailsBytes(cancelled)).toBeLessThanOrEqual(MAX_RESULT_DETAILS_JSON_BYTES);
+    expect(resultDetailsBytes(unavailable)).toBeLessThanOrEqual(MAX_RESULT_DETAILS_JSON_BYTES);
+    expect(cancelled.answers).toHaveLength(40);
+    expect(unavailable.answers).toEqual([]);
+  });
+
+  it("pages a focused option viewport with exact hidden counts and first/last jumps", () => {
+    expect.hasAssertions();
+    const manyOptions: QuestionDefinition = {
+      ...question,
+      multiSelect: true,
+      options: Array.from({ length: 40 }, (_, index) => ({
+        id: `o-${String(index)}`,
+        label: `Option ${String(index + 1)}`,
+        description: `Description ${String(index + 1)}`,
+      })),
+    };
+    const bindings = {
+      matches(data: string, id: string) {
+        return (
+          (id === "tui.select.pageDown" && data === "PAGE_DOWN") ||
+          (id === "tui.select.pageUp" && data === "PAGE_UP")
+        );
+      },
+    };
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 12 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      bindings,
+      [manyOptions],
+      createInitialState([manyOptions]),
+      () => {
+        return;
+      },
+    );
+
+    const initial = dialog.render(80).join("\n");
+    expect(initial).toContain("Option 1");
+    expect(initial).toMatch(/↓ \d+ later options/u);
+    expect(initial).not.toContain("Option 40");
+    dialog.handleInput("PAGE_DOWN");
+    expect(dialog.render(80).join("\n")).toContain("> [ ] Option 2");
+    dialog.handleInput("PAGE_DOWN");
+    const paged = dialog.render(80).join("\n");
+    expect(paged).toMatch(/↑ \d+ earlier options/u);
+    expect(paged).not.toContain("> [ ] Option 1");
+    dialog.handleInput("\u{1B}[F");
+    const ended = dialog.render(80).join("\n");
+    expect(ended).toContain("> [ ] Option 40");
+    expect(ended).toContain("Other…");
+    dialog.handleInput("\u{1B}[H");
+    expect(dialog.render(80).join("\n")).toContain("> [ ] Option 1");
+  });
+
+  it("counts every option hidden by wrapped descriptions", () => {
+    expect.hasAssertions();
+    const manyOptions: QuestionDefinition = {
+      ...question,
+      multiSelect: true,
+      options: Array.from({ length: 40 }, (_, index) => ({
+        id: `o-${String(index)}`,
+        label: `Option ${String(index + 1)}`,
+        description: `D${String(index + 1)} ${"word ".repeat(78)}`,
+      })),
+    };
+    const initialState = applyAction(
+      createInitialState([manyOptions]),
+      { kind: "cursor", index: 20 },
+      [manyOptions],
+    );
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 24 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      {
+        matches(data: string, id: string) {
+          return id === "tui.select.pageDown" && data === "PAGE_DOWN";
+        },
+      },
+      [manyOptions],
+      initialState,
+      () => {
+        return;
+      },
+    );
+    const displayedOptions = (output: string): number[] =>
+      output.split("\n").flatMap((line) => {
+        const match = /\[ \] Option (\d+)\s*$/u.exec(line);
+        return match?.[1] ? [Number(match[1])] : [];
+      });
+
+    const initial = dialog.render(80).join("\n");
+    const displayed = displayedOptions(initial);
+    const earlier = /↑ (\d+) earlier options/u.exec(initial);
+    const later = /↓ (\d+) later options/u.exec(initial);
+    expect(displayed.length).toBeGreaterThan(0);
+    expect(Number(earlier?.[1])).toBe((displayed[0] ?? 1) - 1);
+    expect(Number(later?.[1])).toBe(40 - (displayed.at(-1) ?? 40));
+    expect(initial.split("\n").some((line) => line.trim() === "↓")).toBe(false);
+    dialog.handleInput("PAGE_DOWN");
+    const paged = displayedOptions(dialog.render(80).join("\n"));
+    expect(paged[0]).toBeLessThanOrEqual((displayed.at(-1) ?? 0) + 1);
+  });
+
+  it("keeps sentinel actions visible with progress in a short terminal", () => {
+    expect.hasAssertions();
+    const manyQuestions = Array.from({ length: 40 }, (_, index) => ({
+      ...question,
+      id: `q-${String(index)}`,
+      header: `Q${String(index + 1)}`,
+      multiSelect: true,
+      options: Array.from({ length: 40 }, (__, optionIndex) => ({
+        id: `o-${String(optionIndex)}`,
+        label: `Option ${String(optionIndex + 1)}`,
+        description: `Description ${String(optionIndex + 1)}`,
+      })),
+    }));
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 10 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      { matches: () => false },
+      manyQuestions,
+      createInitialState(manyQuestions),
+      () => {
+        return;
+      },
+    );
+
+    const rendered = dialog.render(80).join("\n");
+    expect(rendered).toContain("Question 1 of 40 · Q1 · 0 answered");
+    expect(rendered).toContain("Other…");
+    expect(rendered).toContain("Chat about this…");
+    expect(rendered).toContain("Next →");
+    expect(rendered).toMatch(/↓ 39(?: later options)?/u);
+    expect(rendered.split("\n").some((line) => line.trim() === "↓")).toBe(false);
+  });
+
+  it("scrolls every review answer while keeping both review actions sticky", () => {
+    expect.hasAssertions();
+    const many = Array.from({ length: 47 }, (_, index) => ({
+      ...question,
+      id: `q-${String(index)}`,
+      header: `Q${String(index + 1)}`,
+    }));
+    let state = createInitialState(many);
+    for (const [index] of many.entries()) {
+      state = applyAction(state, { kind: "tab", tab: index }, many);
+      state = applyAction(state, { kind: "select", optionId: "a" }, many);
+    }
+    state = applyAction(state, { kind: "tab", tab: many.length }, many);
+    const dialog = new QuestionDialog(
+      {
+        terminal: { rows: 12 },
+        requestRender() {
+          return;
+        },
+      },
+      theme as never,
+      {
+        matches(data: string, id: string) {
+          return id === "tui.select.pageDown" && data === "PAGE_DOWN";
+        },
+      },
+      many,
+      state,
+      () => {
+        return;
+      },
+    );
+
+    const initial = dialog.render(80).join("\n");
+    expect(initial).toContain("Q1: A");
+    expect(initial).toContain("Review · 47 of 47 answered");
+    expect(initial).not.toContain("Question 47 of 47 · Review");
+    expect(initial).toMatch(/↓ \d+ later answers/u);
+    expect(initial).toContain("Submit answers");
+    expect(initial).toContain("Chat about this…");
+    dialog.handleInput("PAGE_DOWN");
+    const paged = dialog.render(80).join("\n");
+    expect(paged).toMatch(/↑ \d+ earlier answers/u);
+    expect(paged).toContain("Submit answers");
+    expect(paged).toContain("Chat about this…");
+    dialog.handleInput("\u{1B}[F");
+    const ended = dialog.render(80).join("\n");
+    expect(ended).toContain("Q47: A");
+    expect(ended).toContain("Submit answers");
   });
 });

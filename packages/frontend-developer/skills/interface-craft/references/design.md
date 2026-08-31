@@ -1,10 +1,14 @@
 # Design
 
-Use `design` to establish or materially revise a deliberate web-interface
-direction. It routes into the repository-native `/design` workflow and its
-installed interface-design, frontend-design, image, and visual-validation
-capabilities when they are available. It does not create a substitute command,
-runtime, or state model.
+Use `design` to establish or revise a deliberate direction for a focused
+web-interface surface within an established product direction after this
+operation is selected. For a new app surface, major redesign, material app
+direction, or unclear product-wide visual direction, stop this focused operation
+and use the installed material app-interface method. Use installed image and
+board capabilities for comparison evidence and the installed visual-proof
+capability for implementation proof. Follow target repository instructions and
+available evidence. This reference does not select another router or create a
+substitute command, runtime, or state model.
 
 ## Establish the brief
 

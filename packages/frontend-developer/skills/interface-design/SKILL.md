@@ -1,6 +1,8 @@
 ---
 name: interface-design
-description: Craft-first interface design for dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces, and interactive products. Use when designing, building, reviewing, auditing, or refining product UI where visual craft, layout hierarchy, tokens, states, visual direction, or design-system consistency matter. Not for marketing pages, landing pages, campaigns, or brand-only work.
+description: >-
+  Material app-interface method after classification. Establish evidence-backed
+  direction and implementation handoff for product interfaces, not marketing work.
 ---
 
 # Interface Design
@@ -99,14 +101,25 @@ This is where defaults get caught — or don't. Generic path: Task type → visu
 ## Image evidence for material direction
 
 For material direction, greenfield apps, major redesigns, or unresolved visual
-direction, create two to eight coherent directions with inspectable image evidence
-for each. Use `image-generation` only when it is available and useful, after the
-human explicitly consents to external-provider privacy exposure, separately billed
-cost, and available credentials. Otherwise use rendered specimens or browser
-captures. Inspect every artifact and reject generic SaaS, illegible text, and
-off-domain palettes before presentation. If no image evidence can be produced,
-report the unmet review surface and do not ask the human to choose from prose.
-Generated pixels never define hidden behavior or replace native accessible controls.
+direction, create two to eight coherent directions with inspectable image
+evidence for each.
+
+For a greenfield web application or materially new application surface, when an
+installed `image-generation` capability, explicit consent, and credentials
+permit it, use one bounded generation-first initial design pass to create those
+directions. Further provider work, including refinement, requires a newly stated
+bound and consent. If generation is unavailable, declined, or failed, make no
+unauthorized request, continue normal UI design, and record no generated
+evidence.
+
+For other applicable material direction, use `image-generation` only when it is
+available and useful after explicit consent. Otherwise use rendered specimens or
+browser captures. Inspect each direction and reject generic SaaS, illegible text,
+and off-domain palettes. Present valid directions through a verified
+`design_board` URL, then obtain an explicit human selection and notes before
+handoff. If no image evidence can be produced, report the unmet review surface
+and do not ask the human to choose from prose. Generated pixels never define
+hidden behavior or replace native accessible controls.
 
 ## Render It When You Can
 
@@ -326,7 +339,7 @@ Use this skill as a working discipline, not just advice. When editing UI:
 1. Inspect repository instructions, live product behavior, existing app, design tokens, component patterns, supplied evidence, and `DESIGN.md` if present; apply its accepted decisions only when they agree with live evidence.
 2. Make the domain exploration concrete before choosing layout, color, type, density, and navigation.
 3. For greenfield screens, major redesigns, or vague direction, run the authorized image-reference pass above if useful. Extract palette, density, proportions, and signature into real-code decisions; reject generic SaaS, illegible text, and off-domain palettes.
-4. For non-trivial UI implementation, when `implement` or `developing-changes` is available, it alone owns Worker/TDD/QA/review orchestration; this skill supplies accepted design context and does not separately launch Workers or duplicate engineering orchestration. TDD remains required for behavioral UI code. Only when that general workflow is unavailable does the direct parent select relevant installed skills: `diagnosing-bugs` for unresolved reported broken behavior, `codebase-design` when an implementation seam needs design, `test-driven-development` for behavioral UI code, and `react-interface` only when the target uses React. Preserve target repository instructions and target framework, component system, styling conventions, content, navigation, and behavior. In that fallback, a direct parent with a `worker` capability launches one fresh Worker as the sole implementation writer; an already-designated implementation writer continues and must not spawn another Worker. Reuse existing accessible controls before introducing primitives or hand-rolled behavior.
+4. For non-trivial UI implementation, when `implement` or `developing-changes` is available, it alone owns Worker/TDD/QA/review orchestration; this skill supplies accepted design context and does not separately launch Workers or duplicate engineering orchestration. TDD remains required for behavioral UI code. Only when that general workflow is unavailable does the direct parent select relevant installed skills: `diagnosing-bugs` for unresolved reported broken behavior, `codebase-design` when an implementation seam needs design, `test-driven-development` for behavioral UI code, and `react-best-practices` only when the target uses React. Use `react-native-skills` only for React Native or Expo work and `react-view-transitions` only for applicable React view-transition animation work. Preserve target repository instructions and target framework, component system, styling conventions, content, navigation, and behavior. In that fallback, a direct parent with a `worker` capability launches one fresh Worker as the sole implementation writer; an already-designated implementation writer continues and must not spawn another Worker. Reuse existing accessible controls before introducing primitives or hand-rolled behavior.
 5. In either path, behavioral UI code requires the writer to load and follow `test-driven-development`: prove one intended failing test before the minimum passing implementation. Give the fallback Worker the goal, public seam, allowed scope, failing test, validation, success and stop conditions, and require evidence.
 6. Use only target-owned start and hot-reload commands for the product site. Keep the
    package-owned board separate. At handoff ask whether to open, keep serving for the

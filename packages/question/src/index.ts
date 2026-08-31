@@ -21,6 +21,7 @@ export {
   MAX_MODEL_CONTENT_BYTES,
   MAX_NOTE_JSON_BYTES,
   MAX_REDIRECT_JSON_BYTES,
+  MAX_RESULT_DETAILS_JSON_BYTES,
   TRUNCATION_MARKER,
   boundJsonUtf8,
   boundUtf8,
@@ -29,10 +30,13 @@ export {
 } from "./bounds.ts";
 export { QuestionDialog } from "./dialog.ts";
 export {
+  PREVIEW_MIN_WIDTH,
   columnWidths,
   fitDialogToRows,
+  focusedItemWindow,
+  focusedItemWindowByRows,
+  itemWindow,
   joinColumns,
-  PREVIEW_MIN_WIDTH,
   previewSideBySide,
 } from "./layout.ts";
 export {
@@ -41,6 +45,8 @@ export {
   continuationFromBranch,
   createContinuationId,
   lookupContinuation,
+  preflightResultDetailsBytes,
+  resultDetailsBytes,
   restoreDraft,
 } from "./results.ts";
 export {
@@ -176,7 +182,7 @@ export default function questionExtension(pi: ExtensionAPI): void {
     name: "question",
     label: "Question",
     description:
-      "Ask the user 1-4 structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Use presentation inline for contextual clarifications and after displayed terminal images so the question stays below the images; use fullscreen for attached documents and formal approval. Use stable IDs and re-call with continuationId after a redirected result.",
+      "Ask any finite number of structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Result details are limited to 48,000 JSON UTF-8 bytes; model-facing content and compact rendering have separate bounds. Use presentation inline for contextual clarifications and after displayed terminal images so the question stays below the images; use fullscreen for attached documents and formal approval. Use stable IDs and re-call with continuationId after a redirected result.",
     promptSnippet: "Ask structured clarifying questions instead of guessing",
     promptGuidelines: [
       "Use question when a material ambiguity, preference, or decision requires user input instead of guessing.",

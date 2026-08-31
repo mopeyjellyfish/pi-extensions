@@ -549,22 +549,26 @@ describe("engineering resources", () => {
 
   it("defines appetite-aware live architecture discovery and triage", async () => {
     expect.hasAssertions();
-    const [skill, readme] = await Promise.all([
+    const [skill, readme, guide] = await Promise.all([
       read("skills/improve-codebase-architecture/SKILL.md"),
       read("README.md"),
+      read("skills/improve-codebase-architecture/HTML-REPORT.md"),
     ]);
 
     expect(skill).toContain("improvement depth");
     expect(skill).toMatch(
       /accepted improvement depths are\s+`low`,\s+`medium`,\s+`high`,\s+and\s+`max`/u,
     );
-    expect(skill).toMatch(/default[^.]*`medium`/iu);
+    expect(skill).toMatch(/Offer `low`, `medium`, `high`, and `max`[\s\S]*recommend `medium`/u);
+    expect(skill).toMatch(
+      /If `question` is unavailable, use `medium` only for an unanswered\s+Improvement\s+depth/iu,
+    );
     expect(skill).toMatch(
       /leading level token[^.]*without regard to letter case[\s\S]*normalize[^.]*lowercase/iu,
     );
     expect(skill).toMatch(/level-only[^.]*adaptive quick start/iu);
     expect(skill).toMatch(
-      /scope that starts with a\s+reserved token, give an explicit level[\s\S]*`medium low latency\s+path`/iu,
+      /scope that starts with a\s+reserved\s+token, give an explicit level[\s\S]*`medium low latency\s+path`/iu,
     );
     expect(skill).toMatch(
       /optional scope can name a\s+module, package, subsystem, vertical feature\s+slice, architecture pattern, test surface, pain point, or change-history area/iu,
@@ -583,20 +587,74 @@ describe("engineering resources", () => {
     expect(skill).toMatch(/improvement depth[\s\S]*not[\s\S]*`codebase-design`[\s\S]*Depth/iu);
 
     expect(skill).toMatch(
-      /one `question` tool call[\s\S]*Where should this review focus[\s\S]*What should this review prepare for/iu,
+      /one initial\s+`question` tool call[\s\S]*Improvement depth[\s\S]*Where should this review focus[\s\S]*What should this review prepare for/iu,
     );
+    expect(skill).toMatch(
+      /separate\s+single-select questions only for the unanswered dimensions/iu,
+    );
+    expect(skill).toMatch(
+      /specific scope[^.]*lacks Improvement\s+depth or Outcome[^.]*no orientation/iu,
+    );
+    expect(skill).toMatch(/skips or cancels[\s\S]*stop before\s+discovery/iu);
     expect(skill).toMatch(
       /Find improvements[\s\S]*level-appropriate[\s\S]*evidence-backed[\s\S]*focus/iu,
     );
     expect(skill).toMatch(
-      /user[^.]*specific\s+area[^.]*authoritative[\s\S]*do not ask[^.]*focus[\s\S]*do not broaden/iu,
+      /user-supplied[\s\S]*specific area[\s\S]*authoritative[^.]*do not ask Focus or broaden it/iu,
     );
     expect(skill).toMatch(/Work now[\s\S]*Prepare issues[\s\S]*Both[\s\S]*Report only/iu);
     expect(skill).toMatch(
-      /Work now[^.]*up to three[\s\S]*Prepare issues[^.]*all supported[\s\S]*Report only[^.]*stops/iu,
+      /explicit test[^.]*ordinary scope[\s\S]*dedicated[\s\S]*test-analysis subagent[\s\S]*`low`[\s\S]*direct\s+parent remains the default[\s\S]*evidence only[\s\S]*parent[\s\S]*recommendation[\s\S]*subagent[\s\S]*unavailable[\s\S]*direct-parent fallback/iu,
     );
     expect(skill).toMatch(
-      /`low`[^.]*one[^.]*scan[\s\S]*`medium`[^.]*two[\s\S]*`high`[^.]*four[\s\S]*`max`[^.]*bounded waves/iu,
+      /Test-analysis lanes and external\s+lookups share one support-action budget[\s\S]*`low`[\s\S]*one[\s\S]*`medium`[\s\S]*two[\s\S]*`high`[\s\S]*four[\s\S]*`max`[\s\S]*bounded waves/iu,
+    );
+    expect(skill).toMatch(/`low`[\s\S]*direct\s+parent by default[\s\S]*specific evidence gap/iu);
+    expect(skill).toMatch(
+      /parent remains the orchestrator[\s\S]*ordinary support[\s\S]*evidence only[\s\S]*do not orchestrate/iu,
+    );
+    expect(skill).toMatch(
+      /target-repository standards[\s\S]*installed `go`[\s\S]*`cobra-viper`[^.]*commands, flags, or CLI configuration[\s\S]*`test-driven-development`[\s\S]*generic guidance/iu,
+    );
+    expect(skill).toMatch(
+      /all test work[\s\S]*resolve `test-driven-development`[\s\S]*test-effectiveness method/iu,
+    );
+    expect(skill).toMatch(/public seams[\s\S]*falsifiability[\s\S]*plausible wrong behavior/iu);
+    expect(skill).toMatch(/independent\s+expected values/iu);
+    expect(skill).toMatch(/Coverage and test count are signals, not proof/iu);
+    expect(skill).toMatch(
+      /holistic suite[\s\S]*commands[\s\S]*shards[\s\S]*setup[\s\S]*cache[\s\S]*retries[\s\S]*hot cases[\s\S]*measured/iu,
+    );
+    expect(skill).toMatch(
+      /branch and base refs[\s\S]*compatible CI runs[\s\S]*workflow[\s\S]*matrix[\s\S]*runner/iu,
+    );
+    expect(skill).toMatch(/exact refs and SHAs[\s\S]*sample size[\s\S]*confounders/iu);
+    expect(skill).toMatch(
+      /GitHub[\s\S]*`gh run list`[\s\S]*`gh run view`[\s\S]*`gh run download`[\s\S]*REST `GET`[\s\S]*non-served[\s\S]*remove downloaded artifacts/iu,
+    );
+    expect(skill).toMatch(/Never dispatch, rerun, cancel, approve, or edit[\s\S]*workflow/iu);
+    expect(skill).toMatch(/bounded, non-destructive, and\s+repository-documented/iu);
+    expect(skill).toMatch(
+      /Record command, cache state, runtime,\s+instrumentation[\s\S]*shuffle[\s\S]*race or coverage mode[\s\S]*parallelism/iu,
+    );
+    expect(skill).toMatch(
+      /Ask before an unclear[\s\S]*external effect[\s\S]*do not automatically run[\s\S]*integration or end-to-end tests[\s\S]*mutate external systems/iu,
+    );
+    expect(skill).toMatch(
+      /For Go tests[\s\S]*structured JSON events[\s\S]*benchmarks[\s\S]*profiles[\s\S]*fuzzing[\s\S]*race detection[\s\S]*`testing\/synctest`[\s\S]*official Go release notes[\s\S]*gap/iu,
+    );
+    expect(skill).toMatch(
+      /target-repository[\s\S]*official[\s\S]*canonical maintainer[\s\S]*Go team[\s\S]*spf13[\s\S]*secondary[\s\S]*evidence\s+gap/iu,
+    );
+    expect(skill).toMatch(/faster but weaker suite as an improvement/iu);
+    expect(guide).toMatch(
+      /effectiveness risk[\s\S]*suite timing boundary[\s\S]*hot cases[\s\S]*branch.base comparison[\s\S]*failure.isolation[\s\S]*evidence gaps[\s\S]*report-data/iu,
+    );
+    expect(guide).toMatch(
+      /Omit both the \*\*Test evidence\*\* section and the `testEvidence`[\s\S]*where test evidence does not apply/iu,
+    );
+    expect(skill).toMatch(
+      /Work now[^.]*up to three[\s\S]*Prepare issues[^.]*all supported[\s\S]*Report only[^.]*stops/iu,
     );
     expect(skill).toMatch(
       /AskClaude[^.]*at most once[\s\S]*Deepen[^.]*does not call AskClaude again/iu,
@@ -606,7 +664,7 @@ describe("engineering resources", () => {
     expect(skill).toMatch(
       /selected improvement depth[\s\S]*scanned scope[\s\S]*coverage[\s\S]*exclusions[\s\S]*evidence strength[\s\S]*impact[\s\S]*reversibility[\s\S]*overlap[\s\S]*integration points[\s\S]*route[\s\S]*reason/iu,
     );
-    expect(skill).toMatch(/stable candidate IDs[\s\S]*atomic[\s\S]*rename/iu);
+    expect(skill).toMatch(/stable\s+candidate\s+IDs[\s\S]*atomic[\s\S]*rename/iu);
     expect(skill).toMatch(
       /OS cleanup removed the artifact[\s\S]*new unique temp[\s\S]*new path and URL[\s\S]*old URL/iu,
     );
@@ -630,14 +688,18 @@ describe("engineering resources", () => {
       /unrelated toolchain evidence[\s\S]*does not activate[\s\S]*bare `go\.mod`/iu,
     );
 
-    expect(readme).toMatch(/`low`[\s\S]*`medium`[\s\S]*`high`[\s\S]*`max`/u);
-    expect(readme).toMatch(/adaptive Focus and\s+Outcome[\s\S]*Blueprint Ledger[\s\S]*loopback/iu);
+    expect(readme).toMatch(
+      /Improvement\s+depth, Focus, or Outcome[\s\S]*one initial `question` call/iu,
+    );
     expect(readme).toMatch(
       /Find\s+improvements[\s\S]*level-appropriate[\s\S]*user-\s*supplied\s+focus[\s\S]*authoritative/iu,
     );
     expect(readme).toMatch(/Mermaid[\s\S]*graph-shaped[\s\S]*HTML,\s+CSS, and inline SVG/iu);
     expect(readme).toMatch(
       /Action[\s\S]*Track[\s\S]*batch confirmation[\s\S]*Herdr-or-equivalent/iu,
+    );
+    expect(readme).toMatch(
+      /High and max[\s\S]*AskClaude second opinion[\s\S]*Deepen does not call it\s+again[\s\S]*honest fallbacks/iu,
     );
     expect(readme).toMatch(
       /target-repository standards[\s\S]*installed `go`[\s\S]*table-driven subtests/iu,
@@ -884,7 +946,7 @@ describe("engineering resources", () => {
     );
   });
 
-  it("expands the /implement, /debug, /improve, and /just-do-it prompts", async () => {
+  it("expands the /implement, /next-issue, /debug, /improve, and /just-do-it prompts", async () => {
     expect.hasAssertions();
     const piPromptTemplates = (await import(
       pathToFileURL(
@@ -925,6 +987,12 @@ describe("engineering resources", () => {
     expect(expandedImplement).toMatch(
       /implements[\s\S]*verifies[\s\S]*reviews when selected[\s\S]*commits[\s\S]*pushes[\s\S]*opens or updates a ready pull request/iu,
     );
+    const nextIssueDefault = piPromptTemplates.expandPromptTemplate("/next-issue", templates);
+    expect(nextIssueDefault).toContain("current repository queue");
+    expect(nextIssueDefault).toMatch(/`ticket-workflow`[\s\S]*status route/iu);
+    expect(
+      piPromptTemplates.expandPromptTemplate("/next-issue project 12 area runtime", templates),
+    ).toContain("project 12 area runtime");
     expect(piPromptTemplates.expandPromptTemplate("/debug", templates)).toContain(
       "diagnosing-bugs",
     );
@@ -932,8 +1000,10 @@ describe("engineering resources", () => {
       piPromptTemplates.expandPromptTemplate("/debug export crashes after sign-in", templates),
     ).toContain("export crashes after sign-in");
     const improveDefault = piPromptTemplates.expandPromptTemplate("/improve", templates);
-    expect(improveDefault).toContain("medium improvement depth");
-    expect(improveDefault).toMatch(/adaptive quick start[\s\S]*do not silently infer a scope/iu);
+    expect(improveDefault).toMatch(
+      /adaptive intake[\s\S]*Improvement depth[\s\S]*Focus[\s\S]*Outcome/iu,
+    );
+    expect(improveDefault).not.toContain("Use medium improvement depth");
     expect(piPromptTemplates.expandPromptTemplate("/improve checkout flow", templates)).toContain(
       "checkout flow",
     );
@@ -975,7 +1045,7 @@ describe("engineering resources", () => {
     expect(router).toMatch(/`implement`[^.]*unavailable[\s\S]*direct-parent fallback/iu);
     expect(implement).toMatch(/material UI[\s\S]*accepted\s+design\s+evidence/iu);
     expect(implement).toMatch(/`frontend-development`/u);
-    expect(implement).toMatch(/`react-interface`[^.]*only when[^.]*target uses[\s\S]*React/iu);
+    expect(implement).toMatch(/`react-best-practices`[^.]*only when[^.]*target uses[\s\S]*React/iu);
     expect(implement).toMatch(/`visual-validation`[\s\S]*(?:mismatch ledger|honest unmet-proof)/iu);
     expect(implement).toMatch(/does not take design approval ownership/iu);
     expect(implement).toMatch(/frontend methods[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);
@@ -1070,5 +1140,187 @@ describe("engineering resources", () => {
       "Do not run independent QA, a Reviewer, or formal review for this route.",
     );
     expect(reviewer).toMatch(/do not run QA gates/iu);
+  });
+
+  it("ships provider-neutral ticket intake and next-ticket routing", async () => {
+    expect.hasAssertions();
+    const [implement, workflow, implementPrompt, nextIssuePrompt, readme, rootReadme] =
+      await Promise.all([
+        read("skills/implement/SKILL.md"),
+        read("skills/ticket-workflow/SKILL.md"),
+        read("prompts/implement.md"),
+        read("prompts/next-issue.md"),
+        read("README.md"),
+        readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
+      ]);
+    const packed = JSON.parse(
+      execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts", PACKAGE_ROOT], {
+        cwd: REPOSITORY_ROOT,
+        encoding: "utf8",
+      }),
+    ) as { files: { path: string }[] }[];
+    const paths = packed[0]?.files.map(({ path }) => path) ?? [];
+
+    expect(paths).toEqual(
+      expect.arrayContaining(["skills/ticket-workflow/SKILL.md", "prompts/next-issue.md"]),
+    );
+    expect(implementPrompt).toMatch(/ticket URL or key[\s\S]*`ticket-workflow`/iu);
+    expect(nextIssuePrompt).toMatch(
+      /`ticket-workflow`[\s\S]*\[optional tracker, project,\s*repository, or area scope\]/iu,
+    );
+    expect(implement).toMatch(/ticket URL or key[\s\S]*untrusted[\s\S]*durable Intent/iu);
+    expect(implement).toMatch(
+      /ticket-backed[\s\S]*`ticket-workflow`[\s\S]*normal bounded implementation/iu,
+    );
+    expect(workflow).toMatch(
+      /provider-neutral[\s\S]*capability[\s\S]*authenticate[\s\S]*one[\s\S]*target/iu,
+    );
+    expect(workflow).toMatch(/missing[\s\S]*capability|capability[\s\S]*unavailable/iu);
+    expect(workflow).toMatch(/do not\s+silently\s+switch trackers/iu);
+    expect(workflow).toMatch(/untrusted[\s\S]*never[\s\S]*instructions/iu);
+    expect(workflow).toMatch(
+      /explicit project or repository[\s\S]*repository-configured project[\s\S]*current repository(?:'s)? issue/iu,
+    );
+    expect(workflow).toMatch(/read[\s\S]*policy once per run[\s\S]*durable handoff/iu);
+    expect(workflow).toMatch(
+      /exclude[\s\S]*blocked[\s\S]*in-progress[\s\S]*unclassified[\s\S]*draft[\s\S]*pull-request/iu,
+    );
+    expect(workflow).toMatch(
+      /needs-shape[\s\S]*needs-plan[\s\S]*ready[\s\S]*priority[\s\S]*oldest[\s\S]*stable ticket ID/iu,
+    );
+    expect(workflow).toMatch(
+      /needs-shape[\s\S]*Shape[\s\S]*needs-plan[\s\S]*`planning-changes`[\s\S]*ready[\s\S]*`implement`/iu,
+    );
+    expect(workflow).toMatch(/status:blocked[\s\S]*stop[\s\S]*named prerequisite/iu);
+    expect(workflow).toMatch(/required route[\s\S]*unavailable[\s\S]*direct\s+parent/iu);
+    expect(workflow).toMatch(
+      /worktree[\s\S]*before[\s\S]*in-progress[\s\S]*substantive route work/iu,
+    );
+    expect(workflow).toMatch(
+      /prior route status[\s\S]*durable handoff[\s\S]*re-read[\s\S]*verify/iu,
+    );
+    expect(workflow).toMatch(/not[\s\S]*atomic/iu);
+    expect(workflow).toMatch(
+      /resume[\s\S]*explicit request[\s\S]*branch[\s\S]*pull request[\s\S]*run evidence/iu,
+    );
+    expect(workflow).toMatch(
+      /keep[^.]*in progress[\s\S]*Shape[\s\S]*planning[\s\S]*implementation[\s\S]*review[\s\S]*do not[^.]*done[^.]*close[^.]*pull request/iu,
+    );
+    expect(workflow).toMatch(/private[\s\S]*public[\s\S]*fail closed[\s\S]*partial mutation/iu);
+    for (const resource of [workflow, implement, implementPrompt, nextIssuePrompt]) {
+      expect(resource).not.toMatch(/pi-extensions|packages\/|\/(?:Users|home|tmp)\//iu);
+    }
+    for (const guide of [readme, rootReadme]) {
+      expect(guide).toMatch(/`\/implement[\s\S]*ticket/iu);
+      expect(guide).toMatch(/\/next-issue[\s\S]*in-progress/iu);
+    }
+  });
+
+  it("classifies /improve issue drafts from one repository-first policy", async () => {
+    expect.hasAssertions();
+    const [improve, workflow, readme, rootReadme] = await Promise.all([
+      read("skills/improve-codebase-architecture/SKILL.md"),
+      read("skills/ticket-workflow/SKILL.md"),
+      read("README.md"),
+      readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
+    ]);
+
+    expect(improve).toMatch(/Track[\s\S]*`ticket-workflow`[\s\S]*exact[ -]set/iu);
+    expect(improve).toMatch(
+      /Track[\s\S]*priority[\s\S]*route status[\s\S]*privacy state[\s\S]*create nothing\s+yet/iu,
+    );
+    expect(improve).not.toMatch(/gh project|gh issue|GitHub Projects/iu);
+    expect(workflow).toMatch(
+      /CONTRIBUTING\.md[\s\S]*repository instructions[\s\S]*native\s+fields[\s\S]*existing\s+(?:repository\s+)?labels[\s\S]*fallback/iu,
+    );
+    expect(workflow).toMatch(
+      /once per resolved tracker, project, and repository per run[\s\S]*reuse[\s\S]*candidate drafts[\s\S]*handoffs/iu,
+    );
+    expect(workflow).toMatch(/one priority and exactly one route status/iu);
+    expect(workflow).toMatch(/one\s+repository-defined area/iu);
+    expect(workflow).toMatch(/bounded implementation[\s\S]*status:ready/iu);
+    expect(workflow).toMatch(/coordinated clear\s+work[\s\S]*status:needs-plan/iu);
+    expect(workflow).toMatch(/unresolved[\s\S]*status:needs-shape/iu);
+    expect(workflow).toMatch(/named prerequisite[\s\S]*status:blocked/iu);
+    expect(workflow).toMatch(/meta[\s\S]*only[\s\S]*backlog coordination/iu);
+    expect(workflow).toMatch(
+      /priority:p1[\s\S]*B60205[\s\S]*Highest priority: correctness risk or foundational work[\s\S]*priority:p2[\s\S]*FBCA04[\s\S]*Important next work or a bounded ready improvement[\s\S]*priority:p3[\s\S]*C2E0C6[\s\S]*Valuable work to defer until higher-leverage items[\s\S]*status:ready[\s\S]*0E8A16[\s\S]*Triaged and ready for implementation[\s\S]*status:needs-shape[\s\S]*D876E3[\s\S]*Needs an accepted Shape pitch before planning[\s\S]*status:needs-plan[\s\S]*5319E7[\s\S]*Needs a delivery plan before implementation[\s\S]*status:blocked[\s\S]*B60205[\s\S]*Sequenced after named prerequisite issues[\s\S]*status:in-progress[\s\S]*1D76DB[\s\S]*An agent is actively working on this issue[\s\S]*meta[\s\S]*EDEDED[\s\S]*Backlog tracking and coordination/iu,
+    );
+    expect(workflow).toMatch(/never invent\s+a fallback area/iu);
+    expect(workflow).toMatch(
+      /existing equivalent native priority or status field[\s\S]*policy permits/iu,
+    );
+    expect(workflow).toMatch(/fallback labels are missing[\s\S]*separate exact-set confirmation/iu);
+    expect(workflow).toMatch(/never rename or delete shared labels/iu);
+    expect(workflow).toMatch(
+      /resolved tracker[\s\S]*repository[\s\S]*optional project[\s\S]*title[\s\S]*body[\s\S]*fields[\s\S]*labels[\s\S]*area[\s\S]*priority[\s\S]*route status[\s\S]*grouping[\s\S]*privacy state[\s\S]*before[\s\S]*confirmation/iu,
+    );
+    expect(workflow).toMatch(
+      /verify[\s\S]*issue creation[\s\S]*before[\s\S]*project placement[\s\S]*every later[\s\S]*mutation[\s\S]*partial success[\s\S]*blindly retry/iu,
+    );
+    expect(workflow).toMatch(
+      /do not\s+place an issue[\s\S]*the request or repository policy resolves\s+one/iu,
+    );
+    expect(workflow).toMatch(/private[\s\S]*public[\s\S]*fail closed/iu);
+    for (const guide of [readme, rootReadme]) {
+      expect(guide).toMatch(
+        /`\/improve[\s\S]*repository[ -]first[\s\S]*fallback[\s\S]*confirmation/iu,
+      );
+    }
+  });
+  it("defines awaiting-only bulk improve triage with ticket-workflow classification", async () => {
+    expect.hasAssertions();
+    const [improve, guide, readme, prompt] = await Promise.all([
+      read("skills/improve-codebase-architecture/SKILL.md"),
+      read("skills/improve-codebase-architecture/HTML-REPORT.md"),
+      read("README.md"),
+      read("prompts/improve.md"),
+    ]);
+
+    const ordered = (resource: string, labels: readonly string[]): void => {
+      let position = -1;
+      for (const label of labels) {
+        const next = resource.indexOf(label, position + 1);
+        expect(next).toBeGreaterThan(position);
+        position = next;
+      }
+    };
+    ordered(improve, ["Action all", "Track all", "Select candidates", "Review individually"]);
+    ordered(improve, [
+      "Action selected",
+      "Track selected",
+      "Won't do selected",
+      "Review selected individually",
+    ]);
+    expect(improve).toMatch(/awaiting candidate[\s\S]*never reprocess a decided candidate/iu);
+    expect(improve).toMatch(
+      /count-unbounded multi-select Question[\s\S]*stable candidate ID[\s\S]*concise title[\s\S]*recommended route/iu,
+    );
+    expect(improve).toMatch(/Do\s+not\s+add\s+Next, Submit, Other, or Chat/iu);
+    expect(improve).toMatch(
+      /unavailable[\s\S]*cancelled[\s\S]*empty[\s\S]*aggregate[\s\S]*no decision or report revision[\s\S]*individual or conversational stable-ID fallback/iu,
+    );
+    expect(improve).toMatch(
+      /Bulk Action[\s\S]*dependencies[\s\S]*overlap[\s\S]*integration points[\s\S]*uncertainty[\s\S]*route reasons[\s\S]*never\s+starts\s+a writer[\s\S]*never proves parallel\s+readiness/iu,
+    );
+    expect(improve).toMatch(
+      /grouped Track[\s\S]*ticket-workflow[\s\S]*policy once per target[\s\S]*each candidate[\s\S]*target[\s\S]*taxonomy[\s\S]*route[\s\S]*grouping[\s\S]*privacy state[\s\S]*one\s+separate exact-set/iu,
+    );
+    expect(improve).toMatch(
+      /Deepen[\s\S]*remaining selected-depth analysis[\s\S]*same seam[\s\S]*preserve the candidate ID[\s\S]*increment the report revision/iu,
+    );
+    expect(improve).toMatch(
+      /one accepted group\s+decision[\s\S]*atomically[\s\S]*once[\s\S]*every affected\s+candidate article[\s\S]*revision once/iu,
+    );
+    expect(improve).toMatch(
+      /Discovery and report generation[\s\S]*never create a branch[\s\S]*mutate a tracker/iu,
+    );
+    expect(guide).toMatch(/Action all[\s\S]*Track all[\s\S]*Review individually/u);
+    expect(guide).toMatch(/Individual:[\s\S]*Action[\s\S]*Track[\s\S]*Won't do[\s\S]*Deepen/u);
+    expect(guide).toMatch(/browser[\s\S]*never select candidates/iu);
+    expect(readme).toMatch(
+      /Action all[\s\S]*Track all[\s\S]*Select candidates[\s\S]*Review individually[\s\S]*ticket-workflow[\s\S]*exact\s+classified draft set/iu,
+    );
+    expect(prompt).toMatch(/bulk terminal decisions[\s\S]*browser controls remain read-only/iu);
   });
 });
