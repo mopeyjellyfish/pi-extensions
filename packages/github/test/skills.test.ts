@@ -43,6 +43,41 @@ describe("GitHub CLI skill", () => {
     expect(skill.split("\n").length).toBeLessThan(140);
   });
 
+  it("routes configured GitHub Projects through a safe bounded contract", async () => {
+    expect.hasAssertions();
+    const [skill, readme, projects] = await Promise.all([
+      readSkillFile("SKILL.md"),
+      readFile(join(PACKAGE_ROOT, "README.md"), "utf8"),
+      readSkillFile("references/projects.md"),
+    ]);
+
+    expect(skill).toContain("references/projects.md");
+    expect(readme).toContain("GitHub Projects");
+    expect(projects).toContain("gh project list");
+    expect(projects).toContain("gh project view");
+    expect(projects).toContain("gh project field-list");
+    expect(projects).toContain("gh project item-list");
+    expect(projects).toContain("gh project item-add");
+    expect(projects).toContain("gh project item-edit");
+    expect(projects).toContain("explicitly supplied");
+    expect(projects).toContain("repository-configured");
+    expect(projects).toContain("repository issues");
+    expect(projects).toContain("project scope");
+    expect(projects).toContain("repository access");
+    expect(projects).toContain("project access");
+    expect(projects).toContain("visibility");
+    expect(projects).toContain("owner");
+    expect(projects).toContain("project number");
+    expect(projects).toContain("item URL");
+    expect(projects).toContain("field");
+    expect(projects).toContain("option");
+    expect(projects).toContain("resulting state");
+    expect(projects).toContain("Private repository");
+    expect(projects).toContain("public project");
+    expect(projects).toContain("fail closed");
+    expect(projects).toContain("without showing inaccessible content");
+  });
+
   it("requires authenticated, bounded, repository-aware gh usage", async () => {
     expect.hasAssertions();
     const skill = await readSkillFile("SKILL.md");
