@@ -28,10 +28,16 @@ explicit human approval.
 
 Material UI scope receives conditional interface evidence during Shape and
 traceable state, responsive, accessibility, system-reuse, and visual-proof gates
-during planning when applicable capabilities are installed. Mechanical edits
-remain direct. The package stays independently installable: design capabilities
-supply evidence only, and the direct parent preserves lifecycle ownership and an
-honest fallback.
+during planning. For a greenfield web application or materially new application
+surface, Shape uses named capability resolution for a generation-first frontend
+design pass before pitch approval. It records selected evidence and an
+image-to-interface contract when that evidence is available. Planning maps it to
+native accessible structure, target components, semantic tokens, representative
+states, responsive and accessibility paths, and desktop/mobile browser
+comparison with a resolved or explicitly accepted visual mismatch ledger.
+Mechanical edits remain direct. Named capability resolution uses an honest
+direct-parent fallback, so the package stays independently installable, makes no
+unauthorized request, and records unmet evidence rather than blocking Shape.
 
 For a Go-targeted pitch or plan—Go source, module, CLI, or Go-specific guidance
 or routing—the parent resolves installed `go` guidance and `cobra-viper` only
