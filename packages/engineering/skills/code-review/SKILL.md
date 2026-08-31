@@ -78,6 +78,25 @@ evidence of applicability. Do not load every reference by default. Treat each
 reference as review questions, not universal violations. Do not report style or
 static findings already enforced by current tooling.
 
+## TypeScript routing
+
+For a fixed diff with substantial TypeScript or TSX, resolve the installed
+`typescript` method. Also resolve `typescript-library` for reusable package
+exports, declarations, ESM boundaries, public types, dependency-type exposure, or
+compatibility promises; `typescript-testing` for TypeScript runtime, boundary,
+type-level, or asynchronous test work; and `typescript-modernize` for legacy
+TypeScript cleanup or migration. For fixed-diff TypeScript review, resolve
+`typescript-review`.
+
+Apply target-repository instructions and public contracts first, then the
+applicable installed TypeScript methods, including `typescript-review`, before
+`references/typescript.md`. Use imports, manifests, file extensions, changed
+runtime boundaries, and the fixed diff as evidence; unrelated toolchain files
+alone do not activate a method. Do
+not duplicate current compiler or linter output. If a companion is unavailable,
+record the unmet method and use bounded target-repository TypeScript standards
+without claiming it loaded.
+
 ## Go routing
 
 When review has Go source, a Go module, a Go CLI, or Go-specific work, resolve

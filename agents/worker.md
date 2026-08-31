@@ -19,6 +19,10 @@ skills:
   - visual-validation
   - go
   - cobra-viper
+  - typescript
+  - typescript-library
+  - typescript-testing
+  - typescript-modernize
 skillPath:
   - ../packages/engineering/skills/test-driven-development
   - ../packages/engineering/skills/codebase-design
@@ -32,6 +36,10 @@ skillPath:
   - ../packages/frontend-developer/skills/visual-validation
   - ../packages/go/skills/go
   - ../packages/go/skills/cobra-viper
+  - ../packages/typescript/skills/typescript
+  - ../packages/typescript/skills/typescript-library
+  - ../packages/typescript/skills/typescript-testing
+  - ../packages/typescript/skills/typescript-modernize
 tools:
   - read
   - grep
@@ -90,6 +98,14 @@ valid parent-supplied setup evidence only when its fingerprint covers unchanged
 runtime selectors and lockfile; verify inherited tools before running setup
 again. Verify the required tool is available. A setup failure is not behavioral
 red proof: diagnose it separately and do not rerun an unchanged setup command.
+
+For substantial TypeScript or TSX, apply `typescript`. Also apply
+`typescript-library` for reusable package exports, declarations, ESM boundaries,
+public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or
+asynchronous test work; and `typescript-modernize` for legacy cleanup or
+migration. Apply these methods only when fixed task evidence matches; unrelated
+toolchain files do not activate them.
 
 Implement one vertical behavior at the public seam. Add the minimum
 representative behavioral test; do not build a Cartesian test matrix or expand

@@ -71,6 +71,17 @@ preloads both skills. Fixed-diff Go review applies target-repository instruction
 and module contracts before installed Go standards and `references/go.md`, and
 reports only practical findings that do not duplicate current tool output.
 
+`/implement`, `/review-change`, and `/improve` automatically route substantial
+TypeScript or TSX through the installed `typescript` method. They add
+`typescript-library` for reusable package exports, declarations, ESM boundaries,
+public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
+test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
+for legacy cleanup or migration. Target-repository rules remain first. Worker
+preloads the implementation methods and Reviewer preloads all five. Independent
+installations record an unavailable companion and use bounded direct-parent
+target-repository TypeScript standards without claiming it loaded.
+
 The configured Git agent composes the focused Git and GitHub skills. Given a
 worktree, branch, authority, intent, and evidence, it derives atomic units and
 messages, stages, commits, pushes, and creates or updates the pull request. It

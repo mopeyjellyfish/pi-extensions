@@ -291,6 +291,19 @@ toolchain evidence alone does not activate either method. If a companion skill
 is unavailable, record the unmet method and have the direct parent use bounded
 target-repository Go standards without pretending the skill loaded.
 
+## TypeScript routing
+
+For substantial TypeScript or TSX, resolve the installed `typescript` method.
+Also resolve `typescript-library` for reusable package exports, declarations, ESM
+boundaries, public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
+test work; and `typescript-modernize` for legacy TypeScript cleanup or migration.
+Target-repository rules, public contracts, and established commands remain first.
+Resolve only methods supported by task evidence, not unrelated toolchain files.
+Before Worker handoff, include the applicable TypeScript methods in the task.
+If a companion is unavailable, record the unmet method and have the direct parent
+use bounded target-repository TypeScript standards without claiming it loaded.
+
 ## Concurrent assurance and publication readiness
 
 The parent uses the complete work evidence document to select Review, Revise,

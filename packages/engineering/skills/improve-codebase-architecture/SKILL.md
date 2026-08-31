@@ -124,6 +124,23 @@ The installed `go` skill decides unclear test-pattern cases. Do not recommend
 speculative interface types, layer packages, generated mocks, or abstractions to
 satisfy generic architecture advice.
 
+## TypeScript routing
+
+For substantial TypeScript or TSX, resolve the installed `typescript` method.
+Also resolve `typescript-library` for reusable package exports, declarations, ESM
+boundaries, public types, dependency-type exposure, or compatibility promises;
+`typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
+test work; and `typescript-modernize` for legacy TypeScript cleanup or migration.
+Target-repository rules, public contracts, and established commands remain first.
+Resolve only methods supported by changed-source, public-seam, or task evidence,
+not unrelated toolchain files. Apply the constraints before generic architecture
+advice and carry them into each capable evidence lane, second-opinion input, and
+Action brief. A lane unable to load an applicable TypeScript method returns
+evidence only and makes no TypeScript-specific recommendation. If a companion is
+unavailable, record the unmet method and use bounded target-repository TypeScript
+standards without claiming it loaded. Reject generic or second-opinion advice that
+conflicts with resolved TypeScript constraints.
+
 ## Discover the current shape
 
 Find concrete hot spots: repeated changes, callers coordinating internal steps,
