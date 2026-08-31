@@ -1127,6 +1127,7 @@ describe("engineering resources", () => {
     expect(workflow).toMatch(
       /needs-shape[\s\S]*Shape[\s\S]*needs-plan[\s\S]*`planning-changes`[\s\S]*ready[\s\S]*`implement`/iu,
     );
+    expect(workflow).toMatch(/status:blocked[\s\S]*stop[\s\S]*named prerequisite/iu);
     expect(workflow).toMatch(/required route[\s\S]*unavailable[\s\S]*direct\s+parent/iu);
     expect(workflow).toMatch(
       /worktree[\s\S]*before[\s\S]*in-progress[\s\S]*substantive route work/iu,
@@ -1137,6 +1138,9 @@ describe("engineering resources", () => {
     expect(workflow).toMatch(/not[\s\S]*atomic/iu);
     expect(workflow).toMatch(
       /resume[\s\S]*explicit request[\s\S]*branch[\s\S]*pull request[\s\S]*run evidence/iu,
+    );
+    expect(workflow).toMatch(
+      /keep[^.]*in progress[\s\S]*Shape[\s\S]*planning[\s\S]*implementation[\s\S]*review[\s\S]*do not[^.]*done[^.]*close[^.]*pull request/iu,
     );
     expect(workflow).toMatch(/private[\s\S]*public[\s\S]*fail closed[\s\S]*partial mutation/iu);
     for (const resource of [workflow, implement, implementPrompt, nextIssuePrompt]) {
@@ -1158,6 +1162,9 @@ describe("engineering resources", () => {
     ]);
 
     expect(improve).toMatch(/Track[\s\S]*`ticket-workflow`[\s\S]*exact[ -]set/iu);
+    expect(improve).toMatch(
+      /Track[\s\S]*priority[\s\S]*route status[\s\S]*privacy state[\s\S]*create nothing\s+yet/iu,
+    );
     expect(improve).not.toMatch(/gh project|gh issue|GitHub Projects/iu);
     expect(workflow).toMatch(
       /CONTRIBUTING\.md[\s\S]*repository instructions[\s\S]*native\s+fields[\s\S]*existing\s+(?:repository\s+)?labels[\s\S]*fallback/iu,

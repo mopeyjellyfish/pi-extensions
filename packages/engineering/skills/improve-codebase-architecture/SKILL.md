@@ -232,7 +232,8 @@ candidate article. Ask one authoritative terminal question with four options:
    current-session handoff. The route retains its own approvals.
 2. **Track — `<tracker, choose tracker, or draft only>`.** Prepare and queue a
    complete issue draft. Show the tracker, project or repository, title, body,
-   labels, and grouping. Create nothing yet.
+   labels, priority, route status, grouping, and privacy state. Create nothing
+   yet.
 3. **Won't do.** Record only the ephemeral report decision. Do not start work,
    create an issue, or write an ADR.
 4. **Deepen.** Spend only the remaining selected-depth analysis and support

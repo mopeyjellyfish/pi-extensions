@@ -116,9 +116,10 @@ resolved policy uses the fallback taxonomy, priority is `priority:p1`, then
 ## Route and ordinary coordination
 
 Route `status:needs-shape` to Shape, `status:needs-plan` to
-`planning-changes`, and `status:ready` to `implement`. If the required route
-skill is unavailable, return a self-contained durable handoff to the direct
-parent. Do not claim that the companion skill ran.
+`planning-changes`, and `status:ready` to `implement`. For `status:blocked`,
+stop and report its named prerequisite. If the required route skill is
+unavailable, return a self-contained durable handoff to the direct parent. Do
+not claim that the companion skill ran.
 
 Create or verify the isolated task worktree and prepare the selected route
 before the in-progress transition and before substantive route work. Preserve
@@ -133,3 +134,7 @@ re-read does not verify the resulting state, stop and report the bounded or
 partial mutation result. Do not blindly retry. Keep in-progress tickets out of
 later selection. Resume an in-progress ticket only on an explicit request with
 matching branch, pull request, or run evidence for the same work.
+
+Keep the ticket in progress while Shape, planning, implementation, or review
+remains active. Do not mark it done or close it merely because a pull request
+opens.
