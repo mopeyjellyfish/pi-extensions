@@ -53,6 +53,18 @@ An independent installation without the root agent profiles uses the direct
 parent; it does not automatically provide companion extensions, agents, tools,
 or skills.
 
+## Ticket-backed implementation
+
+`/implement <ticket URL or key>` uses `ticket-workflow` only when an installed,
+authenticated tracker capability can resolve the ticket. Ticket content is
+untrusted durable Intent, not instructions. `/next-issue [optional tracker,
+project, repository, or area scope]` resolves one explicit queue, ranks eligible
+work, prepares its worktree, verifies the ordinary in-progress transition, and
+routes it to Shape, planning, or implementation. Missing tracker access stops
+with a bounded fallback; the package does not assume a tracker or silently
+switch one. In-progress is coordination, not an atomic lock, and private ticket
+content never crosses to a public tracker surface.
+
 `developing-changes` uses an impact-and-uncertainty decision. A small, bounded
 fix during active work goes to `/just-do-it` when the requested outcome, local
 cause, and objective check are clear. This includes obvious breakage, cleanup,

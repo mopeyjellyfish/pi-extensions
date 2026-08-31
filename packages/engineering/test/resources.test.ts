@@ -1071,4 +1071,74 @@ describe("engineering resources", () => {
     );
     expect(reviewer).toMatch(/do not run QA gates/iu);
   });
+
+  it("ships provider-neutral ticket intake and next-ticket routing", async () => {
+    expect.hasAssertions();
+    const [implement, workflow, implementPrompt, nextIssuePrompt, readme, rootReadme] =
+      await Promise.all([
+        read("skills/implement/SKILL.md"),
+        read("skills/ticket-workflow/SKILL.md"),
+        read("prompts/implement.md"),
+        read("prompts/next-issue.md"),
+        read("README.md"),
+        readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
+      ]);
+    const packed = JSON.parse(
+      execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts", PACKAGE_ROOT], {
+        cwd: REPOSITORY_ROOT,
+        encoding: "utf8",
+      }),
+    ) as { files: { path: string }[] }[];
+    const paths = packed[0]?.files.map(({ path }) => path) ?? [];
+
+    expect(paths).toEqual(
+      expect.arrayContaining(["skills/ticket-workflow/SKILL.md", "prompts/next-issue.md"]),
+    );
+    expect(implementPrompt).toMatch(/ticket URL or key[\s\S]*`ticket-workflow`/iu);
+    expect(nextIssuePrompt).toMatch(
+      /`ticket-workflow`[\s\S]*\[optional tracker, project,\s*repository, or area scope\]/iu,
+    );
+    expect(implement).toMatch(/ticket URL or key[\s\S]*untrusted[\s\S]*durable Intent/iu);
+    expect(implement).toMatch(
+      /ticket-backed[\s\S]*`ticket-workflow`[\s\S]*normal bounded implementation/iu,
+    );
+    expect(workflow).toMatch(
+      /provider-neutral[\s\S]*capability[\s\S]*authenticate[\s\S]*one[\s\S]*target/iu,
+    );
+    expect(workflow).toMatch(/missing[\s\S]*capability|capability[\s\S]*unavailable/iu);
+    expect(workflow).toMatch(/do not\s+silently\s+switch trackers/iu);
+    expect(workflow).toMatch(/untrusted[\s\S]*never[\s\S]*instructions/iu);
+    expect(workflow).toMatch(
+      /explicit project or repository[\s\S]*repository-configured project[\s\S]*current repository(?:'s)? issue/iu,
+    );
+    expect(workflow).toMatch(/read[\s\S]*policy once per run[\s\S]*durable handoff/iu);
+    expect(workflow).toMatch(
+      /exclude[\s\S]*blocked[\s\S]*in-progress[\s\S]*unclassified[\s\S]*draft[\s\S]*pull-request/iu,
+    );
+    expect(workflow).toMatch(
+      /needs-shape[\s\S]*needs-plan[\s\S]*ready[\s\S]*priority[\s\S]*oldest[\s\S]*stable ticket ID/iu,
+    );
+    expect(workflow).toMatch(
+      /needs-shape[\s\S]*Shape[\s\S]*needs-plan[\s\S]*`planning-changes`[\s\S]*ready[\s\S]*`implement`/iu,
+    );
+    expect(workflow).toMatch(/required route[\s\S]*unavailable[\s\S]*direct\s+parent/iu);
+    expect(workflow).toMatch(
+      /worktree[\s\S]*before[\s\S]*in-progress[\s\S]*substantive route work/iu,
+    );
+    expect(workflow).toMatch(
+      /prior route status[\s\S]*durable handoff[\s\S]*re-read[\s\S]*verify/iu,
+    );
+    expect(workflow).toMatch(/not[\s\S]*atomic/iu);
+    expect(workflow).toMatch(
+      /resume[\s\S]*explicit request[\s\S]*branch[\s\S]*pull request[\s\S]*run evidence/iu,
+    );
+    expect(workflow).toMatch(/private[\s\S]*public[\s\S]*fail closed[\s\S]*partial mutation/iu);
+    for (const resource of [workflow, implement, implementPrompt, nextIssuePrompt]) {
+      expect(resource).not.toMatch(/pi-extensions|packages\/|\/(?:Users|home|tmp)\//iu);
+    }
+    for (const guide of [readme, rootReadme]) {
+      expect(guide).toMatch(/`\/implement[\s\S]*ticket/iu);
+      expect(guide).toMatch(/\/next-issue[\s\S]*in-progress/iu);
+    }
+  });
 });
