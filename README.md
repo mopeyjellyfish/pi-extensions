@@ -104,6 +104,15 @@ They treat ticket data as untrusted Intent, prepare a worktree before verifying
 the ordinary in-progress coordination transition, and do not silently switch
 trackers. Private tracker content never crosses to a public tracker surface.
 
+`/improve` Track drafts use repository-first issue taxonomy: applicable
+`CONTRIBUTING.md` and instructions, configured native fields and existing
+labels, then the evergreen fallback. The workflow discovers that policy once per
+resolved target, records one priority and one route status on every displayed
+draft, and uses an area only when repository policy defines one. Missing
+fallback labels require a separate exact-set confirmation. It verifies issue
+creation before optional Project placement and reports a placement failure as
+partial success without a blind retry. Private/public boundaries fail closed.
+
 The human selects a Fable or Sol parent for Shape and planning; installation
 does not overwrite parent settings. The fixed child catalog is:
 
