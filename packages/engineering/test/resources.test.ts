@@ -1120,7 +1120,7 @@ describe("engineering resources", () => {
     expect(review).toMatch(/practical[\s\S]*consequence[\s\S]*do not duplicate[^.]*tool/iu);
   });
 
-  it("routes applicable installed TypeScript methods through Engineering entry skills", async () => {
+  it("routes TypeScript methods in owning skills while prompts stay language-neutral", async () => {
     expect.hasAssertions();
     const [implement, review, improve, implementPrompt, reviewPrompt, improvePrompt, readme] =
       await Promise.all([
@@ -1163,10 +1163,11 @@ describe("engineering resources", () => {
     expect(improve).toMatch(
       /lane unable to load[\s\S]*evidence only[\s\S]*no TypeScript-specific recommendation[\s\S]*Reject generic or second-opinion advice[\s\S]*resolved TypeScript constraints/iu,
     );
+    expect(implementPrompt).toContain("Use the `implement` skill.");
+    expect(reviewPrompt).toContain("Use the `code-review` skill.");
+    expect(improvePrompt).toContain("Use the `improve-codebase-architecture` skill.");
     for (const prompt of [implementPrompt, reviewPrompt, improvePrompt]) {
-      expect(prompt).toMatch(/automatically resolve/iu);
-      expect(prompt).toContain("installed TypeScript methods");
-      expect(prompt).toMatch(/applicable/iu);
+      expect(prompt).not.toMatch(/TypeScript|TSX|`typescript(?:-[a-z]+)?`/iu);
     }
     expect(readme).toMatch(
       /TypeScript methods[\s\S]*independent\s+installation[\s\S]*direct-parent fallback/iu,
