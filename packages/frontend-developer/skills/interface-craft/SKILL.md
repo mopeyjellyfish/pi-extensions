@@ -1,11 +1,10 @@
 ---
 name: interface-craft
 description: >-
-  First-class natural-language router for web-interface design, critique, audit,
-  polish, bolder, quieter, distill, clarify, adapt, optimize, responsive layout,
-  accessibility, performance, onboarding, and design system work. Use when a request
-  says polish this, audit a settings flow, fix a mobile layout, make this calmer,
-  improve an interface, or document the design system.
+  First owner for focused polish, audit, layout, clarify, adapt, optimize, bolder,
+  quieter, and distill web-interface operations. Use when a request says polish this,
+  audit a settings flow, fix a mobile layout, make this calmer, improve onboarding,
+  or clarify errors.
 ---
 
 # Interface craft
