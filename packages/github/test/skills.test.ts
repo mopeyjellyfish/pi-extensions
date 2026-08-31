@@ -83,7 +83,10 @@ describe("GitHub CLI skill", () => {
     expect(projects).toContain("--jq '.fields[] | {id,name,type,options}'");
     expect(projects).toContain(".content |= {number,repository,title,type,url}");
     expect(projects).not.toMatch(/dataType|fieldValues/u);
-    expect(projects).toMatch(/created time[\s\S]*underlying\s+issue/iu);
+    expect(projects).toContain("--jq '{id,type,url}'");
+    expect(projects).toMatch(
+      /created time[\s\S]*one bounded[\s\S]*issue list[\s\S]*join[\s\S]*content\.number[\s\S]*individual[\s\S]*not\s+returned/iu,
+    );
     expect(issues).toMatch(/--json[^\n]*createdAt/iu);
   });
 
