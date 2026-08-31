@@ -252,66 +252,102 @@ directory and return the new path and URL. Never claim the old URL remains live.
 
 ## Triage candidates in the terminal
 
-Unless the outcome is Report only or the user stops, process one candidate at a
-time in report order or in the named subset. Mirror these choices in the
-candidate article. Ask one authoritative terminal question with four options:
+Unless the outcome is Report only or the user stops, identify awaiting candidates
+in report order or in the named subset. Never reprocess a decided candidate.
+When at least two await a decision, offer this authoritative batch entry:
 
-1. **Action — `<recommended route>`.** Explain and start the proportionate
-   `implement`, `planning-changes`, or Shape then planning workflow. Include the
-   complete candidate evidence and resolved language constraints. Use a new
-   bounded pane when a Herdr-or-equivalent capability exists; otherwise use a
-   current-session handoff. The route retains its own approvals.
-2. **Track — `<tracker, choose tracker, or draft only>`.** Prepare and queue a
-   complete issue draft. Show the tracker, project or repository, title, body,
-   labels, priority, route status, grouping, and privacy state. Create nothing
-   yet.
-3. **Won't do.** Record only the ephemeral report decision. Do not start work,
-   create an issue, or write an ADR.
-4. **Deepen.** Spend only the remaining selected-depth analysis and support
-   budget on the same seam, evidence, or alternatives. Preserve the candidate
-   ID, increment the report revision, mark revised evidence not rechecked by
-   AskClaude, and ask again. If the budget is exhausted, offer a new explicit
-   depth request instead of silently widening.
+1. **Action all**
+2. **Track all**
+3. **Select candidates**
+4. **Review individually**
 
-Use the `question` tool's built-in custom response for Other direction; do not
-add a duplicate Other option. If the tool is unavailable, present the same four
-options and accept a free-form custom direction in conversation.
+All means every awaiting candidate in the active report or named subset. For
+**Select candidates**, use one count-unbounded multi-select Question. Give each
+option a stable candidate ID, concise title, and recommended route. Do not add
+Next, Submit, Other, or Chat controls as candidate options. This is one
+`question` tool call. If the tool is unavailable, cancelled, empty, or rejects
+the aggregate selector, make no decision or report revision. Offer the complete
+individual or conversational stable-ID fallback.
+
+For a non-empty selection, offer exactly:
+
+1. **Action selected**
+2. **Track selected**
+3. **Won't do selected**
+4. **Review selected individually**
+
+Review individually and Review selected individually use the existing
+per-candidate question with these options:
+
+- **Action** — state the recommended delivery route and reason. Ask for
+  confirmation, then invoke `implement`, `planning-changes`, or Shape then
+  planning. Include the complete candidate evidence and resolved language
+  constraints. Use a Herdr-or-equivalent pane only when available; otherwise
+  keep the handoff in the current-session. The route retains its own approvals.
+- **Track** — prepare one classified issue draft through `ticket-workflow`, then
+  request its required exact-set confirmation before remote creation. If no
+  tracker is available, return a copyable draft and stop.
+- **Won't do** — record only an ephemeral report decision. Do not start work,
+  create an issue, or write an ADR.
+- **Deepen** — spend the remaining selected-depth analysis on the same seam.
+  Preserve the candidate ID, update evidence and ranking, note that the second
+  opinion was not rerun, and increment the report revision. Ask the individual
+  question again. Deepen is individual-only. If the budget is exhausted, offer
+  a new explicit depth request instead of silently widening.
+
+Use the Question tool's built-in custom response for a user-authored direction.
+Do not add separate Other or Chat options. If Question is unavailable for an
+individual review, present the same four options and accept a free-form custom
+direction in conversation.
 
 For Action, use evidence, impact, reversibility, dependencies, and uncertainty.
 One clear bounded candidate routes to `implement`. Multiple independent clear
 candidates or coordinated dependent candidates route to `planning-changes`.
-Unresolved, hard-to-reverse, cross-cutting, migration, or major architecture
-work routes to Shape, then planning after pitch approval. If a route skill or
-pane capability is unavailable, return the same self-contained brief to the
-direct parent and state the fallback.
+Unresolved, hard-to-reverse, cross-cutting, migration, or major architecture work
+routes to Shape, then planning after pitch approval. A missing route skill or
+pane returns the same self-contained brief to the direct parent.
 
-Every writer requires an isolated worktree. Start multiple Action routes in
-parallel only after the parent or planning proves independence, non-overlapping
+Bulk Action creates one self-contained handoff that records dependencies,
+overlap, integration points, uncertainty, and route reasons before it applies
+those route rules. Bulk Action never starts a writer and never proves parallel
+readiness. Every writer still requires an isolated worktree. Multiple writers can
+start only after the parent or planning proves independence, non-overlapping
 ownership, and named integration points. Coordinated candidates share one plan.
 
-Track always remains available. Load and follow `ticket-workflow` for resolved
-tracker policy and issue creation. Do not duplicate provider policy here. Detect
-target instructions, tracker metadata, and installed capability before the
-candidate question. If selection is ambiguous, ask the user after Track
-selection instead of guessing. If no tracker capability exists, produce
-draft-only output. Remote text must be self-contained and must not include the
-local report path or confidential report metadata.
+Track always remains available. Load and follow `ticket-workflow`; do not
+duplicate tracker policy here. Detect target instructions, tracker metadata, and
+installed capability before the candidate question. If target selection is
+ambiguous, ask after Track selection instead of guessing. For one candidate,
+classify its target, taxonomy, route, grouping, priority, route status, and
+privacy state before the existing exact displayed draft-set confirmation. Track
+queues the exact bounded draft set before its batch confirmation. Remote text
+must be self-contained and must not include the local report path or confidential
+report metadata.
 
-Each Track selection queues one complete draft. `ticket-workflow` classifies it
-from the repository-first policy and records the resolved target, taxonomy,
-route, grouping, and privacy state before the existing exact displayed draft-set
-confirmation. After triage ends, or when the user asks to create queued issues,
-show that exact bounded draft set and ask for one batch confirmation. Approval
-applies only to that displayed set. A changed draft or target requires a new confirmation.
+For grouped Track, load `ticket-workflow` and resolve its policy once per target.
+Classify each candidate draft with its exact target, taxonomy, route, grouping,
+priority, route status, and privacy state. Queue the exact bounded draft set, but
+create nothing yet. Show the exact classified draft set. Then require one
+separate exact-set batch confirmation for that set and target before remote
+creation. A changed draft or target requires a new confirmation. If no supported
+tracker can be resolved, return the classified copyable drafts and stop.
 
-After every answer, atomically update the same report, preserve unchanged IDs,
-increment the revision, and let the browser reload. Stop the helper idempotently
-when active triage ends unless the user asks to keep reading. Report only can
-retain the helper until explicit stop or its bounded maximum lifetime.
+After an accepted individual decision, atomically update the same Blueprint
+Ledger, mirror the decision on its candidate article, preserve unchanged IDs,
+and increment the revision once. After one accepted group decision, atomically
+update the same Blueprint Ledger once, mirror the decision on every affected
+candidate article, preserve unchanged IDs, and increment the revision once.
+Continue with awaiting candidates.
+
+Stop the helper idempotently when triage ends unless the user asks to keep
+reading. Report only can retain it until explicit stop or its bounded maximum
+lifetime. Browser controls never select candidates, start implementation, or
+create issues.
 
 Discovery and report generation never create a branch, edit target production
-code, commit, publish, or mutate a tracker. Only the terminal Action and the
-separate exact-set tracker confirmation can authorize their bounded next steps.
+code, commit, publish, mutate a tracker, or treat a browser control as mutation
+authority. Only a terminal Action and the separate exact-set tracker confirmation
+can authorize their bounded next steps.
 
 ## Test-analysis evidence
 

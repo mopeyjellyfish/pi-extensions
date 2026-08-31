@@ -230,6 +230,26 @@ uses a Herdr-or-equivalent pane only when that capability is available; the
 fallback stays in the current session. Parallel writers require independent
 isolated worktrees.
 
+When two or more `/improve` candidates await a decision, terminal triage offers
+**Action all**, **Track all**, **Select candidates**, then **Review individually**.
+All applies only to awaiting candidates in the active report or named subset.
+Select candidates uses one count-unbounded Question multi-select with stable IDs,
+titles, and routes; cancellation, an empty selection, unavailable Question, or an
+aggregate rejection makes no decision or report revision and falls back to
+individual or conversational stable-ID triage. A selected group offers **Action
+selected**, **Track selected**, **Won't do selected**, then **Review selected
+individually**. Deepen remains an individual choice.
+
+Grouped Action records dependencies, overlap, integration points, uncertainty,
+and route reasons in one handoff; bulk Action never starts a writer or proves
+parallel readiness. Grouped Track loads `ticket-workflow`, resolves policy once
+per target, and classifies each candidate with its target, taxonomy, route,
+grouping, priority, route status, and privacy state. It displays the exact
+classified draft set, then requires one confirmation before remote creation.
+One accepted group decision updates the Blueprint Ledger and all affected
+candidate articles atomically in one revision. Browser controls never select
+candidates or have workflow authority.
+
 Test effectiveness and performance are normal `/improve` discovery behavior, not
 a test mode. An explicit test, CI, coverage, flake, or test-performance scope
 uses one dedicated, bounded, evidence-only test-analysis subagent when available;
