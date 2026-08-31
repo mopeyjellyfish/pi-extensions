@@ -128,24 +128,41 @@ describe("frontend skill routing ownership", () => {
       resource("skills/interface-design/SKILL.md"),
       resource("skills/interface-craft/references/design.md"),
     ]);
-    const descriptions = [interfaceCraft, frontendDesign, interfaceDesign]
-      .map((source) => /^---\n[\s\S]*?^---/mu.exec(source)?.[0] ?? "")
-      .join("\n");
+    const skillDescriptions = {
+      frontendDesign: /^---\n[\s\S]*?^---/mu.exec(frontendDesign)?.[0] ?? "",
+      interfaceCraft: /^---\n[\s\S]*?^---/mu.exec(interfaceCraft)?.[0] ?? "",
+      interfaceDesign: /^---\n[\s\S]*?^---/mu.exec(interfaceDesign)?.[0] ?? "",
+    };
+    const firstOwners = Object.entries(skillDescriptions)
+      .filter(([, description]) => /first owner/iu.test(description))
+      .map(([name]) => name)
+      .sort();
 
+    expect.soft(firstOwners).toEqual(["frontendDesign", "interfaceCraft"]);
     expect
-      .soft(interfaceCraft)
+      .soft(skillDescriptions.interfaceCraft)
       .toMatch(/focused polish, audit, layout, clarify, adapt, optimize, bolder/iu);
     expect
-      .soft(frontendDesign)
+      .soft(skillDescriptions.interfaceCraft)
+      .not.toMatch(
+        /material app direction|new app surface|major redesign|unclear visual direction/iu,
+      );
+    expect
+      .soft(skillDescriptions.frontendDesign)
       .toMatch(
         /material app direction, a\s+new app surface, a\s+major redesign, or\s+unclear visual direction/iu,
       );
-    expect.soft(interfaceDesign).toMatch(/material app-interface method after\s+classification/iu);
     expect
-      .soft(descriptions)
-      .not.toMatch(/designing, building, reviewing, auditing, or refining/iu);
+      .soft(skillDescriptions.frontendDesign)
+      .not.toMatch(/focused polish|audit a settings flow|fix a mobile layout|clarify errors/iu);
+    expect
+      .soft(skillDescriptions.interfaceDesign)
+      .toMatch(/material app-interface method after\s+classification/iu);
+    expect.soft(skillDescriptions.interfaceDesign).not.toMatch(/first owner/iu);
     expect.soft(designReference).not.toMatch(/repository-native `\/design` workflow/iu);
-    expect.soft(designReference).not.toMatch(/frontend-design/iu);
+    for (const routerName of ["frontend-design", "interface-craft", "interface-design"]) {
+      expect.soft(designReference).not.toContain(routerName);
+    }
   });
 });
 
