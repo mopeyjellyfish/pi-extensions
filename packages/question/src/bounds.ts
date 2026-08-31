@@ -5,6 +5,7 @@ export const MAX_CUSTOM_JSON_BYTES = 2000;
 export const MAX_REDIRECT_JSON_BYTES = 2000;
 export const MAX_MODEL_CONTENT_BYTES = 8000;
 export const MAX_COMPACT_RENDER_BYTES = 320;
+export const MAX_RESULT_DETAILS_JSON_BYTES = 48_000;
 export const TRUNCATION_MARKER = "… [truncated]";
 
 function isControl(character: string): boolean {

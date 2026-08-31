@@ -164,10 +164,20 @@ describe("question contract", () => {
     );
   });
 
-  it("accepts inline and fullscreen presentation while rejecting unknown values", () => {
+  it("accepts count-unbounded inline and fullscreen input while rejecting unknown presentation", () => {
     expect.hasAssertions();
     const check = Compile(QuestionParameters);
+    const fiveQuestions = Array.from({ length: 5 }, (_, index) => ({
+      ...scopeQuestion,
+      id: `scope-${String(index)}`,
+      options: Array.from({ length: 5 }, (__, optionIndex) => ({
+        ...smallOption,
+        id: `option-${String(optionIndex)}`,
+        label: `Option ${String(optionIndex)}`,
+      })),
+    }));
     expect(check.Check({ questions: [scopeQuestion] })).toBe(true);
+    expect(check.Check({ questions: fiveQuestions })).toBe(true);
     expect(check.Check({ presentation: "inline", questions: [scopeQuestion] })).toBe(true);
     expect(check.Check({ presentation: "fullscreen", questions: [scopeQuestion] })).toBe(true);
     expect(check.Check({ presentation: "overlay", questions: [scopeQuestion] })).toBe(false);
@@ -222,7 +232,7 @@ describe("question contract", () => {
   it("enforces semantic limits, uniqueness, and reserved labels", () => {
     expect.hasAssertions();
     expect(validateQuestions(questions)).toEqual([]);
-    expect(validateQuestions([])).toContain("questions must contain 1 to 4 questions");
+    expect(validateQuestions([])).toContain("questions must contain at least 1 question");
     expect(
       validateQuestions([
         scopeQuestion,
@@ -231,12 +241,12 @@ describe("question contract", () => {
         checksQuestion,
         scopeQuestion,
       ]),
-    ).toContain("questions must contain 1 to 4 questions");
+    ).not.toContain("questions must contain at least 1 question");
     expect(validateQuestions([{ ...scopeQuestion, header: "thirteen chars" }])).toContain(
       "questions[0].header must be at most 12 characters",
     );
     expect(validateQuestions([{ ...scopeQuestion, options: [smallOption] }])).toContain(
-      "questions[0].options must contain 2 to 4 options",
+      "questions[0].options must contain at least 2 options",
     );
     expect(validateQuestions([scopeQuestion, { ...checksQuestion, id: "scope" }])).toContain(
       'duplicate question id "scope"',
@@ -572,7 +582,7 @@ describe("TUI dialog", () => {
             expect(lines).toHaveLength(23);
             expect(lines.length).toBeLessThanOrEqual(23);
             expect(output).toContain("First choice");
-            expect(output).toContain("Second pick");
+            expect(output).toContain("Question 1 of 2");
             expect(output).toContain("Which implementation scope");
             expect(output).toContain("Preview line 1");
             expect(output).toContain("Preview line 2");

@@ -1,7 +1,8 @@
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 
-import { hasStructuralControl, sanitizeText } from "./bounds.ts";
+import { hasStructuralControl, MAX_RESULT_DETAILS_JSON_BYTES, sanitizeText } from "./bounds.ts";
+import { preflightResultDetailsBytes } from "./results.ts";
 
 import type { QuestionDefinition, QuestionDocument, QuestionPresentation } from "./types.ts";
 
@@ -67,7 +68,7 @@ const QuestionSchema = Type.Object(
       description: "Question shown to the user",
     }),
     multiSelect: Type.Optional(Type.Boolean({ description: "Allow more than one option" })),
-    options: Type.Array(OptionSchema, { minItems: 2, maxItems: 4 }),
+    options: Type.Array(OptionSchema, { minItems: 2 }),
     document: Type.Optional(DocumentSchema),
   },
   { additionalProperties: false },
@@ -92,7 +93,7 @@ export const QuestionParameters = Type.Object(
           "Fullscreen is the default for documents and formal approval; inline keeps contextual clarifications below the transcript",
       }),
     ),
-    questions: Type.Array(QuestionSchema, { minItems: 1, maxItems: 4 }),
+    questions: Type.Array(QuestionSchema, { minItems: 1 }),
   },
   { additionalProperties: false },
 );
@@ -149,8 +150,8 @@ function validateQuestion(question: QuestionDefinition, index: number): string[]
     errors.push(`${prefix}.header must not contain control characters`);
   }
   if (!question.question.trim()) errors.push(`${prefix}.question must not be empty`);
-  if (question.options.length < 2 || question.options.length > 4) {
-    errors.push(`${prefix}.options must contain 2 to 4 options`);
+  if (question.options.length < 2) {
+    errors.push(`${prefix}.options must contain at least 2 options`);
   }
   const ids = new Set<string>();
   const labels = new Set<string>();
@@ -164,13 +165,20 @@ function validateQuestion(question: QuestionDefinition, index: number): string[]
 }
 
 export function validateQuestions(questions: readonly QuestionDefinition[]): string[] {
-  const errors =
-    questions.length < 1 || questions.length > 4 ? ["questions must contain 1 to 4 questions"] : [];
+  const errors = questions.length < 1 ? ["questions must contain at least 1 question"] : [];
   const ids = new Set<string>();
   for (const [index, question] of questions.entries()) {
     if (ids.has(question.id)) errors.push(`duplicate question id ${quoted(question.id)}`);
     ids.add(question.id);
     errors.push(...validateQuestion(question, index));
+  }
+  if (errors.length === 0) {
+    const measured = preflightResultDetailsBytes(questions);
+    if (measured > MAX_RESULT_DETAILS_JSON_BYTES) {
+      errors.push(
+        `result details require ${String(measured)} JSON bytes; maximum is ${String(MAX_RESULT_DETAILS_JSON_BYTES)}`,
+      );
+    }
   }
   return errors;
 }

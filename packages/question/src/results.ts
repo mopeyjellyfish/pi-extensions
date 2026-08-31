@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { createHash, randomUUID } from "node:crypto";
 
 import {
@@ -5,6 +6,8 @@ import {
   MAX_CUSTOM_JSON_BYTES,
   MAX_NOTE_JSON_BYTES,
   MAX_REDIRECT_JSON_BYTES,
+  MAX_RESULT_DETAILS_JSON_BYTES,
+  TRUNCATION_MARKER,
 } from "./bounds.ts";
 import { createInitialState } from "./state.ts";
 
@@ -17,6 +20,10 @@ import type {
   QuestionResultStatus,
   QuestionnaireState,
 } from "./types.ts";
+
+export function resultDetailsBytes(details: QuestionResultDetails): number {
+  return Buffer.byteLength(JSON.stringify(details), "utf8");
+}
 
 export function createContinuationId(): string {
   return `question-${randomUUID()}`;
@@ -67,16 +74,18 @@ function continuationSignatures(
   }));
 }
 
-export function buildResult(
+interface BuildResultOptions {
+  readonly continuationId?: string;
+  readonly continuedFrom?: string;
+  readonly redirect?: string;
+  readonly reason?: QuestionResultDetails["reason"];
+}
+
+function rawResult(
   status: QuestionResultStatus,
   questions: readonly QuestionDefinition[],
   state: QuestionnaireState,
-  options: {
-    readonly continuationId?: string;
-    readonly continuedFrom?: string;
-    readonly redirect?: string;
-    readonly reason?: QuestionResultDetails["reason"];
-  } = {},
+  options: BuildResultOptions,
 ): QuestionResultDetails {
   return {
     status,
@@ -93,6 +102,115 @@ export function buildResult(
   };
 }
 
+function minimumTextDetails(details: QuestionResultDetails): QuestionResultDetails {
+  return {
+    ...details,
+    answers: details.answers.map((answer) => ({
+      ...answer,
+      selections: answer.selections.map((selection) => ({
+        optionId: selection.optionId,
+        label: selection.label,
+        ...(selection.note ? { note: TRUNCATION_MARKER } : {}),
+      })),
+      ...(answer.custom ? { custom: TRUNCATION_MARKER } : {}),
+    })),
+    ...(details.redirect ? { redirect: TRUNCATION_MARKER } : {}),
+  };
+}
+
+function jsonTextBytes(value: string): number {
+  return Math.max(0, Buffer.byteLength(JSON.stringify(value), "utf8") - 2);
+}
+
+function fitResultText(details: QuestionResultDetails): QuestionResultDetails {
+  if (resultDetailsBytes(details) <= MAX_RESULT_DETAILS_JSON_BYTES) return details;
+
+  const minimum = minimumTextDetails(details);
+  const minimumBytes = resultDetailsBytes(minimum);
+  if (minimumBytes > MAX_RESULT_DETAILS_JSON_BYTES) return minimum;
+
+  let remaining = MAX_RESULT_DETAILS_JSON_BYTES - minimumBytes;
+  const markerBytes = jsonTextBytes(TRUNCATION_MARKER);
+  const allocate = (value: string): string => {
+    const allocated = boundJsonUtf8(value, markerBytes + remaining);
+    remaining -= Math.max(0, jsonTextBytes(allocated) - markerBytes);
+    return allocated;
+  };
+
+  return {
+    ...details,
+    answers: details.answers.map((answer) => ({
+      ...answer,
+      selections: answer.selections.map((selection) => ({
+        optionId: selection.optionId,
+        label: selection.label,
+        ...(selection.note ? { note: allocate(selection.note) } : {}),
+      })),
+      ...(answer.custom ? { custom: allocate(answer.custom) } : {}),
+    })),
+    ...(details.redirect ? { redirect: allocate(details.redirect) } : {}),
+  };
+}
+
+function preflightSelectionIds(question: QuestionDefinition): readonly string[] {
+  if (question.multiSelect) return question.options.map((option) => option.id);
+  const largest = question.options.reduce<(typeof question.options)[number] | undefined>(
+    (current, option) => {
+      if (!current) return option;
+      const currentBytes = Buffer.byteLength(
+        JSON.stringify({ optionId: current.id, label: current.label, note: TRUNCATION_MARKER }),
+        "utf8",
+      );
+      const optionBytes = Buffer.byteLength(
+        JSON.stringify({ optionId: option.id, label: option.label, note: TRUNCATION_MARKER }),
+        "utf8",
+      );
+      return optionBytes > currentBytes ? option : current;
+    },
+    undefined,
+  );
+  return largest ? [largest.id] : [];
+}
+
+export function preflightResultDetailsBytes(questions: readonly QuestionDefinition[]): number {
+  const drafts = Object.fromEntries(
+    questions.map((question) => {
+      const selectedIds = preflightSelectionIds(question);
+      return [
+        question.id,
+        {
+          selectedIds,
+          notes: Object.fromEntries(selectedIds.map((optionId) => [optionId, TRUNCATION_MARKER])),
+          ...(question.multiSelect ? { custom: TRUNCATION_MARKER } : {}),
+        },
+      ];
+    }),
+  );
+  const worstCase = rawResult(
+    "redirected",
+    questions,
+    { tab: 0, cursorByQuestion: {}, drafts, complete: true },
+    {
+      continuationId: `question-${"c".repeat(36)}`,
+      continuedFrom: "c".repeat(128),
+      redirect: TRUNCATION_MARKER,
+    },
+  );
+  return resultDetailsBytes(worstCase);
+}
+
+export function buildResult(
+  status: QuestionResultStatus,
+  questions: readonly QuestionDefinition[],
+  state: QuestionnaireState,
+  options: BuildResultOptions = {},
+): QuestionResultDetails {
+  const fitted = fitResultText(rawResult(status, questions, state, options));
+  if (resultDetailsBytes(fitted) > MAX_RESULT_DETAILS_JSON_BYTES) {
+    throw new Error("Question result details exceed the 48000-byte structural contract");
+  }
+  return fitted;
+}
 function questionHash(question: QuestionDefinition): string {
   return semanticHash({
     question: question.question,

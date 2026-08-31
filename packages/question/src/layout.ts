@@ -15,6 +15,88 @@ export function columnWidths(width: number): ColumnWidths {
   return { left, right: Math.max(1, width - left - gap), gap };
 }
 
+export interface ItemWindow {
+  readonly start: number;
+  readonly end: number;
+  readonly hiddenBefore: number;
+  readonly hiddenAfter: number;
+}
+
+export function itemWindow(
+  itemCount: number,
+  capacity: number,
+  requestedStart: number,
+): ItemWindow {
+  const count = Math.max(0, itemCount);
+  const size = Math.min(count, Math.max(1, capacity));
+  const start = Math.max(0, Math.min(requestedStart, Math.max(0, count - size)));
+  const end = start + size;
+  return { start, end, hiddenBefore: start, hiddenAfter: count - end };
+}
+
+export function focusedItemWindow(
+  itemCount: number,
+  capacity: number,
+  focusIndex: number,
+): ItemWindow {
+  const count = Math.max(0, itemCount);
+  if (count === 0) return itemWindow(0, capacity, 0);
+  const size = Math.min(count, Math.max(1, capacity));
+  const focus = Math.max(0, Math.min(focusIndex, count - 1));
+  return itemWindow(count, size, focus - Math.floor(size / 2));
+}
+
+function itemWindowMarkerRows(start: number, end: number, itemCount: number): number {
+  return Number(start > 0) + Number(end < itemCount);
+}
+
+export function focusedItemWindowByRows(
+  itemCount: number,
+  rowCapacity: number,
+  focusIndex: number,
+  rowHeight: (index: number) => number,
+): ItemWindow {
+  const count = Math.max(0, itemCount);
+  if (count === 0) return itemWindow(0, 1, 0);
+  const capacity = Math.max(1, rowCapacity);
+  const focus = Math.max(0, Math.min(focusIndex, count - 1));
+  const heights = new Map<number, number>();
+  const height = (index: number): number => {
+    const cached = heights.get(index);
+    if (cached !== undefined) return cached;
+    const measured = Math.max(1, Math.ceil(rowHeight(index)));
+    heights.set(index, measured);
+    return measured;
+  };
+  let start = focus;
+  let end = focus + 1;
+  let usedRows = height(focus);
+  for (;;) {
+    const left = start - 1;
+    const right = end;
+    const candidates: number[] = [];
+    if (left >= 0 && (right >= count || focus - left <= right - focus)) candidates.push(left);
+    if (right < count) candidates.push(right);
+    if (left >= 0 && candidates[0] !== left) candidates.push(left);
+    if (candidates.length === 0) break;
+
+    let expanded = false;
+    for (const candidate of candidates) {
+      const nextStart = Math.min(candidate, start);
+      const nextEnd = Math.max(candidate + 1, end);
+      const nextRows = usedRows + height(candidate);
+      if (nextRows + itemWindowMarkerRows(nextStart, nextEnd, count) > capacity) continue;
+      start = nextStart;
+      end = nextEnd;
+      usedRows = nextRows;
+      expanded = true;
+      break;
+    }
+    if (!expanded) break;
+  }
+  return { start, end, hiddenBefore: start, hiddenAfter: count - end };
+}
+
 export interface FitDialogOptions {
   readonly rows: number;
   readonly topRows: number;
