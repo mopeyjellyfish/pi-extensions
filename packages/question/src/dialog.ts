@@ -22,11 +22,19 @@ import {
 } from "@earendil-works/pi-tui";
 
 import { sanitizeText } from "./bounds.ts";
-import { columnWidths, fitDialogToRows, joinColumns, previewSideBySide } from "./layout.ts";
+import {
+  columnWidths,
+  fitDialogToRows,
+  focusedItemWindow,
+  focusedItemWindowByRows,
+  joinColumns,
+  previewSideBySide,
+  type ItemWindow,
+} from "./layout.ts";
 import { answersFromState } from "./results.ts";
 import { applyAction, firstUnansweredTab } from "./state.ts";
 
-import type { QuestionDefinition, QuestionnaireState } from "./types.ts";
+import type { QuestionAnswer, QuestionDefinition, QuestionnaireState } from "./types.ts";
 
 export type DialogOutcome =
   | { readonly kind: "submitted"; readonly state: QuestionnaireState }
@@ -67,6 +75,18 @@ function editorTheme(theme: Theme): EditorTheme {
 
 function wrapped(text: string, width: number): string[] {
   return wrapTextWithAnsi(text, Math.max(1, width)).map((line) => truncateToWidth(line, width, ""));
+}
+
+function compactOptionWindowLine(
+  line: string,
+  width: number,
+  hiddenBefore: number,
+  hiddenAfter: number,
+): string {
+  const before = hiddenBefore > 0 ? `↑ ${String(hiddenBefore)} ` : "";
+  const after = hiddenAfter > 0 ? ` ↓ ${String(hiddenAfter)}` : "";
+  const optionWidth = Math.max(1, width - visibleWidth(before) - visibleWidth(after));
+  return `${before}${truncateToWidth(line, optionWidth, "")}${after}`;
 }
 
 const CODE_BLOCK_START = "\u{E000}";
@@ -126,6 +146,10 @@ export class QuestionDialog implements Component, Focusable {
   private documentViewportRows = 1;
   private readonly documentOffsets = new Map<string, number>();
   private readonly documentMaxOffsets = new Map<string, number>();
+  private readonly optionPageSizes = new Map<string, number>();
+  private reviewOffset = 0;
+  private reviewPageSize = 1;
+  private reviewMaxOffset = 0;
   private readonly documentCache = new Map<
     string,
     { readonly width: number; readonly lines: string[] }
@@ -343,6 +367,11 @@ export class QuestionDialog implements Component, Focusable {
     this.refresh();
   }
 
+  private setQuestionCursor(index: number): void {
+    this.state = applyAction(this.state, { kind: "cursor", index }, this.questions);
+    this.refresh();
+  }
+
   private moveCursor(data: string, question: QuestionDefinition): boolean {
     const count = this.itemCount(question);
     const cursor = this.currentCursor();
@@ -352,17 +381,28 @@ export class QuestionDialog implements Component, Focusable {
         ? 1
         : 0;
     if (delta === 0) return false;
-    this.state = applyAction(
-      this.state,
-      { kind: "cursor", index: (cursor + delta + count) % count },
-      this.questions,
-    );
-    this.refresh();
+    this.setQuestionCursor((cursor + delta + count) % count);
+    return true;
+  }
+
+  private moveOptionPage(data: string, question: QuestionDefinition): boolean {
+    const cursor = this.currentCursor();
+    const lastOption = Math.max(0, question.options.length - 1);
+    const page = this.optionPageSizes.get(question.id) ?? 1;
+    let next: number | undefined;
+    if (this.keybindings.matches(data, "tui.select.pageUp")) {
+      next = Math.max(0, Math.min(cursor, lastOption) - page);
+    } else if (this.keybindings.matches(data, "tui.select.pageDown")) {
+      next = Math.min(lastOption, Math.min(cursor, lastOption) + page);
+    } else if (matchesKey(data, Key.home)) next = 0;
+    else if (matchesKey(data, Key.end)) next = lastOption;
+    if (next === undefined) return false;
+    if (next !== cursor) this.setQuestionCursor(next);
     return true;
   }
 
   private handleQuestionTab(data: string, question: QuestionDefinition): void {
-    if (this.moveCursor(data, question)) return;
+    if (this.moveOptionPage(data, question) || this.moveCursor(data, question)) return;
     const cursor = this.currentCursor();
     const option = question.options[cursor];
     if (data === "n" && option?.preview) {
@@ -407,7 +447,25 @@ export class QuestionDialog implements Component, Focusable {
     }
   }
 
+  private moveReviewPage(data: string): boolean {
+    let next: number | undefined;
+    if (this.keybindings.matches(data, "tui.select.pageUp")) {
+      next = this.reviewOffset - this.reviewPageSize;
+    } else if (this.keybindings.matches(data, "tui.select.pageDown")) {
+      next = this.reviewOffset + this.reviewPageSize;
+    } else if (matchesKey(data, Key.home)) next = 0;
+    else if (matchesKey(data, Key.end)) next = this.reviewMaxOffset;
+    if (next === undefined) return false;
+    const bounded = Math.max(0, Math.min(next, this.reviewMaxOffset));
+    if (bounded !== this.reviewOffset) {
+      this.reviewOffset = bounded;
+      this.refresh();
+    }
+    return true;
+  }
+
   private handleSubmitTab(data: string): void {
+    if (this.moveReviewPage(data)) return;
     const cursor = this.currentCursor();
     if (
       this.keybindings.matches(data, "tui.select.up") ||
@@ -433,50 +491,141 @@ export class QuestionDialog implements Component, Focusable {
     }
   }
 
-  private renderTabs(width: number): string[] {
+  private renderProgress(width: number): string[] {
     if (this.questions.length === 1) return [];
-    const labels = this.questions.map((question, index) => {
+    const answered = this.questions.filter((question) => {
       const draft = this.state.drafts[question.id];
-      const answered = Boolean(draft && (draft.selectedIds.length > 0 || draft.custom));
-      const text = ` ${answered ? "■" : "□"} ${question.header} `;
-      return index === this.state.tab
-        ? this.theme.bg("selectedBg", this.theme.fg("text", text))
-        : this.theme.fg(answered ? "success" : "muted", text);
-    });
-    const submit = " ✓ Submit ";
-    labels.push(
-      this.state.tab === this.questions.length
-        ? this.theme.bg("selectedBg", this.theme.fg("text", submit))
-        : this.theme.fg(this.state.complete ? "success" : "dim", submit),
-    );
-    return wrapped(labels.join(" "), width);
+      return Boolean(draft && (draft.selectedIds.length > 0 || draft.custom));
+    }).length;
+    const question = this.questions[this.state.tab];
+    const progress = question
+      ? `Question ${String(this.state.tab + 1)} of ${String(this.questions.length)} · ${sanitizeText(question.header)} · ${String(answered)} answered`
+      : `Review · ${String(answered)} of ${String(this.questions.length)} answered`;
+    return [truncateToWidth(this.theme.fg("muted", progress), width, "")];
   }
 
-  private optionRows(question: QuestionDefinition, width: number): RenderedBody {
-    const cursor = this.currentCursor();
+  private renderVisibleOptions(
+    question: QuestionDefinition,
+    width: number,
+    startIndex: number,
+    endIndex: number,
+    cursor: number,
+    showDescriptions: boolean,
+  ): { readonly lines: string[]; readonly focusLine: number } {
     const draft = this.state.drafts[question.id];
     const lines: string[] = [];
-    let focusStart = 0;
-    let focusEnd = 0;
-    for (const [index, option] of question.options.entries()) {
+    let focusLine = 0;
+    for (let index = startIndex; index < endIndex; index++) {
+      const option = question.options[index];
+      if (!option) continue;
       const start = lines.length;
       const selected = draft?.selectedIds.includes(option.id) ?? false;
       const marker = question.multiSelect ? (selected ? "[x]" : "[ ]") : selected ? "●" : "○";
       const prefix = index === cursor ? "> " : "  ";
-      lines.push(
-        ...wrapped(`${prefix}${marker} ${option.label}`, width),
-        ...wrapped(`    ${this.theme.fg("muted", sanitizeText(option.description))}`, width),
-      );
+      lines.push(...wrapped(`${prefix}${marker} ${option.label}`, width));
+      if (showDescriptions) {
+        lines.push(
+          ...wrapped(`    ${this.theme.fg("muted", sanitizeText(option.description))}`, width),
+        );
+      }
       const note = draft?.notes[option.id];
-      if (note) {
-        lines.push(...wrapped(`    ${this.theme.fg("dim", `Note: ${note}`)}`, width));
-      }
-      if (index === cursor) {
-        focusStart = start;
-        focusEnd = Math.max(start, lines.length - 1);
-      }
+      if (note) lines.push(...wrapped(`    ${this.theme.fg("dim", `Note: ${note}`)}`, width));
+      if (index === cursor) focusLine = start;
     }
+    return { lines, focusLine };
+  }
+
+  private optionWindow(
+    question: QuestionDefinition,
+    width: number,
+    rows: number,
+    sentinelCount: number,
+    cursor: number,
+  ): {
+    readonly window: ItemWindow;
+    readonly compact: boolean;
+    readonly showDescriptions: boolean;
+  } {
+    const optionFocus = Math.min(cursor, question.options.length - 1);
+    const viewportRows = Math.max(1, rows - sentinelCount);
+    const markerRows = Number(optionFocus > 0) + Number(optionFocus + 1 < question.options.length);
+    let compact = viewportRows < 3;
+    let showDescriptions = rows > sentinelCount + 2;
+    if (!compact) {
+      let focusRows = this.renderVisibleOptions(
+        question,
+        width,
+        optionFocus,
+        optionFocus + 1,
+        cursor,
+        showDescriptions,
+      ).lines.length;
+      if (showDescriptions && focusRows + markerRows > viewportRows) {
+        showDescriptions = false;
+        focusRows = this.renderVisibleOptions(
+          question,
+          width,
+          optionFocus,
+          optionFocus + 1,
+          cursor,
+          false,
+        ).lines.length;
+      }
+      compact = focusRows + markerRows > viewportRows;
+    }
+    const window = compact
+      ? focusedItemWindow(question.options.length, 1, optionFocus)
+      : focusedItemWindowByRows(
+          question.options.length,
+          viewportRows,
+          optionFocus,
+          (index) =>
+            this.renderVisibleOptions(question, width, index, index + 1, cursor, showDescriptions)
+              .lines.length,
+        );
+    return { window, compact, showDescriptions };
+  }
+
+  private optionRows(question: QuestionDefinition, width: number, rows: number): RenderedBody {
+    const cursor = this.currentCursor();
     const sentinels = ["Other…", "Chat about this…", ...(question.multiSelect ? ["Next →"] : [])];
+    const { window, compact, showDescriptions } = this.optionWindow(
+      question,
+      width,
+      rows,
+      sentinels.length,
+      cursor,
+    );
+    this.optionPageSizes.set(question.id, window.end - window.start);
+    const before =
+      !compact && window.hiddenBefore > 0
+        ? [this.theme.fg("muted", `↑ ${String(window.hiddenBefore)} earlier options`)]
+        : [];
+    const after =
+      !compact && window.hiddenAfter > 0
+        ? [this.theme.fg("muted", `↓ ${String(window.hiddenAfter)} later options`)]
+        : [];
+    const visible = this.renderVisibleOptions(
+      question,
+      width,
+      window.start,
+      window.end,
+      cursor,
+      showDescriptions,
+    );
+    const fittedOptions = compact
+      ? [
+          compactOptionWindowLine(
+            visible.lines[visible.focusLine] ?? "",
+            width,
+            window.hiddenBefore,
+            window.hiddenAfter,
+          ),
+        ]
+      : visible.lines;
+    const lines = [...before, ...fittedOptions, ...after];
+    let focusStart = before.length + (compact ? 0 : visible.focusLine);
+    let focusEnd = focusStart;
     for (const [offset, label] of sentinels.entries()) {
       const index = question.options.length + offset;
       const start = lines.length;
@@ -486,8 +635,12 @@ export class QuestionDialog implements Component, Focusable {
     return { lines, focusStart, focusEnd };
   }
 
-  private renderStackedQuestion(question: QuestionDefinition, width: number): RenderedBody {
-    const options = this.optionRows(question, width);
+  private renderStackedQuestion(
+    question: QuestionDefinition,
+    width: number,
+    rows: number,
+  ): RenderedBody {
+    const options = this.optionRows(question, width, rows);
     const focused = question.options[this.currentCursor()];
     const showPreview =
       focused?.preview && this.editMode?.kind !== "other" && this.editMode?.kind !== "chat";
@@ -576,7 +729,7 @@ export class QuestionDialog implements Component, Focusable {
   ): RenderedBody {
     if (previewSideBySide(width)) {
       const columns = columnWidths(width);
-      const options = this.renderStackedQuestion(question, columns.left);
+      const options = this.renderStackedQuestion(question, columns.left, rows);
       const fittedOptions = fitDialogToRows(options.lines, {
         rows,
         topRows: 0,
@@ -591,7 +744,7 @@ export class QuestionDialog implements Component, Focusable {
 
     const documentRows = Math.max(1, Math.floor(rows / 2));
     const optionRows = Math.max(1, rows - documentRows);
-    const options = this.renderStackedQuestion(question, width);
+    const options = this.renderStackedQuestion(question, width, optionRows);
     const fittedOptions = fitDialogToRows(options.lines, {
       rows: optionRows,
       topRows: 0,
@@ -606,14 +759,14 @@ export class QuestionDialog implements Component, Focusable {
   private renderQuestion(question: QuestionDefinition, width: number, rows: number): RenderedBody {
     if (question.document) return this.renderDocumentQuestion(question, width, rows);
 
-    if (!previewSideBySide(width)) return this.renderStackedQuestion(question, width);
+    if (!previewSideBySide(width)) return this.renderStackedQuestion(question, width, rows);
 
     const focused = question.options[this.currentCursor()];
     const showPreview =
       focused?.preview && this.editMode?.kind !== "other" && this.editMode?.kind !== "chat";
 
     const columns = columnWidths(width);
-    const options = this.optionRows(question, columns.left);
+    const options = this.optionRows(question, columns.left, rows);
     const previewLines = showPreview
       ? new Markdown(sanitizeText(focused.preview), 0, 0, getMarkdownTheme()).render(columns.right)
       : [];
@@ -628,38 +781,78 @@ export class QuestionDialog implements Component, Focusable {
     };
   }
 
-  private renderReview(width: number): RenderedBody {
+  private reviewAnswerLines(
+    answer: QuestionAnswer,
+    questionsById: ReadonlyMap<string, QuestionDefinition>,
+    width: number,
+  ): string[] {
+    const question = questionsById.get(answer.questionId);
+    const value = [
+      answer.selections
+        .map((selection) =>
+          selection.note ? `${selection.label} (note: ${selection.note})` : selection.label,
+        )
+        .join(", "),
+      answer.custom,
+    ]
+      .filter(Boolean)
+      .join("; ");
+    return wrapped(`${question?.header ?? answer.questionId}: ${value || "Unanswered"}`, width);
+  }
+
+  private renderReview(width: number, rows: number): RenderedBody {
     const wide = previewSideBySide(width);
     const contentWidth = wide ? columnWidths(width).left : width;
-    const lines: string[] = [];
-    for (const answer of answersFromState(this.questions, this.state)) {
-      const question = this.questions.find((item) => item.id === answer.questionId);
-      const value = [
-        answer.selections
-          .map((selection) =>
-            selection.note ? `${selection.label} (note: ${selection.note})` : selection.label,
-          )
-          .join(", "),
-        answer.custom,
-      ]
-        .filter(Boolean)
-        .join("; ");
-      lines.push(
-        ...wrapped(
-          `${question?.header ?? answer.questionId}: ${value || "Unanswered"}`,
-          contentWidth,
-        ),
-      );
-    }
+    const answers = answersFromState(this.questions, this.state);
     const missing = firstUnansweredTab(this.state, this.questions);
-    if (missing !== undefined) {
-      lines.push(
-        ...wrapped(
-          this.theme.fg("warning", "Answer every question before submitting."),
-          contentWidth,
-        ),
-      );
+    const maximumStart = Math.max(0, answers.length - 1);
+    const start = Math.max(0, Math.min(this.reviewOffset, maximumStart));
+    this.reviewOffset = start;
+    this.reviewMaxOffset = maximumStart;
+    const warningLines =
+      missing === undefined
+        ? []
+        : wrapped(
+            this.theme.fg("warning", "Answer every question before submitting."),
+            contentWidth,
+          );
+    const markerRows = Number(start > 0) + Number(start < answers.length - 1);
+    const answerBudget = Math.max(1, rows - 2 - warningLines.length - markerRows);
+    const questionsById = new Map(this.questions.map((question) => [question.id, question]));
+    const answerLines: string[] = [];
+    let end = start;
+    for (let index = start; index < answers.length; index++) {
+      const answer = answers[index];
+      if (!answer) continue;
+      const group = this.reviewAnswerLines(answer, questionsById, contentWidth);
+      if (answerLines.length + group.length > answerBudget) {
+        if (answerLines.length === 0) {
+          answerLines.push(
+            ...fitDialogToRows(group, {
+              rows: answerBudget,
+              topRows: 0,
+              bottomRows: 0,
+              focusStart: 0,
+              focusEnd: 0,
+            }),
+          );
+          end = index + 1;
+        }
+        break;
+      }
+      answerLines.push(...group);
+      end = index + 1;
     }
+    this.reviewPageSize = Math.max(1, end - start);
+    const lines: string[] = [];
+    if (start > 0) {
+      lines.push(this.theme.fg("muted", `↑ ${String(start)} earlier answers`));
+    }
+    lines.push(...answerLines);
+    if (end < answers.length) {
+      lines.push(this.theme.fg("muted", `↓ ${String(answers.length - end)} later answers`));
+    }
+    lines.push(...warningLines);
     const cursor = this.currentCursor();
     const submitStart = lines.length;
     lines.push(
@@ -673,16 +866,36 @@ export class QuestionDialog implements Component, Focusable {
     };
   }
 
+  private dialogChrome(
+    rows: number,
+    border: string,
+    progress: readonly string[],
+    heading: readonly string[],
+    editLines: readonly string[],
+    question: QuestionDefinition | undefined,
+  ): { readonly top: string[]; readonly bottomGap: string[]; readonly bodyRows: number } {
+    const topBase = [border, ...progress, ...heading];
+    const minimumBodyRows = 3 + Number(question?.multiSelect ?? false);
+    const showGaps =
+      rows >= topBase.length + editLines.length + minimumBodyRows + STICKY_BOTTOM_ROWS + 2;
+    const top = [...topBase, ...(showGaps ? [""] : [])];
+    const bottomGap = showGaps ? [""] : [];
+    const bodyRows = Math.max(
+      1,
+      rows - top.length - editLines.length - bottomGap.length - STICKY_BOTTOM_ROWS,
+    );
+    return { top, bottomGap, bodyRows };
+  }
+
   render(width: number): string[] {
     const safeWidth = Math.max(1, width);
     const rows = Math.max(1, this.rowBudget());
     const border = this.theme.fg("accent", "─".repeat(safeWidth));
-    const tabs = this.renderTabs(safeWidth);
+    const progress = this.renderProgress(safeWidth);
     const question = this.questions[this.state.tab];
     const heading = question
       ? wrapped(this.theme.fg("text", sanitizeText(question.question)), safeWidth)
       : [this.theme.fg("accent", this.theme.bold("Review your answers"))];
-    const top = [border, ...tabs, ...heading, ""];
     const editorLines = this.editMode ? this.editor.render(safeWidth) : [];
     const editLines = this.editMode
       ? [
@@ -691,18 +904,32 @@ export class QuestionDialog implements Component, Focusable {
           ...editorLines,
         ]
       : [];
-    const bodyRows = Math.max(1, rows - top.length - editLines.length - 3);
+    const { top, bottomGap, bodyRows } = this.dialogChrome(
+      rows,
+      border,
+      progress,
+      heading,
+      editLines,
+      question,
+    );
     const body = question
       ? this.renderQuestion(question, safeWidth, bodyRows)
-      : this.renderReview(safeWidth);
+      : this.renderReview(safeWidth, bodyRows);
     const hints = this.editMode
       ? "Enter submit · Esc back"
       : this.documentMode
         ? "Document: ↑↓ line · PgUp/PgDn page · Home/End · d/Esc back"
-        : `↑↓ navigate · Tab switch · Enter select · Space toggle · n note${question?.document ? " · d document" : ""} · Esc cancel`;
-    const all = [...top, ...body.lines, ...editLines, "", this.theme.fg("dim", hints), border].map(
-      (line) => truncateToWidth(line, safeWidth, ""),
-    );
+        : question
+          ? `↑↓ navigate · PgUp/PgDn page · Home/End option · Tab switch · Enter select · Space toggle · n note${question.document ? " · d document" : ""} · Esc cancel`
+          : "Review: PgUp/PgDn page · Home/End · ↑↓ actions · Tab switch · Enter select · Esc cancel";
+    const all = [
+      ...top,
+      ...body.lines,
+      ...editLines,
+      ...bottomGap,
+      this.theme.fg("dim", hints),
+      border,
+    ].map((line) => truncateToWidth(line, safeWidth, ""));
     const cursorRow = editorLines.findIndex((line) => line.includes(CURSOR_MARKER));
     const editFocus =
       editLines.length > 0

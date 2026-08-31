@@ -477,6 +477,47 @@ describe("review regressions", () => {
     ).toEqual([]);
   });
 
+  it("restores and consumes a count-unbounded continuation without dropping structure", () => {
+    expect.hasAssertions();
+    const many: QuestionDefinition[] = Array.from({ length: 5 }, (_, questionIndex) => ({
+      ...question,
+      id: `q-${String(questionIndex)}`,
+      header: `Q${String(questionIndex + 1)}`,
+      multiSelect: true,
+      options: Array.from({ length: 5 }, (__, optionIndex) => ({
+        id: `o-${String(optionIndex)}`,
+        label: `Option ${String(optionIndex + 1)}`,
+        description: `Description ${String(optionIndex + 1)}`,
+        preview: `Preview ${String(optionIndex + 1)}`,
+      })),
+    }));
+    let state = createInitialState(many);
+    for (const [questionIndex, current] of many.entries()) {
+      state = applyAction(state, { kind: "tab", tab: questionIndex }, many);
+      for (const option of current.options) {
+        state = applyAction(state, { kind: "toggle", optionId: option.id }, many);
+      }
+    }
+    const prior = buildResult("redirected", many, state, {
+      continuationId: "many",
+      redirect: "clarify",
+    });
+    const changedDisplayOnly = many.map((current) => ({
+      ...current,
+      document: { content: "updated", format: "txt" as const },
+      options: current.options.map((option) => ({ ...option, preview: "Updated preview" })),
+    }));
+
+    const restored = restoreDraft(changedDisplayOnly, prior);
+    expect(Object.values(restored.drafts)).toHaveLength(5);
+    expect(Object.values(restored.drafts).every((draft) => draft.selectedIds.length === 5)).toBe(
+      true,
+    );
+    expect(continuationFromBranch([entry(prior)], "many")).toBe(prior);
+    const consumed = buildResult("submitted", many, restored, { continuedFrom: "many" });
+    expect(continuationFromBranch([entry(prior), entry(consumed)], "many")).toBeUndefined();
+  });
+
   it("re-prompts RPC single-select after an empty Other answer", async () => {
     expect.hasAssertions();
     const choices = ["Other…", alpha.label, "Submit answers"];
