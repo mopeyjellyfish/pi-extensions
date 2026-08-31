@@ -29,10 +29,16 @@ restate repository truth. Keep only decision-changing research; omit empty or
 non-decision research.
 
 For material user interface scope, load and follow `frontend-design` before pitch
-approval when that installed capability is available. It may select
-`interface-craft`, `interface-design`, or `design-documentation` as the accepted
-method; Shape keeps product intent, unresolved-direction decisions, and approval
-ownership. Record the smallest decision-changing interface evidence: person and
+approval when that installed capability is available. For a greenfield web
+application or materially new application surface, use its generation-first
+initial design pass before pitch approval. It may select `interface-craft`,
+`interface-design`, or `design-documentation` as the accepted method. Shape keeps
+product intent, unresolved-direction decisions, and approval ownership. When
+generation runs, Shape records its bounded consent, selected evidence, and
+image-to-interface contract after explicit human selection and notes. If the
+image-generation capability, consent, credentials, or result is unavailable,
+continue through frontend design without generation and record no generated
+evidence. Record the smallest decision-changing interface evidence: person and
 task, surface mode, current design authority, desired feel, focal workflow,
 representative states, responsive and accessibility constraints, operation
 needs, required visual decisions, and `DESIGN.md` disposition. For unresolved
