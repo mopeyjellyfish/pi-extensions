@@ -111,21 +111,24 @@ shared mutable boundaries, and unresolved dependencies; serialize them instead.
 Planning defines but does not start parallel work.
 
 When the accepted pitch contains material UI scope, trace its accepted interface
-criteria into vertical slices. Each relevant interface slice names
-`frontend-development`, the accepted design or operation method, representative
-states, responsive surfaces, accessibility paths, design-system reuse, and
-operation-specific checks. Name `react-best-practices` only for a React target;
-name `react-native-skills` only for React Native or Expo work; name
-`react-view-transitions` only for applicable React view-transition animation work. When
-an evidence capability exists, name `visual-validation`, target-owned browser
-evidence, and a visual mismatch ledger: a prioritized list of observed
-differences, likely causes, and recheck targets. If direction remains
-provisional, order a design-evidence slice before UI implementation. Plan a
-parent-owned `design-documentation` and `DESIGN.md` approval gate when durable
-decisions should persist. Frontend methods supply context, implementation, and
-proof; `implement` retains engineering orchestration. If these installed frontend
-methods are unavailable, use the direct-parent fallback and record the unmet
-method or proof honestly.
+criteria and any selected evidence or image-to-interface contract into vertical
+slices. Each relevant interface slice names `frontend-development`, the accepted
+design or operation method, native accessible structure, target components,
+semantic tokens, representative states, responsive surfaces, accessibility
+paths, design-system reuse, and operation-specific checks. Name
+`react-best-practices` only for a React target; name `react-native-skills` only
+for React Native or Expo work; name `react-view-transitions` only for applicable
+React view-transition animation work. When an evidence capability exists, name
+`visual-validation` and target-owned representative desktop and mobile browser
+evidence. Complete the implementation only with a resolved or explicitly
+accepted visual mismatch ledger containing observed differences, likely causes,
+and recheck targets. If direction remains provisional, order a design-evidence
+slice before UI implementation. Plan a parent-owned `design-documentation` and
+`DESIGN.md` approval gate when durable decisions should persist. Frontend methods
+supply context, implementation, and proof; `implement` retains engineering
+orchestration. If these installed frontend methods are unavailable, use the named
+capability resolution direct-parent fallback and record the unmet method or proof
+honestly.
 
 When a slice changes module shape, use `codebase-design` vocabulary when
 available. Otherwise use a direct-parent evidence-based fallback: current and
