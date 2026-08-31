@@ -884,7 +884,7 @@ describe("engineering resources", () => {
     );
   });
 
-  it("expands the /implement, /debug, /improve, and /just-do-it prompts", async () => {
+  it("expands the /implement, /next-issue, /debug, /improve, and /just-do-it prompts", async () => {
     expect.hasAssertions();
     const piPromptTemplates = (await import(
       pathToFileURL(
@@ -925,6 +925,12 @@ describe("engineering resources", () => {
     expect(expandedImplement).toMatch(
       /implements[\s\S]*verifies[\s\S]*reviews when selected[\s\S]*commits[\s\S]*pushes[\s\S]*opens or updates a ready pull request/iu,
     );
+    const nextIssueDefault = piPromptTemplates.expandPromptTemplate("/next-issue", templates);
+    expect(nextIssueDefault).toContain("current repository queue");
+    expect(nextIssueDefault).toMatch(/`ticket-workflow`[\s\S]*status route/iu);
+    expect(
+      piPromptTemplates.expandPromptTemplate("/next-issue project 12 area runtime", templates),
+    ).toContain("project 12 area runtime");
     expect(piPromptTemplates.expandPromptTemplate("/debug", templates)).toContain(
       "diagnosing-bugs",
     );
