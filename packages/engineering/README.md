@@ -65,6 +65,16 @@ with a bounded fallback; the package does not assume a tracker or silently
 switch one. In-progress is coordination, not an atomic lock, and private ticket
 content never crosses to a public tracker surface.
 
+For `/improve`, Track drafts load `ticket-workflow` and follow repository-first
+taxonomy: `CONTRIBUTING.md` and applicable instructions, configured native
+fields and existing labels, then the evergreen fallback. One resolved policy is
+reused for the run. Each displayed draft records its exact target, privacy,
+grouping, one priority, and one route status; it records an area only when
+repository policy defines one. Missing fallback labels need a separate exact-set
+confirmation before issue creation. Issue creation and each later mutation are
+verified. Optional Project placement follows a verified issue creation and a
+failure reports partial success without a blind retry.
+
 `developing-changes` uses an impact-and-uncertainty decision. A small, bounded
 fix during active work goes to `/just-do-it` when the requested outcome, local
 cause, and objective check are clear. This includes obvious breakage, cleanup,

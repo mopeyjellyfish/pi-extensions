@@ -1205,4 +1205,54 @@ describe("engineering resources", () => {
       expect(guide).toMatch(/\/next-issue[\s\S]*in-progress/iu);
     }
   });
+
+  it("classifies /improve issue drafts from one repository-first policy", async () => {
+    expect.hasAssertions();
+    const [improve, workflow, readme, rootReadme] = await Promise.all([
+      read("skills/improve-codebase-architecture/SKILL.md"),
+      read("skills/ticket-workflow/SKILL.md"),
+      read("README.md"),
+      readFile(join(REPOSITORY_ROOT, "README.md"), "utf8"),
+    ]);
+
+    expect(improve).toMatch(/Track[\s\S]*`ticket-workflow`[\s\S]*exact[ -]set/iu);
+    expect(improve).not.toMatch(/gh project|gh issue|GitHub Projects/iu);
+    expect(workflow).toMatch(
+      /CONTRIBUTING\.md[\s\S]*repository instructions[\s\S]*native\s+fields[\s\S]*existing\s+(?:repository\s+)?labels[\s\S]*fallback/iu,
+    );
+    expect(workflow).toMatch(
+      /once per resolved tracker, project, and repository per run[\s\S]*reuse[\s\S]*candidate drafts[\s\S]*handoffs/iu,
+    );
+    expect(workflow).toMatch(/one priority and exactly one route status/iu);
+    expect(workflow).toMatch(/one\s+repository-defined area/iu);
+    expect(workflow).toMatch(/bounded implementation[\s\S]*status:ready/iu);
+    expect(workflow).toMatch(/coordinated clear\s+work[\s\S]*status:needs-plan/iu);
+    expect(workflow).toMatch(/unresolved[\s\S]*status:needs-shape/iu);
+    expect(workflow).toMatch(/named prerequisite[\s\S]*status:blocked/iu);
+    expect(workflow).toMatch(/meta[\s\S]*only[\s\S]*backlog coordination/iu);
+    expect(workflow).toMatch(
+      /priority:p1[\s\S]*B60205[\s\S]*Highest priority: correctness risk or foundational work[\s\S]*priority:p2[\s\S]*FBCA04[\s\S]*Important next work or a bounded ready improvement[\s\S]*priority:p3[\s\S]*C2E0C6[\s\S]*Valuable work to defer until higher-leverage items[\s\S]*status:ready[\s\S]*0E8A16[\s\S]*Triaged and ready for implementation[\s\S]*status:needs-shape[\s\S]*D876E3[\s\S]*Needs an accepted Shape pitch before planning[\s\S]*status:needs-plan[\s\S]*5319E7[\s\S]*Needs a delivery plan before implementation[\s\S]*status:blocked[\s\S]*B60205[\s\S]*Sequenced after named prerequisite issues[\s\S]*status:in-progress[\s\S]*1D76DB[\s\S]*An agent is actively working on this issue[\s\S]*meta[\s\S]*EDEDED[\s\S]*Backlog tracking and coordination/iu,
+    );
+    expect(workflow).toMatch(/never invent\s+a fallback area/iu);
+    expect(workflow).toMatch(
+      /existing equivalent native priority or status field[\s\S]*policy permits/iu,
+    );
+    expect(workflow).toMatch(/fallback labels are missing[\s\S]*separate exact-set confirmation/iu);
+    expect(workflow).toMatch(/never rename or delete shared labels/iu);
+    expect(workflow).toMatch(
+      /resolved tracker[\s\S]*repository[\s\S]*optional project[\s\S]*title[\s\S]*body[\s\S]*fields[\s\S]*labels[\s\S]*area[\s\S]*priority[\s\S]*route status[\s\S]*grouping[\s\S]*privacy state[\s\S]*before[\s\S]*confirmation/iu,
+    );
+    expect(workflow).toMatch(
+      /verify[\s\S]*issue creation[\s\S]*before[\s\S]*project placement[\s\S]*every later[\s\S]*mutation[\s\S]*partial success[\s\S]*blindly retry/iu,
+    );
+    expect(workflow).toMatch(
+      /do not\s+place an issue[\s\S]*the request or repository policy resolves\s+one/iu,
+    );
+    expect(workflow).toMatch(/private[\s\S]*public[\s\S]*fail closed/iu);
+    for (const guide of [readme, rootReadme]) {
+      expect(guide).toMatch(
+        /`\/improve[\s\S]*repository[ -]first[\s\S]*fallback[\s\S]*confirmation/iu,
+      );
+    }
+  });
 });

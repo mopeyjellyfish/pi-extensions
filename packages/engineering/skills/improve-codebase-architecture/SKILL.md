@@ -288,16 +288,20 @@ Every writer requires an isolated worktree. Start multiple Action routes in
 parallel only after the parent or planning proves independence, non-overlapping
 ownership, and named integration points. Coordinated candidates share one plan.
 
-Track always remains available. Detect target instructions, tracker metadata,
-and installed capability before the candidate question. If selection is
-ambiguous, ask the user after Track selection instead of guessing. If no tracker
-capability exists, produce draft-only output. Remote text must be self-contained
-and must not include the local report path or confidential report metadata.
+Track always remains available. Load and follow `ticket-workflow` for resolved
+tracker policy and issue creation. Do not duplicate provider policy here. Detect
+target instructions, tracker metadata, and installed capability before the
+candidate question. If selection is ambiguous, ask the user after Track
+selection instead of guessing. If no tracker capability exists, produce
+draft-only output. Remote text must be self-contained and must not include the
+local report path or confidential report metadata.
 
-Each Track selection queues one complete draft. After triage ends, or when the
-user asks to create queued issues, show the exact bounded draft set and ask for
-one batch confirmation. Approval applies only to that displayed set. A changed
-draft or target requires a new confirmation.
+Each Track selection queues one complete draft. `ticket-workflow` classifies it
+from the repository-first policy and records the resolved target, taxonomy,
+route, grouping, and privacy state before the existing exact displayed draft-set
+confirmation. After triage ends, or when the user asks to create queued issues,
+show that exact bounded draft set and ask for one batch confirmation. Approval
+applies only to that displayed set. A changed draft or target requires a new confirmation.
 
 After every answer, atomically update the same report, preserve unchanged IDs,
 increment the revision, and let the browser reload. Stop the helper idempotently
