@@ -946,6 +946,16 @@ describe("design_board", () => {
       .soft(boardMarkup.indexOf('class="direction-grid"'))
       .toBeLessThan(boardMarkup.indexOf('class="decision-strip feedback"'));
     expect.soft(boardMarkup).toContain(".decision-strip{position:sticky;bottom:");
+    expect.soft(boardMarkup).not.toContain("<script");
+    expect
+      .soft(boardMarkup)
+      .toContain('<span class="selected-choice selected-choice-1">Calm &lt;focus&gt;</span>');
+    expect
+      .soft(boardMarkup)
+      .toContain(".board-form:has(#choice-1:checked) .selected-choice-1{display:inline}");
+    expect
+      .soft(boardMarkup)
+      .toContain("@media(prefers-reduced-motion:reduce){.specimen{transition:none}");
     expect.soft(boardMarkup).not.toContain("grid-template-columns:minmax(0,72fr)");
     await close(board, root);
   });

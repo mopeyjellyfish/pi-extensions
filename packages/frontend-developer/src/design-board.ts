@@ -469,7 +469,11 @@ export class DesignBoardService {
         })
         .end(
           renderDesignBoard({
-            directions: board.directions,
+            directions: board.directions.map(({ description, id, label }) => ({
+              ...(description === undefined ? {} : { description }),
+              id,
+              label,
+            })),
             feedbackMode: boardFeedbackMode(snapshot),
             ...(snapshot.feedback === undefined ? {} : { feedback: snapshot.feedback }),
             ...(snapshot.liveSiteUrl === undefined ? {} : { liveSiteUrl: snapshot.liveSiteUrl }),
