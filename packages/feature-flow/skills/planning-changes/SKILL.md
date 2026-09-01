@@ -26,8 +26,10 @@ location.
 ## Optional planning adviser
 
 After worktree setup, use one optional read-only adviser capability at most when
-it adds useful planning evidence and source disclosure is permitted. Give it a
-distinct question that does not duplicate another adviser or required review.
+it adds useful planning evidence and source disclosure is permitted. That
+capability may receive at most one planning-perspective question and, when the
+independent-review budget permits, one distinct rigorous-challenge question. It
+must not duplicate a question or required review.
 The adviser provides evidence only. The selected parent retains product and
 architecture judgment, slice design, synthesis, approval, and verification.
 
