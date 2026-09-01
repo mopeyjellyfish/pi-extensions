@@ -153,7 +153,7 @@ selector and lockfile fingerprint.
   files are out of scope. If they change, stop and reshape before selecting extra
   security, workflow, setup, or Go gates.
 
-## [ ] 001 — Engineering owns implementation and assurance routing
+## [x] 001 — Engineering owns implementation and assurance routing
 
 ### Outcome and requirement trace
 
@@ -251,7 +251,7 @@ It belongs to delivery unit 1 and does not create a separate pull request.
   exact changed paths, runtime-selector and lockfile fingerprint, setup command,
   validation output, and residual risks.
 
-## [ ] 002 — Feature Flow uses bounded evidence lanes
+## [x] 002 — Feature Flow uses bounded evidence lanes
 
 ### Outcome and requirement trace
 
@@ -338,7 +338,7 @@ belongs to delivery unit 1 and does not create a separate pull request.
   exact changed paths, runtime-selector and lockfile fingerprint, setup command,
   validation output, and residual risks.
 
-## [ ] 003 — Private profile maps and proves the lifecycle contract
+## [x] 003 — Private profile maps and proves the lifecycle contract
 
 ### Outcome and requirement trace
 
