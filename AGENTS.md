@@ -34,7 +34,8 @@ The private mapping is Worker = implementation writer capability; Researcher =
 factual research capability; Utility = mechanical support capability; QA = QA
 capability; Reviewer = review capability; and Git = Git delivery capability.
 Support returns evidence only. `/just-do-it`, one obvious trivial correction,
-and an unavailable-implementation-writer fallback are direct-parent exceptions.
+and an unavailable-implementation-writer fallback are direct-parent exceptions;
+the parent reports the fallback.
 Other Sol child overrides require a justified `question` and explicit human
 approval; if uncertain, ask.
 

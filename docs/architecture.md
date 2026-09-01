@@ -23,7 +23,8 @@ The human manually selects GPT-5.6 Sol at `xhigh` before Shape and planning;
 installation does not set or overwrite a global parent default. Non-trivial
 implementation uses the configured Worker. `/just-do-it`, one obvious trivial
 correction, and an unavailable-implementation-writer fallback are direct-parent
-exceptions. Independent read-only lanes need named disjoint evidence gaps plus a
+exceptions; the unavailable route is an honest fallback and is reported.
+Independent read-only lanes need named disjoint evidence gaps plus a
 critical-path or parent-context benefit and are joined before decisions. Ordinary
 children do not fan out. Accepted `parallel-ready` implementation lanes may run
 concurrently only in separate isolated worktrees with sole writers,
