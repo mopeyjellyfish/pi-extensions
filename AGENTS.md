@@ -25,22 +25,31 @@ may be specific to this repository.
 
 Start with the parent. The human manually selects GPT-5.6 Sol at `xhigh` before
 Shape and planning; installation does not set a global parent default or
-overwrite parent settings. Use the configured Sol Worker at `low` for
-non-trivial implementation and Terra for Git. Use Luna for cheap bounded
-read-only or mechanical support not covered by another role, and Opus at `high`
-for formal review. `/just-do-it` remains a direct-parent route. If Worker is
-unavailable, the direct parent may implement and must report the fallback.
-Other Sol child overrides require a justified `question` and explicit human
-approval; if uncertain, ask.
+overwrite parent settings. The private mapping is Worker = implementation writer
+capability; Researcher = factual research capability; Utility = mechanical
+support capability; QA = QA capability; Reviewer = review capability; and Git =
+Git delivery capability. Normal non-trivial implementation uses Worker. Support
+returns evidence only. `/just-do-it`, one
+obvious trivial correction, and an unavailable-implementation-writer fallback
+are direct-parent exceptions.
 
-Run accepted `parallel-ready` implementation lanes concurrently only in separate
-isolated worktrees, with one Worker and sole write ownership per worktree,
-non-overlapping ownership, complete dependencies, and a named integration point.
-Otherwise, serialize the work. Keep one writer per worktree. Every child task states its
-goal, scope, authority, required evidence, success criteria, validation, and
-output. The parent synthesizes results, verifies evidence, inspects the final
-diff, and runs applicable checks. Use host-provided role guidance without
-depending on repository-owned agent names or tool allowlists.
+Independent read-only lanes need named disjoint evidence gaps plus a
+critical-path or parent-context benefit and are joined before decisions. Ordinary
+children do not fan out. Run accepted `parallel-ready` implementation lanes
+concurrently only in separate isolated worktrees, with one Worker and sole write
+ownership per worktree, non-overlapping ownership, complete dependencies, and a
+named integration point. Otherwise, serialize the work. Keep one writer per
+worktree. Every child task states its goal, scope, authority, required evidence,
+success criteria, validation, and output. The parent synthesizes results,
+verifies evidence, inspects the final diff, and runs applicable checks. Use
+host-provided role guidance without depending on repository-owned agent names or
+tool allowlists.
+
+Deterministic green commands do not select QA. QA and Reviewer are distinct and
+run concurrently only on one frozen boundary when both are selected; the parent
+joins their repair packet before the retained integration Worker repairs it
+without a replacement. Git delivery uses installed methods and is not an
+implementation substitute.
 
 The private profile may use `AskClaude` only from a non-`claude-bridge` parent,
 only when Claude Code authentication and the provider capability are available,

@@ -619,6 +619,38 @@ describe("package contracts", () => {
     }
   });
 
+  it("maps private roles to the complete capability orchestration contract", async () => {
+    expect.hasAssertions();
+    const [agents, readme, architecture] = await Promise.all([
+      readFile(join(repositoryRoot, "AGENTS.md"), "utf8"),
+      readFile(join(repositoryRoot, "README.md"), "utf8"),
+      readFile(join(repositoryRoot, "docs", "architecture.md"), "utf8"),
+    ]);
+
+    for (const resource of [agents, readme, architecture]) {
+      const prose = resource.replaceAll(/\s+/gu, " ");
+
+      expect(prose).toMatch(
+        /Worker[^.]*implementation writer capability[^.]*Researcher[^.]*factual research capability[^.]*Utility[^.]*mechanical support capability[^.]*QA[^.]*QA capability[^.]*Reviewer[^.]*review capability[^.]*Git[^.]*Git delivery capability/iu,
+      );
+      expect(prose).toMatch(/support[^.]*evidence only/iu);
+      expect(prose).toMatch(
+        /named disjoint evidence gaps[^.]*critical-path or parent-context benefit[^.]*joined before decisions/iu,
+      );
+      expect(prose).toMatch(/ordinary children[^.]*do not fan out/iu);
+      expect(prose).toMatch(/deterministic green commands[^.]*do not select QA/iu);
+      expect(prose).toMatch(
+        /QA and Reviewer[^.]*concurrently[^.]*one frozen boundary[^.]*retained integration Worker[^.]*without a replacement/iu,
+      );
+      expect(prose).toMatch(
+        /Git delivery[^.]*installed methods[^.]*not[^.]*implementation substitute/iu,
+      );
+      expect(prose).toMatch(
+        /`\/just-do-it`[^.]*one obvious trivial correction[^.]*unavailable-implementation-writer fallback[^.]*direct-parent exceptions/iu,
+      );
+    }
+  });
+
   it("documents the portable target-repository resource boundary", async () => {
     expect.hasAssertions();
     const [agents, architecture] = await Promise.all([

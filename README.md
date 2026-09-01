@@ -88,24 +88,28 @@ messages, stages, commits, pushes, and creates or updates the pull request. It
 returns after bounded structured verification; it does not watch CI or run
 long-lived commands.
 
-The lifecycle is parent-led and routes work by impact and uncertainty.
-`/just-do-it` fixes a small, bounded problem during active work when the outcome,
-local cause, and objective check are clear. It remains a direct-parent route:
-the parent verifies, commits, and pushes the fix without independent review.
-Normal non-trivial implementation uses the configured Worker. If Worker is
-unavailable, the direct parent may implement and reports that fallback. Clear
-standalone work implements now. Coordinated clear work plans first. Uncertain,
-hard-to-reverse, or risky work Shapes then plans.
+The private mapping is Worker = implementation writer capability; Researcher =
+factual research capability; Utility = mechanical support capability; QA = QA
+capability; Reviewer = review capability; and Git = Git delivery capability.
+Support returns evidence only. `/just-do-it`, one obvious trivial correction,
+and an unavailable-implementation-writer fallback are direct-parent exceptions.
+The lifecycle routes work by impact and uncertainty.
 
-Shape and planning set up or verify an isolated linked task worktree before
-repository reads, discovery, research, or questions. Complete accepted plans
-execute in dependency order. Accepted `parallel-ready` implementation lanes may
-run concurrently only in separate isolated worktrees, with one Worker and sole
-write ownership per worktree, non-overlapping ownership, complete dependencies,
-and a named integration point. Otherwise, serialize them. A coherent delivery unit normally
-keeps its atomic commits in one branch and pull request; a stack needs
+Independent read-only lanes need named disjoint evidence gaps plus a
+critical-path or parent-context benefit and are joined before decisions. Ordinary
+children do not fan out. Accepted `parallel-ready` implementation lanes may run
+concurrently only in separate isolated worktrees, with one Worker and sole write
+ownership per worktree, non-overlapping ownership, complete dependencies, and a
+named integration point. Otherwise, serialize them. A coherent delivery unit
+normally keeps its atomic commits in one branch and pull request; a stack needs
 independent value and check viability at each position. No lifecycle stage works
 in the main-branch checkout.
+
+Deterministic green commands do not select QA. QA and Reviewer are distinct and
+run concurrently only on one frozen boundary when both are selected; the parent
+joins their repair packet before the retained integration Worker repairs it
+without a replacement. Git delivery uses installed methods and is not an
+implementation substitute.
 
 For a direct bounded implementation request or accepted plan, `/implement`
 implements, verifies, reviews when selected, commits, pushes, and opens or
