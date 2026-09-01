@@ -110,8 +110,6 @@ Other hosts use their equivalent fixed-role foreground launch. Do not pass
 its tools, model, thinking level, and fresh-context default. A trivial bounded
 change — one obvious fix with one obvious focused check — may remain directly as
 the parent. If Worker is unavailable, the direct parent executes the unit.
-An unavailable implementation writer capability leaves the direct parent as the
-fallback.
 
 Keep the Worker task compact. Reference durable Intent sources; do not copy a conversation transcript.
 For a plan-less handoff, include the complete bounded request and every later

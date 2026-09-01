@@ -77,23 +77,27 @@ describe("engineering resources", () => {
       read("skills/diagnosing-bugs/SKILL.md"),
       read("README.md"),
     ]);
+    const routerText = router.replaceAll(/\s+/gu, " ");
+    const implementText = implement.replaceAll(/\s+/gu, " ");
+    const readmeText = readme.replaceAll(/\s+/gu, " ");
 
-    expect(router).toMatch(/implementation writer capability[\s\S]*implement/iu);
-    expect(implement).toMatch(
-      /factual research capability[\s\S]*named[\s\S]*evidence gap[\s\S]*evidence only/iu,
+    expect(routerText).toMatch(
+      /Normal non-trivial writes[^.]*implementation writer capability[^.]*through `implement`/iu,
     );
-    expect(implement).toMatch(
-      /mechanical support capability[\s\S]*bounded[\s\S]*no specialist[\s\S]*evidence only/iu,
+    expect(implementText).toMatch(
+      /A factual research capability[^.]*named[^.]*evidence gap, and a mechanical support capability[^.]*bounded[^.]*no specialist owns it/iu,
     );
-    expect(implement).toMatch(
-      /QA capability[\s\S]*failed-command diagnosis[\s\S]*review capability/iu,
+    expect(implementText).toMatch(/Both return evidence only/iu);
+    expect(implementText).toMatch(
+      /Select a QA capability[^.]*failed-command diagnosis[^.]*browser evidence[^.]*ambiguous acceptance/iu,
     );
-    expect(implement).toMatch(
-      /Git delivery capability[\s\S]*authorized[\s\S]*delivery\s+mechanics[\s\S]*not[\s\S]*implementation substitute/iu,
+    expect(implementText).toMatch(
+      /Select a review capability[^.]*material public behavior[^.]*risk/iu,
     );
-    expect(diagnosing.slice(diagnosing.indexOf("## Pi debug additions"))).toMatch(
-      /symptom[\s\S]*cause[\s\S]*regression seam[\s\S]*evidence[\s\S]*implement/iu,
+    expect(implementText).toMatch(
+      /The Git delivery capability[^.]*authorized delivery mechanics[^.]*installed[^.]*methods/iu,
     );
+    expect(implementText).toMatch(/It is not an implementation substitute/iu);
     const debugAdditions = diagnosing
       .slice(diagnosing.indexOf("## Pi debug additions"))
       .replaceAll(/\s+/gu, " ");
@@ -106,9 +110,9 @@ describe("engineering resources", () => {
     expect(debugAdditions).toMatch(
       /only[^.]*bounded direct-parent diagnostic fix[^.]*continues to Phase 5[^.]*test-driven-development/iu,
     );
-    expect(implement).toMatch(/ordinary child[\s\S]*must not fan out/iu);
-    expect(readme).toMatch(
-      /parent[\s\S]*routing[\s\S]*synthesis[\s\S]*product and architecture decisions[\s\S]*approval[\s\S]*final diff inspection[\s\S]*verification[\s\S]*publication decisions/iu,
+    expect(implementText).toMatch(/Ordinary children[^.]*must not fan out/iu);
+    expect(readmeText).toMatch(
+      /The parent owns routing[^.]*synthesis[^.]*product and architecture decisions[^.]*approval[^.]*final diff inspection[^.]*verification[^.]*publication decisions/iu,
     );
   });
 
