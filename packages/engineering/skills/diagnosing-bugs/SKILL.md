@@ -191,6 +191,9 @@ When Phase 5 begins, load and follow the `test-driven-development` skill. Keep
 the upstream order: turn the minimized reproduction into a red regression test
 at the correct seam, make the smallest root-cause fix, and verify the test and
 original loop turn green.
+For a confirmed non-trivial bug, return the reproducible symptom, confirmed
+cause, regression seam, and evidence to `implement` for the implementation
+writer capability. Do not start another writer or fan out from this diagnosis.
 
 ### Go routing
 

@@ -77,6 +77,13 @@ and verifies evidence before accepting each unit. A serial delivery unit reuses
 the same writer and same worktree through its dependent slices. A plan-less
 bounded request, an approved slice, or a confirmed bug outcome may proceed as
 one unit.
+Use one implementation writer capability for each normal non-trivial write
+through this skill. A factual research capability resolves one named repository
+or primary-source evidence gap, and a mechanical support capability performs a
+bounded inventory or transformation only when no specialist owns it. Both return
+evidence only. The parent owns routing, synthesis, product and architecture
+decisions, approval, final diff inspection, verification, and publication
+decisions. Ordinary children must not fan out or make those decisions.
 
 When the configured `worker` capability is available, it is the only configured
 implementation child. Launch one fresh foreground `worker` for one worker
@@ -103,6 +110,9 @@ Other hosts use their equivalent fixed-role foreground launch. Do not pass
 its tools, model, thinking level, and fresh-context default. A trivial bounded
 change — one obvious fix with one obvious focused check — may remain directly as
 the parent. If Worker is unavailable, the direct parent executes the unit.
+These roles are portable capability purposes, not implementation substitutes.
+An unavailable implementation writer capability leaves the direct parent as the
+fallback.
 
 Keep the Worker task compact. Reference durable Intent sources; do not copy a conversation transcript.
 For a plan-less handoff, include the complete bounded request and every later
@@ -153,12 +163,14 @@ slice is buildable. Use runtime counters as telemetry; enforce the boundary
 through evidence of progress, explicit scope variance, and the Worker's
 repeated-failure stop.
 
-Do not silently select a higher-capability role. A high-capability run requires
-an explicit approval stating evidence, expected benefit, and bounded task. State
-a delegation's critical-path, parent-context, or independent evidence benefit;
-do not delegate without one. Use bounded Utility support only when it usefully
-shortens the critical path; the parent retains routing, synthesis, and
-approval. During checkpointed execution, if observed coordination materially
+Use a factual research capability only for one named repository or primary-source
+evidence gap. Use a mechanical support capability only for a bounded inventory
+or transformation when no specialist owns it. Both must return evidence only;
+the parent retains routing, synthesis, and approval. Do not silently select a
+higher-capability role. A high-capability run requires an explicit approval
+stating evidence, expected benefit, and bounded task. State a delegation's
+critical-path, parent-context, or independent evidence benefit; do not delegate
+without one. During checkpointed execution, if observed coordination materially
 exceeds the accepted forecast, pause before more delivery steps; report the
 variance and seek fresh approval only when changed delivery boundaries or
 authority require it. During accepted accept-all execution, every material
@@ -172,11 +184,12 @@ planning overhead.
 
 Use mechanical, low-risk changes with direct focused verification;
 documentation and reversible metadata changes use the same route. Exact
-non-browser commands run deterministically; a green command does not require
-model QA. Select QA for failed-command diagnosis, browser evidence, or ambiguous
-acceptance. Select formal review for material public behavior, lifecycle, state,
-concurrency, provider, dependency, cross-boundary, security, migration, or
-irreversible risk. Either lane may be selected without the other.
+non-browser commands run deterministically; a green command does not require a
+model QA capability. Select a QA capability for failed-command diagnosis, browser
+evidence, or ambiguous acceptance. Select a review capability for material public
+behavior, lifecycle, state, concurrency, provider, dependency, cross-boundary,
+security, migration, or irreversible risk. Either capability may be selected
+without the other.
 
 When both QA and review are selected, freeze one diff and run the read-only lanes
 concurrently. When Pi's `subagent` tool supplies configured `qa` and `reviewer`
@@ -342,7 +355,9 @@ remote mutation occurs. Otherwise, invoke installed `commit` and then installed
 atomic local commit or commits. `open-pr` performs the normal push and creates or
 updates the ready pull request. Report each skipped action in the final state.
 These focused delivery skills own publication; lifecycle guidance must not issue
-ad hoc Git commands.
+ad hoc Git commands. The Git delivery capability owns authorized delivery
+mechanics through the installed `commit`, rebase/conflict, and `open-pr` methods.
+It is not an implementation substitute.
 
 Installed `commit` and `open-pr` are the publication methods. If a method needed
 for the permitted actions is unavailable in an independent installation, fail

@@ -47,11 +47,20 @@ The parent supplies durable Intent sources: target-project context, every named
 pitch, plan, request, and later user decisions, plus the exact slice, not a
 conversation transcript. It confirms the Business reason from evidence or asks
 the human to confirm it, then records it in the implementation spec and Worker
-handoff. The parent stays responsible for synthesis, final diff inspection, and
-verification.
-An independent installation without the root agent profiles uses the direct
-parent; it does not automatically provide companion extensions, agents, tools,
-or skills.
+handoff. The parent owns routing, synthesis, product and architecture decisions,
+approval, final diff inspection, verification, and publication decisions. An
+independent installation without the root agent profiles uses the direct parent;
+it does not automatically provide companion extensions, agents, tools, or skills.
+Normal non-trivial writes use the implementation writer capability through
+`implement`. A factual research capability resolves one named repository or
+primary-source evidence gap, and a mechanical support capability performs a
+bounded inventory or transformation only when no specialist owns it. Support
+returns evidence only. A QA capability diagnoses failed commands, supplies
+browser proof, or resolves ambiguous acceptance; a review capability performs
+risk-selected intent and Standards review. A Git delivery capability owns
+authorized delivery mechanics and is not an implementation substitute. Ordinary
+children cannot fan out. `/just-do-it`, one obvious trivial correction, and an
+unavailable-capability fallback remain direct-parent exceptions.
 
 ## Ticket-backed implementation
 
