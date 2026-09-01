@@ -212,8 +212,8 @@ describe("package contracts", () => {
     expect.hasAssertions();
     const expected = {
       worker: {
-        model: "openai-codex/gpt-5.6-terra",
-        thinking: "medium",
+        model: "openai-codex/gpt-5.6-sol",
+        thinking: "low",
         role: "writer",
         completionGuard: undefined,
         tools: ["read", "grep", "find", "ls", "bash", "edit", "write", "playwright_browser"],
@@ -274,7 +274,7 @@ describe("package contracts", () => {
       },
       reviewer: {
         model: "claude-bridge/claude-opus-5",
-        thinking: "medium",
+        thinking: "high",
         role: "read-only",
         completionGuard: false,
         tools: ["read", "grep", "find", "ls", "bash"],
@@ -374,10 +374,13 @@ describe("package contracts", () => {
         expect(await readdir(join(agentsRoot, resolvedSkillPath))).toContain("SKILL.md");
       }
     }
-    const [reviewer, git] = await Promise.all([
+    const [worker, reviewer, git] = await Promise.all([
+      readFile(join(agentsRoot, "worker.md"), "utf8"),
       readFile(join(agentsRoot, "reviewer.md"), "utf8"),
       readFile(join(agentsRoot, "git.md"), "utf8"),
     ]);
+    expect(worker).toMatch(/description:[^\n]*GPT-5\.6 Sol low effort/iu);
+    expect(reviewer).toMatch(/description:[^\n]*Opus 5 high effort/iu);
     expect(reviewer).toMatch(/`code-review` method[\s\S]*do not spawn[\s\S]*issue-tracker setup/iu);
     expect(reviewer).toMatch(/Pitch and plan[\s\S]*Standards/iu);
     expect(git).toMatch(/Never remove a worktree[\s\S]*explicitly grants removal/iu);
@@ -558,7 +561,11 @@ describe("package contracts", () => {
 
   it("documents the parent and child model stages", async () => {
     expect.hasAssertions();
-    const readme = await readFile(join(repositoryRoot, "README.md"), "utf8");
+    const [readme, agents, architecture] = await Promise.all([
+      readFile(join(repositoryRoot, "README.md"), "utf8"),
+      readFile(join(repositoryRoot, "AGENTS.md"), "utf8"),
+      readFile(join(repositoryRoot, "docs", "architecture.md"), "utf8"),
+    ]);
 
     expect(readme).toContain('"defaultProvider": "claude-bridge"');
     expect(readme).toContain('"defaultModel": "claude-fable-5"');
@@ -568,22 +575,45 @@ describe("package contracts", () => {
     expect(readme).toContain('"defaultMode": "read"');
     expect(readme).toContain('"defaultIsolated": true');
     expect(readme).toContain('"allowFullMode": false');
-    expect(readme).toMatch(/human selects[\s\S]*Fable or Sol parent/iu);
-    expect(readme).toMatch(/Worker[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
+    expect(readme).toMatch(
+      /human[^.]*selects[\s\S]*GPT-5\.6 Sol[\s\S]*xhigh[\s\S]*Shape and planning/iu,
+    );
+    expect(readme).toMatch(/installation[\s\S]*does not overwrite parent settings/iu);
+    expect(readme).toMatch(/Worker[\s\S]*GPT-5\.6 Sol[\s\S]*low/iu);
     expect(readme).toMatch(/Researcher[\s\S]*GPT-5\.6 Luna[\s\S]*low/iu);
     expect(readme).toMatch(/QA[\s\S]*GPT-5\.6 Luna[\s\S]*medium/iu);
-    expect(readme).toMatch(/Reviewer[\s\S]*Opus 5[\s\S]*medium/iu);
+    expect(readme).toMatch(/Reviewer[\s\S]*Opus 5[\s\S]*high/iu);
     expect(readme).toMatch(/Git[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
     expect(readme).toMatch(/Utility[\s\S]*GPT-5\.6 Luna[\s\S]*medium/iu);
-    expect(readme).toMatch(/AskClaude[\s\S]*non-claude-bridge parent/iu);
-    expect(readme).toMatch(/Fable parent\s+cannot[\s\S]*call/iu);
-    expect(readme).toMatch(/justified\s+`question`[\s\S]*explicit human approval[\s\S]*Sol/iu);
+    expect(readme).toMatch(/AskClaude[\s\S]*non-[^\n]*claude-bridge[^\n]*parent/iu);
+    expect(readme).toMatch(/Claude Code[^.]*signed in/iu);
+    expect(readme).toMatch(/source\s+disclosure[\s\S]*permitted/iu);
+    expect(readme).toMatch(/claude-fable-5[\s\S]*medium[\s\S]*intent[\s\S]*planning perspective/iu);
+    expect(readme).toMatch(/claude-opus-5[\s\S]*high[\s\S]*distinct[\s\S]*challenge/iu);
+    expect(readme).toMatch(/mode:\s*"read"[\s\S]*isolated:\s*true/iu);
+    expect(readme).toMatch(
+      /formal Opus Reviewer[\s\S]*not duplicate|not duplicate[\s\S]*formal Opus Reviewer/iu,
+    );
+    expect(readme).toMatch(/independent-review budget[\s\S]*Go specification review/iu);
+    expect(readme).toMatch(/AskClaude[^.]*unavailable[\s\S]*direct parent/iu);
+    expect(readme).toMatch(/`\/just-do-it`[\s\S]*direct parent/iu);
+    expect(readme).toMatch(/non-trivial implementation[\s\S]*Worker/iu);
+    expect(readme).toMatch(
+      /parallel-ready[\s\S]*isolated worktrees[\s\S]*non-overlapping ownership/iu,
+    );
     expect(readme).toMatch(/`\/improve`[\s\S]*code review[\s\S]*design/iu);
     expect(readme).toMatch(/Git\s+conflict support/iu);
     expect(readme).toMatch(
       /normal push[\s\S]*(after a rebase|post-rebase)[\s\S]*--force-with-lease/iu,
     );
     expect(readme).toMatch(/fresh\s+context/iu);
+
+    for (const guidance of [agents, architecture]) {
+      expect(guidance).toMatch(/GPT-5\.6 Sol[\s\S]*xhigh[\s\S]*Shape and planning/iu);
+      expect(guidance).toMatch(/non-trivial[\s\S]*Worker/iu);
+      expect(guidance).toMatch(/parallel-ready[\s\S]*isolated worktrees[\s\S]*non-overlapping/iu);
+      expect(guidance).toMatch(/AskClaude[\s\S]*claude-fable-5[\s\S]*claude-opus-5/iu);
+    }
   });
 
   it("documents the portable target-repository resource boundary", async () => {

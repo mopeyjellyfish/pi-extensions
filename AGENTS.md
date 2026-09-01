@@ -23,15 +23,38 @@ may be specific to this repository.
 
 ## Subagent execution profiles
 
-Start with the parent. Use Luna for cheap bounded read-only or mechanical
-support not covered by another role, Terra for normal implementation and Git,
-and Opus for formal review. A Sol child requires a justified `question` and
-explicit human approval; if uncertain, ask. Keep one writer per worktree. Every
-child task states its goal, scope, authority, required evidence, success
-criteria, validation, and output. The parent synthesizes results, verifies
-evidence, inspects the final diff, and runs applicable checks. Use
-host-provided role guidance without depending on repository-owned agent names
-or tool allowlists.
+Start with the parent. The human manually selects GPT-5.6 Sol at `xhigh` before
+Shape and planning; installation does not set a global parent default or
+overwrite parent settings. Use the configured Sol Worker at `low` for
+non-trivial implementation and Terra for Git. Use Luna for cheap bounded
+read-only or mechanical support not covered by another role, and Opus at `high`
+for formal review. `/just-do-it` remains a direct-parent route. If Worker is
+unavailable, the direct parent may implement and must report the fallback.
+Other Sol child overrides require a justified `question` and explicit human
+approval; if uncertain, ask.
+
+Run accepted `parallel-ready` implementation lanes concurrently only in separate
+isolated worktrees, with one Worker and sole write ownership per worktree,
+non-overlapping ownership, complete dependencies, and a named integration point.
+Otherwise, serialize the work. Keep one writer per worktree. Every child task states its
+goal, scope, authority, required evidence, success criteria, validation, and
+output. The parent synthesizes results, verifies evidence, inspects the final
+diff, and runs applicable checks. Use host-provided role guidance without
+depending on repository-owned agent names or tool allowlists.
+
+The private profile may use `AskClaude` only from a non-`claude-bridge` parent,
+only when Claude Code authentication and the provider capability are available,
+and only when source disclosure is permitted. Use `mode: "read"` and
+`isolated: true`. Use `claude-fable-5` at `medium` for intent, taste, and
+planning perspective. Use `claude-opus-5` at `high` only for a distinct rigorous
+challenge. Ask distinct questions; do not duplicate the same question or the
+formal Opus Reviewer. The challenge consumes the one independent-review budget.
+An applicable mandatory Go specification review takes precedence, so skip the
+Opus planning challenge when that review consumes the budget. Advice is
+evidence only; the parent retains architecture, synthesis, approval, and
+verification. If authentication, provider access, disclosure permission, or
+`AskClaude` is unavailable, continue with the direct parent and report that the
+advice was not obtained.
 
 ## Start with repository truth
 
