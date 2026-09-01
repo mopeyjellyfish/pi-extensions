@@ -579,13 +579,14 @@ describe("package contracts", () => {
       /human[^.]*selects[\s\S]*GPT-5\.6 Sol[\s\S]*xhigh[\s\S]*Shape and planning/iu,
     );
     expect(readme).toMatch(/installation[\s\S]*does not overwrite parent settings/iu);
-    expect(readme).toMatch(/Worker[\s\S]*GPT-5\.6 Sol[\s\S]*low/iu);
-    expect(readme).toMatch(/Researcher[\s\S]*GPT-5\.6 Luna[\s\S]*low/iu);
-    expect(readme).toMatch(/QA[\s\S]*GPT-5\.6 Luna[\s\S]*medium/iu);
-    expect(readme).toMatch(/Reviewer[\s\S]*Opus 5[\s\S]*high/iu);
-    expect(readme).toMatch(/Git[\s\S]*GPT-5\.6 Terra[\s\S]*medium/iu);
-    expect(readme).toMatch(/Utility[\s\S]*GPT-5\.6 Luna[\s\S]*medium/iu);
+    expect(readme).toMatch(/^\| `worker`\s+\| GPT-5\.6 Sol\s+\| low\s+\|[^\n]*\|$/mu);
+    expect(readme).toMatch(/^\| `researcher`\s+\| GPT-5\.6 Luna\s+\| low\s+\|[^\n]*\|$/mu);
+    expect(readme).toMatch(/^\| `qa`\s+\| GPT-5\.6 Luna\s+\| medium\s+\|[^\n]*\|$/mu);
+    expect(readme).toMatch(/^\| `reviewer`\s+\| Opus 5\s+\| high\s+\|[^\n]*\|$/mu);
+    expect(readme).toMatch(/^\| `git`\s+\| GPT-5\.6 Terra\s+\| medium\s+\|[^\n]*\|$/mu);
+    expect(readme).toMatch(/^\| `utility`\s+\| GPT-5\.6 Luna\s+\| medium\s+\|[^\n]*\|$/mu);
     expect(readme).toMatch(/AskClaude[\s\S]*non-[^\n]*claude-bridge[^\n]*parent/iu);
+    expect(readme).toMatch(/alternative `claude-bridge` parent[^.]*cannot call `AskClaude`/iu);
     expect(readme).toMatch(/Claude Code[^.]*signed in/iu);
     expect(readme).toMatch(/source\s+disclosure[\s\S]*permitted/iu);
     expect(readme).toMatch(/claude-fable-5[\s\S]*medium[\s\S]*intent[\s\S]*planning perspective/iu);

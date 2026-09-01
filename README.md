@@ -165,8 +165,8 @@ requires a justified `question` and explicit human approval; difficulty never
 selects an override automatically. Ambiguous routing also uses `question`.
 
 Claude Code and OpenAI Codex must already be signed in. The preferred Sol
-planning profile is a manual choice, not an installed default. A user may keep
-another existing parent setting, for example:
+planning profile is a manual choice, not an installed default. The following
+example is an alternative `claude-bridge` parent that cannot call `AskClaude`:
 
 ```json
 {
