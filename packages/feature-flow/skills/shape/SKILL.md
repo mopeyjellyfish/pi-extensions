@@ -133,6 +133,9 @@ returns evidence only. Run independent read-only evidence lanes concurrently
 only when their named evidence gaps are disjoint and the concurrent work has a
 critical-path or parent-context benefit. The parent joins every result before a
 decision. Support cannot own product, architecture, slice, synthesis, approval,
-final diff inspection, or verification. If either capability is unavailable,
-use an honest direct-parent fallback and record unmet evidence. Any exceptional high-capability role requires explicit human approval;
+final diff inspection, or verification. If a selected factual research
+capability, mechanical support capability, QA capability, or review capability
+is unavailable, use an honest direct-parent fallback and record the unmet
+evidence; do not select another capability as a substitute.
+Any exceptional high-capability role requires explicit human approval;
 production guidance must not depend on private agents or model names.

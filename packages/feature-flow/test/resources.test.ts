@@ -195,6 +195,9 @@ describe("feature-flow resources", () => {
         /support[^.]*cannot own[^.]*product[^.]*architecture[^.]*slice[^.]*synthesis[^.]*approval[^.]*final diff inspection[^.]*verification/iu,
       );
       expect(resource).toMatch(/capabilit(?:y|ies)[^.]*unavailable[^.]*direct-parent fallback/iu);
+      expect(resource.replaceAll(/\s+/gu, " ")).toMatch(
+        /selected factual research capability[^.]*mechanical support capability[^.]*QA capability[^.]*review capability[^.]*unavailable[^.]*direct-parent fallback[^.]*do not select another capability as a substitute/iu,
+      );
     }
   });
 
