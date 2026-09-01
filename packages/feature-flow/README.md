@@ -26,7 +26,7 @@ an independent installation uses the direct parent when
 those capabilities are unavailable. An exceptional high-capability role needs
 explicit human approval.
 
-An optional read-only adviser capability may be used when disclosure is
+During planning, an optional read-only adviser capability may be used when disclosure is
 permitted, receives one distinct question, and returns evidence only. The parent
 retains architecture, synthesis, approval, and verification authority. A
 rigorous challenge consumes the one independent-review budget; any applicable

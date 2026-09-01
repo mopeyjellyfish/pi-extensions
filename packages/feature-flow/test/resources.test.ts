@@ -145,7 +145,8 @@ describe("feature-flow resources", () => {
     );
     expect(readme).toMatch(/whole-plan approval[^.]*accept-all authority/iu);
 
-    expect(readme).toMatch(/optional[^.]*read-only adviser capability/iu);
+    expect(readme).toMatch(/^During planning, an optional read-only adviser capability/imu);
+    expect(readme).not.toMatch(/^An optional read-only adviser capability/imu);
     expect(readme).toMatch(/disclosure[^.]*distinct question[^.]*evidence only/iu);
     expect(readme).toMatch(
       /one independent-review budget[^.]*mandatory[^.]*review[^.]*precedence/iu,
