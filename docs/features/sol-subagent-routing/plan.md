@@ -32,9 +32,9 @@ authority.
 
 ## Delivery topology
 
-| Delivery unit | Topology | Stack position | Branch | Pull request base | Dependencies | Checks | Ownership | Integration point | CI fan-out | Cascade cost |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | standalone | `standalone` | `chore/subagent-routing-defaults` | `main` | none | focused tests, package checks, source smoke, `npm run check`, live profile acceptance | one Worker in the active task worktree | final frozen diff | one pull request | low |
+| Delivery unit | Topology   | Stack position | Branch                            | Pull request base | Dependencies | Checks                                                                                | Ownership                              | Integration point | CI fan-out       | Cascade cost |
+| ------------- | ---------- | -------------- | --------------------------------- | ----------------- | ------------ | ------------------------------------------------------------------------------------- | -------------------------------------- | ----------------- | ---------------- | ------------ |
+| 1             | standalone | `standalone`   | `chore/subagent-routing-defaults` | `main`            | none         | focused tests, package checks, source smoke, `npm run check`, live profile acceptance | one Worker in the active task worktree | final frozen diff | one pull request | low          |
 
 The pitch, plan, root-profile changes, and Feature Flow change share one delivery
 unit. The documents have no independent review or merge value. One branch and
@@ -87,7 +87,7 @@ Invalidation map:
 - A command-definition, lockfile, runtime-selector, or setup change invalidates
   reusable setup and gate evidence.
 
-## [ ] 001 — Define the accepted routing and adviser contracts
+## [x] 001 — Define the accepted routing and adviser contracts
 
 ### Outcome and requirement trace
 
@@ -159,7 +159,7 @@ Delivery unit 1. Pull request base: `main`. Stack position: `standalone`.
 The focused failures identify only the accepted old routing and missing adviser
 contract. The failures are ready for the minimum implementation.
 
-## [ ] 002 — Route the private profile through Sol Worker and Opus Reviewer
+## [x] 002 — Route the private profile through Sol Worker and Opus Reviewer
 
 ### Outcome and requirement trace
 
@@ -238,7 +238,7 @@ The exact private role map and manual planning selection are observable through
 focused tests and synchronized root documentation. No user settings or seventh
 agent are added.
 
-## [ ] 003 — Add the portable adviser contract and private AskClaude mapping
+## [x] 003 — Add the portable adviser contract and private AskClaude mapping
 
 ### Outcome and requirement trace
 
@@ -315,7 +315,7 @@ The portable planning method can use an installed adviser without depending on
 this private profile. The root profile documents the exact `AskClaude` mapping
 and honest limits.
 
-## [ ] 004 — Verify the frozen delivery unit and live profile
+## [x] 004 — Verify the frozen delivery unit and live profile
 
 ### Outcome and requirement trace
 
