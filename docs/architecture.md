@@ -12,23 +12,41 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six fixed package agents: Terra-medium Worker and Git writers,
+It exposes six fixed package agents: a Sol-low Worker, Terra-medium Git writer,
 Luna-low Researcher, Luna-medium QA verification and Utility read-only support,
-and an Opus-medium Reviewer. Implementation keeps focused repair loops in Worker
-and selects QA and formal review by risk. Mechanical, documentation, and
-reversible metadata work has direct focused evidence. Material public behavior,
-lifecycle, state, concurrency, provider, dependency, cross-boundary, security,
-migration, or irreversible work has proportionate independent evidence. Exact
-non-browser green-path commands run without model QA. When both QA and formal
-review are required, they receive the same frozen diff and run concurrently when
-supported; QA owns executable gates and Reviewer does not rerun them. The parent
-joins results before one retained-Worker repair packet. The human selects
-a Fable or Sol parent; parent settings and AskClaude selection remain user
-settings, so installation never overwrites
-Pi authentication, preferences, or bridge configuration. AskClaude is available
-only to a non-claude-bridge parent; a Fable parent uses the Opus Reviewer when
-risk selects formal review. A Sol child requires a justified `question` and explicit human
-approval, with no automatic fallback.
+and an Opus-high Reviewer. The human manually selects GPT-5.6 Sol at `xhigh`
+before Shape and planning; installation does not set or overwrite a global
+parent default. Non-trivial implementation uses the configured Worker.
+`/just-do-it` remains direct-parent work, and the direct parent is the honest fallback when
+Worker is unavailable. Accepted `parallel-ready` implementation lanes may run
+concurrently only in separate isolated worktrees with sole writers,
+non-overlapping ownership, complete dependencies, and named integration points.
+
+Implementation keeps focused repair loops in Worker and selects QA and formal
+review by risk. Mechanical, documentation, and reversible metadata work has
+direct focused evidence. Material public behavior, lifecycle, state,
+concurrency, provider, dependency, cross-boundary, security, migration, or
+irreversible work has proportionate independent evidence. Exact non-browser
+green-path commands run without model QA. When both QA and formal review are
+required, they receive the same frozen diff and run concurrently when supported;
+QA owns executable gates and Reviewer does not rerun them. The parent joins
+results before one retained-Worker repair packet.
+
+The private profile maps optional planning advice to `AskClaude` only under a
+non-`claude-bridge` parent with Claude Code authentication, available provider
+access, and permitted source disclosure. Calls use `mode: "read"` and
+`isolated: true`: `claude-fable-5` at `medium` provides intent, taste, and
+planning perspective, while `claude-opus-5` at `high` provides only a distinct
+rigorous challenge. The two profiles do not receive the same question, and the
+Opus challenge does not duplicate the formal Opus Reviewer. It consumes the one
+independent-review budget; an applicable mandatory Go specification review takes
+precedence, so that review replaces the Opus planning challenge. Advice is
+evidence only. The parent retains architecture, synthesis, approval, and
+verification. When authentication, provider access, disclosure permission, or
+the tool is unavailable, the direct parent continues and reports the missing
+advice. Parent settings and adviser selection remain user settings, so
+installation never overwrites Pi authentication, preferences, or bridge
+configuration.
 
 Shape and planning use an evidence-based Go gate: proposed Go source, modules,
 CLIs, or Go-specific guidance or routing require one fixed-document Go

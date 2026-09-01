@@ -1,8 +1,8 @@
 ---
 name: worker
-description: Implements one accepted task as the sole writer with fixed Terra medium effort
-model: openai-codex/gpt-5.6-terra
-thinking: medium
+description: Implements one accepted task as the sole writer with fixed GPT-5.6 Sol low effort
+model: openai-codex/gpt-5.6-sol
+thinking: low
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

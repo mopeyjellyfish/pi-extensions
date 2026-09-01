@@ -1,8 +1,8 @@
 ---
 name: reviewer
-description: Reviews a fixed document or diff with evidence using fixed Opus 5 medium effort
+description: Reviews a fixed document or diff with evidence using fixed Opus 5 high effort
 model: claude-bridge/claude-opus-5
-thinking: medium
+thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

@@ -90,16 +90,22 @@ long-lived commands.
 
 The lifecycle is parent-led and routes work by impact and uncertainty.
 `/just-do-it` fixes a small, bounded problem during active work when the outcome,
-local cause, and objective check are clear. The direct parent verifies, commits,
-and pushes the fix without independent review. Clear standalone work implements
-now. Coordinated clear work plans first. Uncertain, hard-to-reverse, or risky
-work Shapes then plans.
-Shape and planning set up or verify an isolated linked task worktree before repository
-reads, discovery, research, or questions. Complete accepted plans execute in
-dependency order, with only planned independent lanes using separate worktrees
-and sole writers. A coherent delivery unit normally keeps its atomic commits in
-one branch and pull request; a stack needs independent value and check viability
-at each position. No lifecycle stage works in the main-branch checkout.
+local cause, and objective check are clear. It remains a direct-parent route:
+the parent verifies, commits, and pushes the fix without independent review.
+Normal non-trivial implementation uses the configured Worker. If Worker is
+unavailable, the direct parent may implement and reports that fallback. Clear
+standalone work implements now. Coordinated clear work plans first. Uncertain,
+hard-to-reverse, or risky work Shapes then plans.
+
+Shape and planning set up or verify an isolated linked task worktree before
+repository reads, discovery, research, or questions. Complete accepted plans
+execute in dependency order. Accepted `parallel-ready` implementation lanes may
+run concurrently only in separate isolated worktrees, with one Worker and sole
+write ownership per worktree, non-overlapping ownership, complete dependencies,
+and a named integration point. Otherwise, serialize them. A coherent delivery unit normally
+keeps its atomic commits in one branch and pull request; a stack needs
+independent value and check viability at each position. No lifecycle stage works
+in the main-branch checkout.
 
 For a direct bounded implementation request or accepted plan, `/implement`
 implements, verifies, reviews when selected, commits, pushes, and opens or
@@ -126,15 +132,16 @@ fallback labels require a separate exact-set confirmation. It verifies issue
 creation before optional Project placement and reports a placement failure as
 partial success without a blind retry. Private/public boundaries fail closed.
 
-The human selects a Fable or Sol parent for Shape and planning; installation
-does not overwrite parent settings. The fixed child catalog is:
+The human manually selects GPT-5.6 Sol at `xhigh` before Shape and planning as
+the preferred parent profile. Installation does not overwrite parent settings or
+install a global default. The fixed six-agent child catalog is:
 
 | Agent        | Model         | Thinking | Role and tools                                          |
 | ------------ | ------------- | -------- | ------------------------------------------------------- |
-| `worker`     | GPT-5.6 Terra | medium   | sole implementation writer                              |
+| `worker`     | GPT-5.6 Sol   | low      | sole non-trivial implementation writer                  |
 | `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research |
 | `qa`         | GPT-5.6 Luna  | medium   | read-only gate verification and acceptance evidence     |
-| `reviewer`   | Opus 5        | medium   | formal read-only code review and design review          |
+| `reviewer`   | Opus 5        | high     | formal read-only code review and design review          |
 | `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair             |
 | `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                 |
 
@@ -150,15 +157,16 @@ gates; Reviewer does not rerun them. The parent joins findings into one repair
 packet before a retained Worker repair.
 
 Every child starts with fresh context and has no model fallback. Shape and
-planning remain the selected Fable or Sol parent's responsibility for product
-and architecture judgment, approval, slice design, and synthesis. They may use
-at most one bounded Researcher handoff after worktree setup. A Worker failure,
-a concrete hard constraint, or a possible Sol child requires a justified
-`question` and explicit human approval before Sol; difficulty never routes to Sol
-automatically. Ambiguous routing also uses `question`.
+planning remain the selected parent's responsibility for product and
+architecture judgment, approval, slice design, and synthesis. They may use at
+most one bounded Researcher handoff after worktree setup. The fixed Sol Worker is
+the normal non-trivial implementation child. Any other Sol child override
+requires a justified `question` and explicit human approval; difficulty never
+selects an override automatically. Ambiguous routing also uses `question`.
 
-Claude Code and OpenAI Codex must already be signed in. For a Fable parent, set
-your existing `~/.pi/agent/settings.json` parent settings, for example:
+Claude Code and OpenAI Codex must already be signed in. The preferred Sol
+planning profile is a manual choice, not an installed default. A user may keep
+another existing parent setting, for example:
 
 ```json
 {
@@ -168,8 +176,7 @@ your existing `~/.pi/agent/settings.json` parent settings, for example:
 }
 ```
 
-A Sol parent is a human choice, not an installed default. Configure the bridge
-in `~/.pi/agent/claude-bridge.json` only when you use it:
+Configure the bridge in `~/.pi/agent/claude-bridge.json` only when you use it:
 
 ```json
 {
@@ -182,8 +189,19 @@ in `~/.pi/agent/claude-bridge.json` only when you use it:
 }
 ```
 
-AskClaude is available only to a non-claude-bridge parent; a Fable parent cannot
-call it. Use the fixed Opus Reviewer when risk selects formal review.
+`AskClaude` is available only to a non-`claude-bridge` parent. Use it only when
+Claude Code authentication and provider access are available and source
+disclosure is permitted. Calls use `mode: "read"` and `isolated: true`. Use
+`claude-fable-5` at `medium` for intent, taste, and planning perspective. Use
+`claude-opus-5` at `high` only for a distinct rigorous challenge. Do not send the
+same question to both profiles, and do not duplicate the formal Opus Reviewer.
+The rigorous challenge consumes the one independent-review budget. An applicable
+mandatory Go specification review takes precedence, so skip the Opus planning
+challenge when that review consumes the budget. Advice is evidence only; the
+parent keeps architecture, synthesis, approval, and verification authority. If
+`AskClaude` is unavailable because of authentication, provider, parent, or
+disclosure limits, continue with the direct parent and state that no advice was
+obtained.
 
 Hide pi-subagents built-ins in the pinned pi-subagents **Pi settings** object
 at `~/.pi/agent/settings.json` (not its extension config file):
