@@ -84,6 +84,9 @@ describe("engineering resources", () => {
     expect(routerText).toMatch(
       /Normal non-trivial writes[^.]*implementation writer capability[^.]*through `implement`/iu,
     );
+    expect(routerText).toMatch(
+      /direct-parent exceptions[^.]*reported unavailable-capability fallback/iu,
+    );
     expect(implementText).toMatch(
       /A factual research capability[^.]*named[^.]*evidence gap, and a mechanical support capability[^.]*bounded[^.]*no specialist owns it/iu,
     );
@@ -98,6 +101,9 @@ describe("engineering resources", () => {
       /The Git delivery capability[^.]*authorized delivery mechanics[^.]*installed[^.]*methods/iu,
     );
     expect(implementText).toMatch(/It is not an implementation substitute/iu);
+    expect(implementText).toMatch(
+      /If Worker is unavailable[^.]*direct parent executes the unit[^.]*reports that fallback/iu,
+    );
     const debugAdditions = diagnosing
       .slice(diagnosing.indexOf("## Pi debug additions"))
       .replaceAll(/\s+/gu, " ");
@@ -113,6 +119,9 @@ describe("engineering resources", () => {
     expect(implementText).toMatch(/Ordinary children[^.]*must not fan out/iu);
     expect(readmeText).toMatch(
       /The parent owns routing[^.]*synthesis[^.]*product and architecture decisions[^.]*approval[^.]*final diff inspection[^.]*verification[^.]*publication decisions/iu,
+    );
+    expect(readmeText).toMatch(
+      /reported unavailable-capability fallback[^.]*direct-parent exceptions/iu,
     );
   });
 
