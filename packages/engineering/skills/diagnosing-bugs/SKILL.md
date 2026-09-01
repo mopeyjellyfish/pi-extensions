@@ -187,11 +187,11 @@ possible.
 
 ### Repair loop
 
-Before Phase 5, classify first: for a confirmed non-trivial bug,
-return the reproducible symptom, confirmed cause, regression seam, and evidence
-to `implement` for the implementation writer capability before Phase 5; it does
-not start another writer or fan out from this diagnosis. Only a bounded direct-parent
-diagnostic fix continues to Phase 5 and loads and follows the
+Before Phase 5, classify first. For a confirmed non-trivial bug, return the
+reproducible symptom, confirmed cause, regression seam, and evidence to
+`implement` for the implementation writer capability before Phase 5. This
+diagnostic method does not start another writer or fan out. Only a bounded
+direct-parent diagnostic fix continues to Phase 5 and loads and follows the
 `test-driven-development` skill. Keep the upstream order: turn the minimized
 reproduction into a red regression test at the correct seam, make the smallest
 root-cause fix, and verify the test and original loop turn green.

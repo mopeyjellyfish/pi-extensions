@@ -98,10 +98,11 @@ describe("engineering resources", () => {
       .slice(diagnosing.indexOf("## Pi debug additions"))
       .replaceAll(/\s+/gu, " ");
 
+    expect(debugAdditions).toMatch(/before Phase 5[^.]*classify first/iu);
     expect(debugAdditions).toMatch(
-      /classify[^.]*first[^.]*confirmed non-trivial bug[^.]*symptom[^.]*cause[^.]*regression seam[^.]*evidence[^.]*implement[^.]*before Phase 5/iu,
+      /confirmed non-trivial bug[^.]*symptom[^.]*cause[^.]*regression seam[^.]*evidence[^.]*implement[^.]*before Phase 5/iu,
     );
-    expect(debugAdditions).toMatch(/confirmed non-trivial bug[^.]*does not start another writer/iu);
+    expect(debugAdditions).toMatch(/diagnostic method[^.]*does not start another writer/iu);
     expect(debugAdditions).toMatch(
       /only[^.]*bounded direct-parent diagnostic fix[^.]*continues to Phase 5[^.]*test-driven-development/iu,
     );
