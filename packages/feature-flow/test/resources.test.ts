@@ -60,6 +60,15 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/one independent[\s\S]*review/iu);
     expect(planning).toMatch(/direct-parent fallback[\s\S]*unavailable/iu);
     expect(planning).toMatch(/exceptional high-capability role requires explicit[\s\S]*approval/iu);
+    expect(planning).toMatch(/optional[^.]*read-only adviser capability/iu);
+    expect(planning).toMatch(/source disclosure[^.]*permitted/iu);
+    expect(planning).toMatch(/distinct question/iu);
+    expect(planning).toMatch(
+      /parent[^.]*architecture[^.]*synthesis[^.]*approval[^.]*verification/iu,
+    );
+    expect(planning).toMatch(/rigorous challenge[^.]*one independent-review budget/iu);
+    expect(planning).toMatch(/mandatory[^.]*specification review[^.]*precedence/iu);
+    expect(planning).toMatch(/adviser capability[\s\S]*unavailable[\s\S]*direct-parent fallback/iu);
     expect(planning).toMatch(
       /Approve and implement[\s\S]*Revise[\s\S]*Deepen[\s\S]*Independent review/iu,
     );
@@ -136,6 +145,18 @@ describe("feature-flow resources", () => {
     );
     expect(readme).toMatch(/whole-plan approval[^.]*accept-all authority/iu);
 
+    expect(readme).toMatch(/optional[^.]*read-only adviser capability/iu);
+    expect(readme).toMatch(/disclosure[^.]*distinct question[^.]*evidence only/iu);
+    expect(readme).toMatch(
+      /one independent-review budget[^.]*mandatory[^.]*review[^.]*precedence/iu,
+    );
+    expect(readme).toMatch(/unavailable[\s\S]*direct-parent fallback/iu);
+
+    for (const portableAdviserResource of [planning, readme]) {
+      expect(portableAdviserResource).not.toMatch(
+        /AskClaude|claude-(?:bridge|fable|opus)|\bFable\b|\bOpus\b|\bSol\b|GPT-\d/iu,
+      );
+    }
     for (const resource of [shape, planning, plan, readme]) {
       expect(resource).not.toMatch(
         /pi-subagents|runs\.all|writer lease|parallel-safe|FFF|\bFable\b|\bSol\b/iu,

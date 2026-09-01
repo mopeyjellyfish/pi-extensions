@@ -23,6 +23,20 @@ human explicitly selected accept-all. Create or update
 `status: draft`, unless the target repository defines another feature-document
 location.
 
+## Optional planning adviser
+
+After worktree setup, use one optional read-only adviser capability at most when
+it adds useful planning evidence and source disclosure is permitted. Give it a
+distinct question that does not duplicate another adviser or required review.
+The adviser provides evidence only. The selected parent retains product and
+architecture judgment, slice design, synthesis, approval, and verification.
+
+A rigorous challenge consumes the one independent-review budget. Any applicable
+mandatory specification review takes precedence, so do not request another
+rigorous challenge when that review consumes the budget. If the adviser
+capability is unavailable, use the direct-parent fallback, record that the
+advice was not obtained, and do not claim that the capability ran.
+
 ## Go specification review
 
 Treat a plan as Go-targeted only when its proposed outcome changes Go source, a

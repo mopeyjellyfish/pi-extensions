@@ -26,6 +26,14 @@ an independent installation uses the direct parent when
 those capabilities are unavailable. An exceptional high-capability role needs
 explicit human approval.
 
+An optional read-only adviser capability may be used when disclosure is
+permitted, receives one distinct question, and returns evidence only. The parent
+retains architecture, synthesis, approval, and verification authority. A
+rigorous challenge consumes the one independent-review budget; any applicable
+mandatory specification review takes precedence. If the capability is
+unavailable, use the direct-parent fallback and record that no advice was
+obtained.
+
 Material UI scope receives conditional interface evidence during Shape and
 traceable state, responsive, accessibility, system-reuse, and visual-proof gates
 during planning. For a greenfield web application or materially new application
