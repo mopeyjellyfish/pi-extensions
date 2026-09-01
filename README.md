@@ -166,7 +166,8 @@ selects an override automatically. Ambiguous routing also uses `question`.
 
 Claude Code and OpenAI Codex must already be signed in. The preferred Sol
 planning profile is a manual choice, not an installed default. The following
-example is an alternative `claude-bridge` parent that cannot call `AskClaude`:
+alternative `claude-bridge` parent belongs in `~/.pi/agent/settings.json` and
+cannot call `AskClaude`:
 
 ```json
 {

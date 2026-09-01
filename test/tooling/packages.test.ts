@@ -586,7 +586,9 @@ describe("package contracts", () => {
     expect(readme).toMatch(/^\| `git`\s+\| GPT-5\.6 Terra\s+\| medium\s+\|[^\n]*\|$/mu);
     expect(readme).toMatch(/^\| `utility`\s+\| GPT-5\.6 Luna\s+\| medium\s+\|[^\n]*\|$/mu);
     expect(readme).toMatch(/AskClaude[\s\S]*non-[^\n]*claude-bridge[^\n]*parent/iu);
-    expect(readme).toMatch(/alternative `claude-bridge` parent[^.]*cannot call `AskClaude`/iu);
+    expect(readme).toMatch(
+      /alternative `claude-bridge` parent[^.]*`~\/\.pi\/agent\/settings\.json`[^.]*cannot call `AskClaude`/iu,
+    );
     expect(readme).toMatch(/Claude Code[^.]*signed in/iu);
     expect(readme).toMatch(/source\s+disclosure[\s\S]*permitted/iu);
     expect(readme).toMatch(/claude-fable-5[\s\S]*medium[\s\S]*intent[\s\S]*planning perspective/iu);
