@@ -31,15 +31,15 @@ uses `claude-bridge`.
 
 Keep the existing six-agent catalog. Apply this routing:
 
-| Role | Model | Thinking | Purpose |
-| --- | --- | --- | --- |
-| Planning parent | GPT-5.6 Sol | `xhigh` | Manually selected profile for Shape and planning judgment |
-| Worker | GPT-5.6 Sol | `low` | Non-trivial implementation in one owned worktree |
-| Researcher | GPT-5.6 Luna | `low` | Bounded factual discovery |
-| QA | GPT-5.6 Luna | `medium` | Acceptance, browser, and failure evidence |
-| Reviewer | Claude Opus 5 | `high` | Formal fixed-document or fixed-diff review |
-| Git | GPT-5.6 Terra | `medium` | Git delivery and conflict repair |
-| Utility | GPT-5.6 Luna | `medium` | Bounded general support |
+| Role            | Model         | Thinking | Purpose                                                   |
+| --------------- | ------------- | -------- | --------------------------------------------------------- |
+| Planning parent | GPT-5.6 Sol   | `xhigh`  | Manually selected profile for Shape and planning judgment |
+| Worker          | GPT-5.6 Sol   | `low`    | Non-trivial implementation in one owned worktree          |
+| Researcher      | GPT-5.6 Luna  | `low`    | Bounded factual discovery                                 |
+| QA              | GPT-5.6 Luna  | `medium` | Acceptance, browser, and failure evidence                 |
+| Reviewer        | Claude Opus 5 | `high`   | Formal fixed-document or fixed-diff review                |
+| Git             | GPT-5.6 Terra | `medium` | Git delivery and conflict repair                          |
+| Utility         | GPT-5.6 Luna  | `medium` | Bounded general support                                   |
 
 Document GPT-5.6 Sol at `xhigh` as the preferred manual planning selection. Do
 not install it as a global parent default and do not add a seventh Planner agent.
