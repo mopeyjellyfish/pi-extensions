@@ -110,7 +110,6 @@ Other hosts use their equivalent fixed-role foreground launch. Do not pass
 its tools, model, thinking level, and fresh-context default. A trivial bounded
 change — one obvious fix with one obvious focused check — may remain directly as
 the parent. If Worker is unavailable, the direct parent executes the unit.
-These roles are portable capability purposes, not implementation substitutes.
 An unavailable implementation writer capability leaves the direct parent as the
 fallback.
 
