@@ -160,7 +160,7 @@ describe("feature-flow resources", () => {
     expect(readme).toMatch(
       /one independent-review budget[^.]*mandatory[^.]*review[^.]*precedence/iu,
     );
-    expect(readme).toMatch(/unavailable[\s\S]*direct-parent fallback/iu);
+    expect(readme).toMatch(/capability is unavailable[^.]*direct-parent\s+fallback/iu);
 
     for (const portableAdviserResource of [planning, readme]) {
       expect(portableAdviserResource).not.toMatch(
