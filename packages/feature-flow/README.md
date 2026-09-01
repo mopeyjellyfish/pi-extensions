@@ -19,22 +19,23 @@ asks a separate optional execution-mode question: checkpointed implementation
 is the default, while accept-all is only a recorded preference. If the question
 tool is unavailable or the human cancels or skips it, checkpointed remains the
 default.
-Planning repeats the selected mode; only whole-plan approval confirms accept-all authority for the named accepted plan.
-The parent owns product and architecture
-judgment, synthesis, verification, and approval. Shape and planning use a
-factual research capability only for a named repository or primary-source
+Planning repeats the selected mode; only whole-plan approval confirms
+accept-all authority for the named accepted plan. The parent owns product and
+architecture judgment, synthesis, verification, and approval. Shape and planning
+use a factual research capability only for a named repository or primary-source
 evidence gap, and a mechanical support capability only for a named bounded
 inventory or transformation evidence gap when no specialist capability owns it.
 A QA capability may provide test-surface evidence, and at most one review
 capability may be used when useful. Support is read-only and returns evidence
 only. Independent read-only evidence lanes run concurrently only for named
-evidence gaps that are disjoint and have a critical-path or parent-context benefit. The parent joins every result before a decision.
-Support cannot own product, architecture,
-slice, synthesis, approval, final diff inspection, or verification. If a selected factual research capability,
-mechanical support capability, QA capability, or review capability is
-unavailable, use an honest direct-parent fallback and record the unmet evidence;
-do not select another capability as a substitute. An exceptional high-capability
-role needs explicit human approval.
+evidence gaps that are disjoint and have a critical-path or parent-context
+benefit. The parent joins every result before a decision. Support cannot own
+product, architecture, slice, synthesis, approval, final diff inspection, or
+verification. If a selected factual research capability, mechanical support
+capability, QA capability, or review capability is unavailable, use an honest
+direct-parent fallback and record the unmet evidence; do not select another
+capability as a substitute. An exceptional high-capability role needs explicit
+human approval.
 
 During planning, at most one optional read-only adviser capability may be used
 when disclosure is permitted. That capability may receive at most one
