@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-frontend-developer",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Deliberate frontend design, React implementation, visual validation, and optional image generation for Pi.",
   "license": "MIT AND Apache-2.0",
   "type": "module",

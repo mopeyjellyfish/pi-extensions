@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-go",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Idiomatic Go programming guidance for Pi.",
   "license": "MIT",
   "type": "module",
