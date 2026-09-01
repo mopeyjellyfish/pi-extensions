@@ -12,26 +12,33 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six fixed package agents. The private mapping is Worker =
-implementation writer capability; Researcher = factual research capability;
-Utility = mechanical support capability; QA = QA capability; Reviewer = review
-capability; and Git = Git delivery capability. Support returns evidence only.
-Normal non-trivial implementation uses Worker. The human manually selects GPT-5.6 Sol
-at `xhigh` before Shape and planning; installation does not set or overwrite
-a global parent default. `/just-do-it`, one obvious trivial correction, and an
-unavailable-implementation-writer fallback are direct-parent exceptions.
+It exposes six fixed package agents: a Sol-low Worker, Terra-medium Git writer,
+Luna-low Researcher, Luna-medium QA verification and Utility read-only support,
+and an Opus-high Reviewer. The private mapping is Worker = implementation writer
+capability; Researcher = factual research capability; Utility = mechanical
+support capability; QA = QA capability; Reviewer = review capability; and Git =
+Git delivery capability. Support returns evidence only.
 
-Independent read-only lanes need named disjoint evidence gaps plus a
+The human manually selects GPT-5.6 Sol at `xhigh` before Shape and planning;
+installation does not set or overwrite a global parent default. Non-trivial
+implementation uses the configured Worker. `/just-do-it`, one obvious trivial
+correction, and an unavailable-implementation-writer fallback are direct-parent
+exceptions. Independent read-only lanes need named disjoint evidence gaps plus a
 critical-path or parent-context benefit and are joined before decisions. Ordinary
 children do not fan out. Accepted `parallel-ready` implementation lanes may run
 concurrently only in separate isolated worktrees with sole writers,
 non-overlapping ownership, complete dependencies, and named integration points.
 
-Deterministic green commands do not select QA. QA and Reviewer are distinct and
-run concurrently only on one frozen boundary when both are selected; the parent
-joins their repair packet before the retained integration Worker repairs it
-without a replacement. Git delivery uses installed methods and is not an
-implementation substitute.
+Implementation keeps focused repair loops in Worker and selects QA and formal
+review by risk. Mechanical, documentation, and reversible metadata work has
+direct focused evidence. Material public behavior, lifecycle, state,
+concurrency, provider, dependency, cross-boundary, security, migration, or
+irreversible work has proportionate independent evidence. Deterministic green
+commands do not select QA. QA and Reviewer are distinct and run concurrently
+only on one frozen boundary when both are selected. QA owns executable gates,
+and Reviewer does not rerun them. The parent joins their repair packet before the
+retained Worker repairs it without a replacement. Git delivery uses installed
+methods and is not an implementation substitute.
 
 The private profile maps optional planning advice to `AskClaude` only under a
 non-`claude-bridge` parent with Claude Code authentication, available provider

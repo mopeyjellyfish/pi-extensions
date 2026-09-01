@@ -639,8 +639,9 @@ describe("package contracts", () => {
       );
       expect(prose).toMatch(/ordinary children[^.]*do not fan out/iu);
       expect(prose).toMatch(/deterministic green commands[^.]*do not select QA/iu);
+      expect(prose).toMatch(/QA and Reviewer[^.]*concurrently[^.]*one frozen boundary/iu);
       expect(prose).toMatch(
-        /QA and Reviewer[^.]*concurrently[^.]*one frozen boundary[^.]*retained integration Worker[^.]*without a replacement/iu,
+        /parent[^.]*repair packet[^.]*retained Worker[^.]*without a replacement/iu,
       );
       expect(prose).toMatch(
         /Git delivery[^.]*installed methods[^.]*not[^.]*implementation substitute/iu,
@@ -649,6 +650,29 @@ describe("package contracts", () => {
         /`\/just-do-it`[^.]*one obvious trivial correction[^.]*unavailable-implementation-writer fallback[^.]*direct-parent exceptions/iu,
       );
     }
+
+    const agentsProse = agents.replaceAll(/\s+/gu, " ");
+    const readmeProse = readme.replaceAll(/\s+/gu, " ");
+    const architectureProse = architecture.replaceAll(/\s+/gu, " ");
+
+    expect(agentsProse).toMatch(
+      /Sol Worker at `low`.*Terra.*Git.*Luna.*read-only or mechanical support.*Opus at `high`.*formal review/iu,
+    );
+    expect(agentsProse).toMatch(
+      /Other Sol child overrides[^.]*justified `question`[^.]*explicit human approval/iu,
+    );
+    expect(readmeProse).toMatch(
+      /`\/just-do-it`.*direct-parent route.*verifies, commits, and pushes.*without independent review/iu,
+    );
+    expect(readmeProse).toMatch(
+      /Shape and planning.*isolated linked task worktree.*before repository reads, discovery, research, or questions/iu,
+    );
+    expect(architectureProse).toMatch(
+      /Sol-low Worker.*Terra-medium Git.*Luna-low Researcher.*Luna-medium QA.*Utility.*Opus-high Reviewer/iu,
+    );
+    expect(architectureProse).toMatch(
+      /material public behavior.*lifecycle.*state.*concurrency.*provider.*dependency.*security.*migration/iu,
+    );
   });
 
   it("documents the portable target-repository resource boundary", async () => {
