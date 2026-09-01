@@ -124,10 +124,15 @@ do not claim that the skill loaded or block only for its absence.
 
 ## Bounded support
 
-After worktree setup, use cheap factual mapping, mechanical inventory, or QA
-test-surface support only when it saves parent context. Use at most one
-independent review when useful. Support provides evidence, not product,
-architecture, slice, or approval decisions. Use the direct-parent fallback when
-a role is unavailable. Any exceptional high-capability role requires explicit
-human approval; production guidance must not depend on private agents or model
-names.
+After worktree setup, use a factual research capability only for one named
+repository or primary-source evidence gap. Use a mechanical support capability
+only for one named bounded inventory or transformation evidence gap when no
+specialist capability owns it. A QA capability may provide test-surface evidence,
+and use at most one review capability when useful. Support is read-only and
+returns evidence only. Run independent read-only evidence lanes concurrently
+only when their named evidence gaps are disjoint and the concurrent work has a
+critical-path or parent-context benefit. The parent joins every result before a
+decision. Support cannot own product, architecture, slice, synthesis, approval,
+final diff inspection, or verification. If either capability is unavailable,
+use an honest direct-parent fallback and record unmet evidence. Any exceptional high-capability role requires explicit human approval;
+production guidance must not depend on private agents or model names.

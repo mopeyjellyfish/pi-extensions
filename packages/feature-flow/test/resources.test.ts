@@ -174,6 +174,30 @@ describe("feature-flow resources", () => {
     }
   });
 
+  it("coordinates bounded evidence lanes without transferring parent authority", async () => {
+    expect.hasAssertions();
+    const [shape, planning, readme] = await Promise.all([
+      read("skills/shape/SKILL.md"),
+      read("skills/planning-changes/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    for (const resource of [shape, planning, readme]) {
+      expect(resource).toMatch(/factual research capability[^.]*only[^.]*named[^.]*evidence gap/iu);
+      expect(resource).toMatch(
+        /mechanical support capability[^.]*only[^.]*named[^.]*evidence gap/iu,
+      );
+      expect(resource).toMatch(
+        /named[^.]*evidence gaps[^.]*disjoint[^.]*critical[- ]path or parent[- ]context/iu,
+      );
+      expect(resource).toMatch(/parent joins every result[^.]*before[^.]*decision/iu);
+      expect(resource).toMatch(
+        /support[^.]*cannot own[^.]*product[^.]*architecture[^.]*slice[^.]*synthesis[^.]*approval[^.]*final diff inspection[^.]*verification/iu,
+      );
+      expect(resource).toMatch(/capabilit(?:y|ies)[^.]*unavailable[^.]*direct-parent fallback/iu);
+    }
+  });
+
   it("requires evidence-based Go specification review before Go document approval", async () => {
     expect.hasAssertions();
     const [shape, planning, pitch, plan, readme] = await Promise.all([
