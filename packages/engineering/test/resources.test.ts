@@ -69,6 +69,37 @@ describe("engineering resources", () => {
     }
   });
 
+  it("coordinates implementation and assurance through portable capabilities", async () => {
+    expect.hasAssertions();
+    const [router, implement, diagnosing, readme] = await Promise.all([
+      read("skills/developing-changes/SKILL.md"),
+      read("skills/implement/SKILL.md"),
+      read("skills/diagnosing-bugs/SKILL.md"),
+      read("README.md"),
+    ]);
+
+    expect(router).toMatch(/implementation writer capability[\s\S]*implement/iu);
+    expect(implement).toMatch(
+      /factual research capability[\s\S]*named[\s\S]*evidence gap[\s\S]*evidence only/iu,
+    );
+    expect(implement).toMatch(
+      /mechanical support capability[\s\S]*bounded[\s\S]*no specialist[\s\S]*evidence only/iu,
+    );
+    expect(implement).toMatch(
+      /QA capability[\s\S]*failed-command diagnosis[\s\S]*review capability/iu,
+    );
+    expect(implement).toMatch(
+      /Git delivery capability[\s\S]*authorized[\s\S]*delivery\s+mechanics[\s\S]*not[\s\S]*implementation substitute/iu,
+    );
+    expect(diagnosing.slice(diagnosing.indexOf("## Pi debug additions"))).toMatch(
+      /symptom[\s\S]*cause[\s\S]*regression seam[\s\S]*evidence[\s\S]*implement/iu,
+    );
+    expect(implement).toMatch(/ordinary child[\s\S]*must not fan out/iu);
+    expect(readme).toMatch(
+      /parent[\s\S]*routing[\s\S]*synthesis[\s\S]*product and architecture decisions[\s\S]*approval[\s\S]*final diff inspection[\s\S]*verification[\s\S]*publication decisions/iu,
+    );
+  });
+
   it("pins fixed-role launch controls to agent profiles", async () => {
     expect.hasAssertions();
     const [implement, justDoIt, readme] = await Promise.all([

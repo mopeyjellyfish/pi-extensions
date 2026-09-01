@@ -25,6 +25,10 @@ route:
    major or hard-to-reverse behavior, or security, privacy, or migration risk.
    Use `shape`, then `planning-changes` after acceptance.
 
+Normal non-trivial writes use the implementation writer capability through
+`implement`. The direct-parent exceptions are `/just-do-it`, one obvious trivial
+correction, and an unavailable-capability fallback.
+
 Use `just-do-it` for a small, bounded fix during active work when the requested outcome and objective check are clear. This route can include obvious breakage, cleanup, or a local behavior correction. It verifies, commits, and pushes without review. Do not require broad repetition or route it through `implement` only because behavior is involved.
 
 Ask one focused question only when a material boundary ambiguity prevents safe
