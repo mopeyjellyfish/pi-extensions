@@ -26,13 +26,15 @@ an independent installation uses the direct parent when
 those capabilities are unavailable. An exceptional high-capability role needs
 explicit human approval.
 
-During planning, an optional read-only adviser capability may be used when disclosure is
-permitted, receives one distinct question, and returns evidence only. The parent
-retains architecture, synthesis, approval, and verification authority. A
-rigorous challenge consumes the one independent-review budget; any applicable
-mandatory specification review takes precedence. If the capability is
-unavailable, use the direct-parent fallback and record that no advice was
-obtained.
+During planning, at most one optional read-only adviser capability may be used
+when disclosure is permitted. That capability may receive at most one
+planning-perspective question and, when the independent-review budget permits,
+one distinct rigorous-challenge question. It must not duplicate a question or
+required review and returns evidence only. The parent retains architecture,
+synthesis, approval, and verification authority. A rigorous challenge consumes
+the one independent-review budget; any applicable mandatory specification
+review takes precedence. If the capability is unavailable, use the direct-parent
+fallback and record that no advice was obtained.
 
 Material UI scope receives conditional interface evidence during Shape and
 traceable state, responsive, accessibility, system-reuse, and visual-proof gates

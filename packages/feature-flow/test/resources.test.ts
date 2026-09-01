@@ -60,9 +60,12 @@ describe("feature-flow resources", () => {
     expect(planning).toMatch(/one independent[\s\S]*review/iu);
     expect(planning).toMatch(/direct-parent fallback[\s\S]*unavailable/iu);
     expect(planning).toMatch(/exceptional high-capability role requires explicit[\s\S]*approval/iu);
-    expect(planning).toMatch(/optional[^.]*read-only adviser capability/iu);
+    expect(planning).toMatch(/one optional read-only adviser capability at most/iu);
     expect(planning).toMatch(/source disclosure[^.]*permitted/iu);
-    expect(planning).toMatch(/distinct question/iu);
+    expect(planning).toMatch(/may receive at most one\s+planning-perspective question/iu);
+    expect(planning).toMatch(/one distinct rigorous-challenge question/iu);
+    expect(planning).toMatch(/must not duplicate[^.]*question[^.]*required review/iu);
+    expect(planning).toMatch(/adviser provides evidence only/iu);
     expect(planning).toMatch(
       /parent[^.]*architecture[^.]*synthesis[^.]*approval[^.]*verification/iu,
     );
@@ -145,9 +148,15 @@ describe("feature-flow resources", () => {
     );
     expect(readme).toMatch(/whole-plan approval[^.]*accept-all authority/iu);
 
-    expect(readme).toMatch(/^During planning, an optional read-only adviser capability/imu);
+    expect(readme).toMatch(
+      /^During planning, at most one optional read-only adviser capability/imu,
+    );
     expect(readme).not.toMatch(/^An optional read-only adviser capability/imu);
-    expect(readme).toMatch(/disclosure[^.]*distinct question[^.]*evidence only/iu);
+    expect(readme).toMatch(/disclosure[^.]*permitted/iu);
+    expect(readme).toMatch(/may receive at most one\s+planning-perspective question/iu);
+    expect(readme).toMatch(/one distinct rigorous-challenge question/iu);
+    expect(readme).toMatch(/must not duplicate[^.]*question[^.]*required review/iu);
+    expect(readme).toMatch(/returns evidence only/iu);
     expect(readme).toMatch(
       /one independent-review budget[^.]*mandatory[^.]*review[^.]*precedence/iu,
     );
