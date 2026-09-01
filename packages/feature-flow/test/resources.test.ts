@@ -191,6 +191,7 @@ describe("feature-flow resources", () => {
         /named[^.]*evidence gaps[^.]*disjoint[^.]*critical[- ]path or parent[- ]context/iu,
       );
       expect(resource).toMatch(/parent joins every result[^.]*before[^.]*decision/iu);
+      expect(resource).toMatch(/support capability[^.]*does not start further children/iu);
       expect(resource).toMatch(
         /support[^.]*cannot own[^.]*product[^.]*architecture[^.]*slice[^.]*synthesis[^.]*approval[^.]*final diff inspection[^.]*verification/iu,
       );

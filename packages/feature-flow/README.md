@@ -27,7 +27,8 @@ evidence gap, and a mechanical support capability only for a named bounded
 inventory or transformation evidence gap when no specialist capability owns it.
 A QA capability may provide test-surface evidence, and at most one review
 capability may be used when useful. Support is read-only and returns evidence
-only. Independent read-only evidence lanes run concurrently only for named
+only. A support capability does not start further children. Independent
+read-only evidence lanes run concurrently only for named
 evidence gaps that are disjoint and have a critical-path or parent-context
 benefit. The parent joins every result before a decision. Support cannot own
 product, architecture, slice, synthesis, approval, final diff inspection, or
