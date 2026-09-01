@@ -6,38 +6,40 @@ skills for TDD, design, debugging, domain language, review, and architecture
 discovery. It has no extension or
 runtime dependency.
 
-The root profile loads complete Engineering resources. It uses the installed
-Worker profile for standard, plan-less, and accepted hard work, configured QA
-for failed-command diagnosis, browser evidence, or ambiguous acceptance, and
-Reviewer for risk-selected formal review. A fixed agent being unavailable falls
-back to the direct parent. A higher-capability need requires a `question` with
-evidence, expected benefit, and a bounded task before explicit human approval;
-difficulty alone never selects that role. `/debug` starts its skill in a
-dedicated worktree and uses the `question` tool for focused intake:
+A host can map its configured roles to an implementation writer capability for
+standard, plan-less, and accepted hard work, a QA capability for failed-command
+diagnosis, browser evidence, or ambiguous acceptance, and a review capability
+for risk-selected formal review. When a capability is unavailable, the direct
+parent uses and reports the bounded fallback. A higher-capability need requires
+evidence, expected benefit, a bounded task, and explicit human approval;
+difficulty alone never selects that role. `/debug` uses available isolated
+worktree and focused-intake methods, and reports any unmet method:
 
 ```text
-parent -> bounded Worker -> frozen diff -> [deterministic gates or QA || Reviewer]
+parent -> bounded implementation writer -> frozen diff -> [deterministic gates or QA capability || review capability]
 ```
 
-The Worker owns one vertical change, focused behavioral proof, and local static
-checks. Parent finalization owns the named repository gates and assurance
-selection. Exact green-path commands run deterministically without a QA model.
-When QA and formal review are both selected, they run in parallel on one frozen
-diff: QA owns executable evidence and Reviewer owns intent and Standards. The
-parent joins their results into one repair packet. Progressing repairs rerun only
-invalidated evidence and do not repeat unchanged review.
+The bounded implementation writer owns one vertical change, focused behavioral
+proof, and local static checks. Parent finalization owns the named repository
+gates and assurance selection. Exact green-path commands run deterministically
+without a QA model. When a QA capability and review capability are both
+selected, they run in parallel on one frozen diff: QA owns executable evidence
+and review owns intent and Standards. The parent joins their results into one
+repair packet. Progressing repairs rerun only invalidated evidence and do not
+repeat unchanged review.
 
-All configured child handoffs start with fresh context. Fixed Worker launches are
-foreground launches that omit per-run mode, model, and thinking fields so the
-agent profile remains authoritative. When Pi supplies that capability through
-its `subagent` tool, the skills provide the direct argument contract without
-making the independent package depend on that extension. Before any write,
-every mutation-capable skill requires an isolated linked worktree and never
-edits the main-branch checkout. `implement` reuses the task worktree that
-contains the accepted pitch and plan, or creates one for a plan-less bounded request when
-safe worktree tooling is available. Direct diagnosis, TDD, and domain-modeling
-work applies the same guard. When safe tooling is unavailable, the skill stops
-before writing and asks the human to provide a worktree.
+All configured child handoffs start with fresh context. Fixed
+implementation-writer launches are foreground launches that omit per-run mode,
+model, and thinking fields so the capability profile remains authoritative. When
+a host supplies a compatible child-launch method, the skills provide the direct
+argument contract without making the independent package depend on that method.
+Before any write, every mutation-capable skill requires an isolated linked
+worktree and never edits the main-branch checkout. `implement` reuses the task
+worktree that contains the accepted pitch and plan, or creates one for a
+plan-less bounded request when safe worktree tooling is available. Direct
+diagnosis, TDD, and domain-modeling work applies the same guard. When safe
+tooling is unavailable, the skill stops before writing and asks the human to
+provide a worktree.
 
 In a fresh worktree, repository-defined runtime and dependency setup occurs
 before the first test unless valid parent-supplied setup evidence covers the
@@ -46,11 +48,12 @@ unchanged runtime selectors and dependency inputs.
 The parent supplies durable Intent sources: target-project context, every named
 pitch, plan, request, and later user decisions, plus the exact slice, not a
 conversation transcript. It confirms the Business reason from evidence or asks
-the human to confirm it, then records it in the implementation spec and Worker
-handoff. The parent owns routing, synthesis, product and architecture decisions,
-approval, final diff inspection, verification, and publication decisions. An
-independent installation without the root agent profiles uses the direct parent;
-it does not automatically provide companion extensions, agents, tools, or skills.
+the human to confirm it, then records it in the implementation spec and
+implementation-writer handoff. The parent owns routing, synthesis, product and
+architecture decisions, approval, final diff inspection, verification, and
+publication decisions. An independent installation without configured profiles
+uses the direct parent; it does not automatically provide companion extensions,
+agents, tools, or skills.
 Normal non-trivial writes use the implementation writer capability through
 `implement`. A factual research capability resolves one named repository or
 primary-source evidence gap, and a mechanical support capability performs a
@@ -98,16 +101,17 @@ remains direct.
 
 `/just-do-it <request>` reuses the current safe task worktree and branch, or sets
 up an isolated task worktree before repository reads. The direct parent fixes
-the bounded problem immediately and uses one fresh Worker only when broad
-repetition saves critical-path time or parent context. The route permits one
-bounded inspection pass for obvious local breakage. It stops for broad diagnosis,
-product decisions, security or migration risk, dependency changes, irreversible
-actions, or scope expansion.
+the bounded problem immediately and uses one fresh implementation writer only
+when broad repetition saves critical-path time or parent context. The route
+permits one bounded inspection pass for obvious local breakage. It stops for
+broad diagnosis, product decisions, security or migration risk, dependency
+changes, irreversible actions, or scope expansion.
 
 The route runs focused verification and parent diff inspection. It does not run
-independent QA, a Reviewer, or formal review. Successful verification authorizes
-the named fix to be committed and pushed on the current branch without another
-approval prompt. It does not open a pull request unless the user asks. It never
+an independent QA capability, review capability, or formal review. Successful
+verification authorizes the named fix to be committed and pushed on the current
+branch without another approval prompt. It does not open a pull request unless
+the user asks. It never
 grants merge, deployment, release, plain force push, worktree cleanup,
 destructive actions, or unrelated changes.
 
@@ -126,10 +130,10 @@ Implementation selects assurance from concrete risk. Mechanical,
 documentation, and reversible metadata work uses direct focused evidence.
 Material public behavior, lifecycle, state, concurrency, provider, dependency,
 cross-boundary, security, migration, or irreversible work selects proportionate
-QA or review. When both are needed, Pi uses one `runs.all` workflow for fresh
-read-only QA and Reviewer children on the same frozen-tree identifier. QA does
-not broaden the named commands; Reviewer does not run them. Hosts without
-concurrent children preserve the role split sequentially.
+QA or review. When both are needed, the host uses fresh read-only QA and review
+capabilities on the same frozen-tree identifier, concurrently when available.
+QA does not broaden the named commands, and review does not run them. Hosts
+without concurrent children preserve the capability split sequentially.
 
 Behavioral `implement` work loads `test-driven-development`; an unresolved
 failure loads `diagnosing-bugs` before implementation. Missing methods use the
@@ -149,10 +153,10 @@ standards; it never claims the method loaded.
 The TDD and review methods treat tautological tests as harmful. Expected values
 must be independent of the implementation under test. Each test must fail for a
 plausible wrong implementation.
-
-After a joined failure, the retained Worker receives one prioritized packet.
-The writer reruns focused invalidated evidence, then the parent or selected QA
-runs invalidated required gates and the final complete gate once. The parent
+After a joined failure, the retained implementation writer receives one
+prioritized packet. The writer reruns focused invalidated evidence. The parent
+or selected QA capability runs invalidated required gates and the final complete
+gate once. The parent
 verifies repaired review findings without a second full review unless
 architecture or accepted scope changed. Matching setup evidence is reused only
 while runtime selectors and dependency inputs remain unchanged. Matching final
@@ -200,8 +204,8 @@ require `gh stack`; unavailable delivery tools fail closed while preserving
 local work and recovery evidence.
 
 For an accepted `parallel-ready` slice, the human can request an isolated
-worker worktree. The direct parent integrates and verifies the result. When the
-root profile supplies `todo`, the parent uses it only for compact progress
+writer worktree. The direct parent integrates and verifies the result. When the
+host supplies a progress tracker, the parent uses it only for compact progress
 visibility.
 
 Install the complete independent package from a repository checkout:
@@ -300,10 +304,10 @@ Blueprint Ledger displays effectiveness risks, timing
 boundaries, hot cases, branch/base comparison, constraints, sources, gaps,
 tradeoffs, and proof while browser controls remain non-authoritative.
 
-High and max can use one read-only AskClaude second opinion when repository
-network, privacy, and source-disclosure rules permit it. Deepen does not call it
-again. Tracker, pane, Node, CDN, server, and companion-skill failures have
-explicit, honest fallbacks.
+High and max can use one available read-only second opinion when repository
+network, privacy, and source-disclosure rules permit it. Deepen does not request
+it again. Tracker, pane, Node, CDN, server, companion-skill, and second-opinion
+failures have explicit, honest fallbacks.
 
 `code-review` evaluates the accepted pitch and plan plus repository Standards.
 It loads only the applicable TypeScript, React, Go, or SQL guide from its
@@ -315,12 +319,13 @@ installation records an unavailable companion as an unmet method and uses bounde
 target-repository Go standards instead of claiming it loaded. Formal reviewers
 use target-repository instructions and module contracts first, installed Go and
 applicable Cobra/Viper standards second, and `references/go.md` questions last;
-only practical, non-tool-duplicate findings are reported. Worker preloads both
-Go skills, and fixed-diff handoffs explicitly send `Review mode: fixed-diff
-code`. `codebase-design` includes the complete adapted deep-module method, its
-dependency-deepening and alternative-interface references, and explicit
-testability guidance. For Go work, its precedence is target-repository standards
-first, then installed `go` and applicable `cobra-viper`; generic design guidance
+only practical, non-tool-duplicate findings are reported. The implementation
+writer capability preloads both Go skills, and fixed-diff handoffs explicitly
+send `Review mode: fixed-diff code`. `codebase-design` includes the complete
+adapted deep-module method, its dependency-deepening and alternative-interface
+references, and explicit testability guidance. For Go work, its precedence is
+target-repository standards first, then installed `go` and applicable
+`cobra-viper`; generic design guidance
 contributes evidence, depth, locality, and leverage without overriding them. Its
 alternative-interface flow keeps architecture judgment in the parent and prevents
 ordinary child agents from orchestrating fanout.
