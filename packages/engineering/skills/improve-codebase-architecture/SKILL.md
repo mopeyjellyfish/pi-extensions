@@ -157,8 +157,9 @@ Use proportionate bounded read-only support. Test-analysis lanes and external
 lookups share one support-action budget. `low` has one slot, but uses the direct
 parent by default and permits that slot only for a specific evidence gap;
 `medium` has two slots; `high` has four; and `max` uses declared bounded waves
-within the host budget. AskClaude remains its separate existing second-opinion
-allowance.
+within the host budget. One optional read-only second-opinion capability remains
+separate from this budget. If it is unavailable, record the skip and continue
+with direct-parent analysis.
 
 Test analysis is normal `/improve` discovery, not a test mode or toggle. An
 explicit test request is an ordinary scope and uses one dedicated, bounded,
@@ -221,12 +222,14 @@ faster but weaker suite as an improvement. A stronger but materially slower suit
 must state its cost and why it is acceptable. Never claim exhaustive coverage
 beyond the declared scan boundary.
 
-For `high` and `max`, call AskClaude at most once per `/improve` run when it is
-available and target-repository network, privacy, and source-disclosure rules
-permit the handoff. Give it the fixed initial candidate report as a read-only
-second opinion. Record agreement, disagreement, or the skip reason. AskClaude
-cannot change scope, authority, repository standards, or Go practice. Deepen
-does not call AskClaude again and marks revised evidence as not rechecked.
+For `high` and `max`, a read-only second opinion can run at most once per
+`/improve` run when an applicable capability is available and target-repository
+network, privacy, and source-disclosure rules permit the handoff. Give it the
+fixed initial candidate report. Record agreement, disagreement, or the skip
+reason. If the capability is unavailable, record the skip and continue with
+direct-parent analysis. The second opinion cannot change scope, authority,
+repository standards, or Go practice. Deepen does not request it again and
+marks revised evidence as not rechecked.
 
 ## Generate and serve the Blueprint Ledger
 

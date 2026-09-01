@@ -51,7 +51,9 @@ describe("engineering resources", () => {
     expect(implement).toMatch(/do not add workers merely because[^.]*large/iu);
     expect(implement).toMatch(/complete work evidence[\s\S]*document/iu);
     expect(implement).toMatch(/Review[\s\S]*Revise[\s\S]*Deepen verification[\s\S]*Pause/iu);
-    expect(readme).toMatch(/Worker[\s\S]*Reviewer[\s\S]*direct parent/iu);
+    expect(readme).toMatch(
+      /implementation writer capability[\s\S]*QA capability[\s\S]*review capability[\s\S]*direct parent/iu,
+    );
     expect(readme).toMatch(/before[^.]*writ[\s\S]*isolated[^.]*worktree/iu);
 
     for (const resource of [diagnosing, domainModeling, tdd]) {
@@ -63,7 +65,9 @@ describe("engineering resources", () => {
     expect(implement).toMatch(
       /runs\.all[\s\S]*agent:\s*["']qa["'][\s\S]*agent:\s*["']reviewer["']/iu,
     );
-    expect(readme).toMatch(/QA[^.]*Reviewer[^.]*parallel|parallel[^.]*QA[^.]*Reviewer/iu);
+    expect(readme).toMatch(
+      /QA capability[^.]*review capability[^.]*parallel|parallel[^.]*QA capability[^.]*review capability/iu,
+    );
     for (const resource of [implement, readme]) {
       expect(resource).not.toMatch(/writer lease|FFF|lsp_query/iu);
     }
@@ -147,7 +151,7 @@ describe("engineering resources", () => {
     expect(justDoIt).not.toContain(fixedWorkerArguments);
     expect(justDoIt).toMatch(/direct parent[^.]*default[\s\S]*Worker[^.]*only when/iu);
     expect(readme).toMatch(
-      /fixed Worker[^.]*foreground[^.]*omit[^.]*mode[^.]*model[^.]*thinking[^.]*agent profile/iu,
+      /fixed\s+implementation-writer[^.]*foreground[^.]*omit[^.]*mode[^.]*model[^.]*thinking[^.]*capability profile/iu,
     );
   });
 
@@ -178,9 +182,9 @@ describe("engineering resources", () => {
     expect(implement).toMatch(
       /tool calls[\s\S]*changed production[\s\S]*test LOC[\s\S]*review cycles/iu,
     );
-    expect(readme).toMatch(/bounded worker[\s\S]*parent finalization/iu);
+    expect(readme).toMatch(/bounded implementation writer[\s\S]*parent finalization/iu);
     expect(readme).toMatch(
-      /green-path[^.]*without a QA model[\s\S]*QA and formal review[^.]*parallel/iu,
+      /green-path[^.]*without a QA model[\s\S]*QA capability[^.]*review capability[^.]*parallel/iu,
     );
   });
 
@@ -713,8 +717,9 @@ describe("engineering resources", () => {
       /Work now[^.]*up to three[\s\S]*Prepare issues[^.]*all supported[\s\S]*Report only[^.]*stops/iu,
     );
     expect(skill).toMatch(
-      /AskClaude[^.]*at most once[\s\S]*Deepen[^.]*does not call AskClaude again/iu,
+      /read-only second opinion[^.]*at most once[\s\S]*Deepen[^.]*does not request it again/iu,
     );
+    expect(skill).not.toMatch(/AskClaude|root profile/iu);
     expect(skill).toMatch(/two-hour default[\s\S]*`100`[\s\S]*`7200000`/iu);
 
     expect(skill).toMatch(
@@ -755,8 +760,9 @@ describe("engineering resources", () => {
       /Action[\s\S]*Track[\s\S]*batch confirmation[\s\S]*Herdr-or-equivalent/iu,
     );
     expect(readme).toMatch(
-      /High and max[\s\S]*AskClaude second opinion[\s\S]*Deepen does not call it\s+again[\s\S]*honest fallbacks/iu,
+      /High and max[\s\S]*read-only second opinion[\s\S]*Deepen does not request\s+it\s+again[\s\S]*honest fallbacks/iu,
     );
+    expect(readme).not.toMatch(/AskClaude|root profile/iu);
     expect(readme).toMatch(
       /target-repository standards[\s\S]*installed `go`[\s\S]*table-driven subtests/iu,
     );
@@ -1142,7 +1148,9 @@ describe("engineering resources", () => {
     expect(review).toMatch(
       /Every finding must include:[\s\S]*smallest sufficient correction[\s\S]*primary agent[\s\S]*do not choose or implement/iu,
     );
-    expect(readme).toMatch(/asks\s+the human[\s\S]*implementation spec[\s\S]*Worker\s+handoff/iu);
+    expect(readme).toMatch(
+      /asks\s+the human[\s\S]*implementation spec[\s\S]*implementation-writer\s+handoff/iu,
+    );
   });
   it("routes evidence-based Go work through Engineering entry skills", async () => {
     expect.hasAssertions();
