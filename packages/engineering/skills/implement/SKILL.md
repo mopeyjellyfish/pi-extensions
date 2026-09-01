@@ -109,7 +109,8 @@ Other hosts use their equivalent fixed-role foreground launch. Do not pass
 `mode`, `model`, or `thinking` for this fixed-role launch; the agent profile owns
 its tools, model, thinking level, and fresh-context default. A trivial bounded
 change — one obvious fix with one obvious focused check — may remain directly as
-the parent. If Worker is unavailable, the direct parent executes the unit.
+the parent. If Worker is unavailable, the direct parent executes the unit and
+reports that fallback.
 
 Keep the Worker task compact. Reference durable Intent sources; do not copy a conversation transcript.
 For a plan-less handoff, include the complete bounded request and every later

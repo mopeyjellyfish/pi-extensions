@@ -59,8 +59,8 @@ returns evidence only. A QA capability diagnoses failed commands, supplies
 browser proof, or resolves ambiguous acceptance; a review capability performs
 risk-selected intent and Standards review. A Git delivery capability owns
 authorized delivery mechanics and is not an implementation substitute. Ordinary
-children cannot fan out. `/just-do-it`, one obvious trivial correction, and an
-unavailable-capability fallback remain direct-parent exceptions.
+children cannot fan out. `/just-do-it`, one obvious trivial correction, and a
+reported unavailable-capability fallback remain direct-parent exceptions.
 
 ## Ticket-backed implementation
 
