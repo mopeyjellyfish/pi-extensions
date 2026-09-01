@@ -661,6 +661,9 @@ describe("package contracts", () => {
     expect(agentsProse).toMatch(
       /Other Sol child overrides[^.]*justified `question`[^.]*explicit human approval/iu,
     );
+    expect(agentsProse).toMatch(
+      /unavailable-implementation-writer fallback[^.]*parent reports the fallback/iu,
+    );
     expect(readmeProse).toMatch(
       /`\/just-do-it`.*direct-parent route.*verifies, commits, and pushes.*without independent review/iu,
     );
@@ -672,6 +675,9 @@ describe("package contracts", () => {
     );
     expect(architectureProse).toMatch(
       /material public behavior.*lifecycle.*state.*concurrency.*provider.*dependency.*security.*migration/iu,
+    );
+    expect(architectureProse).toMatch(
+      /unavailable-implementation-writer fallback[^.]*honest fallback/iu,
     );
   });
 
