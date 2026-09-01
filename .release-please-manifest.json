@@ -7,6 +7,7 @@
   "packages/go": "0.0.0",
   "packages/grafana-skills": "0.0.0",
   "packages/hashline": "0.0.0",
+  "packages/herdr-subagents": "0.0.0",
   "packages/lsp": "0.0.0",
   "packages/playwright-cleanup": "0.0.0",
   "packages/productivity": "0.0.0",

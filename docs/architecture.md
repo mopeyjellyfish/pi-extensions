@@ -10,8 +10,20 @@ installable but optional because Pi rejects its `write` and `edit` tool-name
 conflicts with Hashline. The root validator keeps that exact exception
 reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
-and subagent extensions plus explicit subagent prompts without loading the
-subagent dependency's broad orchestration skill.
+and composes the unchanged subagent factory through the local
+`pi-herdr-subagents` extension. Explicit upstream prompts remain selected without
+loading the dependency's broad orchestration skill.
+
+`pi-herdr-subagents` is a narrow observation and terminal adapter.
+`pi-subagents` remains the sole launch, status, persistence, control, resume,
+completion, and process-terminal authority. The adapter consumes versioned
+event-bus RPC, exported control surfaces, and documented lifecycle artifacts. It
+owns only mode-0600 viewer descriptors, a session-scoped loopback keyboard
+bridge, and exact raw Herdr panes. Variable data enters Herdr through structured
+environment arguments; pane shell text is one fixed non-secret command. Reload
+adopts same-process owned bindings, and final shutdown closes only exact owned
+panes. Missing Herdr or Herdr older than 0.7.5 disables only the adapter.
+
 It exposes six fixed package agents: Terra-medium Worker and Git writers,
 Luna-low Researcher, Luna-medium QA verification and Utility read-only support,
 and an Opus-medium Reviewer. Implementation keeps focused repair loops in Worker

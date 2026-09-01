@@ -47,6 +47,9 @@
     "packages/hashline": {
       "release-type": "node"
     },
+    "packages/herdr-subagents": {
+      "release-type": "node"
+    },
     "packages/lsp": {
       "release-type": "node"
     },
