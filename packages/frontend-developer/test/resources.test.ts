@@ -46,6 +46,23 @@ async function directoryDigest(directory: string): Promise<string> {
   return digest.digest("hex");
 }
 
+describe("image inspection contract", () => {
+  it("requires image inspection rather than paths or non-visual checks", async () => {
+    expect.hasAssertions();
+    const [implementation, verification] = await Promise.all([
+      resource("skills/frontend-development/SKILL.md"),
+      resource("skills/visual-validation/SKILL.md"),
+    ]);
+    for (const source of [implementation, verification]) {
+      expect(source).toMatch(/inspect[^.]*images themselves/iu);
+      expect(source).toMatch(/file\s+path[^.]*not[^.]*image inspection/iu);
+      expect(source).toMatch(/unmet proof/iu);
+    }
+    expect(implementation).toMatch(/preserve accepted visual\s+decisions/iu);
+    expect(verification).toMatch(/DOM output and passing tests[^.]*not replace visual proof/iu);
+  });
+});
+
 describe("design review resource contract", () => {
   it("requires compact image-backed, verified board feedback and lifecycle control for material design", async () => {
     expect.hasAssertions();

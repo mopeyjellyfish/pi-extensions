@@ -16,6 +16,12 @@ native accessible structure. Generated pixels are evidence, not executable
 behavior, hidden behavior, or production assets; keep controls, navigation,
 forms, and meaningful content native and accessible.
 
+Inspect selected reference images themselves before extracting the contract.
+A file path or text description is not image inspection. Preserve accepted visual
+decisions rather than treating reproduction as permission to redesign. If required
+image evidence cannot be inspected, record unmet proof and resolve material
+uncertainty before claiming fidelity.
+
 Choose only methods the request and target technology require.
 `interface-design` preserves the target framework and selects an applicable
 implementation specialist. Use `react-best-practices` only for an existing React
