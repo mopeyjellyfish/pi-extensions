@@ -6,6 +6,11 @@ skills for TDD, design, debugging, domain language, review, and architecture
 discovery. It has no extension or
 runtime dependency.
 
+With no command arguments, `/develop`, `/implement`, `/debug`, and `/just-do-it`
+reuse the unambiguous request already in the current conversation. They ask only
+for missing or ambiguous inputs. Existing scope, acceptance, ticket, and
+publication constraints still apply.
+
 A host can map its configured roles to an implementation writer capability for
 standard, plan-less, and accepted hard work, a QA capability for failed-command
 diagnosis, browser evidence, or ambiguous acceptance, and a review capability
@@ -54,6 +59,9 @@ architecture decisions, approval, final diff inspection, verification, and
 publication decisions. An independent installation without configured profiles
 uses the direct parent; it does not automatically provide companion extensions,
 agents, tools, or skills.
+Implementation handoffs explicitly name `Authority` and `Applicable methods`.
+They carry permitted actions, user opt-outs, evidence-selected methods, and
+unavailable companions without granting the writer publication authority.
 Normal non-trivial writes use the implementation writer capability through
 `implement`. A factual research capability resolves one named repository or
 primary-source evidence gap, and a mechanical support capability performs a

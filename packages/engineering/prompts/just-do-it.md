@@ -3,4 +3,4 @@ description: Fix one small bounded problem, then commit and push it without revi
 argument-hint: "[bounded fix or follow-up]"
 ---
 
-Use the `just-do-it` skill. ${ARGUMENTS:-Ask only for the bounded request.} Execute it immediately, verify it, commit it, and push the current branch. Do not request a review or pull request.
+Use the `just-do-it` skill. ${ARGUMENTS:-Use the bounded request already established in the current conversation. Ask only for missing or ambiguous scope.} Execute it immediately, verify it, commit it, and push the current branch. Do not request a review or pull request.
