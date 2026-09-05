@@ -20,13 +20,14 @@ migration work, dependency changes, irreversible actions, or expanding scope.
 
 ## Intake and worktree
 
-With arguments, **worktree setup is first**. Reuse the current task worktree and
+With or without arguments, **worktree setup is first**. Reuse the current task worktree and
 branch when they are safe for this request. Otherwise, create or activate an
 isolated task worktree. Never write in the main checkout. If safe worktree
 tooling is unavailable and the current checkout is unsafe, stop before writing
 and ask the user to provide a task worktree.
 
-Without arguments, ask only for the bounded request. Do not ask discovery or
+Without arguments, use the bounded request already established in the current
+conversation. Ask only for missing or ambiguous scope. Do not ask discovery or
 design questions.
 
 ## Immediate execution

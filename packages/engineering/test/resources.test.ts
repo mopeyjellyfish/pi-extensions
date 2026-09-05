@@ -175,6 +175,9 @@ describe("engineering resources", () => {
     expect(implement).toMatch(
       /Goal:[\s\S]*Public seam:[\s\S]*Allowed files:[\s\S]*Stop conditions:/iu,
     );
+    expect(implement).toMatch(/Authority:[\s\S]*Applicable methods:/u);
+    expect(implement).toMatch(/Authority[^.]*permitted actions[^.]*opt-outs/iu);
+    expect(implement).toMatch(/fields[^.]*do not grant[^.]*publication authority/iu);
     expect(implement).toMatch(/do not impose hard turn, tool, token, or cost budgets/iu);
     expect(implement).toMatch(
       /parent owns[\s\S]*required completion gates[\s\S]*risk determines[^.]*formal review/iu,
@@ -816,6 +819,10 @@ describe("engineering resources", () => {
       /`shape`[\s\S]*`planning-changes`[\s\S]*unavailable[\s\S]*direct parent[\s\S]*pitch[\s\S]*slice plan/iu,
     );
     expect(justDoIt).toMatch(/worktree setup[\s\S]*first/iu);
+    expect(compactJustDoIt).toContain("With or without arguments, **worktree setup is first**.");
+    expect(compactJustDoIt).toContain(
+      "Without arguments, use the bounded request already established in the current conversation. Ask only for missing or ambiguous scope.",
+    );
     expect(compactJustDoIt).toContain(
       "Reuse the current task worktree and branch when they are safe for this request. Otherwise, create or activate an isolated task worktree.",
     );
@@ -1038,9 +1045,22 @@ describe("engineering resources", () => {
       includeDefaults: false,
     });
 
-    expect(piPromptTemplates.expandPromptTemplate("/implement", templates)).toContain(
-      "Ask for an approved slice",
+    for (const command of ["/develop", "/implement", "/debug", "/just-do-it"]) {
+      const fallback = piPromptTemplates.expandPromptTemplate(command, templates);
+      expect(fallback).toContain("current conversation");
+      expect(fallback).toContain("missing or ambiguous");
+      const explicit = piPromptTemplates.expandPromptTemplate(
+        `${command} preserve the local-only scope`,
+        templates,
+      );
+      expect(explicit).toContain("preserve the local-only scope");
+      expect(explicit).not.toContain("current conversation");
+    }
+    const implementFallback = piPromptTemplates.expandPromptTemplate("/implement", templates);
+    expect(implementFallback).toContain(
+      "approved slice, ticket URL or key, bounded request, or confirmed bug outcome",
     );
+    expect(implementFallback).toContain("missing or ambiguous intent or authority");
     const expandedImplement = piPromptTemplates.expandPromptTemplate(
       "/implement tighten retry limit",
       templates,
@@ -1079,7 +1099,7 @@ describe("engineering resources", () => {
       piPromptTemplates.expandPromptTemplate("/improve medium low latency path", templates),
     ).toContain("medium low latency path");
     expect(piPromptTemplates.expandPromptTemplate("/just-do-it", templates)).toContain(
-      "Ask only for the bounded request",
+      "bounded request",
     );
     const justDoIt = piPromptTemplates.expandPromptTemplate(
       "/just-do-it fix the broken retry assertion",

@@ -120,7 +120,9 @@ user decision, not a transcript. Use only this contract:
 Goal:
 Business reason:
 Intent sources:
+Authority:
 Setup evidence:
+Applicable methods:
 Public seam:
 Allowed files:
 Explicit non-goals:
@@ -130,6 +132,11 @@ Success criteria:
 Stop conditions:
 Output:
 ```
+
+`Authority` states the permitted actions and all user opt-outs for this attempt.
+`Applicable methods` names only evidence-selected methods and unavailable
+companions. These fields carry existing limits and do not grant the writer
+publication authority.
 
 Give exact pitch and plan paths, complete bounded request, later user decisions,
 slice, worktree, setup, and focused checks in those fields. Calibrate business
