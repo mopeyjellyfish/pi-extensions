@@ -215,7 +215,7 @@ The selected ambiguities are resolved, focused checks pass, and the diff shows
 no changed engineering standard, code example, approval policy, model setting,
 permission, or production runtime behavior.
 
-## [ ] 003 — Verify realistic paths and deliver the fixed unit
+## [x] 003 — Verify realistic paths and deliver the fixed unit
 
 ### Outcome and requirement trace
 
@@ -376,3 +376,30 @@ this plan. No new package, runtime, agent, technical standard, or dependency
 change is authorized. Final gates and bounded repair verification precede
 publication. Static tests do not establish comparative model quality or actual
 image fidelity.
+
+### Delivery evidence
+
+- The repaired instruction tree `0503d92a86c4fec103bba9aa16ad4e139858f833`
+  passed focused tests, source smoke, `npm run check` (959 tests), and
+  `npm run workflows:check`. Source and packed smoke covered 19 packages and
+  the private profile.
+- Repair review resolved both findings without a new issue. A fresh Pi
+  process loaded the repaired `just-do-it` skill after idle `/reload` and
+  confirmed context reuse, missing-or-ambiguous-only clarification, and
+  worktree-first setup in a read-only question. No task execution or
+  publication was authorized by that acceptance check.
+- Four package-scoped commits and one implementation-record commit preserved
+  the exact verified tree. Commit messages and staged-to-committed trees were
+  validated. A shell setup failure occurred before tests; bounded diagnosis
+  resolved GVM sourcing under `errexit` without changing either runtime selector.
+- Published as ready standalone [pull request 127](https://github.com/mopeyjellyfish/pi-extensions/pull/127)
+  to `main`. The returned title, body, branches, state, and initial published
+  head `68399cee2ed8070863802c59ed6de917be590952` matched the publication record.
+  No merge, deployment, release, or worktree cleanup was performed.
+- CI is blocked by the existing dependency audit: high-severity findings in
+  `browserslist` and `fast-uri`, and moderate findings in `qs`. The failed
+  [audit job](https://github.com/mopeyjellyfish/pi-extensions/actions/runs/33998720615/job/101393653317)
+  ran `npm audit --audit-level=high`. Dependency files and the audit workflow
+  are unchanged from the production baseline. The user approved recording
+  this blocker and finishing publication without a dependency change or manual
+  CI rerun. Delivery does not mean that CI is green or that the PR can merge.
