@@ -350,8 +350,20 @@ describe("feature-flow resources", () => {
       includeDefaults: false,
     });
 
-    expect(piPromptTemplates.expandPromptTemplate("/shape", templates)).toContain(
-      "Ask the user for a feature brief",
+    for (const command of ["/shape", "/plan"]) {
+      const fallback = piPromptTemplates.expandPromptTemplate(command, templates);
+      expect(fallback).toContain("current conversation");
+      expect(fallback).toContain("missing or ambiguous");
+      const explicit = piPromptTemplates.expandPromptTemplate(
+        `${command} preserve the local-only scope`,
+        templates,
+      );
+      expect(explicit).toContain("preserve the local-only scope");
+      expect(explicit).not.toContain("current conversation");
+    }
+    expect(piPromptTemplates.expandPromptTemplate("/shape", templates)).toContain("feature brief");
+    expect(piPromptTemplates.expandPromptTemplate("/plan", templates)).toContain(
+      "explicitly accepted",
     );
     expect(
       piPromptTemplates.expandPromptTemplate("/plan accepted upload pitch", templates),

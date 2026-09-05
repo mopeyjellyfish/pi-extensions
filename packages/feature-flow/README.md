@@ -7,6 +7,11 @@ and compact pitch and plan templates. It has no runtime dependency.
 feature brief -> isolated task worktree -> accepted pitch -> complete delivery plan -> implement
 ```
 
+With no command arguments, `/shape` and `/plan` reuse unambiguous intent from the
+current conversation and ask only for missing or ambiguous information. `/plan`
+still requires explicitly accepted intent or an accepted pitch. Reusing context
+does not imply approval.
+
 The direct parent creates or selects an isolated linked worktree before Shape or
 planning discovery. The same worktree continues through planning and serial
 implementation. Parallel work requires a separate worktree, a sole writer, and
