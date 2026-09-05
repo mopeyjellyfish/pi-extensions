@@ -19,6 +19,8 @@ describe("productivity resources", () => {
     expect(skill).toMatch(/exact technical content/iu);
     expect(skill).toMatch(/stale[\s\S]*no-op/iu);
     expect(skill).toMatch(/CONTEXT\.md/iu);
+    expect(skill).toMatch(/duplicated rule only when every affected reader/iu);
+    expect(skill).toMatch(/standalone skills and fresh children/iu);
   });
 
   it("ships an expandable repair prompt with the required decision path", async () => {

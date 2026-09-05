@@ -36,8 +36,10 @@ Use this information order unless the document's contract requires another:
 6. open decisions and risks.
 
 Keep each instruction actionable: actor, action, condition, and result when
-those details matter. Remove duplicated rules, stale claims, environment-
-obvious setup, and no-op instructions. Keep one source of truth for changing
+those details matter. Remove stale claims, environment-obvious setup, and no-op
+instructions. Remove a duplicated rule only when every affected reader can load
+its remaining owner. Keep local constraints for standalone skills and fresh children
+when a shared reference is unavailable. Keep one source of truth for changing
 facts and link to it from summaries. Do not create a second checklist merely to
 repeat a durable plan.
 

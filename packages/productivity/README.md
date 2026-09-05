@@ -20,6 +20,8 @@ the target repository's instructions and vocabulary, not this source
 repository's paths or tools. This is a skills-and-prompts package only; it has
 no extension or runtime dependency, does not automatically install companion
 extensions, agents, or tools, and remains independently installable.
+Remove duplicated guidance only when standalone skills and fresh children can
+access its remaining owner. Otherwise, keep their local constraints.
 
 The writing approach is original and concise, with MIT-licensed inspiration
 from [mattpocock/skills](https://github.com/mattpocock/skills).
