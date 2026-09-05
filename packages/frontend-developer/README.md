@@ -70,6 +70,11 @@ replacement, or material rewrite.
    desktop and mobile viewports and returns a mismatch ledger. Without proof,
    report unmet proof instead of claiming visual acceptance.
 
+Image-based work requires inspection of the reference and result images, not
+only their paths or capture-success messages. Accepted visual decisions remain
+the target. Missing required images are unmet proof, and passing code checks do
+not establish visual acceptance.
+
 The bundled `interface-design` method is a modified derivative of Damola
 Akinleye’s MIT-licensed skill pinned at
 `2f9be3206855bcb2d1d0af262c8bae25cba6658d`. Its complete copyright and

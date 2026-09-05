@@ -10,6 +10,10 @@ capability, accepted evidence, and command ownership. If browser capability is
 absent, return an unmet proof result; do not claim visual acceptance or install
 a browser runtime.
 
+Inspect required reference images and captured result images themselves. A file
+path or capture-success message is not image inspection. Missing required images
+remain unmet proof. DOM output and passing tests do not replace visual proof.
+
 Name each route, desktop and mobile viewport, state, interaction, and reference
 evidence before capture. Exercise relevant keyboard and focus paths,
 reduced-motion behavior, console and runtime errors, and content overflow.
