@@ -84,7 +84,7 @@ intended task-worktree sources.
 - Final edits invalidate affected focused evidence and final required checks.
   Do not rerun unrelated investigation or a full review without a changed reason.
 
-## [ ] 001 — Concrete instruction gaps and preserved contracts
+## [x] 001 — Concrete instruction gaps and preserved contracts
 
 ### Outcome and requirement trace
 
@@ -139,7 +139,7 @@ Every selected edit has an exact owning path, concrete before-state evidence,
 preserved constraints, affected consumers, and a focused proof. Unchanged or
 already-effective skills remain untouched.
 
-## [ ] 002 — Clear instructions at the owning boundary
+## [x] 002 — Clear instructions at the owning boundary
 
 ### Outcome and requirement trace
 
@@ -314,5 +314,65 @@ it complete.
 
 ## Implementation evidence
 
-No implementation has started. Slice 001 will record only decision-changing
-source evidence here. This plan does not claim a measured model improvement.
+The parent completed the source audit against the accepted baseline. The exact
+change set follows. Resource assertions are contract checks, not a model benchmark.
+
+| ID  | Owning passages and problem                                                                                                                                                                                                                                          | Guide principle and correction                                                                                                                                                                  | Consumers and preserved constraints                                                                                                                                      | Focused proof                                                                                                                   |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| I1  | Empty-argument fallbacks in Feature Flow `prompts/shape.md`, `prompts/plan.md`, and Engineering `prompts/develop.md`, `prompts/implement.md`, `prompts/debug.md`, `prompts/just-do-it.md` unconditionally ask for inputs that may already exist in the conversation. | Use relevant context before clarification. Reuse the unambiguous current request and ask only for missing or ambiguous inputs.                                                                  | Preserve explicit acceptance for planning, bounded intent for implementation, ticket intake, and every publication opt-out. Explicit command arguments remain unchanged. | Exercise Pi's actual prompt loader and expansion with omitted and explicit arguments in both packages' existing resource tests. |
+| I2  | Engineering `skills/implement/SKILL.md` requires only a fixed handoff field list, but that list has no named place for authority or applicable methods. Later sections require opt-outs and evidence-selected language methods.                                      | Make task constraints and tool/method policy explicit. Add `Authority` and `Applicable methods` fields and explain their existing limits.                                                       | Fresh writers receive user opt-outs and selected methods without a transcript. No new publication authority, role, or language trigger is introduced.                    | Extend the existing bounded-handoff resource assertion and preserve all authority and language-routing tests.                   |
+| I3  | Frontend `skills/frontend-development/SKILL.md` and `skills/visual-validation/SKILL.md` require image contracts and comparisons but do not distinguish inspecting images from receiving their file paths.                                                            | Require the evidence needed for the decision. Inspect reference and result images themselves, or report unmet proof. Keep accepted direction and visible facts separate from inferred behavior. | Existing design approval, native accessible UI, optional browser fallback, and progress-based repair rules remain.                                                       | Focused image-evidence resource assertions plus existing frontend routing, board, and missing-capability tests.                 |
+| I4  | Productivity `skills/writing-for-agents/SKILL.md` says to remove duplicated rules without an explicit independently-installed-reader exception.                                                                                                                      | Keep relevant context available to its reader. Deduplicate only when every affected reader can access the remaining owner.                                                                      | Preserve deliberate local contracts for standalone skills and fresh children. Do not create a shared mandatory prompt layer.                                             | Extend the existing authoring resource assertion and inspect affected standalone contracts.                                     |
+
+The associated README and existing `test/resources.test.ts` in each of those four
+packages are the only supporting edits. No agent body, runtime, manifest,
+dependency, language standard, or vendored file needs a change.
+
+Already satisfied: Shape's explicit approval and evidence-based questions,
+planning's complete accepted intent, risk-based checks and repair stop rules,
+fixed-diff review findings, and Go/TypeScript applicability and missing-companion
+fallbacks. Business-fit repetition remains intentional: the parent and a fresh
+writer must each receive it. No uniform reorganization is justified.
+
+Estimated change: four small instruction corrections across four packages, with
+their focused tests and READMEs. No new package, helper, fixture, or model run
+suite is needed. The parent is the reported implementation-writer fallback.
+
+### Focused implementation proof
+
+- I1: both prompt-expansion tests first failed on the missing conversation
+  fallback, then passed with omitted and explicit arguments after the six
+  prompt changes.
+- I2: the existing bounded-handoff test first failed on the missing named
+  fields, then passed after adding the fields and their existing authority limits.
+- I3: the image-inspection contract first failed, then passed with explicit
+  image inspection and unmet-proof guidance.
+- I4: the authoring test first failed on the missing reader-availability
+  condition, then passed after making de-duplication conditional.
+- Combined affected resource and root-profile checks passed: five test files,
+  94 tests. These prove expansion, instruction contracts, and preserved profile
+  configuration, not comparative model quality.
+- Initial source smoke, `npm run check` (959 tests), and
+  `npm run workflows:check` passed. QA observed fresh task-worktree Pi loading,
+  idle `/reload`, and a post-reload answer retaining unavailable shared-reference
+  constraints. It verified the actual skill source and closed its owned Pi session.
+
+### Approved review repair
+
+The fixed-diff review found one medium contradiction and one low test gap.
+The user approved the bounded repair and continued publication authority.
+
+- Add Engineering `skills/just-do-it/SKILL.md` to I1's owning paths: its old
+  no-argument instruction contradicted the prompt. Align its context-first
+  intake and apply worktree-setup-first to both argument paths. Keep its
+  publication limits, immediate-execution route, and Go routing unchanged.
+- Restore specific expansion assertions for `/shape`'s feature brief and
+  `/implement`'s accepted intake kinds and missing authority.
+- The small-fix contract test failed before the skill repair, then all five
+  focused test files passed again (94 tests).
+
+This adds one owning skill to the audited set, for 20 changed files including
+this plan. No new package, runtime, agent, technical standard, or dependency
+change is authorized. Final gates and bounded repair verification precede
+publication. Static tests do not establish comparative model quality or actual
+image fidelity.
