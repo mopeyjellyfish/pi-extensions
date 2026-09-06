@@ -172,14 +172,6 @@ describe("pi-web-search extension", () => {
     expect.hasAssertions();
     const tool = registerTool();
     expect(tool.name).toBe("web_search");
-    expect(tool.promptSnippet).toContain("provider-native web search");
-    expect(tool.promptGuidelines).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^Use web_search /u)]),
-    );
-    expect(tool.parameters.properties?.query?.description).toMatch(/focused.*self-contained/iu);
-    expect(tool.promptGuidelines).toEqual(
-      expect.arrayContaining([expect.stringMatching(/one focused.*search again only/iu)]),
-    );
 
     await expect(
       tool.execute(

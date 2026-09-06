@@ -40,8 +40,9 @@ The package's `tsconfig.json` extends `../../tsconfig.base.json` and includes `s
 
 Pi packages may ship skills without a production extension. Declare
 `pi.skills`, include `skills/` in `files`, use the `pi-package` and `pi-skill`
-keywords, and provide package-local tests. Do not add a no-op `src/index.ts`, a
-Pi runtime peer, or `tsconfig.json` merely to imitate an extension package.
+keywords. Text-only packages need no test directory, test script, or test-runner
+dependency. Do not add a no-op `src/index.ts`, a Pi runtime peer, or
+`tsconfig.json` merely to imitate an extension package.
 
 ```json
 {
@@ -53,22 +54,25 @@ Pi runtime peer, or `tsconfig.json` merely to imitate an extension package.
   "engines": { "node": ">=22.20.0" },
   "files": ["skills/", "README.md", "CHANGELOG.md", "LICENSE"],
   "keywords": ["pi-package", "pi-skill"],
-  "devDependencies": { "vitest": "4.1.10" },
   "pi": { "skills": ["./skills"] },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
     "directory": "packages/example-skills"
-  },
-  "scripts": { "test": "vitest run --root ../.. packages/example-skills/test" }
+  }
 }
 ```
 
 A package may also ship prompt templates. Include `prompts/` in `files`, declare
 `pi.prompts: ["./prompts"]`, and keep `.md` templates directly in that directory
 unless the manifest names deeper paths explicitly. A package with only prompts
-needs no fake extension, Pi runtime peer, or TypeScript configuration. Tests and
-package validation must cover prompt discovery and packed contents.
+needs no fake extension, Pi runtime peer, or TypeScript configuration. Package
+validation and smoke checks cover discovery and packed contents.
+
+Unit tests cover tools and executable code, including helper scripts shipped with
+skills. Do not test skill or prompt wording, headings, word counts, provenance
+hashes, or copied examples. Review text as text. Keep package, lint, and smoke
+checks separate from behavioral tests.
 
 Create `CHANGELOG.md`, then register the package in both release files at the package's current version:
 

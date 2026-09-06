@@ -343,6 +343,9 @@ async function validateRequiredPaths(
   errors: string[],
 ): Promise<void> {
   const resources = packageResources(descriptor.manifest);
+  const requiresTests =
+    resources.extensions.length > 0 ||
+    stringRecord(descriptor.manifest["scripts"])?.["test"] !== undefined;
   const requiredPaths = [
     "LICENSE",
     "README.md",
@@ -352,7 +355,7 @@ async function validateRequiredPaths(
     ...(resources.skills.length > 0 ? ["skills"] : []),
   ];
   if (descriptor.kind === "production") {
-    requiredPaths.push("CHANGELOG.md", "test");
+    requiredPaths.push("CHANGELOG.md", ...(requiresTests ? ["test"] : []));
     if (resources.extensions.length > 0) {
       requiredPaths.push("tsconfig.json");
     }
@@ -362,7 +365,7 @@ async function validateRequiredPaths(
       errors.push(`${requiredPath} is required.`);
     }
   }
-  if (descriptor.kind === "production") {
+  if (descriptor.kind === "production" && requiresTests) {
     const tests = await glob("test/**/*.test.ts", { cwd: descriptor.root, nodir: true });
     if (tests.length === 0) {
       errors.push("at least one test/**/*.test.ts file is required.");
@@ -387,7 +390,7 @@ function validateRepositoryMetadata(descriptor: PackageDescriptor, errors: strin
   }
   const scripts = stringRecord(descriptor.manifest["scripts"]);
   const resources = packageResources(descriptor.manifest);
-  const requiredScripts = ["test", ...(resources.extensions.length > 0 ? ["typecheck"] : [])];
+  const requiredScripts = resources.extensions.length > 0 ? ["test", "typecheck"] : [];
   for (const script of requiredScripts) {
     if (scripts?.[script] === undefined) {
       errors.push(`scripts.${script} is required.`);
