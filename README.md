@@ -153,12 +153,19 @@ catalog uses these defaults:
 
 | Agent        | Model         | Thinking | Role and tools                                             |
 | ------------ | ------------- | -------- | ---------------------------------------------------------- |
-| `worker`     | GPT-6 Astra   | medium   | sole non-trivial implementation writer                     |
+| `worker`     | GPT-5.6 Sol   | medium   | general implementation; Astra override for material UI     |
 | `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research    |
 | `qa`         | GPT-5.6 Luna  | medium   | bounded read-only acceptance and repeatable browser checks |
-| `reviewer`   | Opus 5        | high     | formal read-only code review and design review             |
+| `reviewer`   | GPT-6 Astra   | high     | formal read-only code review and design review             |
 | `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair                |
 | `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                    |
+
+For material UI work requiring layout, interaction, or visual judgment, the parent
+launches the same `worker` with `model: "openai-codex/gpt-6-astra:medium"`. This
+task-based override keeps one writer and does not add another agent. Mechanical
+frontend edits and API wiring stay with Sol; a `.tsx` file alone does not select
+Astra. Required review runs in a fresh Astra Reviewer context, even when the main
+chat already uses Astra.
 
 Implementation selects assurance by risk. Mechanical, documentation, and
 reversible metadata work uses direct focused verification and parent diff
@@ -179,12 +186,11 @@ it the default for mechanical verification.
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected parent's responsibility for product and
 architecture judgment, approval, slice design, and synthesis. They may use at
-most one bounded Researcher handoff after worktree setup. The Astra-medium Worker
-is the normal non-trivial implementation child. The parent may select Astra
-Worker `low` for tightly specified, straightforward changes. Worker `high` and
-other model or effort overrides require a justified `question` and explicit
-human approval; difficulty or a failed command never selects an escalation
-automatically. Ambiguous routing also uses `question`.
+most one bounded Researcher handoff after worktree setup. Sol medium is the
+general Worker default; Astra medium for material UI is the approved task-based
+override. Other model or effort overrides require a justified `question` and
+explicit human approval; difficulty or a failed command never selects an
+escalation automatically. Ambiguous routing also uses `question`.
 
 Claude Code and OpenAI Codex must already be signed in. The preferred Astra
 planning profile is a manual choice, not an installed default. The following
@@ -216,9 +222,11 @@ Configure the bridge in `~/.pi/agent/claude-bridge.json` only when you use it:
 Claude Code authentication and provider access are available and source
 disclosure is permitted. Calls use `mode: "read"` and `isolated: true`. Use
 `claude-fable-5` at `medium` for intent, taste, and planning perspective. Use
-`claude-opus-5` at `high` only for a distinct rigorous challenge. Do not send the
-same question to both profiles, and do not duplicate the formal Opus Reviewer.
-The rigorous challenge consumes the one independent-review budget. An applicable
+`claude-opus-5` at `high` only for a distinct rigorous challenge, particularly
+when Astra authored the work and a different model's perspective would help.
+AskClaude is optional, not a routine second review. Do not send the same question
+to both profiles or duplicate the formal Astra Reviewer. Any workflow-specific
+independent-review budget still applies. An applicable
 mandatory Go specification review takes precedence, so skip the Opus planning
 challenge when that review consumes the budget. Advice is evidence only; the
 parent keeps architecture, synthesis, approval, and verification authority. If

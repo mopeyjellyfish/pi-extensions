@@ -12,19 +12,22 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six package agents: an Astra-medium Worker, Terra-medium Git writer,
+It exposes six package agents: a Sol-medium Worker, Terra-medium Git writer,
 Luna-low Researcher, Luna-medium QA verifier and Utility read-only support, and
-an Opus-high Reviewer. The private mapping is Worker = implementation writer
+an Astra-high Reviewer. The private mapping is Worker = implementation writer
 capability; Researcher = factual research capability; Utility = mechanical
 support capability; QA = QA capability; Reviewer = review capability; and Git =
 Git delivery capability. Support returns evidence only.
 
 The human manually selects GPT-6 Astra at `high`, or `xhigh` for difficult Shape
 and planning work; installation does not set or overwrite a global parent
-default. Non-trivial implementation uses the configured Astra-medium Worker;
-the parent may select Astra `low` for tightly specified, straightforward changes.
-Worker `high` and other model or effort overrides require explicit human approval
-through `question`, not automatic escalation after difficulty or failure.
+default. General implementation uses Sol medium. For material UI work requiring
+layout, interaction, or visual judgment, the parent launches the same Worker with
+`model: "openai-codex/gpt-6-astra:medium"`; mechanical frontend edits do not select
+it. This is an approved task-based override, not another agent or writer. Other
+model or effort overrides require explicit human approval through `question`,
+not automatic escalation after difficulty or failure. Required formal review uses
+a fresh Astra-high Reviewer context, not only the parent's assessment.
 `/just-do-it`, one obvious trivial correction, and an
 unavailable-implementation-writer fallback are direct-parent exceptions; the
 unavailable route is an honest fallback and is reported.
@@ -49,15 +52,17 @@ explicit criteria. Difficult diagnosis, subjective visual judgment, or unclear
 criteria return to the parent for assessment or an explicitly approved model
 override; they do not make Astra the default for mechanical verification.
 
-The private profile maps optional planning advice to `AskClaude` only under a
+The private profile maps optional second opinions to `AskClaude` only under a
 non-`claude-bridge` parent with Claude Code authentication, available provider
 access, and permitted source disclosure. Calls use `mode: "read"` and
 `isolated: true`: `claude-fable-5` at `medium` provides intent, taste, and
 planning perspective, while `claude-opus-5` at `high` provides only a distinct
-rigorous challenge. The two profiles do not receive the same question, and the
-Opus challenge does not duplicate the formal Opus Reviewer. It consumes the one
-independent-review budget; an applicable mandatory Go specification review takes
-precedence, so that review replaces the Opus planning challenge. Advice is
+rigorous challenge. A different model's perspective can help with Astra-authored
+work, but AskClaude is not a routine second review. The two profiles do not
+receive the same question, and the Opus challenge does not duplicate the formal
+Astra Reviewer. Any workflow-specific independent-review budget still applies;
+an applicable mandatory Go specification review takes precedence over the
+optional planning challenge. Advice is
 evidence only. The parent retains architecture, synthesis, approval, and
 verification. When authentication, provider access, disclosure permission, or
 the tool is unavailable, the direct parent continues and reports the missing

@@ -25,13 +25,16 @@ may be specific to this repository.
 
 Start with the parent. The human manually selects GPT-6 Astra at `high`, or
 `xhigh` for difficult Shape and planning work; installation does not set a global
-parent default or overwrite parent settings. Use Astra at `medium` for the
-non-trivial implementation Worker. Use Terra at `medium` for Git, Luna at `low`
-for factual research, and Luna at `medium` for bounded QA verification and
-read-only or mechanical support not covered by another role. Keep Opus at `high`
-for independent formal review. QA reports difficult diagnosis, subjective visual
-judgments, or unclear acceptance criteria to the parent; these do not make Astra
-the default for mechanical verification.
+parent default or overwrite parent settings. Use Sol at `medium` for general
+implementation. For material UI work that needs layout, interaction, or visual
+judgment, launch the same Worker with `model: "openai-codex/gpt-6-astra:medium"`.
+A frontend file extension alone does not select Astra. Use Astra at `high` in a
+fresh Reviewer context for formal review; the parent's own assessment does not
+replace a required fixed-boundary review. Use Terra at `medium` for Git, Luna at
+`low` for factual research, and Luna at `medium` for bounded QA verification and
+read-only or mechanical support not covered by another role. QA reports difficult
+diagnosis, subjective visual judgments, or unclear acceptance criteria to the
+parent; these do not make Astra the default for mechanical verification.
 
 The private mapping is Worker = implementation writer capability; Researcher =
 factual research capability; Utility = mechanical support capability; QA = QA
@@ -39,10 +42,10 @@ capability; Reviewer = review capability; and Git = Git delivery capability.
 Support returns evidence only. `/just-do-it`, one obvious trivial correction,
 and an unavailable-implementation-writer fallback are direct-parent exceptions;
 the parent reports the fallback.
-The parent may select Astra Worker `low` for tightly specified, straightforward
-changes. Worker `high` and other model or effort overrides require a justified
-`question` and explicit human approval; difficulty or a failed command never
-selects an escalation automatically. If uncertain, ask.
+The Astra-medium UI Worker selection is an approved task-based override. Other
+model or effort overrides require a justified `question` and explicit human
+approval; difficulty or a failed command never selects an escalation
+automatically. If uncertain, ask.
 
 Independent read-only lanes need named disjoint evidence gaps plus a
 critical-path or parent-context benefit and are joined before decisions. Ordinary
@@ -67,8 +70,10 @@ only when Claude Code authentication and the provider capability are available,
 and only when source disclosure is permitted. Use `mode: "read"` and
 `isolated: true`. Use `claude-fable-5` at `medium` for intent, taste, and
 planning perspective. Use `claude-opus-5` at `high` only for a distinct rigorous
-challenge. Ask distinct questions; do not duplicate the same question or the
-formal Opus Reviewer. The challenge consumes the one independent-review budget.
+challenge, particularly when Astra authored the work and a different model's
+perspective would help. AskClaude is optional, not a routine second review. Ask
+distinct questions; do not duplicate the same question or the formal Astra
+Reviewer. Any workflow-specific independent-review budget still applies.
 An applicable mandatory Go specification review takes precedence, so skip the
 Opus planning challenge when that review consumes the budget. Advice is
 evidence only; the parent retains architecture, synthesis, approval, and
