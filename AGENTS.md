@@ -257,6 +257,12 @@ process, filesystem, network, or UI boundaries only when necessary. Generic
 smoke tests prove loading and lifecycle safety; they do not replace
 extension-specific behavior tests.
 
+Unit tests cover tools and executable code, including helper scripts shipped with
+skills. Do not test skill, prompt, README, or agent instruction text with wording,
+heading, word-count, or provenance assertions. Text-only packages need no test
+directory, test script, or test-runner dependency. Keep manifest, lint, and smoke
+checks for packaging and loadability.
+
 ## Required checks
 
 Before handing off changes, run the focused tests followed by `npm run check`.
@@ -346,8 +352,8 @@ must never print, fixture, or commit credentials or responses containing them.
 ## Repository hygiene
 
 Every direct child of `packages/` is production and must remain independently
-installable. A new package needs its manifest, tests, README, changelog,
-license, and matching entries in `release-please-config.json` and
+installable. A new package needs its manifest, README, changelog, license,
+tests for executable code, and matching entries in `release-please-config.json` and
 `.release-please-manifest.json`. Keep each existing production package
 synchronized across those three release/version sources.
 

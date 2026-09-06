@@ -152,7 +152,7 @@ Once registered, package changelogs are generator-owned release artifacts. Relea
 ## Verification layers
 
 1. Manifest validation checks package structure, release metadata, dependency placement, Pi extensions/skills/prompts, the exact root profile, and npm pack contents.
-2. Unit and integration tests exercise extension logic and skill contracts deterministically.
+2. Unit and integration tests exercise tools and executable code, not skill or prompt text.
 3. Source smoke tests load each package with the real Pi CLI.
 4. Packed smoke tests install the exact npm artifact with production dependencies and repeat Pi loading.
 5. RPC smoke tests verify extension lifecycle behavior and skill command discovery in an isolated environment.

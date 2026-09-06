@@ -14,7 +14,7 @@ packages/<name>/
 ├── prompts/            # when pi.prompts is declared
 ├── tsconfig.json       # when pi.extensions is declared
 ├── src/index.ts        # when pi.extensions is declared
-└── test/
+└── test/               # for executable code, not text-only resources
 ```
 
 The manifest validator requires:
@@ -27,7 +27,7 @@ The manifest validator requires:
 - one or more existing `pi.extensions`, `pi.skills`, or `pi.prompts` entrypoints;
 - `@earendil-works/pi-coding-agent: "*"` in `peerDependencies` for extension packages;
 - canonical Git repository metadata whose `directory` matches the workspace path;
-- a package-local `test` script, plus `typecheck` for extension packages;
+- package-local `test` and `typecheck` scripts for extension packages;
 - no dependency duplicated across dependency sections;
 - Pi host packages only in `peerDependencies`.
 
@@ -57,7 +57,14 @@ Do not use workspace-only runtime links in a publishable package unless the depe
 
 ## Tests
 
-Each package supplies focused tests under `test/`. Root CI applies strict TypeScript checking to TypeScript packages, type-aware ESLint, Vitest coverage, manifest checks, source loading, packed installation, and Pi RPC discovery smoke tests automatically.
+Unit tests cover tools and executable code, not skill or prompt text. Text-only
+packages need no test directory, test script, or test-runner dependency. Packages
+with helper scripts test that code. A declared test script must have real tests
+under `test/`.
+
+Root CI applies strict TypeScript checking, type-aware ESLint, and Vitest coverage
+to code. Manifest checks, source loading, packed installation, and Pi RPC
+discovery smoke checks still apply to every package.
 
 Production TypeScript must remain above 90% line, function, and statement coverage and 85% branch coverage. A Go module must remain above 80% total coverage.
 

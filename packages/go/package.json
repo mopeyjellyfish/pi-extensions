@@ -19,9 +19,6 @@
     "go",
     "golang"
   ],
-  "devDependencies": {
-    "vitest": "4.1.10"
-  },
   "pi": {
     "skills": [
       "./skills"
@@ -31,8 +28,5 @@
     "type": "git",
     "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
     "directory": "packages/go"
-  },
-  "scripts": {
-    "test": "vitest run --root ../.. packages/go/test"
   }
 }

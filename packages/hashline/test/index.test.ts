@@ -108,9 +108,6 @@ describe("Hashline extension", () => {
       "utf8",
     ).trim();
     expect(edit.description).toBe(prompt);
-    expect(edit.description).toContain("PUT N.=M:");
-    expect(edit.description).toContain("Named registers persist across edit calls.");
-    expect(edit.description).toContain("RE-GROUND AFTER EVERY EDIT");
   });
 
   it("syntax-highlights edited source inside Markdown fences", () => {

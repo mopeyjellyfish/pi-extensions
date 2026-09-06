@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    maxWorkers: 2,
     include: ["test/tooling/**/*.test.ts", "packages/*/test/**/*.test.ts"],
     passWithNoTests: false,
     testTimeout: 20_000,
