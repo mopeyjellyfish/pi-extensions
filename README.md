@@ -146,15 +146,16 @@ fallback labels require a separate exact-set confirmation. It verifies issue
 creation before optional Project placement and reports a placement failure as
 partial success without a blind retry. Private/public boundaries fail closed.
 
-The human manually selects GPT-5.6 Sol at `xhigh` before Shape and planning as
-the preferred parent profile. Installation does not overwrite parent settings or
-install a global default. The fixed six-agent child catalog is:
+The human manually selects GPT-6 Astra at `high`, or `xhigh` for difficult Shape
+and planning work, as the preferred parent profile. Installation does not
+overwrite parent settings or install a global default. The six-agent child
+catalog uses these defaults:
 
 | Agent        | Model         | Thinking | Role and tools                                          |
 | ------------ | ------------- | -------- | ------------------------------------------------------- |
-| `worker`     | GPT-5.6 Sol   | low      | sole non-trivial implementation writer                  |
+| `worker`     | GPT-6 Astra   | medium   | sole non-trivial implementation writer                  |
 | `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research |
-| `qa`         | GPT-5.6 Luna  | medium   | read-only gate verification and acceptance evidence     |
+| `qa`         | GPT-6 Astra   | medium   | read-only diagnosis, browser, and ambiguous acceptance  |
 | `reviewer`   | Opus 5        | high     | formal read-only code review and design review          |
 | `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair             |
 | `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                 |
@@ -173,12 +174,14 @@ packet before a retained Worker repair.
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected parent's responsibility for product and
 architecture judgment, approval, slice design, and synthesis. They may use at
-most one bounded Researcher handoff after worktree setup. The fixed Sol Worker is
-the normal non-trivial implementation child. Any other Sol child override
-requires a justified `question` and explicit human approval; difficulty never
-selects an override automatically. Ambiguous routing also uses `question`.
+most one bounded Researcher handoff after worktree setup. The Astra-medium Worker
+is the normal non-trivial implementation child. The parent may select Astra
+Worker `low` for tightly specified, straightforward changes. Worker `high` and
+other model or effort overrides require a justified `question` and explicit
+human approval; difficulty or a failed command never selects an escalation
+automatically. Ambiguous routing also uses `question`.
 
-Claude Code and OpenAI Codex must already be signed in. The preferred Sol
+Claude Code and OpenAI Codex must already be signed in. The preferred Astra
 planning profile is a manual choice, not an installed default. The following
 alternative `claude-bridge` parent belongs in `~/.pi/agent/settings.json` and
 cannot call `AskClaude`:
