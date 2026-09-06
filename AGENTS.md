@@ -257,11 +257,28 @@ process, filesystem, network, or UI boundaries only when necessary. Generic
 smoke tests prove loading and lifecycle safety; they do not replace
 extension-specific behavior tests.
 
-Unit tests cover tools and executable code, including helper scripts shipped with
-skills. Do not test skill, prompt, README, or agent instruction text with wording,
-heading, word-count, or provenance assertions. Text-only packages need no test
-directory, test script, or test-runner dependency. Keep manifest, lint, and smoke
-checks for packaging and loadability.
+## Test executable behavior, not document contents
+
+Unit and integration tests cover tools and executable code, including helper
+scripts shipped with skills. Do not add tests that read repository or packaged
+Markdown files to assert their contents. This includes `SKILL.md`, prompts,
+READMEs, agent instructions, plans, and other documentation.
+
+- Do not assert document wording, headings, sections, examples, word counts,
+  hashes, snapshots, or equality with a tool description.
+- Do not scan Markdown documents from tests to enforce prose or lint policy.
+  Use the existing Markdown lint and formatting commands instead.
+- Do not move document-content assertions into generic test files, copied
+  fixtures, or custom validation scripts. Do not add a test for this rule.
+- A text-only change does not need a new unit test. Text-only packages need no
+  test directory, test script, or test-runner dependency.
+- Keep tests for code that parses, renders, edits, or routes Markdown. Use small
+  synthetic inputs and assert executable behavior, not the contents of a shipped
+  document. Keep manifest validation, package-content checks, and discovery smoke
+  tests; file presence and loadability are not prose assertions.
+
+Review text as text. Before adding a test, name the executable behavior that would
+break if its assertion failed. A document edit alone is not such a failure.
 
 ## Required checks
 

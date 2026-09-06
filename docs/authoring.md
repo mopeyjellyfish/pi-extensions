@@ -69,10 +69,12 @@ unless the manifest names deeper paths explicitly. A package with only prompts
 needs no fake extension, Pi runtime peer, or TypeScript configuration. Package
 validation and smoke checks cover discovery and packed contents.
 
-Unit tests cover tools and executable code, including helper scripts shipped with
-skills. Do not test skill or prompt wording, headings, word counts, provenance
-hashes, or copied examples. Review text as text. Keep package, lint, and smoke
-checks separate from behavioral tests.
+Follow the [test boundary](../AGENTS.md#test-executable-behavior-not-document-contents):
+test tools and executable code, including helper scripts shipped with skills, not
+Markdown document contents. Do not read shipped documents to assert wording,
+structure, hashes, or equality with tool descriptions. Text-only changes need no
+new unit tests. Use small synthetic inputs when testing Markdown processing code.
+Keep package, lint, and smoke checks separate from behavioral tests.
 
 Create `CHANGELOG.md`, then register the package in both release files at the package's current version:
 

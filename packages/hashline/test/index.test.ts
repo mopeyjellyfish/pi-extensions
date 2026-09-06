@@ -99,17 +99,6 @@ function renderingTheme(): Theme {
 }
 
 describe("Hashline extension", () => {
-  it("exposes the complete packaged Hashline grammar to the model", () => {
-    expect.hasAssertions();
-    const edit = register().get("edit");
-    if (edit === undefined) throw new Error("Hashline edit tool was not registered.");
-    const prompt = readFileSync(
-      new URL("../src/hashline/prompt.md", import.meta.url),
-      "utf8",
-    ).trim();
-    expect(edit.description).toBe(prompt);
-  });
-
   it("syntax-highlights edited source inside Markdown fences", () => {
     expect.hasAssertions();
     initTheme("dark", false);
