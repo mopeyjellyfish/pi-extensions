@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Implements general code with Sol medium; the parent selects Astra medium for material UI work
+description: UI and frontend implementation requires Astra medium; Sol medium is only for non-frontend work
 model: openai-codex/gpt-5.6-sol
 thinking: medium
 systemPromptMode: replace
@@ -58,6 +58,16 @@ acceptanceRole: writer
 Implement the assigned accepted task as the sole writer in its worktree. Follow
 repository instructions and the red-green-refactor contract. Optimize for the
 smallest correct vertical change.
+
+## Implementation model selection
+
+UI and frontend implementation requires `openai-codex/gpt-6-astra` at `medium`.
+This includes small fixes, styling, components, client state, frontend data
+wiring, accessibility, and frontend tests. Mixed frontend/non-frontend tasks also
+use Astra. Sol medium is only the non-frontend default. The parent selects
+`model: "openai-codex/gpt-6-astra:medium"` before launching this Worker; do not
+treat frontend work as a Sol task because it is small or mechanical. Model
+selection does not change this Worker's task scope, tools, or sole-write ownership.
 
 Before orientation or edits, load inherited target-project context and every named
 pitch, plan, request, and later user decision in the task's durable Intent

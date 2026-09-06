@@ -25,10 +25,14 @@ may be specific to this repository.
 
 Start with the parent. The human manually selects GPT-6 Astra at `high`, or
 `xhigh` for difficult Shape and planning work; installation does not set a global
-parent default or overwrite parent settings. Use Sol at `medium` for general
-implementation. For material UI work that needs layout, interaction, or visual
-judgment, launch the same Worker with `model: "openai-codex/gpt-6-astra:medium"`.
-A frontend file extension alone does not select Astra. Use Astra at `high` in a
+parent default or overwrite parent settings. **UI and frontend implementation
+uses Astra at `medium`. Non-frontend implementation uses Sol at `medium`.** This
+includes small frontend fixes, styling, components, client state, frontend data
+wiring, accessibility, and frontend tests; size or visual complexity is not an
+exception. A mixed frontend/non-frontend task uses Astra for the whole assigned
+Worker task. The parent must launch UI/frontend work with
+`model: "openai-codex/gpt-6-astra:medium"`; never leave it on the Sol default.
+Use Astra at `high` in a
 fresh Reviewer context for formal review; the parent's own assessment does not
 replace a required fixed-boundary review. Use Terra at `medium` for Git, Luna at
 `low` for factual research, and Luna at `medium` for bounded QA verification and
@@ -42,7 +46,8 @@ capability; Reviewer = review capability; and Git = Git delivery capability.
 Support returns evidence only. `/just-do-it`, one obvious trivial correction,
 and an unavailable-implementation-writer fallback are direct-parent exceptions;
 the parent reports the fallback.
-The Astra-medium UI Worker selection is an approved task-based override. Other
+The required Astra-medium UI/frontend Worker selection is preapproved; do not ask
+again merely to select it. Other
 model or effort overrides require a justified `question` and explicit human
 approval; difficulty or a failed command never selects an escalation
 automatically. If uncertain, ask.
