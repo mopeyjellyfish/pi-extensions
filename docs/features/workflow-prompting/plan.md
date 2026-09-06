@@ -403,3 +403,33 @@ image fidelity.
   are unchanged from the production baseline. The user approved recording
   this blocker and finishing publication without a dependency change or manual
   CI rerun. Delivery does not mean that CI is green or that the PR can merge.
+
+### Dependency remediation addendum
+
+The later user request to fix PR #127's dependency audit authorizes one scoped
+security exception to the 14-day release-age gate for `fast-uri@3.1.6` and
+`qs@6.16.0`. The generated lockfile also updates the age-eligible
+`browserslist@4.28.7` and its required minimum transitive versions:
+`baseline-browser-mapping@2.10.44`, `caniuse-lite@1.0.30001806`, and
+`electron-to-chromium@1.5.393`. No manifest or `.npmrc` policy change is made.
+
+Release review found the same publishers for each old and new security-fix
+version: `matteo.collina` for `fast-uri` and `ljharb` for `qs`. `fast-uri`
+removed maintainer `simoneb`; `qs` kept its maintainers. Both packages retain
+their runtime dependencies, scripts, and engine contracts. Registry signatures
+exist, but neither package advertises `dist.attestations`; `browserslist` does.
+Reviewed compatibility risk is limited to stricter malformed-URI normalization
+in `fast-uri` and query parse/stringify edge cases in `qs`, whose optional depth
+still defaults to `Infinity`. All six inspected old and new tarball SHA512
+integrities matched registry metadata.
+
+The original CI blocker above remains a historical record. Local lockfile
+generation and `npm audit` now report zero vulnerabilities. Reproducible install,
+focused resource tests, final review, and new CI remain separate evidence; this
+addendum does not claim that PR #127 is CI-green before those checks complete.
+
+Focused local commands completed on the final lockfile: `npm audit --json`
+reported zero vulnerabilities; `npm ci --ignore-scripts` installed successfully;
+`npm ls browserslist fast-uri qs` resolved the three intended versions; and
+`npm test -- --run test/tooling/packages.test.ts packages/feature-flow/test/resources.test.ts`
+passed 53 tests. New CI has not yet run.
