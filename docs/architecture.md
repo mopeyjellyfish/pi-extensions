@@ -21,11 +21,13 @@ Git delivery capability. Support returns evidence only.
 
 The human manually selects GPT-6 Astra at `high`, or `xhigh` for difficult Shape
 and planning work; installation does not set or overwrite a global parent
-default. General implementation uses Sol medium. For material UI work requiring
-layout, interaction, or visual judgment, the parent launches the same Worker with
-`model: "openai-codex/gpt-6-astra:medium"`; mechanical frontend edits do not select
-it. This is an approved task-based override, not another agent or writer. Other
-model or effort overrides require explicit human approval through `question`,
+default. UI and frontend implementation uses Astra medium; non-frontend
+implementation uses Sol medium. The parent must launch the same Worker with
+`model: "openai-codex/gpt-6-astra:medium"` for UI/frontend work, including small
+fixes, component logic, frontend data wiring, and frontend tests. Mixed tasks use
+Astra for the whole assigned Worker task. The Sol default is not a fallback for
+frontend work. This required selection is preapproved, not another agent or
+writer. Other model or effort overrides require explicit human approval through `question`,
 not automatic escalation after difficulty or failure. Required formal review uses
 a fresh Astra-high Reviewer context, not only the parent's assessment.
 `/just-do-it`, one obvious trivial correction, and an

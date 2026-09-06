@@ -153,19 +153,28 @@ catalog uses these defaults:
 
 | Agent        | Model         | Thinking | Role and tools                                             |
 | ------------ | ------------- | -------- | ---------------------------------------------------------- |
-| `worker`     | GPT-5.6 Sol   | medium   | general implementation; Astra override for material UI     |
+| `worker`     | Sol / Astra   | medium   | non-frontend / UI and frontend implementation              |
 | `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research    |
 | `qa`         | GPT-5.6 Luna  | medium   | bounded read-only acceptance and repeatable browser checks |
 | `reviewer`   | GPT-6 Astra   | high     | formal read-only code review and design review             |
 | `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair                |
 | `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                    |
 
-For material UI work requiring layout, interaction, or visual judgment, the parent
-launches the same `worker` with `model: "openai-codex/gpt-6-astra:medium"`. This
-task-based override keeps one writer and does not add another agent. Mechanical
-frontend edits and API wiring stay with Sol; a `.tsx` file alone does not select
-Astra. Required review runs in a fresh Astra Reviewer context, even when the main
-chat already uses Astra.
+**UI and frontend implementation always uses GPT-6 Astra at `medium`.** This is
+the required route, not an optional upgrade for visually complex tasks.
+
+| Implementation task                                                                                           | Required model     |
+| ------------------------------------------------------------------------------------------------------------- | ------------------ |
+| UI or frontend: small fixes, styling, components, client state, data wiring, accessibility, or frontend tests | GPT-6 Astra medium |
+| Non-frontend: backend, CLI, infrastructure, or other non-frontend code                                        | GPT-5.6 Sol medium |
+| Mixed frontend and non-frontend work in one Worker task                                                       | GPT-6 Astra medium |
+
+The parent must launch UI/frontend work with
+`model: "openai-codex/gpt-6-astra:medium"`. Do not omit the override and let the
+Worker's Sol default handle frontend work. This selection is preapproved, uses
+the same `worker`, and keeps one writer; it does not add another agent. Mechanical
+QA remains a separate Luna role. Required review runs in a fresh Astra Reviewer
+context, even when the main chat already uses Astra.
 
 Implementation selects assurance by risk. Mechanical, documentation, and
 reversible metadata work uses direct focused verification and parent diff
@@ -186,9 +195,9 @@ it the default for mechanical verification.
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected parent's responsibility for product and
 architecture judgment, approval, slice design, and synthesis. They may use at
-most one bounded Researcher handoff after worktree setup. Sol medium is the
-general Worker default; Astra medium for material UI is the approved task-based
-override. Other model or effort overrides require a justified `question` and
+most one bounded Researcher handoff after worktree setup. Sol medium is only the
+non-frontend Worker default. Astra medium is required and preapproved for UI or
+frontend implementation, including mixed tasks. Other model or effort overrides require a justified `question` and
 explicit human approval; difficulty or a failed command never selects an
 escalation automatically. Ambiguous routing also uses `question`.
 
