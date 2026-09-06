@@ -23,12 +23,13 @@ may be specific to this repository.
 
 ## Subagent execution profiles
 
-Start with the parent. The human manually selects GPT-5.6 Sol at `xhigh` before
-Shape and planning; installation does not set a global parent default or
-overwrite parent settings. Use the configured Sol Worker at `low` for
-non-trivial implementation and Terra at `medium` for Git. Use Luna at `low` for
-factual research and Luna at `medium` for QA and bounded read-only or mechanical
-support not covered by another role. Use Opus at `high` for formal review.
+Start with the parent. The human manually selects GPT-6 Astra at `high`, or
+`xhigh` for difficult Shape and planning work; installation does not set a global
+parent default or overwrite parent settings. Use Astra at `medium` for the
+non-trivial implementation Worker and for QA diagnosis, browser investigation,
+or ambiguous acceptance. Use Terra at `medium` for Git, Luna at `low` for factual
+research, and Luna at `medium` for bounded read-only or mechanical support not
+covered by another role. Keep Opus at `high` for independent formal review.
 
 The private mapping is Worker = implementation writer capability; Researcher =
 factual research capability; Utility = mechanical support capability; QA = QA
@@ -36,8 +37,10 @@ capability; Reviewer = review capability; and Git = Git delivery capability.
 Support returns evidence only. `/just-do-it`, one obvious trivial correction,
 and an unavailable-implementation-writer fallback are direct-parent exceptions;
 the parent reports the fallback.
-Other Sol child overrides require a justified `question` and explicit human
-approval; if uncertain, ask.
+The parent may select Astra Worker `low` for tightly specified, straightforward
+changes. Worker `high` and other model or effort overrides require a justified
+`question` and explicit human approval; difficulty or a failed command never
+selects an escalation automatically. If uncertain, ask.
 
 Independent read-only lanes need named disjoint evidence gaps plus a
 critical-path or parent-context benefit and are joined before decisions. Ordinary

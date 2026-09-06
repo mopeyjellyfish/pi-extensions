@@ -12,18 +12,22 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six fixed package agents: a Sol-low Worker, Terra-medium Git writer,
-Luna-low Researcher, Luna-medium QA verification and Utility read-only support,
-and an Opus-high Reviewer. The private mapping is Worker = implementation writer
+It exposes six package agents: an Astra-medium Worker and QA verifier,
+Terra-medium Git writer, Luna-low Researcher, Luna-medium Utility read-only
+support, and an Opus-high Reviewer. The private mapping is Worker = implementation writer
 capability; Researcher = factual research capability; Utility = mechanical
 support capability; QA = QA capability; Reviewer = review capability; and Git =
 Git delivery capability. Support returns evidence only.
 
-The human manually selects GPT-5.6 Sol at `xhigh` before Shape and planning;
-installation does not set or overwrite a global parent default. Non-trivial
-implementation uses the configured Worker. `/just-do-it`, one obvious trivial
-correction, and an unavailable-implementation-writer fallback are direct-parent
-exceptions; the unavailable route is an honest fallback and is reported.
+The human manually selects GPT-6 Astra at `high`, or `xhigh` for difficult Shape
+and planning work; installation does not set or overwrite a global parent
+default. Non-trivial implementation uses the configured Astra-medium Worker;
+the parent may select Astra `low` for tightly specified, straightforward changes.
+Worker `high` and other model or effort overrides require explicit human approval
+through `question`, not automatic escalation after difficulty or failure.
+`/just-do-it`, one obvious trivial correction, and an
+unavailable-implementation-writer fallback are direct-parent exceptions; the
+unavailable route is an honest fallback and is reported.
 Independent read-only lanes need named disjoint evidence gaps plus a
 critical-path or parent-context benefit and are joined before decisions. Ordinary
 children do not fan out. Accepted `parallel-ready` implementation lanes may run
@@ -40,6 +44,8 @@ only on one frozen boundary when both are selected. QA owns executable gates,
 and Reviewer does not rerun them. The parent joins their repair packet before the
 retained Worker repairs it without a replacement. Git delivery uses installed
 methods and is not an implementation substitute.
+QA is selected for diagnosis, browser investigation, or ambiguous acceptance,
+not to spend model effort on known command execution.
 
 The private profile maps optional planning advice to `AskClaude` only under a
 non-`claude-bridge` parent with Claude Code authentication, available provider
