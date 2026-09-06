@@ -1,7 +1,7 @@
 ---
 name: worker
-description: Implements one accepted task as the sole writer with default GPT-6 Astra medium effort
-model: openai-codex/gpt-6-astra
+description: Implements general code with Sol medium; the parent selects Astra medium for material UI work
+model: openai-codex/gpt-5.6-sol
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

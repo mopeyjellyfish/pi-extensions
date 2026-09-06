@@ -1,7 +1,7 @@
 ---
 name: reviewer
-description: Reviews a fixed document or diff with evidence using fixed Opus 5 high effort
-model: claude-bridge/claude-opus-5
+description: Reviews a fixed document or diff in fresh context using GPT-6 Astra high effort
+model: openai-codex/gpt-6-astra
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
