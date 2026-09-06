@@ -26,10 +26,12 @@ may be specific to this repository.
 Start with the parent. The human manually selects GPT-6 Astra at `high`, or
 `xhigh` for difficult Shape and planning work; installation does not set a global
 parent default or overwrite parent settings. Use Astra at `medium` for the
-non-trivial implementation Worker and for QA diagnosis, browser investigation,
-or ambiguous acceptance. Use Terra at `medium` for Git, Luna at `low` for factual
-research, and Luna at `medium` for bounded read-only or mechanical support not
-covered by another role. Keep Opus at `high` for independent formal review.
+non-trivial implementation Worker. Use Terra at `medium` for Git, Luna at `low`
+for factual research, and Luna at `medium` for bounded QA verification and
+read-only or mechanical support not covered by another role. Keep Opus at `high`
+for independent formal review. QA reports difficult diagnosis, subjective visual
+judgments, or unclear acceptance criteria to the parent; these do not make Astra
+the default for mechanical verification.
 
 The private mapping is Worker = implementation writer capability; Researcher =
 factual research capability; Utility = mechanical support capability; QA = QA

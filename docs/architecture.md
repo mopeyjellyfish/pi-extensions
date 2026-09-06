@@ -12,9 +12,9 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six package agents: an Astra-medium Worker and QA verifier,
-Terra-medium Git writer, Luna-low Researcher, Luna-medium Utility read-only
-support, and an Opus-high Reviewer. The private mapping is Worker = implementation writer
+It exposes six package agents: an Astra-medium Worker, Terra-medium Git writer,
+Luna-low Researcher, Luna-medium QA verifier and Utility read-only support, and
+an Opus-high Reviewer. The private mapping is Worker = implementation writer
 capability; Researcher = factual research capability; Utility = mechanical
 support capability; QA = QA capability; Reviewer = review capability; and Git =
 Git delivery capability. Support returns evidence only.
@@ -44,8 +44,10 @@ only on one frozen boundary when both are selected. QA owns executable gates,
 and Reviewer does not rerun them. The parent joins their repair packet before the
 retained Worker repairs it without a replacement. Git delivery uses installed
 methods and is not an implementation substitute.
-QA is selected for diagnosis, browser investigation, or ambiguous acceptance,
-not to spend model effort on known command execution.
+QA uses Luna for bounded verification and repeatable browser checks against
+explicit criteria. Difficult diagnosis, subjective visual judgment, or unclear
+criteria return to the parent for assessment or an explicitly approved model
+override; they do not make Astra the default for mechanical verification.
 
 The private profile maps optional planning advice to `AskClaude` only under a
 non-`claude-bridge` parent with Claude Code authentication, available provider

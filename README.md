@@ -151,14 +151,14 @@ and planning work, as the preferred parent profile. Installation does not
 overwrite parent settings or install a global default. The six-agent child
 catalog uses these defaults:
 
-| Agent        | Model         | Thinking | Role and tools                                          |
-| ------------ | ------------- | -------- | ------------------------------------------------------- |
-| `worker`     | GPT-6 Astra   | medium   | sole non-trivial implementation writer                  |
-| `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research |
-| `qa`         | GPT-6 Astra   | medium   | read-only diagnosis, browser, and ambiguous acceptance  |
-| `reviewer`   | Opus 5        | high     | formal read-only code review and design review          |
-| `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair             |
-| `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                 |
+| Agent        | Model         | Thinking | Role and tools                                             |
+| ------------ | ------------- | -------- | ---------------------------------------------------------- |
+| `worker`     | GPT-6 Astra   | medium   | sole non-trivial implementation writer                     |
+| `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research    |
+| `qa`         | GPT-5.6 Luna  | medium   | bounded read-only acceptance and repeatable browser checks |
+| `reviewer`   | Opus 5        | high     | formal read-only code review and design review             |
+| `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair                |
+| `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                    |
 
 Implementation selects assurance by risk. Mechanical, documentation, and
 reversible metadata work uses direct focused verification and parent diff
@@ -170,6 +170,11 @@ parent freezes one diff, gives QA and Reviewer its identifier, and launches the
 read-only lanes concurrently when the host supports it. QA owns named executable
 gates; Reviewer does not rerun them. The parent joins findings into one repair
 packet before a retained Worker repair.
+
+QA checks explicit acceptance criteria with Luna. Difficult diagnosis, subjective
+visual judgment, and unclear criteria return to the parent for assessment or an
+explicitly approved model override. Astra's strengths in complex work do not make
+it the default for mechanical verification.
 
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected parent's responsibility for product and
