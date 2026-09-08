@@ -230,7 +230,10 @@ Configure the bridge in `~/.pi/agent/claude-bridge.json` only when you use it:
 `AskClaude` is available only to a non-`claude-bridge` parent. Use it only when
 Claude Code authentication and provider access are available and source
 disclosure is permitted. Calls use `mode: "read"` and `isolated: true`. Use
-`claude-fable-5` at `medium` for intent, taste, and planning perspective. Use
+`claude-fable-5-1` at `medium` for intent, taste, and planning perspective. This
+per-call adviser selection does not add Fable 5.1 to the pinned
+`pi-claude-bridge` 0.7.0 provider or its `/model` picker. Keep the normal
+provider default on `claude-fable-5` until upstream support is released. Use
 `claude-opus-5` at `high` only for a distinct rigorous challenge, particularly
 when Astra authored the work and a different model's perspective would help.
 AskClaude is optional, not a routine second review. Do not send the same question

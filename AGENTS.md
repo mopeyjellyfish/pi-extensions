@@ -73,8 +73,11 @@ substitute.
 The private profile may use `AskClaude` only from a non-`claude-bridge` parent,
 only when Claude Code authentication and the provider capability are available,
 and only when source disclosure is permitted. Use `mode: "read"` and
-`isolated: true`. Use `claude-fable-5` at `medium` for intent, taste, and
-planning perspective. Use `claude-opus-5` at `high` only for a distinct rigorous
+`isolated: true`. Use `claude-fable-5-1` at `medium` for intent, taste, and
+planning perspective. This per-call adviser selection does not register Fable
+5.1 in the pinned `pi-claude-bridge` 0.7.0 provider. Keep the normal provider
+default on `claude-fable-5` until upstream support is released. Use
+`claude-opus-5` at `high` only for a distinct rigorous
 challenge, particularly when Astra authored the work and a different model's
 perspective would help. AskClaude is optional, not a routine second review. Ask
 distinct questions; do not duplicate the same question or the formal Astra
