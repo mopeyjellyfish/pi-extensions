@@ -57,8 +57,11 @@ override; they do not make Astra the default for mechanical verification.
 The private profile maps optional second opinions to `AskClaude` only under a
 non-`claude-bridge` parent with Claude Code authentication, available provider
 access, and permitted source disclosure. Calls use `mode: "read"` and
-`isolated: true`: `claude-fable-5` at `medium` provides intent, taste, and
-planning perspective, while `claude-opus-5` at `high` provides only a distinct
+`isolated: true`: `claude-fable-5-1` at `medium` provides intent, taste, and
+planning perspective. This per-call adviser selection does not register Fable
+5.1 in the pinned `pi-claude-bridge` 0.7.0 provider or expose it through
+`/model`; the normal provider default remains `claude-fable-5` until upstream
+support is released. `claude-opus-5` at `high` provides only a distinct
 rigorous challenge. A different model's perspective can help with Astra-authored
 work, but AskClaude is not a routine second review. The two profiles do not
 receive the same question, and the Opus challenge does not duplicate the formal

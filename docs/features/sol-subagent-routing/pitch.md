@@ -51,7 +51,7 @@ safe independent lanes that the accepted plan marks `parallel-ready`.
 Use `AskClaude` as an optional read-only adviser when source disclosure is
 permitted and the parent is not a `claude-bridge` model:
 
-- use `claude-fable-5` at `medium` for intent, taste, and planning perspective;
+- use `claude-fable-5-1` at `medium` for intent, taste, and planning perspective;
 - use `claude-opus-5` at `high` only for a distinct rigorous challenge;
 - use `mode: "read"` and `isolated: true` by default;
 - do not duplicate the formal Opus Reviewer or the same question;
@@ -59,6 +59,11 @@ permitted and the parent is not a `claude-bridge` model:
   budget;
 - skip the Opus planning challenge when a mandatory Go specification review
   consumes that budget.
+
+The Fable 5.1 adviser selection is per-call guidance. It does not register the
+model in the pinned `pi-claude-bridge` 0.7.0 provider or expose it through
+`/model`; the normal provider default remains `claude-fable-5` until upstream
+support is released.
 
 Keep model names and private tool names in the private root profile and its
 repository documentation. In the independently installable Feature Flow
@@ -143,7 +148,7 @@ verification.
   overlapping ownership. Every parallel lane has complete dependencies and a
   named integration point.
 - **AC-005 — Fable planning advice:** Under a non-bridge parent, `AskClaude` can
-  use `claude-fable-5` at `medium` in isolated read-only mode for intent and
+  use `claude-fable-5-1` at `medium` in isolated read-only mode for intent and
   planning perspective.
 - **AC-006 — Distinct Opus challenge:** `AskClaude` can use `claude-opus-5` at
   `high` in isolated read-only mode for a distinct rigorous challenge without
