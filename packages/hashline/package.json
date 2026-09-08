@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-hashline",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Anchored Hashline reads and safe range edits for Pi.",
   "license": "MIT",
   "type": "module",
