@@ -189,7 +189,7 @@ instructions and module contracts, applicable installed Go and Cobra/Viper
 standards, then `code-review`'s `references/go.md`, and reports only practical
 non-tool-duplicate findings.
 
-`/implement`, `/review-change`, and `/improve` resolve installed TypeScript
+`/implement`, `/code-review`, and `/improve` resolve installed TypeScript
 methods from task evidence: `typescript` for substantial TypeScript or TSX;
 `typescript-library` for reusable package exports, declarations, ESM boundaries,
 public types, dependency-type exposure, or compatibility promises;
@@ -199,6 +199,28 @@ for legacy cleanup or migration. Unrelated toolchain evidence alone does not
 activate a method. Worker preloads implementation methods and Reviewer preloads all
 five. Independent installation records an unavailable companion and uses bounded
 direct-parent target-repository TypeScript standards without claiming it loaded.
+
+`/code-review [target] [--comment] [--fix]` replaces the old review prompt. The
+default route requires an Astra-high parent. The parent pins one diff and runs
+five fresh read-only Reviewer-contract lenses in parallel with the explicitly
+approved Sol-medium override. It joins and deduplicates candidates, then sends
+them to one fresh Luna-medium Utility scorer. The scorer uses the
+0/25/50/75/100 rubric. Astra validates the evidence and reports only findings at
+80 or higher. Lens and scorer children cannot fan out, write, or run QA gates.
+An omitted or `fixed-diff code` Reviewer mode remains one full integrated
+Pitch-and-plan plus Standards review. Only an explicit `fixed-diff lens` handoff
+uses one named lens.
+
+The default result stays in Pi. `--comment` authorizes one previewed GitHub
+mutation for an eligible open pull request after a final unchanged-head check.
+Use one `COMMENT` review with changed-line inline comments, or one short
+no-issues conversation comment. Refetch and report the canonical URL. `--fix`
+reconstructs the exact reviewed tree in an isolated worktree and uses one Worker
+for retained findings. Frontend or mixed repairs use Astra medium. Non-frontend
+repairs use Sol medium. Do not commit, push, or publish repairs. Combined flags
+fix locally and defer all comments. Prompt text cannot technically enforce
+models, tools, read-only behavior, or mutation limits. Report unavailable
+capabilities and do not silently substitute another route.
 
 Pi reloads resources from the working directory where that Pi process started.
 Activating a worktree through the Worktrunk extension routes file and Bash
