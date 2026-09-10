@@ -2,7 +2,7 @@
   "name": "@mopeyjellyfish/pi-engineering",
   "version": "0.0.0",
   "description": "Focused engineering workflow skills and prompt templates for Pi.",
-  "license": "MIT",
+  "license": "MIT AND Apache-2.0",
   "type": "module",
   "engines": {
     "node": ">=22.20.0"

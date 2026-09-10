@@ -71,7 +71,7 @@ preloads both skills. Fixed-diff Go review applies target-repository instruction
 and module contracts before installed Go standards and `references/go.md`, and
 reports only practical findings that do not duplicate current tool output.
 
-`/implement`, `/review-change`, and `/improve` automatically route substantial
+`/implement`, `/code-review`, and `/improve` automatically route substantial
 TypeScript or TSX through the installed `typescript` method. They add
 `typescript-library` for reusable package exports, declarations, ESM boundaries,
 public types, dependency-type exposure, or compatibility promises;
@@ -81,6 +81,24 @@ for legacy cleanup or migration. Target-repository rules remain first. Worker
 preloads the implementation methods and Reviewer preloads all five. Independent
 installations record an unavailable companion and use bounded direct-parent
 target-repository TypeScript standards without claiming it loaded.
+
+`/code-review [target] [--comment] [--fix]` pins one local or pull-request diff.
+An Astra-high parent runs five parallel fresh read-only Reviewer-contract lenses
+with the approved Sol-medium override. It joins their candidates, then one fresh
+Luna-medium Utility scorer applies the 0/25/50/75/100 confidence rubric. The
+parent validates and reports only findings scored at least 80. Lens and scorer
+children cannot write, run QA gates, or fan out. An independent Engineering
+install reports missing orchestration capabilities and uses a bounded integrated
+direct-parent review without silently substituting models or methods.
+
+By default, the result stays in Pi. `--comment` previews and authorizes one
+eligible, head-pinned GitHub `COMMENT` review with changed-line inline comments,
+or one short no-issues conversation comment. `--fix` reconstructs the exact
+reviewed tree in an isolated worktree and routes one local-only Worker. It uses
+Astra medium for frontend or mixed repairs and Sol medium for non-frontend
+repairs. Combined flags repair locally and defer all comments. Prompt guidance
+cannot technically enforce these model, tool, read-only, and mutation limits, so
+the workflow reports unavailable controls and verifies the final boundary.
 
 The configured Git agent composes the focused Git and GitHub skills. Given a
 worktree, branch, authority, intent, and evidence, it derives atomic units and

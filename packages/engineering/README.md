@@ -1,10 +1,9 @@
 # pi-engineering
 
 `@mopeyjellyfish/pi-engineering` is an independent skill-and-prompt package. It
-provides `developing-changes`, `implement`, `/just-do-it`, and optional focused
-skills for TDD, design, debugging, domain language, review, and architecture
-discovery. It has no extension or
-runtime dependency.
+provides `developing-changes`, `implement`, `/just-do-it`, `/code-review`, and
+optional focused skills for TDD, design, debugging, domain language, review, and
+architecture discovery. It has no extension or runtime dependency.
 
 With no command arguments, `/develop`, `/implement`, `/debug`, and `/just-do-it`
 reuse the unambiguous request already in the current conversation. They ask only
@@ -72,6 +71,29 @@ risk-selected intent and Standards review. A Git delivery capability owns
 authorized delivery mechanics and is not an implementation substitute. Ordinary
 children cannot fan out. `/just-do-it`, one obvious trivial correction, and a
 reported unavailable-capability fallback remain direct-parent exceptions.
+
+`/code-review [target] [--comment] [--fix]` replaces `/review-change`. Its
+default route pins one diff and reports only high-confidence findings in Pi. In
+the complete root profile, an Astra-high parent joins five fresh, parallel,
+read-only Sol-medium Reviewer lenses. One fresh Luna-medium Utility scorer uses
+the 0/25/50/75/100 confidence rubric, and the parent reports only validated
+findings scored at least 80. Children cannot write, run QA gates, or fan out.
+
+`--comment` authorizes one previewed GitHub mutation for an eligible open pull
+request after a final unchanged-head check. Findings produce one `COMMENT`
+review with changed-line inline comments. A zero-finding result produces one
+short conversation comment. `--fix` reconstructs the exact reviewed tree in an
+isolated worktree and gives retained findings to one Worker. Frontend or mixed
+repairs use Astra medium. Non-frontend repairs use Sol medium. The command does
+not commit, push, or publish repairs. Combined flags fix locally and defer every
+comment until a published head receives a new review.
+
+An independent package installation cannot assume that root agents, models,
+Worktrunk, GitHub, or confidence-scoring capabilities exist. It reports missing
+capabilities and uses a bounded integrated direct-parent review when possible.
+Prompt guidance cannot technically enforce model, tool, read-only, or mutation
+limits. The explicit handoff contracts and final boundary checks are the
+available controls.
 
 ## Ticket-backed implementation
 
@@ -147,7 +169,7 @@ Behavioral `implement` work loads `test-driven-development`; an unresolved
 failure loads `diagnosing-bugs` before implementation. Missing methods use the
 documented direct-parent proof fallback.
 
-`/implement`, `/review-change`, and `/improve` automatically resolve
+`/implement`, `/code-review`, and `/improve` automatically resolve
 `typescript` for substantial TypeScript or TSX. They also resolve
 `typescript-library` for reusable package exports, declarations, ESM boundaries,
 public types, dependency-type exposure, or compatibility promises;
@@ -339,8 +361,11 @@ alternative-interface flow keeps architecture judgment in the parent and prevent
 ordinary child agents from orchestrating fanout.
 
 The focused implementation, TDD, `codebase-design`, `code-review`, debugging, and
-architecture-discovery methods use MIT-licensed guidance from [mattpocock/skills](https://github.com/mattpocock/skills)
-at the commits recorded in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-The debugging skill preserves its pinned upstream source before its documented
-Pi-specific additions. `codebase-design` and `code-review` adapt their pinned
-sources into the local design and review flows.
+architecture-discovery methods use MIT-licensed guidance from
+[mattpocock/skills](https://github.com/mattpocock/skills) at the commits recorded
+in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The `/code-review`
+orchestration and comment behavior also adapts the Apache-2.0 Claude Code
+code-review command pinned in that notice. The debugging skill preserves its
+pinned upstream source before its documented Pi-specific additions.
+`codebase-design` and `code-review` adapt their pinned sources into the local
+design and review flows.
