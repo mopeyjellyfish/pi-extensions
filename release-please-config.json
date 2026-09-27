@@ -71,6 +71,9 @@
     "packages/web-search": {
       "release-type": "node"
     },
+    "packages/trailer-production": {
+      "release-type": "node"
+    },
     "packages/typescript": {
       "release-type": "node"
     },

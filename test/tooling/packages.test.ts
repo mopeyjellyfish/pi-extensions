@@ -304,6 +304,7 @@ describe("package contracts", () => {
       "@mopeyjellyfish/pi-simple-english",
       "@mopeyjellyfish/pi-status-line",
       "@mopeyjellyfish/pi-todo",
+      "@mopeyjellyfish/pi-trailer-production",
       "@mopeyjellyfish/pi-typescript",
       "@mopeyjellyfish/pi-web-search",
       "@mopeyjellyfish/pi-worktrunk",

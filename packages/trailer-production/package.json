@@ -1,0 +1,37 @@
+{
+  "name": "@mopeyjellyfish/pi-trailer-production",
+  "version": "0.0.0",
+  "description": "A reusable Pi skill and prompt for planning and producing original product trailers.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "files": [
+    "skills/",
+    "prompts/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "pi-prompt",
+    "trailer",
+    "video-production"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts/trailer.md"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mopeyjellyfish/pi-extensions.git",
+    "directory": "packages/trailer-production"
+  }
+}
