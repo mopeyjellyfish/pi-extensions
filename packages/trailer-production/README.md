@@ -36,6 +36,14 @@ matching recorded consent or new explicit approval. Final delivery includes
 editable source and local master and viewing files; publishing is never
 automatic.
 
+The brief offers an optional question for brand assets, approved company facts,
+hero imagery, and intro clips. The user may skip it. After TTS approval, the
+agent provides local voice previews, collects feedback, and waits for a voice
+selection before final narration. With consent and model support, it can save
+the selected voice settings in a reusable local library for consistent future
+projects, without storing credentials or claiming a one-off clip is a reusable
+voice model.
+
 This text-only package adds no extension, model, media tool, provider,
 credential, or runtime dependency. After the privacy gate and user
 authorization, the skill can inspect only relevant model configuration from a
