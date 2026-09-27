@@ -102,6 +102,10 @@ Record a brief with:
   ratios, frame rate, delivery date, and accessibility needs;
 - available source material, brand rules, logos, fonts, captures, audio, and the
   ownership or license status of each;
+- optional company and product assets: brand kit, logos, approved copy, footage,
+  intro or splash clips, screenshots, hero imagery, and company facts. Offer a
+  clear "skip" choice. If authorized material is already known, identify it and
+  ask whether to use it rather than silently importing it.
 - preferred existing models, services, and tools; whether a missing model may be
   proposed for download and installation; and the requested persistence scope;
 - spoken language, captions, voice preferences, music direction, sound-effect
@@ -114,6 +118,13 @@ Record a brief with:
 
 Resolve only decisions that block the next bounded stage. Offer a recommended
 choice and its tradeoff instead of asking the user to design the workflow.
+
+For supplied assets or approved company details, confirm access, ownership,
+commercial use, release requirements, factual accuracy, and any embargo before
+putting them in the shot list. Use an approved intro or splash clip when it helps
+the story; do not assume it is mandatory. Keep originals read-only and record
+each use in the asset ledger. If the user skips this question, continue with
+other authorized evidence and original visuals rather than inventing brand facts.
 
 ## Inspect the environment before proposing production
 
@@ -231,6 +242,28 @@ reference with the project. If rights, consent, provider terms, or data flow are
 unclear, do not synthesize; use a scratch performance by an authorized speaker,
 text cards, or silence.
 
+## Audition and reuse a voice
+
+After voice generation is approved, create short, labeled previews from approved
+copy. Give the user local playback files or an available local player. Ask them
+to listen and choose, reject, or request changes to pronunciation, pace, tone,
+emphasis, and clarity. Iterate within the approved model and data scope; ask
+again if a new model, voice, or data flow is needed. Do not treat a preview as
+final voice-over until the user accepts it. A previously accepted saved voice
+can skip a new voice-selection round when its standing approval still matches.
+
+Offer to save the accepted voice for consistent use in later projects. If the
+runtime supports reusable identity, record its voice or preset ID, pinned model
+revision, seed, style instructions, pronunciation rules, and settings in a
+user-approved local voice library outside source, reference, and output
+projects. Save reference audio or a sample only with the needed rights and
+consent. Keep credentials out, record license, permitted scope, retention, and
+how the user can revoke or remove it. Do not upload a saved voice without
+separate approval. If the model only produces a one-off recording, keep the
+authorized sample and settings but do not claim the voice can be reproduced.
+For a later project, verify that the saved profile and rights still apply and
+play a short sample of the new copy before final voice-over production.
+
 ## Produce picture and motion
 
 Capture truthful, stable product states. Hide credentials, personal data,
@@ -335,6 +368,8 @@ Keep final deliverables in the approved local output directory. Provide:
 - asset provenance and rights ledger, including attribution and consent notes;
 - production notes with verified tools, versions, commands, prompts/settings,
   approvals, and external data flows, with no credentials;
+- the selected voice and feedback record, with a pointer to any separately
+  approved reusable voice profile and its consent scope;
 - a high-quality local master plus only the user-selected 1080p, 4K, or 8K
   viewing/delivery renders;
 - a manual QA report and machine-readable metadata report for each final file;
