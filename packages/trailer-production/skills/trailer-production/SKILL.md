@@ -10,6 +10,22 @@ model, provider, or companion skill is installed. Follow the target repository's
 instructions and vocabulary. Keep the project reproducible, the sources
 traceable, and every external data flow approved.
 
+## Use the craft references
+
+The gates below keep the work safe. The references make it cinematic. Read each
+one before its stage:
+
+- `references/story-and-timing.md` before the script: audience evidence, the
+  edit timing map, voice-over placement, and sync to real words and hits.
+- `references/cinematic-engine.md` before animation: the pure render contract,
+  the look standard, browser traps, and determinism and speed checks.
+- `references/audio-pipeline.md` before audio: voice casting and takes, music
+  generation and conform, the effects library, the mix, and objective checks.
+- `references/render-pipeline.md` before export: frame capture, motion blur,
+  encoding, the delivery set, and the rebuild README.
+- `references/review-loop.md` before any review: stills, contact sheets,
+  measurements, and the user's real-time review.
+
 ## Set safe production boundaries
 
 1. Before reading target-repository instructions, references, source files,
@@ -21,12 +37,16 @@ traceable, and every external data flow approved.
 2. Explain that local media generation or rendering is not the same as fully
    local agent processing. A remote agent or model can still receive content
    returned by local tools.
-3. If the user requires that content never leave the device, continue only in a
-   verified local-model, local-agent session. If the inference path is remote or
-   unknown, stop before reading content and ask the user to switch to such a
-   session. Otherwise, before reading content through a remote or unknown path,
-   obtain explicit bounded consent that names the specific reference content and
-   destination/provider.
+3. If the user asks to keep content local but does not say whether that includes
+   the agent's own model, ask which boundary they mean: local media production
+   only (local generation and rendering, no uploads or publishing), or also
+   local agent inference. Do not assume either meaning. If the user requires
+   that content never leave the device, including agent inference, continue only
+   in a verified local-model, local-agent session. If the inference path is
+   remote or unknown, stop before reading content and ask the user to switch to
+   such a session. Otherwise, before reading content through a remote or unknown
+   path, obtain explicit bounded consent that names the specific reference
+   content and destination/provider.
 4. If the user already supplied content in the current session, disclose that it
    may already have been sent through the current agent or model data path. Never
    claim that switching tools or sessions can retroactively isolate that data.
@@ -95,7 +115,10 @@ or publication.
 Record a brief with:
 
 - objective, call to action, audience, viewing context, and success measure;
-- subject and claims that can be demonstrated truthfully;
+- subject and claims that can be demonstrated truthfully, and any hero example
+  that stands in for a broader subject;
+- what the audience cares about, to show as on-screen evidence without naming
+  the audience;
 - target duration, pacing, tone, visual language, and references to use only as
   direction rather than material to copy;
 - required features, story beats, product states, platform framing, aspect
@@ -191,17 +214,21 @@ Create and present these linked artifacts inside the output directory:
 
 1. **Creative brief:** promise, audience, tone, duration, call to action, factual
    claim sources, constraints, and acceptance criteria.
-2. **Script:** timed picture, on-screen copy, voice-over, sound effects, music,
-   transitions, and intentional silence. Read it aloud or estimate spoken time.
-3. **Storyboard and shot list:** shot IDs, time ranges, source or generation
+2. **Edit timing map:** tempo, bar grid, sections, structural music hits,
+   silence gaps, and a start time for each voice-over line. Build it before the
+   script; see `references/story-and-timing.md`.
+3. **Script:** picture, on-screen copy, voice-over, sound effects, music,
+   transitions, and intentional silence, timed to the map. Read it aloud or
+   estimate spoken time.
+4. **Storyboard and shot list:** shot IDs, time ranges, source or generation
    method, framing, motion, overlays, transition intent, audio cue, dependencies,
    and fallback.
-4. **Caption plan:** verbatim dialogue/voice-over, meaningful sound labels,
+5. **Caption plan:** verbatim dialogue/voice-over, meaningful sound labels,
    reading speed, safe placement, contrast, and delivery format.
-5. **Asset ledger:** source path or origin, creator, creation date when known,
+6. **Asset ledger:** source path or origin, creator, creation date when known,
    license, allowed use, attribution, consent/release status, modifications,
    and final shot usage.
-6. **Production plan:** tools, data flow, output structure, checkpoints, render
+7. **Production plan:** tools, data flow, output structure, checkpoints, render
    budget, machine constraints, and fallbacks.
 
 Design original motion, voice-over, sound effects, music, and editing for this
@@ -276,10 +303,13 @@ software and deterministic UI, typography, diagrams, compositing, responsive
 layout, or repeatable timing makes it the best fit. Drive motion from a timeline
 or elapsed time, not frame-count side effects. Separate scene data, timing,
 layout, and rendering; use deterministic seeds; load assets explicitly; and
-respect safe areas and reduced-motion needs. Keep an editable source project and
-record the exact render command and runtime versions. Do not force JavaScript
-when conventional editing, captured footage, or another verified local tool is
-simpler and produces a better result.
+respect safe areas and reduced-motion needs. Read accent and cut times from the
+generated cue module, not from hard-coded seconds. Follow
+`references/cinematic-engine.md` for the render contract, the look standard,
+known browser traps, and the determinism and speed checks. Keep an editable
+source project and record the exact render command and runtime versions. Do not
+force JavaScript when conventional editing, captured footage, or another
+verified local tool is simpler and produces a better result.
 
 For every visual element, preserve aspect ratio, color intent, legibility, and
 source provenance. Use purposeful camera and type motion. Avoid motion that
@@ -289,9 +319,12 @@ and unsafe rapid patterns.
 ## Produce and mix original audio
 
 Create or license every voice, sound effect, and music element deliberately.
-Keep stems and source files. Record generation settings, prompts, edits, licenses,
-and attribution in the asset ledger without secrets. Do not use an asset with
-unknown rights in the final cut.
+Follow `references/audio-pipeline.md` for voice casting and take selection,
+music generation and conform to the edit, the effects library and its event
+model, the mix, and objective audio checks. Keep stems and source files. Record
+generation settings, prompts, edits, licenses, and attribution in the asset
+ledger without secrets. Do not use an asset with unknown rights in the final
+cut.
 
 Edit for intelligibility first. Balance dialogue, effects, and music; remove
 clipping, accidental noise, clicks, and abrupt tails; use fades and room tone
@@ -313,10 +346,13 @@ delivery supports one. Include relevant non-speech audio, identify speakers when
 needed, and manually check timing, line breaks, spelling, contrast, and occlusion.
 Do not rely on automatic transcription as final proof.
 
-At rough-cut and final-cut checkpoints, watch the complete render in real time
-with sound, then again muted, and listen once without picture. Also inspect the
-first and last frames and representative cuts frame by frame. Record manual QA
-results for:
+At rough-cut and final-cut checkpoints, review stills, contact sheets, and
+objective audio measurements as described in `references/review-loop.md`. An
+agent cannot watch or listen in real time; never claim that it did. Ask the user
+to watch the complete render in real time with sound, then again muted, and to
+listen once without picture, and to report problems with time codes. Also
+inspect the first and last frames and representative cuts frame by frame.
+Record QA results for:
 
 - story clarity, pacing, factual accuracy, continuity, and call to action;
 - dropped, duplicated, corrupt, frozen, black, or placeholder frames;
@@ -337,7 +373,9 @@ rerender failed items, then repeat the affected checks on the final artifact.
 
 Ask the user to choose delivery resolutions after reporting source limits,
 platform needs, render-time and storage estimates, and verified machine
-constraints. Never imply that upscaling adds real detail.
+constraints. Never imply that upscaling adds real detail. For a JavaScript
+trailer, follow `references/render-pipeline.md` for frame capture, motion blur,
+and encoding.
 
 Define each preset's exact dimensions, frame rate, master codec, delivery codec,
 pixel format, color space, audio format, and quality/bitrate only after checking
@@ -372,6 +410,10 @@ Keep final deliverables in the approved local output directory. Provide:
   approved reusable voice profile and its consent scope;
 - a high-quality local master plus only the user-selected 1080p, 4K, or 8K
   viewing/delivery renders;
+- a captioned copy with burned-in captions for muted autoplay, poster stills
+  from the master, and the live web version when the trailer is JavaScript;
+- a README with the ordered rebuild commands and the partial rebuild paths,
+  such as changing one voice-over line;
 - a manual QA report and machine-readable metadata report for each final file;
 - known limitations, unresolved rights or compatibility issues, and the exact
   next decision if publication is desired.
