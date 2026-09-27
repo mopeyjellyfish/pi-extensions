@@ -482,6 +482,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/go/skills",
     "./packages/grafana-skills/skills",
     "./packages/typescript/skills",
+    "./packages/trailer-production/skills",
   ],
   prompts: [
     "./packages/feature-flow/prompts/shape.md",
@@ -490,6 +491,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/productivity/prompts",
     "./packages/frontend-developer/prompts/design.md",
     "./packages/frontend-developer/prompts/generate-image.md",
+    "./packages/trailer-production/prompts/trailer.md",
     "./node_modules/pi-subagents/prompts",
   ],
   subagents: { agents: ["./agents"] },

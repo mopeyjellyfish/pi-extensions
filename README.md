@@ -43,6 +43,9 @@ It loads:
 - [`pi-typescript`](packages/typescript/README.md), with five progressive-disclosure skills for JavaScript-native TypeScript implementation, library design, testing, review, and incremental modernization;
 - [`pi-grafana-skills`](packages/grafana-skills/README.md), which redistributes
   Grafana's official `grafana-oss`, `dashboarding`, and `promql` skills;
+- [`pi-trailer-production`](packages/trailer-production/README.md), with one
+  approval-gated skill and `/trailer` prompt for local-first, original trailer
+  production from brief through editable source, renders, and audiovisual QA;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
 - `github-cli`, `open-pr`, and `triage` for repository-aware GitHub operations, approved pull-request delivery, and review-feedback processing;
 - pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
