@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Produces concise primary-source findings with fixed Luna low effort
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-6-luna
 thinking: low
 systemPromptMode: replace
 inheritProjectContext: true
