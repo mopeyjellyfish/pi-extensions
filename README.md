@@ -154,14 +154,14 @@ and planning work, as the preferred parent profile. Installation does not
 overwrite parent settings or install a global default. The six-agent child
 catalog uses these defaults:
 
-| Agent        | Model         | Thinking | Role and tools                                             |
-| ------------ | ------------- | -------- | ---------------------------------------------------------- |
-| `worker`     | Sol / Astra   | medium   | non-frontend / UI and frontend implementation              |
-| `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research    |
-| `qa`         | GPT-5.6 Luna  | medium   | bounded read-only acceptance and repeatable browser checks |
-| `reviewer`   | GPT-6 Astra   | high     | formal read-only code review and design review             |
-| `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair                |
-| `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                    |
+| Agent        | Model             | Thinking | Role and tools                                             |
+| ------------ | ----------------- | -------- | ---------------------------------------------------------- |
+| `worker`     | GPT-6 Sol / Astra | medium   | non-frontend / UI and frontend implementation              |
+| `researcher` | GPT-6 Luna        | low      | bounded read-only repository or primary-source research    |
+| `qa`         | GPT-6 Luna        | medium   | bounded read-only acceptance and repeatable browser checks |
+| `reviewer`   | GPT-6 Astra       | high     | formal read-only code review and design review             |
+| `git`        | GPT-6 Sol         | medium   | authorized Git delivery and conflict repair                |
+| `utility`    | GPT-6 Luna        | medium   | bounded read-only or mechanical support                    |
 
 **UI and frontend implementation always uses GPT-6 Astra at `medium`.** This is
 the required route, not an optional upgrade for visually complex tasks.
@@ -169,7 +169,7 @@ the required route, not an optional upgrade for visually complex tasks.
 | Implementation task                                                                                           | Required model     |
 | ------------------------------------------------------------------------------------------------------------- | ------------------ |
 | UI or frontend: small fixes, styling, components, client state, data wiring, accessibility, or frontend tests | GPT-6 Astra medium |
-| Non-frontend: backend, CLI, infrastructure, or other non-frontend code                                        | GPT-5.6 Sol medium |
+| Non-frontend: backend, CLI, infrastructure, or other non-frontend code                                        | GPT-6 Sol medium   |
 | Mixed frontend and non-frontend work in one Worker task                                                       | GPT-6 Astra medium |
 
 The parent must launch UI/frontend work with

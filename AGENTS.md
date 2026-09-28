@@ -34,7 +34,7 @@ Worker task. The parent must launch UI/frontend work with
 `model: "openai-codex/gpt-6-astra:medium"`; never leave it on the Sol default.
 Use Astra at `high` in a
 fresh Reviewer context for formal review; the parent's own assessment does not
-replace a required fixed-boundary review. Use Terra at `medium` for Git, Luna at
+replace a required fixed-boundary review. Use Sol at `medium` for Git, Luna at
 `low` for factual research, and Luna at `medium` for bounded QA verification and
 read-only or mechanical support not covered by another role. QA reports difficult
 diagnosis, subjective visual judgments, or unclear acceptance criteria to the

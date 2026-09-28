@@ -1,7 +1,7 @@
 ---
 name: qa
 description: Verifies bounded acceptance behavior with fixed Luna medium effort
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-6-luna
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

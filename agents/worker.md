@@ -1,7 +1,7 @@
 ---
 name: worker
 description: UI and frontend implementation requires Astra medium; Sol medium is only for non-frontend work
-model: openai-codex/gpt-5.6-sol
+model: openai-codex/gpt-6-sol
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

@@ -12,9 +12,9 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six package agents: a Sol-medium Worker, Terra-medium Git writer,
-Luna-low Researcher, Luna-medium QA verifier and Utility read-only support, and
-an Astra-high Reviewer. The private mapping is Worker = implementation writer
+It exposes six package agents: a GPT-6 Sol-medium Worker and Git writer,
+GPT-6 Luna-low Researcher, GPT-6 Luna-medium QA verifier and Utility read-only support,
+and a GPT-6 Astra-high Reviewer. The private mapping is Worker = implementation writer
 capability; Researcher = factual research capability; Utility = mechanical
 support capability; QA = QA capability; Reviewer = review capability; and Git =
 Git delivery capability. Support returns evidence only.
