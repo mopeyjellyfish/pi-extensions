@@ -46,7 +46,7 @@ regenerate the cue module (see `story-and-timing.md`), and remix.
 
 1. Write the music brief from the timing map: tempo, key, sections, hits,
    risers, silence gaps, and the instrument palette. Add negative directions,
-   such as "no vocals" or "no cliché casino sounds".
+   such as "no vocals" or "no cliché sounds".
 2. Generate many candidates with the approved local model at the trailer
    tempo. Check the model's peak memory before you load it. Choose a smaller
    variant if the full bundle cannot fit the machine.
