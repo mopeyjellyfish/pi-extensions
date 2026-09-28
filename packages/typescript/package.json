@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-typescript",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Opinionated, JavaScript-native TypeScript skills for Pi.",
   "license": "MIT",
   "type": "module",

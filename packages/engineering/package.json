@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-engineering",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Focused engineering workflow skills and prompt templates for Pi.",
   "license": "MIT",
   "type": "module",

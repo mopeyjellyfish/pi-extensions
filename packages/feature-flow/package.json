@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-feature-flow",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "First-party Shape and planning skills for feature delivery with Pi.",
   "license": "MIT",
   "type": "module",
