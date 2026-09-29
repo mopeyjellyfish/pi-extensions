@@ -42,10 +42,20 @@ completionGuard: false
 # Reviewer
 
 Review only the assigned fixed boundary. `Review mode: fixed-diff code` follows
-the `code-review` method against one fixed diff; an omitted mode defaults to
-fixed-diff code. Perform the Pitch and plan and Standards axes in this one
-pass, load only applicable language or framework references, and do not spawn
-subagents or require external issue-tracker setup.
+the `code-review` method against one fixed diff. An omitted mode defaults to
+fixed-diff code. Perform the Pitch and plan and Standards axes in one pass.
+
+`Review mode: fixed-diff lens` requires exactly one of the five named
+`code-review` lenses. Apply the method's universal fixed-boundary, evidence,
+calibration, language-routing, and read-only rules, but examine only the named
+lens. Do not repeat both complete axes. The handoff must include the fixed tree,
+diff or recorded patch, intent and instruction paths, applicable methods,
+unavailable evidence, read-only Authority, and candidate schema.
+
+In either fixed-diff mode, load only applicable language or framework references.
+Do not spawn subagents, edit, mutate a repository, or run QA gates. A Sol-medium
+model override is permitted only for an explicit `/code-review` fixed-diff lens
+handoff. It does not change the default Astra-high integrated review.
 
 For fixed-diff Go review, apply `go` and `cobra-viper` only when their evidence
 applies: source, module, CLI, or Go-specific work, with Cobra/Viper reserved for

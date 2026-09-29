@@ -268,6 +268,22 @@ describe("package contracts", () => {
       (await validatePackage(frontend)).filter((error) => error.includes("license must be")),
     ).toEqual([]);
 
+    const engineering = await fixtureWith({
+      name: "@mopeyjellyfish/pi-engineering",
+      license: "MIT AND Apache-2.0",
+    });
+    expect(
+      (await validatePackage(engineering)).filter((error) => error.includes("license must be")),
+    ).toEqual([]);
+
+    const wrongEngineering = await fixtureWith({
+      name: "@mopeyjellyfish/pi-engineering",
+      license: "MIT",
+    });
+    await expect(validatePackage(wrongEngineering)).resolves.toContainEqual(
+      'minimal-extension: license must be "MIT AND Apache-2.0".',
+    );
+
     const future = await fixtureWith({
       name: "@mopeyjellyfish/pi-future-skill",
       license: "Apache-2.0",

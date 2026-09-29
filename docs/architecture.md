@@ -92,7 +92,7 @@ Fixed-diff Go review applies target-repository instructions and module contracts
 installed Go and applicable Cobra/Viper standards, then `references/go.md`;
 findings need practical consequences and must not duplicate current tool output.
 
-The `/implement`, `/review-change`, and `/improve` entries use evidence-based
+The `/implement`, `/code-review`, and `/improve` entries use evidence-based
 TypeScript routing: `typescript` for substantial TypeScript or TSX;
 `typescript-library` for reusable package exports, declarations, ESM boundaries,
 public types, dependency-type exposure, or compatibility promises;
@@ -103,6 +103,28 @@ unrelated toolchain evidence alone does not activate a method. Worker preloads
 implementation methods, while Reviewer preloads all five. An unavailable companion
 is recorded and uses bounded direct-parent target-repository TypeScript standards
 without claiming it loaded.
+
+The `/code-review [target] [--comment] [--fix]` prompt is a thin entry to the
+maintained Engineering review method. In the root profile, an Astra-high parent
+pins the boundary and starts five parallel fresh Reviewer-contract runs with the
+approved Sol-medium override. The lenses cover intent and Standards,
+correctness and risk, tests and failure behavior, focused history, and contracts
+and design. The parent joins their candidates. One fresh Luna-medium Utility run
+scores them with fixed 0/25/50/75/100 meanings. Astra reports only validated
+findings scored at least 80. The children are read-only, run no QA gates, and
+cannot fan out. Ordinary omitted or fixed-diff code Reviewer mode remains one
+integrated review.
+
+The default command makes no mutation. `--comment` permits one previewed,
+head-pinned GitHub `COMMENT` review with changed-line inline comments, or one
+short no-issues conversation comment. `--fix` reconstructs the exact reviewed
+tree in an isolated worktree and gives one Worker only retained findings.
+Frontend or mixed repairs use Astra medium. Non-frontend repairs use Sol medium.
+Combined flags repair locally and defer comments. Repairs are not committed,
+pushed, or published. An independent Engineering install reports unavailable
+root capabilities and uses a bounded integrated direct-parent fallback. Prompt
+resources cannot enforce model, tool, read-only, or mutation constraints in
+code, so handoff contracts and boundary verification are the available controls.
 
 Each directory under `packages/` is an independent npm package with its own Pi
 manifest, runtime dependencies, documentation, tests, and optional native

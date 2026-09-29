@@ -57,3 +57,27 @@ FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Anthropic Claude Code code-review plugin
+
+Source: <https://github.com/anthropics/claude-code/blob/db8834ba1d72e9a26fba30ac85f3bc4316bb0689/plugins/code-review/commands/code-review.md>
+
+Pinned commit: `db8834ba1d72e9a26fba30ac85f3bc4316bb0689`
+
+Source content SHA-256:
+`2b0837c5ec0b2e75f8ba4565bdafd76fa916b0dc146608c5733af7ba5802012c`
+
+Modified resources:
+
+- `prompts/code-review.md`;
+- `skills/code-review/SKILL.md`.
+
+These resources adapt the upstream review, high-signal filtering, and opt-in
+GitHub comment behavior for Pi. The modifications add a fixed review boundary,
+five evidence lenses, target-repository and language-method routing, one
+confidence scorer, local-only repair behavior, and Pi role and authority rules.
+They remove Claude-specific branding, telemetry, and model routing.
+
+The adapted resources are modified from the upstream source. They are available
+under Apache License 2.0. The complete Apache License 2.0 text follows the MIT
+license in `LICENSE`.
