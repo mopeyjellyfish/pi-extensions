@@ -1,8 +1,8 @@
 ---
 name: reviewer
-description: Reviews a fixed document or diff in fresh context using GPT-6 Astra high effort
-model: openai-codex/gpt-6-astra
-thinking: high
+description: Reviews a fixed document or diff in fresh context using GPT-6.1 Sol medium effort
+model: openai-codex/gpt-6.1-sol
+thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

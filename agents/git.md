@@ -1,7 +1,7 @@
 ---
 name: git
-description: Performs bounded Git-owned changes with fixed Sol medium effort
-model: openai-codex/gpt-6-sol
+description: Performs bounded Git-owned changes with fixed GPT-6.1 Sol medium effort
+model: openai-codex/gpt-6.1-sol
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
