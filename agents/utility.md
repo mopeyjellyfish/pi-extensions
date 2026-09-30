@@ -1,8 +1,8 @@
 ---
 name: utility
-description: Provides bounded uncategorized read-only support with fixed Luna medium effort
-model: openai-codex/gpt-5.6-luna
-thinking: medium
+description: Provides bounded uncategorized read-only support with fixed GPT-6.1 Sol low effort
+model: openai-codex/gpt-6.1-sol
+thinking: low
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

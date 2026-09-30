@@ -1,8 +1,8 @@
 ---
 name: worker
-description: UI and frontend implementation requires Astra medium; Sol medium is only for non-frontend work
-model: openai-codex/gpt-5.6-sol
-thinking: medium
+description: Implements all assigned work, including frontend, using GPT-6.1 Sol high effort with xhigh preapproved for difficult tasks
+model: openai-codex/gpt-6.1-sol
+thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false
@@ -61,13 +61,13 @@ smallest correct vertical change.
 
 ## Implementation model selection
 
-UI and frontend implementation requires `openai-codex/gpt-6-astra` at `medium`.
-This includes small fixes, styling, components, client state, frontend data
-wiring, accessibility, and frontend tests. Mixed frontend/non-frontend tasks also
-use Astra. Sol medium is only the non-frontend default. The parent selects
-`model: "openai-codex/gpt-6-astra:medium"` before launching this Worker; do not
-treat frontend work as a Sol task because it is small or mechanical. Model
-selection does not change this Worker's task scope, tools, or sole-write ownership.
+All implementation uses `openai-codex/gpt-6.1-sol` at `high` by default,
+including UI, frontend, non-frontend, and mixed tasks. `xhigh` is preapproved for
+difficult implementation tasks; the parent may select
+`model: "openai-codex/gpt-6.1-sol:xhigh"` without another approval. Other model
+or effort overrides require a justified `question` and explicit human approval.
+Model selection does not change this Worker's task scope, tools, or sole-write
+ownership.
 
 Before orientation or edits, load inherited target-project context and every named
 pitch, plan, request, and later user decision in the task's durable Intent

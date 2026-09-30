@@ -154,30 +154,25 @@ and planning work, as the preferred parent profile. Installation does not
 overwrite parent settings or install a global default. The six-agent child
 catalog uses these defaults:
 
-| Agent        | Model         | Thinking | Role and tools                                             |
-| ------------ | ------------- | -------- | ---------------------------------------------------------- |
-| `worker`     | Sol / Astra   | medium   | non-frontend / UI and frontend implementation              |
-| `researcher` | GPT-5.6 Luna  | low      | bounded read-only repository or primary-source research    |
-| `qa`         | GPT-5.6 Luna  | medium   | bounded read-only acceptance and repeatable browser checks |
-| `reviewer`   | GPT-6 Astra   | high     | formal read-only code review and design review             |
-| `git`        | GPT-5.6 Terra | medium   | authorized Git delivery and conflict repair                |
-| `utility`    | GPT-5.6 Luna  | medium   | bounded read-only or mechanical support                    |
+| Agent        | Model       | Thinking | Role and tools                                             |
+| ------------ | ----------- | -------- | ---------------------------------------------------------- |
+| `worker`     | GPT-6.1 Sol | high     | all implementation, including UI and frontend              |
+| `researcher` | GPT-6.1 Sol | low      | bounded read-only repository or primary-source research    |
+| `qa`         | GPT-6.1 Sol | medium   | bounded read-only acceptance and repeatable browser checks |
+| `reviewer`   | GPT-6.1 Sol | medium   | formal read-only code review and design review             |
+| `git`        | GPT-6.1 Sol | medium   | authorized Git delivery and conflict repair                |
+| `utility`    | GPT-6.1 Sol | low      | bounded read-only or mechanical support                    |
 
-**UI and frontend implementation always uses GPT-6 Astra at `medium`.** This is
-the required route, not an optional upgrade for visually complex tasks.
-
-| Implementation task                                                                                           | Required model     |
-| ------------------------------------------------------------------------------------------------------------- | ------------------ |
-| UI or frontend: small fixes, styling, components, client state, data wiring, accessibility, or frontend tests | GPT-6 Astra medium |
-| Non-frontend: backend, CLI, infrastructure, or other non-frontend code                                        | GPT-5.6 Sol medium |
-| Mixed frontend and non-frontend work in one Worker task                                                       | GPT-6 Astra medium |
-
-The parent must launch UI/frontend work with
-`model: "openai-codex/gpt-6-astra:medium"`. Do not omit the override and let the
-Worker's Sol default handle frontend work. This selection is preapproved, uses
-the same `worker`, and keeps one writer; it does not add another agent. Mechanical
-QA remains a separate Luna role. Required review runs in a fresh Astra Reviewer
-context, even when the main chat already uses Astra.
+All six roles use `openai-codex/gpt-6.1-sol`. **Worker uses `high` for all
+implementation**, including small UI fixes, styling, components, client state,
+frontend data wiring, accessibility, frontend tests, non-frontend code, and mixed
+tasks. Worker `high` and `xhigh` are preapproved for any implementation. For
+difficult tasks, the parent may select
+`model: "openai-codex/gpt-6.1-sol:xhigh"` without another approval. This uses the
+same `worker` and keeps one writer; it does not add another agent. Researcher
+and Utility use `low` for latency. QA remains a separate Sol-medium role.
+Required review runs in a fresh Sol-medium Reviewer context, regardless of the
+main chat's model.
 
 Implementation selects assurance by risk. Mechanical, documentation, and
 reversible metadata work uses direct focused verification and parent diff
@@ -190,19 +185,19 @@ read-only lanes concurrently when the host supports it. QA owns named executable
 gates; Reviewer does not rerun them. The parent joins findings into one repair
 packet before a retained Worker repair.
 
-QA checks explicit acceptance criteria with Luna. Difficult diagnosis, subjective
-visual judgment, and unclear criteria return to the parent for assessment or an
-explicitly approved model override. Astra's strengths in complex work do not make
-it the default for mechanical verification.
+QA checks explicit acceptance criteria with Sol medium. Difficult diagnosis,
+subjective visual judgment, and unclear criteria return to the parent for
+assessment or an explicitly approved model override, not an automatic model
+change.
 
 Every child starts with fresh context and has no model fallback. Shape and
 planning remain the selected parent's responsibility for product and
 architecture judgment, approval, slice design, and synthesis. They may use at
-most one bounded Researcher handoff after worktree setup. Sol medium is only the
-non-frontend Worker default. Astra medium is required and preapproved for UI or
-frontend implementation, including mixed tasks. Other model or effort overrides require a justified `question` and
-explicit human approval; difficulty or a failed command never selects an
-escalation automatically. Ambiguous routing also uses `question`.
+most one bounded Researcher handoff after worktree setup. Worker uses Sol high
+for every implementation task, with xhigh preapproved for difficult tasks. Other
+model or effort overrides require a justified `question` and explicit human
+approval; difficulty or a failed command never selects an unapproved escalation
+automatically. Ambiguous routing also uses `question`.
 
 Claude Code and OpenAI Codex must already be signed in. The preferred Astra
 planning profile is a manual choice, not an installed default. The following
@@ -240,7 +235,7 @@ provider default on `claude-fable-5` until upstream support is released. Use
 `claude-opus-5` at `high` only for a distinct rigorous challenge, particularly
 when Astra authored the work and a different model's perspective would help.
 AskClaude is optional, not a routine second review. Do not send the same question
-to both profiles or duplicate the formal Astra Reviewer. Any workflow-specific
+to both profiles or duplicate the formal Sol Reviewer. Any workflow-specific
 independent-review budget still applies. An applicable
 mandatory Go specification review takes precedence, so skip the Opus planning
 challenge when that review consumes the budget. Advice is evidence only; the
@@ -261,9 +256,10 @@ at `~/.pi/agent/settings.json` (not its extension config file):
 ```
 
 A `subagents.defaultModel` is unnecessary: pinned pi-subagents gives each
-explicit agent frontmatter model precedence. Do not use a per-run model
-override unless the human explicitly approves that exception. Keep these
-bounded extension controls in
+explicit agent frontmatter model precedence. Worker `high` and `xhigh` selections
+are preapproved for any implementation. Other per-run model or effort overrides
+require a justified `question` and explicit human approval. Keep these bounded
+extension controls in
 `~/.pi/agent/extensions/subagent/config.json`:
 
 ```json

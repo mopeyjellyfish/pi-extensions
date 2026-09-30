@@ -12,24 +12,23 @@ reasoned and rot-guarded. It pins `@playwright/cli`, `pi-claude-bridge`, and
 `pi-subagents` as external production dependencies. It loads the Claude bridge
 and subagent extensions plus explicit subagent prompts without loading the
 subagent dependency's broad orchestration skill.
-It exposes six package agents: a Sol-medium Worker, Terra-medium Git writer,
-Luna-low Researcher, Luna-medium QA verifier and Utility read-only support, and
-an Astra-high Reviewer. The private mapping is Worker = implementation writer
+It exposes six package agents, all using GPT-6.1 Sol
+(`openai-codex/gpt-6.1-sol`): Worker at high; Reviewer, QA, and Git at medium;
+Researcher and Utility at low for latency. The private mapping is Worker = implementation writer
 capability; Researcher = factual research capability; Utility = mechanical
 support capability; QA = QA capability; Reviewer = review capability; and Git =
 Git delivery capability. Support returns evidence only.
 
 The human manually selects GPT-6 Astra at `high`, or `xhigh` for difficult Shape
 and planning work; installation does not set or overwrite a global parent
-default. UI and frontend implementation uses Astra medium; non-frontend
-implementation uses Sol medium. The parent must launch the same Worker with
-`model: "openai-codex/gpt-6-astra:medium"` for UI/frontend work, including small
-fixes, component logic, frontend data wiring, and frontend tests. Mixed tasks use
-Astra for the whole assigned Worker task. The Sol default is not a fallback for
-frontend work. This required selection is preapproved, not another agent or
-writer. Other model or effort overrides require explicit human approval through `question`,
-not automatic escalation after difficulty or failure. Required formal review uses
-a fresh Astra-high Reviewer context, not only the parent's assessment.
+default. All implementation uses the same Sol-high Worker, including UI,
+frontend, non-frontend, and mixed tasks. Worker `high` and `xhigh` are preapproved
+for any implementation; the parent may select
+`model: "openai-codex/gpt-6.1-sol:xhigh"` for difficult tasks without another
+approval. Model selection does not add another agent or writer. Other model or
+effort overrides require explicit human approval through `question`, not
+automatic escalation after difficulty or failure. Required formal review uses
+a fresh Sol-medium Reviewer context, not only the parent's assessment.
 `/just-do-it`, one obvious trivial correction, and an
 unavailable-implementation-writer fallback are direct-parent exceptions; the
 unavailable route is an honest fallback and is reported.
@@ -49,10 +48,10 @@ only on one frozen boundary when both are selected. QA owns executable gates,
 and Reviewer does not rerun them. The parent joins their repair packet before the
 retained Worker repairs it without a replacement. Git delivery uses installed
 methods and is not an implementation substitute.
-QA uses Luna for bounded verification and repeatable browser checks against
+QA uses Sol medium for bounded verification and repeatable browser checks against
 explicit criteria. Difficult diagnosis, subjective visual judgment, or unclear
 criteria return to the parent for assessment or an explicitly approved model
-override; they do not make Astra the default for mechanical verification.
+override, not an automatic model change.
 
 The private profile maps optional second opinions to `AskClaude` only under a
 non-`claude-bridge` parent with Claude Code authentication, available provider
@@ -65,7 +64,7 @@ support is released. `claude-opus-5` at `high` provides only a distinct
 rigorous challenge. A different model's perspective can help with Astra-authored
 work, but AskClaude is not a routine second review. The two profiles do not
 receive the same question, and the Opus challenge does not duplicate the formal
-Astra Reviewer. Any workflow-specific independent-review budget still applies;
+Sol Reviewer. Any workflow-specific independent-review budget still applies;
 an applicable mandatory Go specification review takes precedence over the
 optional planning challenge. Advice is
 evidence only. The parent retains architecture, synthesis, approval, and
