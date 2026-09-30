@@ -25,20 +25,15 @@ may be specific to this repository.
 
 Start with the parent. The human manually selects GPT-6 Astra at `high`, or
 `xhigh` for difficult Shape and planning work; installation does not set a global
-parent default or overwrite parent settings. **UI and frontend implementation
-uses Astra at `medium`. Non-frontend implementation uses Sol at `medium`.** This
-includes small frontend fixes, styling, components, client state, frontend data
-wiring, accessibility, and frontend tests; size or visual complexity is not an
-exception. A mixed frontend/non-frontend task uses Astra for the whole assigned
-Worker task. The parent must launch UI/frontend work with
-`model: "openai-codex/gpt-6-astra:medium"`; never leave it on the Sol default.
-Use Astra at `high` in a
-fresh Reviewer context for formal review; the parent's own assessment does not
-replace a required fixed-boundary review. Use Sol at `medium` for Git, Luna at
-`low` for factual research, and Luna at `medium` for bounded QA verification and
-read-only or mechanical support not covered by another role. QA reports difficult
-diagnosis, subjective visual judgments, or unclear acceptance criteria to the
-parent; these do not make Astra the default for mechanical verification.
+parent default or overwrite parent settings. All six private child roles use
+GPT-6.1 Sol (`openai-codex/gpt-6.1-sol`). Worker uses `high` for all implementation,
+including UI, frontend, non-frontend, and mixed tasks; `xhigh` is preapproved for
+difficult implementation tasks. Reviewer, QA, and Git use `medium`; Researcher
+and Utility use `low` for latency. Use a fresh Sol Reviewer context for formal
+review; the parent's own assessment does not replace a required fixed-boundary
+review. QA reports difficult diagnosis, subjective visual judgments, or unclear
+acceptance criteria to the parent rather than changing models or expanding its
+role.
 
 The private mapping is Worker = implementation writer capability; Researcher =
 factual research capability; Utility = mechanical support capability; QA = QA
@@ -46,11 +41,10 @@ capability; Reviewer = review capability; and Git = Git delivery capability.
 Support returns evidence only. `/just-do-it`, one obvious trivial correction,
 and an unavailable-implementation-writer fallback are direct-parent exceptions;
 the parent reports the fallback.
-The required Astra-medium UI/frontend Worker selection is preapproved; do not ask
-again merely to select it. Other
-model or effort overrides require a justified `question` and explicit human
-approval; difficulty or a failed command never selects an escalation
-automatically. If uncertain, ask.
+Worker `high` and `xhigh` are preapproved for any implementation; do not ask again
+merely to select them. Other model or effort overrides require a justified
+`question` and explicit human approval; difficulty or a failed command never
+selects an unapproved escalation automatically. If uncertain, ask.
 
 Independent read-only lanes need named disjoint evidence gaps plus a
 critical-path or parent-context benefit and are joined before decisions. Ordinary
@@ -80,7 +74,7 @@ default on `claude-fable-5`. Use
 `claude-opus-5` at `high` only for a distinct rigorous
 challenge, particularly when Astra authored the work and a different model's
 perspective would help. AskClaude is optional, not a routine second review. Ask
-distinct questions; do not duplicate the same question or the formal Astra
+distinct questions; do not duplicate the same question or the formal Sol
 Reviewer. Any workflow-specific independent-review budget still applies.
 An applicable mandatory Go specification review takes precedence, so skip the
 Opus planning challenge when that review consumes the budget. Advice is
