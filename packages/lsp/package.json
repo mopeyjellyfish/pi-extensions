@@ -24,8 +24,8 @@
     "vscode-jsonrpc": "8.2.1"
   },
   "devDependencies": {
-    "vitest": "4.1.10",
-    "vscode-languageserver-protocol": "3.17.5"
+    "vitest": "4.1.11",
+    "vscode-languageserver-protocol": "3.18.3"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
