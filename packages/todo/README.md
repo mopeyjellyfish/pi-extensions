@@ -115,3 +115,7 @@ npm --workspace @mopeyjellyfish/pi-todo run typecheck
 npm run smoke:source
 npm run check
 ```
+
+Successful Pi 1 tool results also include schema-described `structuredContent`:
+`action`, resulting `items` (ID, status, text), and `changedIds`. Readable text and
+versioned persistence details remain available.
