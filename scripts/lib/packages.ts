@@ -32,6 +32,7 @@ const FORBIDDEN_PACKED_PATH_COMPONENTS = new Set([
 
 const PACKAGE_LICENSE_EXCEPTIONS: Readonly<Record<string, string>> = {
   "@mopeyjellyfish/pi-frontend-developer": "MIT AND Apache-2.0",
+  "@mopeyjellyfish/pi-engineering": "MIT AND Apache-2.0",
   "@mopeyjellyfish/pi-grafana-skills": "Apache-2.0",
 };
 const DEFAULT_PACKAGE_LICENSE = "MIT";
