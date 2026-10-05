@@ -36,7 +36,7 @@ It loads:
   `react-view-transitions`, and `visual-validation`; `/design` for routing
   frontend interface requests; and
   `/generate-image`, which requires explicit human consent before provider
-  privacy exposure, separately billed cost, or credential use;
+  privacy exposure, subscription quota use, or credential use;
 - the [`worktrunk`](packages/worktrunk/README.md) extension and skill for isolated worktrees;
 - `pi-simple-english`, including its pragmatic ASD-STE100 writing guidance;
 - complete `pi-go` skills for Go programming and delivery;

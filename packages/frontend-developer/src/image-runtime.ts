@@ -1,15 +1,18 @@
+import { randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
-import { basename } from "node:path";
 
 import { selectImageModel } from "./config.ts";
 import { pathFrom } from "./image-path.ts";
 
+import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { ReadableStream } from "node:stream/web";
+import type { ReadableStream, ReadableStreamDefaultReader } from "node:stream/web";
 
 const MAX_INPUT_BYTES = 50 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
-const MAX_ERROR_BYTES = 4096;
+const CODEX_IMAGE_BASE = "https://chatgpt.com/backend-api/codex";
+const LOGIN_GUIDANCE =
+  "Image generation requires openai-codex subscription OAuth. Use Pi /login for openai-codex, then select or configure an openai-codex model.";
 
 export interface ImageInput {
   readonly inputPaths?: readonly string[];
@@ -18,7 +21,7 @@ export interface ImageInput {
   readonly outputFormat?: "png" | "jpeg" | "webp";
   readonly outputPath: string;
   readonly prompt: string;
-  readonly size?: "1024x1024" | "1024x1536" | "1536x1024";
+  readonly size?: string;
 }
 
 interface ImageRuntime {
@@ -43,29 +46,48 @@ function mediaType(bytes: Buffer): "image/jpeg" | "image/png" | "image/webp" | u
   return undefined;
 }
 
-function pngHasAlpha(bytes: Buffer): boolean {
-  return bytes.length > 25 && (bytes[25] === 4 || bytes[25] === 6);
-}
-
 async function imageFile(
   cwd: string,
   value: string,
-): Promise<{ bytes: Buffer; path: string; type: string }> {
+  signal: AbortSignal | undefined,
+): Promise<{ bytes: Buffer; type: string }> {
   const path = pathFrom(cwd, value);
   const metadata = await stat(path);
   if (!metadata.isFile() || metadata.size === 0 || metadata.size > MAX_INPUT_BYTES) {
     throw new Error(`Input image ${value} must be a non-empty file no larger than 50 MB.`);
   }
-  const bytes = await readFile(path);
+  const bytes = await readFile(path, { signal });
+  if (bytes.length === 0 || bytes.length > MAX_INPUT_BYTES)
+    throw new Error("Input image size is invalid.");
   const type = mediaType(bytes);
   if (type === undefined) throw new Error(`Input image ${value} must be PNG, JPEG, or WebP.`);
-  return { bytes, path, type };
+  return { bytes, type };
+}
+
+function accountIdFromToken(token: string): string | undefined {
+  if (token.length > 32_768) return undefined;
+  const parts = token.split(".");
+  if (parts.length !== 3 || parts[1] === undefined) return undefined;
+  try {
+    const payload: unknown = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+    if (!isRecord(payload)) return undefined;
+    const auth = payload["https://api.openai.com/auth"];
+    if (!isRecord(auth)) return undefined;
+    const id = auth["chatgpt_account_id"];
+    return typeof id === "string" && /^[\w-]{1,256}$/u.test(id) ? id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function mergeHeaders(
   modelHeaders: Readonly<Record<string, string | null>> | undefined,
   authHeaders: Readonly<Record<string, string | null>> | undefined,
-  apiKey: string,
+  token: string,
 ): Headers {
   const headers = new Headers();
   for (const source of [modelHeaders, authHeaders]) {
@@ -74,73 +96,84 @@ function mergeHeaders(
       else headers.set(name, value);
     }
   }
-  if (!headers.has("authorization")) headers.set("authorization", `Bearer ${apiKey}`);
+  const accountId = headers.get("chatgpt-account-id") ?? accountIdFromToken(token);
+  if (!accountId || !/^[\w-]{1,256}$/u.test(accountId)) {
+    throw new Error("Cannot resolve Codex account ID. Use Pi /login for openai-codex.");
+  }
+  headers.set("authorization", `Bearer ${token}`);
+  headers.set("chatgpt-account-id", accountId);
+  headers.delete("openai-beta");
   headers.set("accept", "application/json");
+  headers.set("content-type", "application/json");
+  headers.set("originator", "pi-frontend-developer");
+  headers.set("user-agent", "pi-frontend-developer/codex-images-rust-v0.160.0");
+  headers.set("x-codex-image-turn-id", randomUUID());
   return headers;
 }
 
-function endpoint(baseUrl: string, operation: ImageInput["operation"]): string {
-  return `${baseUrl.replace(/\/+$/u, "")}/images/${operation === "edit" ? "edits" : "generations"}`;
-}
-
-function generateBody(input: ImageInput, headers: Headers, imageModel: string): string {
-  if ((input.inputPaths?.length ?? 0) > 0 || input.maskPath !== undefined) {
-    throw new Error("Input images and masks are valid only for edit operations.");
+function validateInput(input: ImageInput): void {
+  if (input.maskPath !== undefined)
+    throw new Error("Codex image generation does not support masks.");
+  if (input.outputFormat !== undefined && input.outputFormat !== "png") {
+    throw new Error("Codex image generation supports PNG only.");
   }
-  headers.set("content-type", "application/json");
-  return JSON.stringify({
-    model: imageModel,
-    prompt: input.prompt,
-    ...(input.outputFormat === undefined ? {} : { output_format: input.outputFormat }),
-    ...(input.size === undefined ? {} : { size: input.size }),
-  });
-}
-
-async function editBody(
-  input: ImageInput,
-  cwd: string,
-  headers: Headers,
-  imageModel: string,
-): Promise<FormData> {
-  headers.delete("content-type");
-  if (input.inputPaths?.length === undefined || input.inputPaths.length === 0) {
-    throw new Error("Image edits require at least one input image path.");
+  const size = input.size ?? "auto";
+  if (size === "auto") return;
+  const match = /^([1-9]\d{0,3})x([1-9]\d{0,3})$/u.exec(size);
+  const width = Number(match?.[1]);
+  const height = Number(match?.[2]);
+  const pixels = width * height;
+  if (
+    !match ||
+    width % 16 !== 0 ||
+    height % 16 !== 0 ||
+    Math.max(width, height) > 3840 ||
+    Math.max(width, height) / Math.min(width, height) > 3 ||
+    pixels < 655_360 ||
+    pixels > 8_294_400
+  ) {
+    throw new Error(
+      "Invalid image size: use auto or WIDTHxHEIGHT with edges divisible by 16, at most 3840, ratio at most 3:1, and 655360–8294400 pixels.",
+    );
   }
-  const images = await Promise.all(input.inputPaths.map((path) => imageFile(cwd, path)));
-  const form = new FormData();
-  form.set("model", imageModel);
-  form.set("prompt", input.prompt);
-  if (input.outputFormat !== undefined) form.set("output_format", input.outputFormat);
-  if (input.size !== undefined) form.set("size", input.size);
-  for (const image of images) {
-    form.append("image[]", new Blob([image.bytes], { type: image.type }), basename(image.path));
-  }
-  if (input.maskPath !== undefined) {
-    const mask = await imageFile(cwd, input.maskPath);
-    if (mask.type !== "image/png" || !pngHasAlpha(mask.bytes)) {
-      throw new Error("An image edit mask must be a PNG file with alpha.");
-    }
-    form.set("mask", new Blob([mask.bytes], { type: mask.type }), basename(mask.path));
-  }
-  return form;
 }
 
 async function requestBody(
   input: ImageInput,
   cwd: string,
-  headers: Headers,
   imageModel: string,
-): Promise<FormData | string> {
-  return input.operation === "generate"
-    ? generateBody(input, headers, imageModel)
-    : await editBody(input, cwd, headers, imageModel);
+  signal: AbortSignal | undefined,
+): Promise<string> {
+  const body = {
+    model: imageModel,
+    prompt: input.prompt,
+    background: "opaque",
+    quality: "auto",
+    size: input.size ?? "auto",
+  };
+  if (input.operation === "generate") {
+    if ((input.inputPaths?.length ?? 0) > 0)
+      throw new Error("Input images are valid only for edit operations.");
+    return JSON.stringify(body);
+  }
+  if (!input.inputPaths?.length)
+    throw new Error("Image edits require at least one input image path.");
+  if (input.inputPaths.length > 4)
+    throw new Error("Image edits accept at most four reference images.");
+  const images = [];
+  for (const path of input.inputPaths) {
+    signal?.throwIfAborted();
+    const image = await imageFile(cwd, path, signal);
+    images.push({ image_url: `data:${image.type};base64,${image.bytes.toString("base64")}` });
+  }
+  return JSON.stringify({ ...body, images });
 }
 
 function decodeImage(value: unknown): Buffer {
   if (typeof value !== "string" || value.length === 0 || value.length > MAX_RESPONSE_BYTES * 2) {
     throw new Error("Provider returned no usable image data.");
   }
-  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)) {
+  if (value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/u.test(value)) {
     throw new Error("Provider returned invalid base64 image data.");
   }
   const bytes = Buffer.from(value, "base64");
@@ -188,194 +221,128 @@ function pngDimensions(bytes: Buffer): readonly [number, number] | undefined {
   return undefined;
 }
 
-const JPEG_SOF_MARKERS = new Set([
-  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
-]);
-
-function hasJpegEnvelope(bytes: Buffer): boolean {
-  return (
-    bytes.length >= 4 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes.at(-2) === 0xff &&
-    bytes.at(-1) === 0xd9
-  );
-}
-
-function isJpegStandaloneMarker(marker: number): boolean {
-  return marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7);
-}
-
-function jpegDimensions(bytes: Buffer): readonly [number, number] | undefined {
-  if (!hasJpegEnvelope(bytes)) return undefined;
-  let dimensions: readonly [number, number] | undefined;
-  for (let offset = 2; offset + 3 < bytes.length;) {
-    if (bytes[offset] !== 0xff) return undefined;
-    while (bytes[offset] === 0xff) offset += 1;
-    if (offset >= bytes.length) return undefined;
-    const marker = bytes.readUInt8(offset);
-    if (marker === 0xd9) break;
-    if (isJpegStandaloneMarker(marker)) {
-      offset += 1;
-      continue;
-    }
-    const length = bytes.readUInt16BE(offset + 1);
-    const end = offset + 1 + length;
-    if (length < 2 || end > bytes.length) return undefined;
-    if (JPEG_SOF_MARKERS.has(marker)) {
-      if (length < 8) return undefined;
-      const height = bytes.readUInt16BE(offset + 4);
-      const width = bytes.readUInt16BE(offset + 6);
-      dimensions = width > 0 && height > 0 ? [width, height] : undefined;
-    }
-    if (marker === 0xda) return dimensions;
-    offset = end;
-  }
-  return undefined;
-}
-
-function webpChunkDimensions(
-  bytes: Buffer,
-  type: string,
-  data: number,
-  length: number,
-): readonly [number, number] | undefined {
-  if (type === "VP8L" && length >= 5 && bytes[data] === 0x2f) {
-    const packed = bytes.readUInt32LE(data + 1);
-    return [(packed & 0x3f_ff) + 1, ((packed >>> 14) & 0x3f_ff) + 1];
-  }
-  if (
-    type === "VP8 " &&
-    length >= 10 &&
-    bytes.subarray(data + 3, data + 6).equals(Buffer.from([0x9d, 0x01, 0x2a]))
-  ) {
-    const width = bytes.readUInt16LE(data + 6) & 0x3f_ff;
-    const height = bytes.readUInt16LE(data + 8) & 0x3f_ff;
-    return width > 0 && height > 0 ? [width, height] : undefined;
-  }
-  return undefined;
-}
-
-function webpDimensions(bytes: Buffer): readonly [number, number] | undefined {
-  if (
-    bytes.length < 20 ||
-    bytes.subarray(0, 4).toString("ascii") !== "RIFF" ||
-    bytes.readUInt32LE(4) !== bytes.length - 8 ||
-    bytes.subarray(8, 12).toString("ascii") !== "WEBP"
-  ) {
-    return undefined;
-  }
-  let canvas: readonly [number, number] | undefined;
-  for (let offset = 12; offset + 8 <= bytes.length;) {
-    const type = bytes.subarray(offset, offset + 4).toString("ascii");
-    const length = bytes.readUInt32LE(offset + 4);
-    const data = offset + 8;
-    const end = data + length;
-    if (end > bytes.length) return undefined;
-    if (type === "VP8X") {
-      if (length !== 10) return undefined;
-      canvas = [bytes.readUIntLE(data + 4, 3) + 1, bytes.readUIntLE(data + 7, 3) + 1];
-    } else {
-      const dimensions = webpChunkDimensions(bytes, type, data, length);
-      if (dimensions !== undefined) {
-        return canvas === undefined || (canvas[0] === dimensions[0] && canvas[1] === dimensions[1])
-          ? dimensions
-          : undefined;
-      }
-    }
-    offset = end + (length % 2);
-  }
-  return undefined;
-}
-
 function validateOutput(bytes: Buffer, input: ImageInput): void {
-  const requestedFormat = input.outputFormat ?? "png";
-  const dimensions =
-    requestedFormat === "png"
-      ? pngDimensions(bytes)
-      : requestedFormat === "jpeg"
-        ? jpegDimensions(bytes)
-        : webpDimensions(bytes);
+  const dimensions = pngDimensions(bytes);
   if (dimensions === undefined) {
-    throw new Error(
-      `Provider returned an invalid ${requestedFormat.toUpperCase()} image artifact.`,
-    );
+    throw new Error("Provider returned an invalid PNG image artifact.");
   }
-  if (input.size !== undefined && dimensions.join("x") !== input.size) {
+  if (input.size !== undefined && input.size !== "auto" && dimensions.join("x") !== input.size) {
     throw new Error(`Provider image dimensions must match requested size ${input.size}.`);
   }
 }
 
-async function providerError(response: Response): Promise<Error> {
-  const body = response.body as ReadableStream<Uint8Array> | null;
-  if (body === null) return new Error(`Image generation failed (${String(response.status)}).`);
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const remaining = MAX_ERROR_BYTES - total;
-    if (value.byteLength >= remaining) {
-      chunks.push(value.subarray(0, remaining));
-      await reader.cancel();
-      break;
-    }
-    total += value.byteLength;
-    chunks.push(value);
+async function cancelResponse(stream: { cancel(): Promise<unknown> } | null): Promise<void> {
+  try {
+    await stream?.cancel();
+  } catch {
+    // Cancellation is best-effort; never expose credential-bearing transport errors.
   }
-  const text = new TextDecoder().decode(Buffer.concat(chunks));
-  return new Error(`Image generation failed (${String(response.status)}): ${text}`);
 }
 
-async function responsePayload(response: Response): Promise<{ data?: { b64_json?: unknown }[] }> {
+async function readChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal: AbortSignal | undefined,
+) {
+  try {
+    return await reader.read();
+  } catch {
+    signal?.throwIfAborted();
+    throw new Error("Codex image response could not be read.");
+  }
+}
+
+async function authenticatedHeaders(ctx: ExtensionContext, model: Model<Api>): Promise<Headers> {
+  try {
+    if (!ctx.modelRegistry.isUsingOAuth(model)) throw new Error(LOGIN_GUIDANCE);
+    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+    if (!auth.ok || !auth.apiKey) throw new Error(LOGIN_GUIDANCE);
+    return mergeHeaders(model.headers, auth.headers, auth.apiKey);
+  } catch {
+    throw new Error(LOGIN_GUIDANCE);
+  }
+}
+
+async function responsePayload(
+  response: Response,
+  signal: AbortSignal | undefined,
+): Promise<unknown> {
   const limit = MAX_RESPONSE_BYTES * 2 + 8192;
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > limit) {
+    await cancelResponse(response.body);
     throw new Error("Provider response is too large.");
   }
   const body = response.body as ReadableStream<Uint8Array> | null;
   if (body === null) throw new Error("Provider returned an empty response.");
   const reader = body.getReader();
+  const abort = (): void => {
+    void cancelResponse(reader);
+  };
+  signal?.addEventListener("abort", abort, { once: true });
   const chunks: Uint8Array[] = [];
   let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > limit) {
-      await reader.cancel();
-      throw new Error("Provider response is too large.");
-    }
-    chunks.push(value);
-  }
-  const text = new TextDecoder().decode(Buffer.concat(chunks));
   try {
-    return JSON.parse(text) as { data?: { b64_json?: unknown }[] };
+    for (;;) {
+      signal?.throwIfAborted();
+      const { done, value } = await readChunk(reader, signal);
+      signal?.throwIfAborted();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) throw new Error("Provider response is too large.");
+      chunks.push(value);
+    }
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    await cancelResponse(reader);
+    reader.releaseLock();
+  }
+  try {
+    return JSON.parse(new TextDecoder().decode(Buffer.concat(chunks))) as unknown;
   } catch {
     throw new Error("Provider returned invalid JSON.");
   }
 }
 
-export const openAiImageRuntime: ImageRuntime = {
+// Native image-only JSON protocol verified against OpenAI Codex rust-v0.160.0.
+// Fixed destination: never use a model/auth baseUrl for subscription credentials.
+export const codexImageRuntime: ImageRuntime = {
   async generate(input, signal, ctx) {
+    validateInput(input);
     const { model, imageModel } = await selectImageModel(ctx);
-    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-    if (!auth.ok || auth.apiKey === undefined || auth.apiKey === "") {
-      throw new Error("Image generation requires a separately billed OpenAI Platform API key.");
+    const headers = await authenticatedHeaders(ctx, model);
+    const body = await requestBody(input, ctx.cwd, imageModel, signal);
+    signal?.throwIfAborted();
+    let response: Response;
+    try {
+      response = await fetch(
+        `${CODEX_IMAGE_BASE}/images/${input.operation === "edit" ? "edits" : "generations"}`,
+        {
+          body,
+          headers,
+          method: "POST",
+          redirect: "error",
+          ...(signal === undefined ? {} : { signal }),
+        },
+      );
+    } catch {
+      if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
+      throw new Error(
+        "Codex image request failed. Check connectivity and subscription access; no automatic retry was made.",
+      );
     }
-    const headers = mergeHeaders(model.headers, auth.headers, auth.apiKey);
-    const body = await requestBody(input, ctx.cwd, headers, imageModel);
-    const response = await fetch(endpoint(model.baseUrl, input.operation), {
-      body,
-      headers,
-      method: "POST",
-      ...(signal === undefined ? {} : { signal }),
-    });
-    if (!response.ok) throw await providerError(response);
-    const payload = await responsePayload(response);
-    const bytes = decodeImage(payload.data?.[0]?.b64_json);
+    if (!response.ok) {
+      // Never echo provider bodies: they can contain tokens or private reference data.
+      await cancelResponse(response.body);
+      throw new Error(
+        `Image generation failed (${String(response.status)}). Check Codex subscription access and requested size; custom-size backend acceptance is unverified.`,
+      );
+    }
+    const payload = await responsePayload(response, signal);
+    const data = isRecord(payload) ? payload["data"] : undefined;
+    const first: unknown = Array.isArray(data) ? data[0] : undefined;
+    const bytes = decodeImage(isRecord(first) ? first["b64_json"] : undefined);
     validateOutput(bytes, input);
+    signal?.throwIfAborted();
     return bytes;
   },
 };
