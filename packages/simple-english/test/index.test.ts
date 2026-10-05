@@ -9,7 +9,10 @@ interface BeforeAgentStartResult {
 }
 
 type BeforeAgentStartHandler = (
-  event: { readonly systemPrompt: string },
+  event: {
+    readonly systemPrompt: string;
+    systemPromptOptions: { sections: Record<string, string> };
+  },
   context: ExtensionContext,
 ) => BeforeAgentStartResult | Promise<BeforeAgentStartResult | undefined> | undefined;
 
@@ -26,40 +29,19 @@ function createHarness(): BeforeAgentStartHandler {
 }
 
 describe("pi-simple-english extension", () => {
-  it("tells the agent to write clear human-facing prose without losing information", async () => {
+  it("preserves the host prompt and other sections across repeated events", async () => {
     expect.hasAssertions();
     const handler = createHarness();
-    const base = "Base system prompt with exact contracts.";
-
-    for (const mode of ["tui", "print"] as const) {
-      const result = await handler({ systemPrompt: base }, { mode } as ExtensionContext);
-      const prompt = result?.systemPrompt ?? "";
-      expect(prompt.startsWith(base)).toBe(true);
-      expect(prompt).toContain("pragmatic Simplified Technical English");
-      expect(prompt).toContain("By default");
-      expect(prompt).not.toContain("for all human-facing prose");
-      expect(prompt).toMatch(
-        /explicit user and project requirements[^.]*language[^.]*tone[^.]*format/iu,
-      );
-      expect(prompt).toContain("Do not omit or weaken technical information");
-      expect(prompt).toMatch(/uncertainty.*tradeoffs.*necessary detail/iu);
-      expect(prompt).toMatch(/code.*identifiers.*commands.*paths.*URLs.*quotations/iu);
-      expect(prompt).toContain("normative contract words");
-      expect(prompt).toContain("required document structure");
-      expect(prompt).toMatch(/Technical accuracy and user intent have priority over style/iu);
-    }
-  });
-
-  it("does not duplicate guidance when another loaded copy already added it", async () => {
-    expect.hasAssertions();
-    const handler = createHarness();
-    const first = await handler({ systemPrompt: "Base" }, {} as ExtensionContext);
-    const second = await handler(
-      { systemPrompt: first?.systemPrompt ?? "" },
-      {} as ExtensionContext,
-    );
-
-    const prompt = second?.systemPrompt ?? first?.systemPrompt ?? "";
-    expect(prompt.match(/pragmatic Simplified Technical English/gu)).toHaveLength(1);
+    const event = {
+      systemPrompt: "Host contract",
+      systemPromptOptions: { sections: { other: "Other guidance" } as Record<string, string> },
+    };
+    expect(await handler(event, {} as ExtensionContext)).toBeUndefined();
+    const first = { ...event.systemPromptOptions.sections };
+    expect(first["pi-simple-english-output-guidance"]).toContain("Simplified Technical English");
+    await handler(event, {} as ExtensionContext);
+    expect(event.systemPrompt).toBe("Host contract");
+    expect(event.systemPromptOptions.sections).toEqual(first);
+    expect(event.systemPromptOptions.sections["other"]).toBe("Other guidance");
   });
 });

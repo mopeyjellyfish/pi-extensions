@@ -14,7 +14,9 @@ pi install npm:@mopeyjellyfish/pi-simple-english
 ## Automatic output guidance
 
 Before each agent turn, the extension adds concise writing guidance to the
-system prompt. By default, the guidance applies to human-facing prose. Explicit
+named `pi-simple-english-output-guidance` section of Pi 1's system prompt.
+The host prompt and other sections stay intact; repeated events replace the same
+section instead of appending duplicates. By default, the guidance applies to human-facing prose. Explicit
 user and project requirements control the language, tone, style, and format. The
 guidance tells the agent not to omit or weaken requirements, uncertainty,
 tradeoffs, risks, or technical detail. It preserves exact code, identifiers,
