@@ -117,6 +117,7 @@ interface WorktreeToolResult {
   readonly structuredContent: {
     action: WorktreeAction;
     result: string;
+    truncated: boolean;
     activePath?: string;
     worktrees?: {
       path: string;
@@ -442,6 +443,7 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     structuredContent: {
       action: details.action,
       result: text,
+      truncated: details.truncated ?? false,
       ...(details.activePath === undefined ? {} : { activePath: details.activePath }),
       ...(details.worktrees === undefined
         ? {}
@@ -590,17 +592,18 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
       }
       const activePath =
         current === undefined ? undefined : outputText(current.activePath, OUTPUT_PATH_LIMIT);
+      const mainPath = outputText(list.mainPath, OUTPUT_PATH_LIMIT);
       const details: WorktreeToolDetails = {
         action: "status",
         ...(activePath === undefined ? {} : { activePath: activePath.text }),
-        ...(activePath?.truncated === true ? { truncated: true } : {}),
+        truncated: mainPath.truncated || activePath?.truncated === true,
       };
       const text =
         current === undefined
-          ? `No active routed worktree.\nMain: ${display(list.mainPath)}\nLinked worktrees: ${String(
+          ? `No active routed worktree.\nMain: ${mainPath.text}\nLinked worktrees: ${String(
               list.worktrees.filter((worktree) => !worktree.main).length,
             )}`
-          : `Active worktree: ${activePath?.text ?? display(current.activePath)}\nMain: ${display(current.mainPath)}`;
+          : `Active worktree: ${activePath?.text ?? display(current.activePath)}\nMain: ${mainPath.text}`;
       return toolResult(text, details);
     },
     list: async (_input, signal, ctx) => {
@@ -675,6 +678,7 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
         return toolResult(formatCleanupPreview(preview), {
           action: "cleanup",
           cleanup: preview,
+          truncated: preview.overflow ?? false,
         });
       }
       const fingerprint = requiredText(input.expectedFingerprint, "expectedFingerprint");
@@ -741,6 +745,7 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
     outputSchema: Type.Object({
       action: StringEnum(ACTIONS),
       result: Type.String(),
+      truncated: Type.Boolean(),
       activePath: Type.Optional(Type.String()),
       worktrees: Type.Optional(
         Type.Array(

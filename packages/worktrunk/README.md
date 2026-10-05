@@ -93,6 +93,10 @@ See the bundled `pi-worktrunk` skill and the upstream
 hook details.
 
 Successful Pi 1 results include schema-described `structuredContent`: `action`,
-readable `result`, and, when applicable, `activePath` and worktree summaries
+readable `result`, a `truncated` completeness flag, and, when applicable, `activePath` and worktree summaries
 (path, branch, HEAD, clean/current/main flags). Existing text and detailed cleanup
 evidence remain available in result details.
+
+When `truncated` is true, entries may be omitted or identifiers shortened.
+Shortened paths, branch names, and HEADs are display-only and are not safe for
+follow-up operations. Get the complete values with `wt list --format=json` first.
