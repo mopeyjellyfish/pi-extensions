@@ -355,7 +355,7 @@ describe("pi-worktrunk extension", () => {
       context(harness),
     );
     expect(Compile(harness.tool.outputSchema).Check(result.structuredContent)).toBe(true);
-    expect(result.structuredContent).toMatchObject({ action: "deactivate" });
+    expect(result.structuredContent).toMatchObject({ action: "deactivate", truncated: false });
     expect(result.content[0]?.text).toBeTruthy();
   });
   it("enforces action-specific fields and restores only the latest valid route state", () => {
@@ -742,6 +742,88 @@ describe("pi-worktrunk extension", () => {
     );
   });
 
+  it("marks status text with a shortened main path as truncated", async () => {
+    expect.hasAssertions();
+    const mainPath = `/projects/${"m".repeat(600)}`;
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: worktreeList().replace(MAIN_PATH, mainPath) },
+    ]);
+    const result = await harness.tool.execute(
+      "status",
+      { action: "status" },
+      undefined,
+      undefined,
+      context(harness),
+    );
+    expect(result.content[0]?.text).toContain("[truncated]");
+    expect(result.details).toMatchObject({ action: "status", truncated: true });
+    expect(result.structuredContent).toMatchObject({ action: "status", truncated: true });
+  });
+
+  it("marks an overflow cleanup preview as truncated without offering approval", async () => {
+    expect.hasAssertions();
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      {
+        code: 0,
+        killed: false,
+        stderr: "",
+        stdout: cleanupWorktreeList(undefined, `/projects/${"p".repeat(60_000)}`),
+      },
+      { code: 0, killed: false, stderr: "", stdout: githubHistory() },
+    ]);
+    const result = await harness.tool.execute(
+      "cleanup-overflow",
+      { action: "cleanup" },
+      undefined,
+      undefined,
+      context(harness),
+    );
+    expect(result.details["cleanup"]).toMatchObject({
+      overflow: true,
+      candidates: [],
+      skipped: [],
+      candidateCount: 1,
+      skippedCount: 1,
+    });
+    expect(result.details["cleanup"]).not.toHaveProperty("fingerprint");
+    expect(result.structuredContent).toMatchObject({ action: "cleanup", truncated: true });
+    expect(result.details).toMatchObject({ truncated: true });
+    expect(harness.exec).toHaveBeenCalledTimes(3);
+  });
+
+  it("marks a list with omitted worktrees as truncated", async () => {
+    expect.hasAssertions();
+    const parsed = JSON.parse(worktreeList()) as { items: Record<string, unknown>[] };
+    const feature = parsed.items[1];
+    if (!feature) throw new Error("Missing fixture");
+    parsed.items = [
+      ...parsed.items.slice(0, 1),
+      ...Array.from({ length: 20 }, (_, index) => ({
+        ...feature,
+        branch: `feature/${String(index)}`,
+        worktree: {
+          ...(feature["worktree"] as Record<string, unknown>),
+          path: `/projects/feature-${String(index)}`,
+        },
+      })),
+    ];
+    const harness = createHarness([
+      { code: 0, killed: false, stderr: "", stdout: "wt 0.67.0\n" },
+      { code: 0, killed: false, stderr: "", stdout: JSON.stringify(parsed) },
+    ]);
+    const result = await harness.tool.execute(
+      "overflow",
+      { action: "list" },
+      undefined,
+      undefined,
+      context(harness),
+    );
+    expect(result.structuredContent).toMatchObject({ truncated: true });
+    expect(result.details["worktrees"]).toHaveLength(20);
+  });
+
   it("bounds Worktrunk-derived list text and structured details", async () => {
     expect.hasAssertions();
     const longBranch = `feature/${"b".repeat(500)}`;
@@ -767,6 +849,7 @@ describe("pi-worktrunk extension", () => {
     expect(result.content[0]?.text).toContain(
       "[Worktree list truncated; use agent Bash to run `wt list --format=json`",
     );
+    expect(result.structuredContent).toMatchObject({ truncated: true });
     const worktrees: unknown = result.details["worktrees"];
     if (!Array.isArray(worktrees)) {
       throw new TypeError("worktree list details were absent");
