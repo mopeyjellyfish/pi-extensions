@@ -1,3 +1,4 @@
+import { Compile } from "typebox/compile";
 import { describe, expect, it } from "vitest";
 
 import todoExtension, {
@@ -8,8 +9,10 @@ import todoExtension, {
 } from "../src/index.ts";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { TSchema } from "typebox";
 
 interface ToolResult {
+  readonly structuredContent?: unknown;
   readonly content: readonly { readonly text: string; readonly type: "text" }[];
   readonly details: {
     readonly action: string;
@@ -29,6 +32,8 @@ interface TestTheme {
 }
 
 interface RegisteredTool {
+  readonly outputSchema: TSchema;
+  readonly annotations: Record<string, boolean>;
   readonly description: string;
   readonly executionMode?: string;
   readonly name: string;
@@ -115,7 +120,14 @@ function createHarness(): Harness {
       commands.set(name, definition);
     },
     registerTool(definition: RegisteredTool) {
-      tool = definition;
+      tool = {
+        ...definition,
+        async execute(...args) {
+          const result = await definition.execute(...args);
+          expect(Compile(definition.outputSchema).Check(result.structuredContent)).toBe(true);
+          return result;
+        },
+      };
     },
   } as unknown as ExtensionAPI;
   todoExtension(pi);
@@ -194,6 +206,7 @@ describe("pi-todo extension", () => {
     const harness = createHarness();
 
     expect(harness.tool.name).toBe("todo");
+    expect(harness.tool.annotations).toMatchObject({ readOnlyHint: false, openWorldHint: false });
     expect(harness.tool.executionMode).toBe("sequential");
     expect(harness.tool.parameters).toBe(TodoParameters);
     expect(TodoParameters).toHaveProperty("additionalProperties", false);
@@ -226,6 +239,8 @@ describe("pi-todo extension", () => {
       total: 3,
       version: 1,
     });
+    expect(Compile(harness.tool.outputSchema).Check(added.structuredContent)).toBe(true);
+    expect(added.structuredContent).toMatchObject({ action: "add" });
     record(harness, added);
 
     const startedFirst = await harness.tool.execute(

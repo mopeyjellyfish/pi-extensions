@@ -544,6 +544,18 @@ export default function todoExtension(pi: ExtensionAPI): void {
       "Use todo status cancelled for work that is no longer needed, keep at most one item in_progress, and do not repeat the full todo list in prose after the tool displays it.",
       "Before finishing work tracked by todo, update every remaining item to completed or cancelled; do not claim completion while pending or in_progress items remain.",
     ],
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+    outputSchema: Type.Object({
+      action: TodoParameters.properties.action,
+      items: Type.Array(
+        Type.Object({
+          id: Type.Integer({ minimum: 1 }),
+          status: TodoStatusSchema,
+          text: Type.String(),
+        }),
+      ),
+      changedIds: Type.Array(Type.Integer({ minimum: 1 })),
+    }),
     parameters: TodoParameters,
     async execute(_id, input, signal, _update, ctx) {
       await Promise.resolve();
@@ -553,6 +565,11 @@ export default function todoExtension(pi: ExtensionAPI): void {
       updateUi(pi, ctx, snapshot);
       return {
         content: [{ type: "text", text: applied.message }],
+        structuredContent: {
+          action: input.action,
+          items: snapshot.items.map((item) => ({ ...item })),
+          changedIds: [...applied.changedIds],
+        },
         details: {
           action: input.action,
           changedIds: applied.changedIds,
