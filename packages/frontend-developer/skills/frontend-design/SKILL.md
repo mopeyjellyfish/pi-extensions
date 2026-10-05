@@ -12,6 +12,10 @@ instructions, observed product behavior, existing UI, supplied mock-ups, and an
 existing `DESIGN.md`. Repository instructions and observed product behavior
 take precedence over DESIGN.md. Its absence does not block work.
 
+- For competitor or related-product UX/UI research, load `interface-research`.
+  For current-app inspection, research, a visual choice, and an improvement plan,
+  follow [`/improve-ui`](../../prompts/improve-ui.md). Classify impact here,
+  then return to that workflow without implementation or another routing loop.
 - For a bounded mechanical visual edit, make the direct repository-conforming
   change and run its relevant check. Do not add a design ceremony.
 - For a focused request to evaluate, refine, enhance, fix, extract, or iterate

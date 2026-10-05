@@ -39,6 +39,7 @@
     ],
     "prompts": [
       "./prompts/design.md",
+      "./prompts/improve-ui.md",
       "./prompts/generate-image.md"
     ]
   },

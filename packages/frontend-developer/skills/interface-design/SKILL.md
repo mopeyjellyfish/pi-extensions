@@ -59,6 +59,11 @@ For a focused refinement, evaluation, enhancement, fix, extraction, or live
 iteration instead of full direction work, route through `interface-craft` and
 use its operation-specific evidence contract.
 
+For sourced competitor and related-product comparison, use `interface-research`.
+In [`/improve-ui`](../../prompts/improve-ui.md), supply material direction and
+image-backed selection only. Return to its bounded plan after selection. Defer
+this skill's build loop and source edits until a separate implementation request.
+
 ## Intent First
 
 Before touching code, answer these. Keep it a compact working brief unless the direction needs user confirmation.

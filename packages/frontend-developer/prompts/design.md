@@ -8,6 +8,14 @@ Classify this frontend interface request before proceeding:
   direct target-repository change without a design ceremony.
 - For `/design document`, “document the design system”, or “teach me this design
   system”, use `design-documentation`.
+- For explicit competitor or related-product research only, load
+  `interface-research` and return sourced findings without design or code edits.
+- For an evidence-led improvement request that asks to inspect the current app,
+  compare standards and competitors, review directions, and plan changes, use
+  `frontend-design` with this request. It resolves the installed `/improve-ui`
+  workflow from package-relative guidance. Do not run a second routing loop or
+  begin implementation. Plain “improve onboarding” remains focused craft unless
+  the user asks for this research-and-plan workflow.
 - Route focused craft requests through `interface-craft`: “polish this”, “audit
   the settings flow”, “fix the mobile layout”, “make this calmer”, “improve
   onboarding”, and “clarify the errors” select their matching operation.

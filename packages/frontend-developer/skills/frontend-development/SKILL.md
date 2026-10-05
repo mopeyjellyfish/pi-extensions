@@ -16,6 +16,11 @@ native accessible structure. Generated pixels are evidence, not executable
 behavior, hidden behavior, or production assets; keep controls, navigation,
 forms, and meaningful content native and accessible.
 
+For research and planning rather than implementation, follow
+[`/improve-ui`](../../prompts/improve-ui.md). Its selected direction and bounded
+plan are later implementation inputs, not authorization to edit the app. Retain
+its source evidence, human notes, and unmet proof in the implementation handoff.
+
 Inspect selected reference images themselves before extracting the contract.
 A file path or text description is not image inspection. Preserve accepted visual
 decisions rather than treating reproduction as permission to redesign. If required
