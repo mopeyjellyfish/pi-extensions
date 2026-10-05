@@ -1,0 +1,9 @@
+{
+  "toolDescriptionMode": "compact",
+  "asyncByDefault": false,
+  "forceTopLevelAsync": false,
+  "maxSubagentDepth": 1,
+  "globalConcurrencyLimit": 3,
+  "parallel": { "maxTasks": 4, "concurrency": 3 },
+  "scheduledRuns": { "enabled": false }
+}
