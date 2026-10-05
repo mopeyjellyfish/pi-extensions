@@ -7,7 +7,7 @@ status: accepted
 ## Problem and evidence
 
 The Engineering package has a strong `code-review` skill, but its prompt command is
-named `/review-change`. The command does not select the configured Astra Reviewer
+named `/review-change`. The command does not select the configured Reviewer
 or apply the high-confidence review loop from Claude Code's official
 `/code-review` plugin.
 
@@ -27,17 +27,18 @@ public seams, rejects tautological tests, and resolves applicable Go and
 TypeScript methods. The new command must compose these strengths instead of
 replacing the maintained method.
 
-The root profile pins `pi-claude-bridge` 0.7.0, which is also the latest npm
-release. It registers `claude-fable-5`, but it does not register
-`claude-fable-5-1`. The user decided to leave Fable out until the bridge supports
-the intended model, keep Pi output as the default, add explicit `--comment` and
-local-only `--fix` behavior, and replace `/review-change` with `/code-review`.
+The current root profile pins `pi-claude-bridge` 0.8.0 and keeps its normal
+provider default on `claude-fable-5`. Optional read-only Fable advice follows
+current repository policy, but adding a Fable route to this command remains out
+of scope. The user decided to keep Pi output as the default, add explicit
+`--comment` and local-only `--fix` behavior, and replace `/review-change` with
+`/code-review`.
 
 ## Proposed solution
 
 Add one `/code-review [target] [--comment] [--fix]` prompt template to the
-Engineering package and remove `/review-change`. Fable remains out of scope until
-the bridge registers the intended Fable model.
+Engineering package and remove `/review-change`. A command-specific Fable route
+remains out of scope.
 
 In the complete root profile, `/code-review` uses this approved topology:
 
@@ -49,9 +50,9 @@ In the complete root profile, `/code-review` uses this approved topology:
    reviewed at the same head as eligibility evidence. Review can continue when
    the human confirms, but remote comments remain limited to an eligible open
    pull request.
-4. Launch five parallel fresh, read-only Reviewer-contract lanes with the
-   explicitly approved GPT-5.6 Sol medium model override. No lane can edit or
-   launch another child:
+4. Launch five parallel fresh, read-only configured Reviewer lanes on
+   `openai-codex/gpt-6.1-sol` at medium effort. No lane can edit or launch
+   another child:
    - accepted intent, target-repository instructions, and applicable Go or
      TypeScript standards;
    - changed-line correctness, security, performance, and edge cases;
@@ -60,7 +61,7 @@ In the complete root profile, `/code-review` uses this approved topology:
    - in-file guidance, changed public contracts, architecture, testability, and
      right-sized maintainability.
 5. Join and deduplicate candidate issues. Send the complete candidate set and
-   fixed evidence to one fresh Luna-medium Utility scorer. The scorer applies the
+   fixed evidence to one fresh configured Utility scorer on GPT-6.1 Sol at low effort. The scorer applies the
    official 0–100 confidence meanings and rejects candidates below 80.
 6. Have the Astra-high parent validate every retained issue against the fixed
    diff, cited instruction or intent, practical consequence, and confidence
@@ -102,8 +103,9 @@ authenticated GitHub capability reports the unmet action without a substitute.
 or verify an isolated writable task worktree whose initial tree exactly matches
 the pinned target, including a recorded patch for reviewed uncommitted changes.
 Record the repair base and each resulting repair-tree identifier separately.
-Launch one configured Worker with the joined finding packet: Astra medium for
-frontend or mixed work, and Sol medium for non-frontend work. Follow
+Launch one configured Worker with the joined finding packet on
+`openai-codex/gpt-6.1-sol` at high effort for all repairs, with xhigh preapproved
+only for difficult work under current policy. Follow
 target-repository methods, add or update behavioral proof where needed, run
 invalidated focused and required checks, and have the parent verify that each
 finding is resolved. Do not commit, push, or publish. If the repair changes
@@ -122,9 +124,8 @@ independent merge value.
 
 - Do not add Fable selection, a Fable reviewer profile, an `AskClaude` route, or a
   placeholder model branch in this change.
-- Do not use Terra for review. Terra remains the Git delivery model. The five
-  review lenses use the approved Sol-medium override under read-only Reviewer
-  contracts.
+- Keep Git delivery separate from review. The five review lenses use configured
+  GPT-6.1 Sol medium runs under read-only Reviewer contracts.
 - Do not let a child launch children. The parent owns all fan-out, joining,
   confidence validation, and final decisions.
 - Do not weaken ordinary Reviewer behavior. Lens mode applies only to an explicit
@@ -155,13 +156,13 @@ independent merge value.
 - The current official Claude Code command uses four parallel primary reviewers:
   two Sonnet instruction reviewers and two Opus bug reviewers. It then launches a
   separate validator for each candidate. The accepted Pi topology uses five
-  broader Sol-medium Reviewer lenses and one consolidated Luna-medium scorer
+  broader Sol-medium Reviewer lenses and one consolidated Sol-low Utility scorer
   under an Astra-high parent. This preserves independent lenses and adds history,
   test, architecture, Go, and TypeScript coverage with fewer child launches, but
   one consolidated scorer has less isolation than one scorer per issue.
-- Sol is normally the non-frontend implementation model, not the formal Reviewer
-  model. The user explicitly approved this read-only Sol-medium override for the
-  five lenses. The fixed Reviewer tool and skill contract must remain read-only.
+- All six configured child roles use GPT-6.1 Sol. The five lenses use Reviewer at
+  medium effort; the scorer uses Utility at low effort. The fixed tool and skill
+  contracts must remain read-only.
 - History and prior pull-request evidence can be expensive or unavailable. Bound
   lookups to changed lines and directly relevant files. Report unavailable remote
   evidence and continue with repository evidence.
@@ -204,18 +205,18 @@ independent merge value.
   revision with no blockers, material questions, or recommendations. It verified
   Go routing, role and package boundaries, remote comment authority, local repair
   safety, and the dual-license path.
-- **Invalidation:** This status update is wording-only. The review remains valid
-  while the proposed solution, boundaries, Authority, acceptance criteria, and
-  Go routing stay unchanged.
+- **Invalidation:** The recorded review applies to its historical fixed document.
+  Current child routing and bridge context are reconciled to main under the
+  user's later rebase authority; this is not a claim of a new specification review.
 
 ## Authority
 
 The parent owns product decisions, architecture, orchestration, synthesis, pitch
 and plan approval, candidate joining, final confidence validation, final diff
 inspection, verification, and publication decisions. The user explicitly
-approved an Astra-high parent, five parallel read-only Sol-medium
-Reviewer-contract lenses, and one Luna-medium Utility scorer for
-`/code-review`.
+approved an Astra-high parent, five parallel read-only configured Reviewer lenses
+on GPT-6.1 Sol at medium effort, and one configured Utility scorer on GPT-6.1 Sol
+at low effort for `/code-review` under the current profile.
 
 Pitch approval authorizes bounded changes on `feat/code-review-skill` to the
 Engineering skill, prompt, package manifest, license, third-party notice and
@@ -241,8 +242,8 @@ approved.
   `/review-change`.
 - **AC-002 — Explicit topology and lens contract:** In the complete root profile,
   `/code-review` requires an Astra-high parent, starts five parallel fresh
-  read-only Reviewer-contract lanes with the approved Sol-medium override, then
-  starts one Luna-medium Utility scorer. `agents/reviewer.md` supports an explicit
+  read-only configured Reviewer lanes on GPT-6.1 Sol at medium effort, then
+  starts one configured Utility scorer on GPT-6.1 Sol at low effort. `agents/reviewer.md` supports an explicit
   fixed-diff lens mode without changing its integrated fixed-diff default. No
   child can fan out or write.
 - **AC-003 — Honest capability failure:** If the required parent profile, child
@@ -266,8 +267,8 @@ approved.
   and evidence-selected TypeScript methods, including `typescript-review`, before
   the maintained TypeScript reference. Missing companions are reported honestly.
 - **AC-008 — Independent confidence gate:** Candidate issues include evidence,
-  practical consequence, and smallest sufficient correction. One Luna-medium
-  scorer applies the 0–100 rubric. The Astra parent verifies and reports only
+  practical consequence, and smallest sufficient correction. One configured
+  Sol-low Utility scorer applies the 0–100 rubric. The Astra parent verifies and reports only
   issues scored 80 or higher, ordered by practical severity.
 - **AC-009 — Low-noise result:** The final result excludes pre-existing issues,
   unchanged-line concerns, speculative findings, tooling-handled issues,
@@ -282,7 +283,8 @@ approved.
 - **AC-011 — Local fixes:** With `--fix`, one configured Worker repairs only
   retained findings in an isolated writable task worktree whose initial tree
   matches the pinned review target, including recorded uncommitted changes.
-  Frontend or mixed repairs use Astra medium; non-frontend repairs use Sol medium.
+  All repairs use configured Worker on GPT-6.1 Sol at high effort, with xhigh
+  preapproved only for difficult work under current policy.
   The workflow records separate repair-tree identifiers, runs invalidated focused
   and target-required checks, and reports unresolved findings without commit or
   push.

@@ -104,11 +104,11 @@ without claiming it loaded.
 
 The `/code-review [target] [--comment] [--fix]` prompt is a thin entry to the
 maintained Engineering review method. In the root profile, an Astra-high parent
-pins the boundary and starts five parallel fresh Reviewer-contract runs with the
-approved Sol-medium override. The lenses cover intent and Standards,
+pins the boundary and starts five parallel fresh configured Reviewer runs on
+GPT-6.1 Sol at medium effort. The lenses cover intent and Standards,
 correctness and risk, tests and failure behavior, focused history, and contracts
-and design. The parent joins their candidates. One fresh Luna-medium Utility run
-scores them with fixed 0/25/50/75/100 meanings. Astra reports only validated
+and design. The parent joins their candidates. One fresh configured Utility run
+on GPT-6.1 Sol at low effort scores them with fixed 0/25/50/75/100 meanings. Astra reports only validated
 findings scored at least 80. The children are read-only, run no QA gates, and
 cannot fan out. Ordinary omitted or fixed-diff code Reviewer mode remains one
 integrated review.
@@ -117,7 +117,8 @@ The default command makes no mutation. `--comment` permits one previewed,
 head-pinned GitHub `COMMENT` review with changed-line inline comments, or one
 short no-issues conversation comment. `--fix` reconstructs the exact reviewed
 tree in an isolated worktree and gives one Worker only retained findings.
-Frontend or mixed repairs use Astra medium. Non-frontend repairs use Sol medium.
+All repairs use configured Worker on GPT-6.1 Sol at high effort, with xhigh
+preapproved for difficult work.
 Combined flags repair locally and defer comments. Repairs are not committed,
 pushed, or published. An independent Engineering install reports unavailable
 root capabilities and uses a bounded integrated direct-parent fallback. Prompt

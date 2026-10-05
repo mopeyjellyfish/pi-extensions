@@ -86,9 +86,9 @@ installations record an unavailable companion and use bounded direct-parent
 target-repository TypeScript standards without claiming it loaded.
 
 `/code-review [target] [--comment] [--fix]` pins one local or pull-request diff.
-An Astra-high parent runs five parallel fresh read-only Reviewer-contract lenses
-with the approved Sol-medium override. It joins their candidates, then one fresh
-Luna-medium Utility scorer applies the 0/25/50/75/100 confidence rubric. The
+An Astra-high parent runs five parallel fresh read-only configured Reviewer lenses
+on GPT-6.1 Sol at medium effort. It joins their candidates, then one fresh
+configured Utility scorer on GPT-6.1 Sol at low effort applies the 0/25/50/75/100 confidence rubric. The
 parent validates and reports only findings scored at least 80. Lens and scorer
 children cannot write, run QA gates, or fan out. An independent Engineering
 install reports missing orchestration capabilities and uses a bounded integrated
@@ -98,8 +98,8 @@ By default, the result stays in Pi. `--comment` previews and authorizes one
 eligible, head-pinned GitHub `COMMENT` review with changed-line inline comments,
 or one short no-issues conversation comment. `--fix` reconstructs the exact
 reviewed tree in an isolated worktree and routes one local-only Worker. It uses
-Astra medium for frontend or mixed repairs and Sol medium for non-frontend
-repairs. Combined flags repair locally and defer all comments. Prompt guidance
+GPT-6.1 Sol at high effort for all repairs, with xhigh preapproved for difficult
+work. Combined flags repair locally and defer all comments. Prompt guidance
 cannot technically enforce these model, tool, read-only, and mutation limits, so
 the workflow reports unavailable controls and verifies the final boundary.
 

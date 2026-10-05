@@ -53,9 +53,9 @@ diff or recorded patch, intent and instruction paths, applicable methods,
 unavailable evidence, read-only Authority, and candidate schema.
 
 In either fixed-diff mode, load only applicable language or framework references.
-Do not spawn subagents, edit, mutate a repository, or run QA gates. A Sol-medium
-model override is permitted only for an explicit `/code-review` fixed-diff lens
-handoff. It does not change the default Astra-high integrated review.
+Do not spawn subagents, edit, mutate a repository, or run QA gates. Both integrated
+and explicit `/code-review` fixed-diff lens modes use the configured
+`openai-codex/gpt-6.1-sol` model at medium effort.
 
 For fixed-diff Go review, apply `go` and `cobra-viper` only when their evidence
 applies: source, module, CLI, or Go-specific work, with Cobra/Viper reserved for
