@@ -1,3 +1,4 @@
+import { Compile } from "typebox/compile";
 import { describe, expect, it, vi } from "vitest";
 
 import piWorktrunkExtension, {
@@ -8,6 +9,7 @@ import piWorktrunkExtension, {
 } from "../src/index.ts";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { TSchema } from "typebox";
 
 const MAIN_PATH = "/projects/example";
 const ACTIVE_PATH = "/projects/example-feature";
@@ -20,6 +22,8 @@ interface CommandResult {
 }
 
 interface RegisteredTool {
+  readonly outputSchema: TSchema;
+  readonly annotations: Record<string, boolean>;
   readonly executionMode?: string;
   readonly name: string;
   execute(
@@ -28,7 +32,11 @@ interface RegisteredTool {
     signal: AbortSignal | undefined,
     update: undefined,
     context: ExtensionContext,
-  ): Promise<{ content: { text: string }[]; details: Record<string, unknown> }>;
+  ): Promise<{
+    structuredContent?: unknown;
+    content: { text: string }[];
+    details: Record<string, unknown>;
+  }>;
 }
 
 interface RegisteredCommand {
@@ -298,7 +306,14 @@ function createHarness(results: readonly (CommandResult | Error)[]): Harness {
       commands.set(name, definition);
     },
     registerTool(definition: RegisteredTool) {
-      tool = definition;
+      tool = {
+        ...definition,
+        async execute(...args) {
+          const result = await definition.execute(...args);
+          expect(Compile(definition.outputSchema).Check(result.structuredContent)).toBe(true);
+          return result;
+        },
+      };
     },
   } as unknown as ExtensionAPI;
   piWorktrunkExtension(pi);
@@ -328,6 +343,21 @@ async function emit(
 }
 
 describe("pi-worktrunk extension", () => {
+  it("returns schema-shaped routing results with readable text", async () => {
+    expect.hasAssertions();
+    const harness = createHarness([]);
+    expect(harness.tool.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+    const result = await harness.tool.execute(
+      "deactivate",
+      { action: "deactivate" },
+      undefined,
+      undefined,
+      context(harness),
+    );
+    expect(Compile(harness.tool.outputSchema).Check(result.structuredContent)).toBe(true);
+    expect(result.structuredContent).toMatchObject({ action: "deactivate" });
+    expect(result.content[0]?.text).toBeTruthy();
+  });
   it("enforces action-specific fields and restores only the latest valid route state", () => {
     expect.hasAssertions();
     expect(WorktreeParameters).toHaveProperty("additionalProperties", false);
