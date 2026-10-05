@@ -133,3 +133,6 @@ Detail-field bounds are measured by JSON-encoded UTF-8 cost after sanitization, 
 npm --workspace @mopeyjellyfish/pi-question test
 npm --workspace @mopeyjellyfish/pi-question run typecheck
 ```
+
+Question uses Pi 1 `model-only` exposure: the model can ask questions directly,
+but codemode scripts cannot call this interactive tool.

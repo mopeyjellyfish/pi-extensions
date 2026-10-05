@@ -73,6 +73,7 @@ interface Theme {
 }
 
 interface RegisteredTool {
+  readonly exposure?: string;
   readonly name: string;
   readonly label: string;
   readonly description: string;
@@ -116,6 +117,7 @@ function register(): RegisteredTool {
   let tool: RegisteredTool | undefined;
   questionExtension({
     registerTool(value: RegisteredTool) {
+      expect(value.exposure).toBe("model-only");
       tool = value;
     },
   } as unknown as ExtensionAPI);
