@@ -17,7 +17,7 @@ const config = {
   scheduledRuns: { enabled: false },
 };
 
-const unshadowedBuiltInAgentNames = ["advisor", "delegate", "oracle", "scout"] as const;
+const unshadowedBuiltInAgentNames = ["delegate", "oracle", "scout"] as const;
 
 describe("profile doctor", () => {
   it("accepts extra user agents without changing supplied files", async () => {
@@ -57,7 +57,7 @@ describe("profile doctor", () => {
   });
 
   it.each(unshadowedBuiltInAgentNames)(
-    "rejects a %s override that can bypass bulk disabling",
+    "recommends discovery verification for a possible custom %s override that can bypass bulk disabling",
     async (role) => {
       expect.hasAssertions();
       const root = await mkdtemp(join(tmpdir(), "profile-doctor-"));
@@ -80,8 +80,9 @@ describe("profile doctor", () => {
         );
         expect(diagnostic).toMatchObject({
           file: settingsPath,
-          severity: "error",
+          severity: "recommendation",
         });
+        expect(diagnostic?.message).not.toMatch(/Remove this override|set disabled to true/);
         expect(diagnostic?.message).toContain("cannot verify effective agent discovery");
       } finally {
         await rm(root, { recursive: true, force: true });
@@ -101,6 +102,7 @@ describe("profile doctor", () => {
           subagents: {
             disableBuiltins: true,
             agentOverrides: {
+              advisor: { model: "custom" },
               worker: { model: "custom" },
               researcher: { model: "custom" },
               reviewer: { model: "custom" },
@@ -113,6 +115,29 @@ describe("profile doctor", () => {
       await writeFile(configPath, JSON.stringify(config));
 
       expect(await diagnoseProfile(settingsPath, configPath)).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it("still rejects disabling a packaged role", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "profile-doctor-"));
+    try {
+      const settingsPath = join(root, "settings.json");
+      const configPath = join(root, "config.json");
+      await writeFile(
+        settingsPath,
+        JSON.stringify({
+          subagents: { disableBuiltins: true, agentOverrides: { worker: { disabled: true } } },
+        }),
+      );
+      await writeFile(configPath, JSON.stringify(config));
+      expect(await diagnoseProfile(settingsPath, configPath)).toEqual([
+        expect.objectContaining({
+          severity: "error",
+          path: "$.subagents.agentOverrides.worker.disabled",
+        }),
+      ]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
