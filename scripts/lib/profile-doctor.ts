@@ -11,7 +11,7 @@ interface Diagnostic {
 }
 
 // These built-ins have no packaged role with the same name in the private profile.
-const unshadowedBuiltInAgentNames = ["advisor", "delegate", "oracle", "scout"] as const;
+const unshadowedBuiltInAgentNames = ["delegate", "oracle", "scout"] as const;
 
 /** Resolve Pi's user agent directory without reading or writing it. */
 export function resolveAgentDir(configured: string | undefined, home: string = homedir()): string {
@@ -89,9 +89,9 @@ export async function diagnoseProfile(
       diagnostics.push({
         file: settingsPath,
         path: `$.subagents.agentOverrides.${role}`,
-        severity: "error",
+        severity: "recommendation",
         message:
-          "Remove this override, or set disabled to true. pi-subagents applies a built-in override before disableBuiltins, so this path can leave the built-in enabled. The doctor cannot verify effective agent discovery or whether a custom agent shadows this built-in.",
+          "Verify effective agent discovery for this name. pi-subagents applies a built-in override before disableBuiltins, so this path can leave a built-in enabled. The doctor cannot verify effective agent discovery or whether a permitted custom agent shadows this built-in; keep user agents enabled.",
       });
     }
   }
