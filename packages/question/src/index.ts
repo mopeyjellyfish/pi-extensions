@@ -180,6 +180,8 @@ async function runTui(
 export default function questionExtension(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "question",
+    exposure: "model-only",
+    annotations: { openWorldHint: false, destructiveHint: false },
     label: "Question",
     description:
       "Ask any finite number of structured clarifying questions with choices, previews, optional scrollable documents, notes, custom answers, and conversational redirection. Result details are limited to 48,000 JSON UTF-8 bytes; model-facing content and compact rendering have separate bounds. Use presentation inline for contextual clarifications and after displayed terminal images so the question stays below the images; use fullscreen for attached documents and formal approval. Use stable IDs and re-call with continuationId after a redirected result.",
