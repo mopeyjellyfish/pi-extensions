@@ -283,7 +283,9 @@ extension controls in
 {
   "toolDescriptionMode": "compact",
   "asyncByDefault": false,
+  "forceTopLevelAsync": false,
   "maxSubagentDepth": 1,
+  "globalConcurrencyLimit": 3,
   "parallel": {
     "maxTasks": 4,
     "concurrency": 3
@@ -293,6 +295,27 @@ extension controls in
   }
 }
 ```
+
+The aggregate supplies six packaged roles: Worker, Researcher, Utility, QA,
+Reviewer, and Git. Additional user agents remain available. The versioned
+[settings fragment](examples/pi-1/settings.json) disables only `pi-subagents`
+built-in roles. Manually merge it into `~/.pi/agent/settings.json`; do not replace
+existing settings. Manually merge the
+[subagent configuration](examples/pi-1/subagent-config.json) into
+`~/.pi/agent/extensions/subagent/config.json`.
+
+Run the opt-in, read-only doctor after setup:
+
+```sh
+npm run profile:doctor
+npm run profile:doctor -- examples/pi-1/settings.json examples/pi-1/subagent-config.json
+```
+
+Two optional paths select settings and subagent configuration. Defaults honor
+`PI_CODING_AGENT_DIR`. JSON diagnostics include the file and JSON path. Errors
+exit with status 1; optional recommendations do not fail the check. The doctor
+checks configuration, not effective agent discovery, authentication, project
+overrides, or environment overrides. It never writes settings or credentials.
 
 We evaluated
 [`pi-subagents-lite`](https://github.com/AlexParamonov/pi-subagents-lite) for
