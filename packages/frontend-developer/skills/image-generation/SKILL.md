@@ -6,11 +6,11 @@ description: Generate or edit a GPT Image 2 mock-up artifact when compatible cre
 # Image generation
 
 Use `image_generation` only for a useful mock-up artifact, with a bounded prompt
-and explicit output path. The tool uses a separately billed OpenAI Platform API
-credential resolved by Pi. A ChatGPT or Codex subscription is not sufficient.
+and explicit output path. The tool uses existing `openai-codex` subscription OAuth resolved by Pi.
+Platform API keys are not supported; use Pi `/login` for `openai-codex`.
 Before the first provider request in a pass, state its explicit bound and use
 Pi's `question` tool when available to obtain explicit consent for privacy
-exposure and separate billing. Use one concise conversational fallback only when
+exposure and subscription quota use. Use one concise conversational fallback only when
 the tool is unavailable. Consent authorizes only the stated pass. A cancellation
 or decline is not consent: make no request. Further provider work, including
 refinement, requires a new bound and consent.
@@ -25,3 +25,9 @@ For material design review, each generated artifact is image-backed direction
 evidence for `design_board`; inspect it before presentation. If generation is
 unavailable, declined, or fails, continue normal UI design without claiming
 generated evidence.
+
+The versioned Codex native transport produces PNG only. Reference edits accept
+PNG, JPEG, and WebP inputs; masks and other output formats are unsupported.
+Size defaults to `auto`; valid exact dimensions are forwarded unchanged and
+checked before saving, but live custom-size backend acceptance is unverified.
+There is no Platform fallback or automatic request retry.

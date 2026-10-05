@@ -3,11 +3,13 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { Compile } from "typebox/compile";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import frontendDeveloperExtension from "../src/index.ts";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { TSchema } from "typebox";
 
 vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs/promises")>();
@@ -27,7 +29,12 @@ function crc32(bytes: Buffer): number {
   return (crc ^ 0xff_ff_ff_ff) >>> 0;
 }
 
-function png(width = 1024, height = 1024, alpha = false): Buffer {
+function png(
+  width = 1024,
+  height = 1024,
+  alpha = false,
+  imageData = Buffer.from([120, 156, 3, 0, 0, 0, 0, 1]),
+): Buffer {
   const chunk = (type: string, data: Buffer): Buffer => {
     const body = Buffer.concat([Buffer.from(type), data]);
     const length = Buffer.alloc(4);
@@ -44,7 +51,7 @@ function png(width = 1024, height = 1024, alpha = false): Buffer {
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     chunk("IHDR", header),
-    chunk("IDAT", Buffer.from([120, 156, 3, 0, 0, 0, 0, 1])),
+    chunk("IDAT", imageData),
     chunk("IEND", Buffer.alloc(0)),
   ]);
 }
@@ -113,7 +120,7 @@ function webp(width: number, height: number): Buffer {
 
 interface ImageTool {
   readonly name: string;
-  readonly parameters: { readonly additionalProperties?: boolean };
+  readonly parameters: TSchema;
   execute(
     id: string,
     input: {
@@ -123,7 +130,7 @@ interface ImageTool {
       outputFormat?: "png" | "jpeg" | "webp";
       outputPath: string;
       prompt: string;
-      size?: "1024x1024" | "1024x1536" | "1536x1024";
+      size?: string;
     },
     signal: AbortSignal | undefined,
     update: undefined,
@@ -149,6 +156,7 @@ function tool(): ImageTool {
 function context(
   cwd: string,
   options: {
+    oauth?: boolean;
     api?: string;
     apiKey?: string | null;
     authHeaders?: Record<string, string | null>;
@@ -163,22 +171,26 @@ function context(
   const model = options.noModel
     ? undefined
     : {
-        api: options.api ?? "openai-responses",
-        baseUrl: options.baseUrl ?? "https://api.openai.com/v1",
+        api: options.api ?? "openai-codex-responses",
+        baseUrl: options.baseUrl ?? "https://chatgpt.com/backend-api",
         headers: options.modelHeaders ?? { "X-Model": "model" },
         id: "gpt-5",
-        provider: options.provider ?? "openai",
+        provider: options.provider ?? "openai-codex",
       };
   return {
     cwd,
     isProjectTrusted: () => options.trusted ?? false,
     model,
     modelRegistry: {
+      isUsingOAuth: () => options.oauth ?? true,
       find: options.find ?? vi.fn(),
       getApiKeyAndHeaders: vi.fn(() =>
         Promise.resolve({
           apiKey: options.apiKey === null ? undefined : (options.apiKey ?? "secret"),
-          headers: options.authHeaders ?? { "X-Trace": "trace" },
+          headers: options.authHeaders ?? {
+            "X-Trace": "trace",
+            "ChatGPT-Account-ID": "test-account",
+          },
           ok: true as const,
         }),
       ),
@@ -191,7 +203,7 @@ describe("image_generation", () => {
     expect.hasAssertions();
     const imageTool = tool();
     expect(imageTool.name).toBe("image_generation");
-    expect(imageTool.parameters.additionalProperties).toBe(false);
+    expect(imageTool.parameters).toHaveProperty("additionalProperties", false);
     const root = await mkdtemp(join(tmpdir(), "image-generation-"));
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
@@ -204,9 +216,15 @@ describe("image_generation", () => {
       context(root),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.openai.com/v1/images/generations",
+      "https://chatgpt.com/backend-api/codex/images/generations",
       expect.objectContaining({
-        body: JSON.stringify({ model: "gpt-image-2", prompt: "A calm dashboard" }),
+        body: JSON.stringify({
+          model: "gpt-image-2",
+          prompt: "A calm dashboard",
+          background: "opaque",
+          quality: "auto",
+          size: "auto",
+        }),
       }),
     );
     const requestHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
@@ -219,12 +237,54 @@ describe("image_generation", () => {
     fetchMock.mockRestore();
   });
 
+  it("accepts bounded multi-megabyte PNG artifacts", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-large-"));
+    const artifact = png(1024, 1024, false, Buffer.alloc(8 * 1024 * 1024));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ data: [{ b64_json: artifact.toString("base64") }] }),
+    );
+    await tool().execute(
+      "large",
+      { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+      undefined,
+      undefined,
+      context(root),
+    );
+    expect((await readFile(join(root, "out.png"))).equals(artifact)).toBe(true);
+  });
+
+  it("removes the output when cancelled between opening and writing evidence", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-write-cancel-"));
+    const controller = new AbortController();
+    const realOpen = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
+      .open;
+    vi.mocked(fs.open).mockImplementationOnce(async (...args) => {
+      const handle = await realOpen(...args);
+      controller.abort();
+      return handle;
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ data: [{ b64_json: png().toString("base64") }] }),
+    );
+    await expect(
+      tool().execute(
+        "cancel-write",
+        { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+        controller.signal,
+        undefined,
+        context(root),
+      ),
+    ).rejects.toThrow(/abort/i);
+    await expect(readFile(join(root, "out.png"))).rejects.toThrow();
+  });
+
   it("rejects mismatched output extensions and invalid provider image artifacts", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "image-artifact-validation-"));
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(Response.json({ data: [{ b64_json: png().toString("base64") }] }))
       .mockResolvedValueOnce(Response.json({ data: [{ b64_json: png().toString("base64") }] }))
       .mockResolvedValueOnce(
         Response.json({ data: [{ b64_json: png().subarray(0, -1).toString("base64") }] }),
@@ -257,7 +317,7 @@ describe("image_generation", () => {
         undefined,
         context(root),
       ),
-    ).rejects.toThrow(/JPEG/);
+    ).rejects.toThrow(/PNG only/);
     await expect(
       tool().execute(
         "dimensions",
@@ -286,44 +346,27 @@ describe("image_generation", () => {
     await expect(readFile(join(root, "truncated.png"))).rejects.toThrow();
   });
 
-  it("rejects malformed PNG, JPEG, and WebP containers before writing", async () => {
+  it("rejects malformed PNG containers before writing", async () => {
     expect.hasAssertions();
-    const root = await mkdtemp(join(tmpdir(), "image-malformed-containers-"));
+    const root = await mkdtemp(join(tmpdir(), "image-malformed-"));
     const badPng = png();
-    badPng.writeUInt8(badPng.readUInt8(20) ^ 1, 20);
-    const badJpeg = jpeg(1024, 1024);
-    badJpeg[3] = 0xe0;
-    const mismatchedWebp = webp(1024, 1024);
-    mismatchedWebp.writeUInt32LE((1023 - 1) | ((1024 - 1) << 14), 39);
-    const badRiff = webp(1024, 1024);
-    badRiff.writeUInt8(badRiff.readUInt8(4) + 1, 4);
-    const cases = [
-      { artifact: jpeg(1024, 1024), format: "png", path: "not-png.png" },
-      { artifact: png(0, 1024), format: "png", path: "zero-width.png" },
-      { artifact: badPng, format: "png", path: "bad-crc.png" },
-      { artifact: badJpeg, format: "jpeg", path: "bad-frame.jpg" },
-      { artifact: mismatchedWebp, format: "webp", path: "mismatched.webp" },
-      { artifact: badRiff, format: "webp", path: "bad-riff.webp" },
-    ] as const;
+    badPng[20] = 1;
     const fetchMock = vi.spyOn(globalThis, "fetch");
-    for (const { artifact } of cases) {
+    for (const artifact of [jpeg(1024, 1024), png(0, 1024), badPng]) {
       fetchMock.mockResolvedValueOnce(
         Response.json({ data: [{ b64_json: artifact.toString("base64") }] }),
       );
-    }
-    for (const { format, path } of cases) {
       await expect(
         tool().execute(
-          `bad-${format}`,
-          { operation: "generate", outputFormat: format, outputPath: path, prompt: "mock-up" },
+          "bad",
+          { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
           undefined,
           undefined,
           context(root),
         ),
-      ).rejects.toThrow(new RegExp(`invalid ${format}`, "i"));
-      await expect(readFile(join(root, path))).rejects.toThrow();
+      ).rejects.toThrow(/invalid PNG/);
+      await expect(readFile(join(root, "out.png"))).rejects.toThrow();
     }
-    expect(fetchMock).toHaveBeenCalledTimes(cases.length);
   });
 
   it("bounds and validates provider response payloads before writing", async () => {
@@ -360,7 +403,7 @@ describe("image_generation", () => {
     }
   });
 
-  it("sends edits as multipart input images", async () => {
+  it("sends reference edits as native Codex JSON", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "image-edit-"));
     await mkdir(join(root, "input"));
@@ -380,16 +423,22 @@ describe("image_generation", () => {
       undefined,
       context(root, { modelHeaders: { "Content-Type": "application/json" } }),
     );
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/images/edits");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://chatgpt.com/backend-api/codex/images/edits");
     const request = fetchMock.mock.calls[0]?.[1];
-    expect(request?.body).toBeInstanceOf(FormData);
-    expect((request?.headers as Headers).has("content-type")).toBe(false);
-    expect((request?.body as FormData).getAll("image[]")).toHaveLength(1);
+    expect(JSON.parse(request?.body as string)).toEqual({
+      model: "gpt-image-2",
+      prompt: "Use a calmer hierarchy",
+      background: "opaque",
+      quality: "auto",
+      size: "auto",
+      images: [{ image_url: `data:image/png;base64,${png().toString("base64")}` }],
+    });
+    expect((request?.headers as Headers).get("content-type")).toBe("application/json");
     expect(await readFile(join(root, "art/edited.png"))).toEqual(png());
     fetchMock.mockRestore();
   });
 
-  it("rejects Codex OAuth, invalid project configuration, and cancellation before fetch", async () => {
+  it("rejects Platform/API-key auth, invalid project configuration, and cancellation before fetch", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "image-preflight-"));
     const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -399,9 +448,18 @@ describe("image_generation", () => {
         { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
         undefined,
         undefined,
-        context(root, { api: "openai-codex-responses" }),
+        context(root, { oauth: false }),
       ),
-    ).rejects.toThrow(/Codex subscription OAuth/);
+    ).rejects.toThrow(/OAuth/);
+    await expect(
+      tool().execute(
+        "platform",
+        { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+        undefined,
+        undefined,
+        context(root, { api: "openai-responses", provider: "openai", oauth: false }),
+      ),
+    ).rejects.toThrow(/openai-codex/);
     await expect(
       tool().execute(
         "third-party",
@@ -410,7 +468,7 @@ describe("image_generation", () => {
         undefined,
         context(root, { baseUrl: "https://api.x.ai/v1", provider: "xai" }),
       ),
-    ).rejects.toThrow(/official OpenAI Platform/);
+    ).rejects.toThrow(/openai-codex/);
     await expect(
       tool().execute(
         "generate-input",
@@ -430,6 +488,23 @@ describe("image_generation", () => {
     await expect(
       tool().execute(
         "config",
+        { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+        undefined,
+        undefined,
+        context(root, { trusted: true }),
+      ),
+    ).rejects.toThrow(/configuration is invalid/);
+    await writeFile(
+      join(root, ".pi/image-generation.json"),
+      JSON.stringify({
+        provider: "openai-codex",
+        model: "configured",
+        imageModel: "gpt-image-2.5",
+      }),
+    );
+    await expect(
+      tool().execute(
+        "future-model",
         { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
         undefined,
         undefined,
@@ -457,14 +532,14 @@ describe("image_generation", () => {
     await mkdir(join(root, ".pi"));
     await writeFile(
       join(root, ".pi/image-generation.json"),
-      '{"provider":"openai","model":"configured","imageModel":"gpt-image-1"}',
+      '{"provider":"openai-codex","model":"configured","imageModel":"gpt-image-2"}',
     );
     const selected = {
-      api: "openai-responses",
-      baseUrl: "https://api.openai.com/v1",
+      api: "openai-codex-responses",
+      baseUrl: "https://chatgpt.com/backend-api",
       headers: {},
       id: "configured",
-      provider: "openai",
+      provider: "openai-codex",
     };
     const find = vi.fn(() => selected);
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: [] }));
@@ -477,11 +552,13 @@ describe("image_generation", () => {
         context(root, { find, trusted: true }),
       ),
     ).rejects.toThrow(/no usable image data/);
-    expect(find).toHaveBeenCalledWith("openai", "configured");
+    expect(find).toHaveBeenCalledWith("openai-codex", "configured");
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     if (typeof body !== "string") throw new Error("Expected JSON image request");
-    expect(JSON.parse(body)).toMatchObject({ model: "gpt-image-1" });
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/images/generations");
+    expect(JSON.parse(body)).toMatchObject({ model: "gpt-image-2" });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://chatgpt.com/backend-api/codex/images/generations",
+    );
     await expect(readFile(join(root, "art/out.png"))).rejects.toThrow();
     fetchMock.mockRestore();
   });
@@ -540,6 +617,66 @@ describe("image_generation", () => {
     }
   });
 
+  it("cancels a pending response read and never writes cancelled evidence", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-read-cancel-"));
+    const controller = new AbortController();
+    const cancel = vi.fn();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        new ReadableStream<Uint8Array>(
+          {
+            pull() {
+              controller.abort();
+            },
+            cancel,
+          },
+          { highWaterMark: 0 },
+        ),
+      ),
+    );
+    await expect(
+      tool().execute(
+        "read-cancel",
+        { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+        controller.signal,
+        undefined,
+        context(root),
+      ),
+    ).rejects.toThrow(/abort/i);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    await expect(readFile(join(root, "out.png"))).rejects.toThrow();
+  });
+
+  it("does not expose credential-bearing network or stream failures", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-safe-errors-"));
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new Error("Bearer secret"))
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.error(new Error("Bearer secret"));
+            },
+          }),
+        ),
+      );
+    for (const outputPath of ["network.png", "stream.png"]) {
+      const result = tool().execute(
+        "safe-errors",
+        { operation: "generate", outputPath, prompt: "mock-up" },
+        undefined,
+        undefined,
+        context(root),
+      );
+      await expect(result).rejects.not.toThrow(/secret/);
+      await expect(readFile(join(root, outputPath))).rejects.toThrow();
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("refuses overwrite and reports bounded provider errors", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "image-errors-"));
@@ -555,7 +692,7 @@ describe("image_generation", () => {
       ),
     ).rejects.toThrow(/Refusing to overwrite/);
     expect(fetchMock).not.toHaveBeenCalled();
-    fetchMock.mockResolvedValueOnce(new Response("x".repeat(100), { status: 500 }));
+    fetchMock.mockResolvedValueOnce(new Response("secret".repeat(100), { status: 500 }));
     await expect(
       tool().execute(
         "provider",
@@ -564,7 +701,7 @@ describe("image_generation", () => {
         undefined,
         context(root),
       ),
-    ).rejects.toThrow(/^Image generation failed \(500\): x{100}$/);
+    ).rejects.toThrow(/Image generation failed \(500\)\./);
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
     await expect(
       tool().execute(
@@ -606,68 +743,129 @@ describe("image_generation", () => {
         undefined,
         context(root),
       ),
-    ).rejects.toThrow(/^Image generation failed \(500\): x+$/);
+    ).rejects.toThrow(/Image generation failed \(500\)\./);
     expect(cancel).toHaveBeenCalledTimes(1);
     await expect(readFile(join(root, "error.png"))).rejects.toThrow();
   });
 
-  it("maps portable output controls and preserves an existing authorization header", async () => {
+  it("forwards custom dimensions unchanged and isolates native image headers", async () => {
     expect.hasAssertions();
-    const root = await mkdtemp(join(tmpdir(), "image-options-"));
+    const root = await mkdtemp(join(tmpdir(), "image-custom-size-"));
+    const input = {
+      operation: "generate" as const,
+      outputPath: "out.png",
+      prompt: "mock-up",
+      size: "1600x1024",
+    };
+    expect(Compile(tool().parameters).Check(input)).toBe(true);
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(
-        Response.json({ data: [{ b64_json: webp(1536, 1024).toString("base64") }] }),
+        Response.json({ data: [{ b64_json: png(1600, 1024).toString("base64") }] }),
       );
     await tool().execute(
-      "options",
-      {
-        operation: "generate",
-        outputFormat: "webp",
-        outputPath: "out.webp",
-        prompt: "mock-up",
-        size: "1536x1024",
-      },
+      "custom",
+      input,
       undefined,
       undefined,
       context(root, {
-        authHeaders: { Authorization: "Bearer supplied", "X-Removed": null },
-        modelHeaders: { "X-Removed": "old" },
+        baseUrl: "https://untrusted.invalid/injection",
+        authHeaders: {
+          "CHATGPT-Account-ID": "resolved-account",
+          "x-removed": null,
+          "X-MODEL": "override",
+        },
+        modelHeaders: {
+          "X-Removed": "old",
+          "X-Model": "old",
+          "OpenAI-Beta": "responses=experimental",
+          Accept: "text/event-stream",
+          "Content-Type": "multipart/form-data",
+        },
       }),
+    );
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://chatgpt.com/backend-api/codex/images/generations",
     );
     const request = fetchMock.mock.calls[0]?.[1];
     expect(JSON.parse(request?.body as string)).toEqual({
       model: "gpt-image-2",
-      output_format: "webp",
       prompt: "mock-up",
-      size: "1536x1024",
+      background: "opaque",
+      quality: "auto",
+      size: "1600x1024",
     });
     const headers = request?.headers as Headers;
-    expect(headers.get("authorization")).toBe("Bearer supplied");
+    expect(headers.get("chatgpt-account-id")).toBe("resolved-account");
+    expect(headers.get("x-model")).toBe("override");
     expect(headers.has("x-removed")).toBe(false);
+    expect(headers.has("openai-beta")).toBe(false);
+    expect(headers.get("accept")).toBe("application/json");
+    expect(headers.get("content-type")).toBe("application/json");
+    expect(headers.get("originator")).toBe("pi-frontend-developer");
+    expect(headers.get("user-agent")).toContain("pi-frontend-developer");
+    expect(headers.get("x-codex-image-turn-id")).toBeTruthy();
+    expect(await readFile(join(root, "out.png"))).toEqual(png(1600, 1024));
   });
 
-  it("writes a structurally valid JPEG artifact at the requested dimensions", async () => {
+  it("rejects invalid sizes and unsupported controls before authentication", async () => {
     expect.hasAssertions();
-    const root = await mkdtemp(join(tmpdir(), "image-jpeg-"));
-    const artifact = jpeg(1024, 1536);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({ data: [{ b64_json: artifact.toString("base64") }] }),
-    );
+    const root = await mkdtemp(join(tmpdir(), "image-controls-"));
+    const ctx = context(root);
+    const authMock = vi.spyOn(ctx.modelRegistry, "getApiKeyAndHeaders");
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    for (const controls of [
+      { size: "1025x1024" },
+      { size: "4000x2048" },
+      { size: "3072x768" },
+      { size: "512x512" },
+      { size: "3840x3840" },
+      { size: "garbage" },
+      { maskPath: "mask.png" },
+      { outputFormat: "jpeg" as const },
+      { outputFormat: "webp" as const },
+    ]) {
+      await expect(
+        tool().execute(
+          "invalid",
+          { operation: "generate", outputPath: "out.png", prompt: "mock-up", ...controls },
+          undefined,
+          undefined,
+          ctx,
+        ),
+      ).rejects.toThrow(/size|PNG only|masks/i);
+    }
+    expect(authMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses bounded JWT account metadata when registry headers omit it", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-jwt-"));
+    const token = `header.${Buffer.from(JSON.stringify({ "https://api.openai.com/auth": { chatgpt_account_id: "jwt-account" } })).toString("base64url")}.signature`;
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ data: [{ b64_json: png().toString("base64") }] }));
     await tool().execute(
-      "jpeg",
-      {
-        operation: "generate",
-        outputFormat: "jpeg",
-        outputPath: "out.jpeg",
-        prompt: "mock-up",
-        size: "1024x1536",
-      },
+      "jwt",
+      { operation: "generate", outputPath: "out.png", prompt: "mock-up", size: "auto" },
       undefined,
       undefined,
-      context(root),
+      context(root, { apiKey: token, authHeaders: {} }),
     );
-    expect(await readFile(join(root, "out.jpeg"))).toEqual(artifact);
+    expect((fetchMock.mock.calls[0]?.[1]?.headers as Headers).get("chatgpt-account-id")).toBe(
+      "jwt-account",
+    );
+    await expect(
+      tool().execute(
+        "bad-jwt",
+        { operation: "generate", outputPath: "bad.png", prompt: "mock-up" },
+        undefined,
+        undefined,
+        context(root, { authHeaders: {} }),
+      ),
+    ).rejects.toThrow(/account|login/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("validates project paths, edit inputs, masks, and supported image formats", async () => {
@@ -717,7 +915,7 @@ describe("image_generation", () => {
         undefined,
         context(root),
       ),
-    ).rejects.toThrow(/mask must be a PNG/);
+    ).rejects.toThrow(/masks/);
     await writeFile(join(root, "opaque.png"), png(1024, 1024, false));
     await expect(
       tool().execute(
@@ -733,17 +931,17 @@ describe("image_generation", () => {
         undefined,
         context(root),
       ),
-    ).rejects.toThrow(/with alpha/);
+    ).rejects.toThrow(/masks/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("accepts multiple supported edit images and a PNG mask", async () => {
+  it("accepts JPEG and WebP references in the JSON edit images array", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "image-formats-"));
     await mkdir(join(root, ".pi"));
     await writeFile(
       join(root, ".pi/image-generation.json"),
-      JSON.stringify({ provider: "openai", model: "configured", imageModel: "gpt-image-1" }),
+      JSON.stringify({ provider: "openai-codex", model: "configured", imageModel: "gpt-image-2" }),
     );
     await writeFile(join(root, "source.jpg"), jpeg(1, 1));
     await writeFile(join(root, "source.webp"), webp(1, 1));
@@ -757,7 +955,6 @@ describe("image_generation", () => {
       "formats",
       {
         inputPaths: ["source.jpg", "source.webp"],
-        maskPath: "mask.png",
         operation: "edit",
         outputFormat: "png",
         outputPath: "out.png",
@@ -769,19 +966,28 @@ describe("image_generation", () => {
       context(root, {
         trusted: true,
         find: vi.fn(() => ({
-          api: "openai-responses",
-          baseUrl: "https://api.openai.com/v1",
+          api: "openai-codex-responses",
+          baseUrl: "https://chatgpt.com/backend-api",
           id: "configured",
-          provider: "openai",
+          provider: "openai-codex",
         })),
       }),
     );
-    const form = fetchMock.mock.calls[0]?.[1]?.body as FormData;
-    expect(form.getAll("image[]")).toHaveLength(2);
-    expect(form.get("model")).toBe("gpt-image-1");
-    expect(form.get("mask")).toBeInstanceOf(File);
-    expect(form.get("output_format")).toBe("png");
-    expect(form.get("size")).toBe("1024x1536");
+    const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toEqual({
+      model: "gpt-image-2",
+      prompt: "mock-up",
+      background: "opaque",
+      quality: "auto",
+      size: "1024x1536",
+      images: [
+        { image_url: `data:image/jpeg;base64,${jpeg(1, 1).toString("base64")}` },
+        { image_url: `data:image/webp;base64,${webp(1, 1).toString("base64")}` },
+      ],
+    });
   });
 
   it("rejects missing models, missing keys, bad JSON, and invalid base64 before writing", async () => {
@@ -796,7 +1002,7 @@ describe("image_generation", () => {
         undefined,
         context(root, { noModel: true }),
       ),
-    ).rejects.toThrow(/configured OpenAI Responses model/);
+    ).rejects.toThrow(/openai-codex/);
     await expect(
       tool().execute(
         "no-key",
@@ -805,7 +1011,7 @@ describe("image_generation", () => {
         undefined,
         context(root, { apiKey: null }),
       ),
-    ).rejects.toThrow(/separately billed/);
+    ).rejects.toThrow(/OAuth/);
     await mkdir(join(root, ".pi"));
     await writeFile(join(root, ".pi/image-generation.json"), "{");
     await expect(

@@ -15,9 +15,14 @@ const ImageParameters = Type.Object(
     prompt: Type.String({ maxLength: 4000, minLength: 1 }),
     outputPath: Type.String({ minLength: 1 }),
     inputPaths: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { maxItems: 4 })),
-    maskPath: Type.Optional(Type.String({ minLength: 1 })),
-    outputFormat: Type.Optional(StringEnum(["png", "jpeg", "webp"])),
-    size: Type.Optional(StringEnum(["1024x1024", "1024x1536", "1536x1024"])),
+    outputFormat: Type.Optional(StringEnum(["png"])),
+    size: Type.Optional(
+      Type.String({
+        pattern: "^(auto|[1-9][0-9]{0,3}x[1-9][0-9]{0,3})$",
+        description:
+          "auto (default) or WIDTHxHEIGHT: edges divisible by 16, at most 3840, ratio at most 3:1, 655360–8294400 pixels. Backend custom-size acceptance is unverified.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );

@@ -29,7 +29,7 @@ function parseConfig(raw: string, path: string): ImageConfig {
   if (
     Object.keys(value).some((key) => !["provider", "model", "imageModel"].includes(key)) ||
     typeof imageModel !== "string" ||
-    !/^gpt-image-[A-Za-z0-9][\w.-]*$/u.test(imageModel) ||
+    imageModel !== "gpt-image-2" ||
     typeof provider !== "string" ||
     typeof model !== "string" ||
     !provider.trim() ||
@@ -64,14 +64,12 @@ export async function selectImageModel(
   if (selected === undefined) {
     const requested = configured ? ` ${configured.provider}/${configured.model}` : "";
     throw new Error(
-      `Image generation requires a configured OpenAI Responses model and API key${requested}.`,
+      `Image generation requires an openai-codex subscription model; use Pi /login for openai-codex${requested}.`,
     );
   }
-  const officialOpenAi =
-    selected.provider === "openai" && new URL(selected.baseUrl).origin === "https://api.openai.com";
-  if (selected.api !== "openai-responses" || !officialOpenAi) {
+  if (selected.api !== "openai-codex-responses" || selected.provider !== "openai-codex") {
     throw new Error(
-      "Image generation requires an official OpenAI Platform Responses model; Codex subscription OAuth and compatible third-party providers are not supported.",
+      "Image generation requires an openai-codex subscription model with OAuth; Platform API keys and third-party providers are not supported.",
     );
   }
   return { model: selected as Model<Api>, imageModel: configured?.imageModel ?? "gpt-image-2" };

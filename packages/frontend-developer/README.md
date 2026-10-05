@@ -30,7 +30,7 @@ rewrite is authorized. `/design` routes explicit research-only requests to
 focused improvements still use `interface-craft`.
 
 `/generate-image` is a separate explicit command because it can expose input
-to a provider, incur separately billed cost, require credentials, and needs
+to a provider, consume subscription quota, require credentials, and needs
 human consent. The package's focused methods remain available through skill
 discovery.
 
@@ -78,7 +78,7 @@ replacement, or material rewrite.
    work. Target-owned commands own hot reload and cleanup.
 4. Use `/generate-image` for the accepted initial pass or another useful
    reference. Before the first provider request, obtain explicit consent for
-   privacy exposure and separate billing. State one bounded pass; further
+   privacy exposure and subscription quota use. State one bounded pass; further
    provider work needs a new bound and consent. Inspect two to eight directions,
    verify the `design_board` URL, and record explicit human selection and notes.
    If generation is unavailable, declined, or failed, make no unauthorized
@@ -140,8 +140,7 @@ At coherent material milestones it updates the same board only after fresh image
 evidence is reachable. Mechanical style, spacing, and placement corrections bypass
 this ceremony.
 
-Image generation still requires explicit provider privacy and separately billed
-cost consent. If consent, credentials, a useful provider result, a browser, or
+Image generation still requires explicit provider privacy and subscription quota consent. If consent, credentials, a useful provider result, a browser, or
 safe URL opening is unavailable, the workflow uses rendered specimens or
 captures where possible and reports the unavailable review surface as unmet
 proof; it never claims that anyone saw or approved it. At handoff, choose to
@@ -151,28 +150,50 @@ close idempotently then.
 
 ## Image generation
 
-`image_generation` uses GPT Image 2 through a separately billed OpenAI Platform
-API key resolved by Pi. It does not accept ChatGPT or Codex subscription OAuth.
-Configure a compatible registry model in trusted `.pi/image-generation.json` or
-`~/.pi/agent/image-generation.json` as `{ "provider": "…", "model": "…", "imageModel": "gpt-image-2" }`.
-`model` selects the registry entry used for authentication; optional `imageModel`
-selects a compatible GPT Image API model and defaults to `gpt-image-2`. Use a
-verified `gpt-image-` model ID available to your account, not a predicted model.
-Both generation and editing send this ID unchanged.
-Project configuration takes precedence; an explicit invalid configuration fails
-without a request. Input images and masks are uploaded to the provider, so
-consider privacy and cost before use. Missing credentials leave the other
-skills available and make no request.
+`image_generation` uses GPT Image 2 with Pi's existing `openai-codex`
+subscription OAuth. Use Pi `/login` for `openai-codex`, then select an
+`openai-codex-responses` model. Platform API keys are not accepted and there is
+no Platform fallback. No Codex auth files, app-server, or delegated model turn
+are used.
 
-Configuration must resolve to an official `openai` registry model whose base
-URL is `https://api.openai.com`; compatible third-party Responses providers are
-rejected before upload. For invalid configuration, correct or remove the
-explicit file. For missing API-key authentication, configure separately billed
-OpenAI Platform access or continue with a supplied mock-up. The tool refuses
-paths outside the project and existing output files; choose a new explicit path
-instead of overwriting evidence.
+To select a different registry entry for the same subscription, configure trusted
+`.pi/image-generation.json` or `~/.pi/agent/image-generation.json`:
 
-The internal image runtime retains the custom OpenAI transport. Pi 1's current
-image API does not provide equivalent masks, exact sizes, and output formats.
-The public tool still supports reference images, alpha PNG masks, the three
-listed exact sizes, PNG/JPEG/WebP output, cancellation, and bounded errors.
+```json
+{ "provider": "openai-codex", "model": "<your registry model ID>", "imageModel": "gpt-image-2" }
+```
+
+`model` selects authentication, not the image model. Optional `imageModel`
+defaults to `gpt-image-2`; only that verified ID is accepted. Project configuration
+takes precedence and is read only when trusted. Invalid explicit configuration
+fails without a request. Never put credentials in this file.
+
+The versioned native JSON transport follows OpenAI Codex
+[`rust-v0.160.0` image request types](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/codex-api/src/images.rs)
+and [image endpoints](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/codex-api/src/endpoint/images.rs).
+It sends only image requests to the fixed `https://chatgpt.com/backend-api/codex`
+origin. Model and auth base-URL overrides cannot change that destination.
+This is an undocumented, version-sensitive backend contract, not a public
+compatibility promise. Live subscription entitlement remains unverified.
+
+Generation and reference edits produce PNG only, with opaque background and
+automatic quality. PNG, JPEG, and WebP reference images are sent as inline data
+URLs in JSON. Masks and JPEG/WebP output are not supported and are rejected
+before upload. Obtain consent for input privacy exposure and subscription quota
+use before each bounded pass. Cancellation does not guarantee that upstream
+quota use is reversed. Requests are never retried automatically.
+
+`size` defaults to `auto`. An optional `WIDTHxHEIGHT` is forwarded unchanged:
+both edges must be divisible by 16, neither may exceed 3840, the aspect ratio
+must be at most 3:1, and total pixels must be 655360–8294400. Exact-size results
+are checked before saving; the tool never resizes or substitutes a preset.
+**Custom-size backend acceptance remains unverified.** The model's
+[dimension guide](https://developers.openai.com/cookbook/examples/multimodal/image-gen-models-prompting-guide)
+also notes experimental large sizes and a possible strict `<3840` backend edge
+limit. Backend rejection is still possible after local validation.
+
+Responses and errors are bounded; provider error bodies are not echoed. The tool
+validates PNG artifacts, propagates cancellation, refuses paths outside the
+project, and refuses existing output files. Choose a new explicit `.png` path
+instead of overwriting evidence. Missing subscription authentication leaves the
+other skills available and makes no provider request.
