@@ -114,6 +114,19 @@ export interface WorktreeToolDetails {
 
 interface WorktreeToolResult {
   readonly content: { text: string; type: "text" }[];
+  readonly structuredContent: {
+    action: WorktreeAction;
+    result: string;
+    activePath?: string;
+    worktrees?: {
+      path: string;
+      branch?: string;
+      head?: string;
+      clean: boolean;
+      current: boolean;
+      main: boolean;
+    }[];
+  };
   readonly details: WorktreeToolDetails;
 }
 
@@ -426,6 +439,23 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
   const toolResult = (text: string, details: WorktreeToolDetails): WorktreeToolResult => ({
     content: [{ type: "text", text }],
     details,
+    structuredContent: {
+      action: details.action,
+      result: text,
+      ...(details.activePath === undefined ? {} : { activePath: details.activePath }),
+      ...(details.worktrees === undefined
+        ? {}
+        : {
+            worktrees: details.worktrees.map(({ path, branch, head, clean, current, main }) => ({
+              path,
+              clean,
+              current,
+              main,
+              ...(branch === undefined ? {} : { branch }),
+              ...(head === undefined ? {} : { head }),
+            })),
+          }),
+    },
   });
 
   const previewCleanup = async (
@@ -707,6 +737,24 @@ export default function piWorktrunkExtension(pi: ExtensionAPI): void {
       "Never ask worktree to bypass Worktrunk hook approval with --yes; a human must review and approve hooks directly.",
       "Only request worktree remove with confirm:true after explicit user approval and the exact HEAD reported by worktree list.",
     ],
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+    outputSchema: Type.Object({
+      action: StringEnum(ACTIONS),
+      result: Type.String(),
+      activePath: Type.Optional(Type.String()),
+      worktrees: Type.Optional(
+        Type.Array(
+          Type.Object({
+            path: Type.String(),
+            branch: Type.Optional(Type.String()),
+            head: Type.Optional(Type.String()),
+            clean: Type.Boolean(),
+            current: Type.Boolean(),
+            main: Type.Boolean(),
+          }),
+        ),
+      ),
+    }),
     parameters: WorktreeParameters,
     execute(_toolCallId, input, signal, _onUpdate, ctx) {
       assertActionFields(input);

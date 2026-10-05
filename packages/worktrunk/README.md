@@ -6,7 +6,7 @@ an official Worktrunk Pi integration.
 
 ## Prerequisites
 
-- Pi `0.80.1` or newer
+- Pi `1.0` or newer
 - Worktrunk `wt` `0.67.0` or newer on `PATH`
 
 The extension does not install Worktrunk, create Worktrunk configuration, or
@@ -91,3 +91,8 @@ and session shutdown clear both representations.
 See the bundled `pi-worktrunk` skill and the upstream
 [Worktrunk documentation](https://worktrunk.dev/docs) for configuration and
 hook details.
+
+Successful Pi 1 results include schema-described `structuredContent`: `action`,
+readable `result`, and, when applicable, `activePath` and worktree summaries
+(path, branch, HEAD, clean/current/main flags). Existing text and detailed cleanup
+evidence remain available in result details.
