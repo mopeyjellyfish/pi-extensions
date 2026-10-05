@@ -998,7 +998,11 @@ describe("Hashline extension", () => {
     try {
       const read = register().get("read");
       if (read === undefined) throw new Error("Hashline read tool was not registered.");
-      const ctx = context(directory);
+      const ctx = {
+        ...context(directory),
+        tools: [],
+        executeTool: () => Promise.reject(new Error("Unexpected nested tool call.")),
+      };
       const expected = await createReadToolDefinition(directory).execute(
         "image",
         { path: file },

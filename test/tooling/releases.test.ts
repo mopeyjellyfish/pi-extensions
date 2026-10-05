@@ -56,9 +56,9 @@ function packageConfig(): Record<string, unknown> {
 describe("release configuration", () => {
   it("excludes Release Please changelogs from human formatting gates", async () => {
     expect.hasAssertions();
-    const [prettierIgnore, markdownlintConfiguration] = await Promise.all([
+    const [prettierIgnore, markdownlintIgnore] = await Promise.all([
       readFile(join(repositoryRoot, ".prettierignore"), "utf8"),
-      readFile(join(repositoryRoot, ".markdownlint-cli2.mjs"), "utf8"),
+      readFile(join(repositoryRoot, ".markdownlintignore"), "utf8"),
     ]);
     const prettierPatterns = prettierIgnore
       .split(/\r?\n/u)
@@ -66,7 +66,7 @@ describe("release configuration", () => {
       .filter((line) => line !== "" && !line.startsWith("#"));
 
     expect(prettierPatterns).toContain(generatedChangelogPattern);
-    expect(markdownlintConfiguration).toContain(`"!${generatedChangelogPattern}"`);
+    expect(markdownlintIgnore.split(/\r?\n/u)).toContain(generatedChangelogPattern);
   });
 
   it("accepts the empty pre-extension state", () => {

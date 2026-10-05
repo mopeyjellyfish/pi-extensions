@@ -502,7 +502,7 @@ const ROOT_EXTENSION_EXCEPTIONS: Readonly<Record<string, string>> = {
 };
 const ROOT_DEPENDENCIES = {
   "@playwright/cli": "0.1.18",
-  "pi-claude-bridge": "0.7.0",
+  "pi-claude-bridge": "0.8.0",
   "pi-subagents": "0.50.0",
 };
 

@@ -48,7 +48,7 @@ It loads:
   production from brief through editable source, renders, and audiovisual QA;
 - `commit` and `git-rebase-base` for safe Git delivery and local stack topology;
 - `github-cli`, `open-pr`, and `triage` for repository-aware GitHub operations, approved pull-request delivery, and review-feedback processing;
-- pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.7.0`, using Claude Code subscription quota as a Pi provider;
+- pinned [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) `0.8.0`, using Claude Code subscription quota as a Pi provider;
 - pinned [`pi-subagents`](https://github.com/nicobailon/pi-subagents) `0.50.0`, including its extension and prompt templates;
 - `/shape` for an accepted pitch;
 - `/plan` for ordered vertical slices;
@@ -234,9 +234,8 @@ Configure the bridge in `~/.pi/agent/claude-bridge.json` only when you use it:
 Claude Code authentication and provider access are available and source
 disclosure is permitted. Calls use `mode: "read"` and `isolated: true`. Use
 `claude-fable-5-1` at `medium` for intent, taste, and planning perspective. This
-per-call adviser selection does not add Fable 5.1 to the pinned
-`pi-claude-bridge` 0.7.0 provider or its `/model` picker. Keep the normal
-provider default on `claude-fable-5` until upstream support is released. Use
+per-call adviser selection does not change the pinned `pi-claude-bridge` 0.8.0
+provider default. Keep the normal provider default on `claude-fable-5`. Use
 `claude-opus-5` at `high` only for a distinct rigorous challenge, particularly
 when Astra authored the work and a different model's perspective would help.
 AskClaude is optional, not a routine second review. Do not send the same question

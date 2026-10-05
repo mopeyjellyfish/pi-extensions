@@ -63,7 +63,7 @@
     "format:check": "prettier --check --ignore-unknown .",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
-    "markdownlint": "markdownlint-cli2",
+    "markdownlint": "markdownlint --dot '**/*.md' --ignore 'packages/*/prompts/*.md' && markdownlint --dot --disable MD041 -- 'packages/*/prompts/*.md'",
     "knip": "knip --no-config-hints",
     "typecheck": "tsx scripts/typecheck.ts",
     "test": "vitest run",
@@ -90,14 +90,14 @@
   "devDependencies": {
     "@commitlint/cli": "21.1.0",
     "@commitlint/config-conventional": "21.1.0",
-    "@earendil-works/pi-ai": "0.84.0",
-    "@earendil-works/pi-coding-agent": "0.84.0",
-    "@earendil-works/pi-tui": "0.84.0",
+    "@earendil-works/pi-ai": "1.0.3",
+    "@earendil-works/pi-coding-agent": "1.0.3",
+    "@earendil-works/pi-tui": "1.0.3",
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.2",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.0",
     "@types/semver": "7.7.1",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "@vitest/eslint-plugin": "1.6.22",
     "eslint": "10.6.0",
     "eslint-config-prettier": "10.1.8",
@@ -109,7 +109,7 @@
     "glob": "13.0.6",
     "globals": "17.7.0",
     "knip": "6.26.0",
-    "markdownlint-cli2": "0.23.0",
+    "markdownlint-cli": "0.49.1",
     "prettier": "3.9.5",
     "semver": "7.8.5",
     "tar": "7.5.22",
@@ -117,19 +117,24 @@
     "typebox": "1.1.38",
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "dependencies": {
     "@playwright/cli": "0.1.18",
-    "pi-claude-bridge": "0.7.0",
+    "pi-claude-bridge": "0.8.0",
     "pi-subagents": "0.50.0"
   },
   "overrides": {
     "cosmiconfig": {
       "js-yaml": "4.3.2"
     },
-    "markdownlint-cli2": {
-      "js-yaml": "5.2.2"
+    "baseline-browser-mapping": "2.11.0",
+    "brace-expansion": "5.0.12",
+    "fast-uri": "3.1.8",
+    "hono": "4.13.7",
+    "ip-address": "10.7.1",
+    "markdownlint-cli": {
+      "js-yaml": "5.4.1"
     },
     "smol-toml": "1.7.1"
   }
