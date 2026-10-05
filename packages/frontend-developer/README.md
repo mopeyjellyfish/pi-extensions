@@ -11,6 +11,24 @@ cover design, evaluation, refinement, enhancement, fixes, and live iteration.
 `/design document` routes directly to `design-documentation` for an approved
 portable DESIGN.md proposal.
 
+Use `/improve-ui <app surface and user task>` for an evidence-led improvement
+plan, not implementation. It inspects the named app surface, evaluates repository
+standards and current UX, and uses the standalone `interface-research` skill to
+compare the same task across competitors, adjacent products, and platform
+conventions. Research records sources, dates, access limits, and adopt/adapt/reject
+decisions without copying products or treating popularity as usability proof.
+
+The prompt composes read-only `interface-craft` critique/audit,
+`frontend-design`, material `interface-design`, `visual-validation`, and applicable
+React specialists. It presents original image-backed directions through a verified
+`design_board`, obtains explicit human selection and notes, then returns prioritized
+implementation slices with acceptance criteria and validation targets. Missing
+optional capabilities remain unmet proof. Without inspectable images or a verified
+board, the visual gate remains incomplete. No app implementation or `DESIGN.md`
+rewrite is authorized. `/design` routes explicit research-only requests to
+`interface-research` and research-and-plan requests to `/improve-ui`. Ordinary
+focused improvements still use `interface-craft`.
+
 `/generate-image` is a separate explicit command because it can expose input
 to a provider, incur separately billed cost, require credentials, and needs
 human consent. The package's focused methods remain available through skill

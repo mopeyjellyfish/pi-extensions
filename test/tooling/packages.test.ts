@@ -52,6 +52,7 @@ const ROOT_PROFILE = {
     "./packages/engineering/prompts",
     "./packages/productivity/prompts",
     "./packages/frontend-developer/prompts/design.md",
+    "./packages/frontend-developer/prompts/improve-ui.md",
     "./packages/frontend-developer/prompts/generate-image.md",
     "./node_modules/pi-subagents/prompts",
   ],
@@ -335,10 +336,11 @@ describe("package contracts", () => {
     await expect(resolvePackageEntrypoints(frontendDeveloper)).resolves.toEqual([
       expect.stringMatching(/packages\/frontend-developer\/src\/index\.ts$/u),
     ]);
-    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(10);
+    await expect(resolvePackageSkills(frontendDeveloper)).resolves.toHaveLength(11);
     await expect(resolvePackagePrompts(frontendDeveloper)).resolves.toEqual([
       expect.stringMatching(/packages\/frontend-developer\/prompts\/design\.md$/u),
       expect.stringMatching(/packages\/frontend-developer\/prompts\/generate-image\.md$/u),
+      expect.stringMatching(/packages\/frontend-developer\/prompts\/improve-ui\.md$/u),
     ]);
     await expect(validateRootProfile()).resolves.toEqual([]);
     await expect(validateReleaseConfiguration(packages)).resolves.toEqual([]);

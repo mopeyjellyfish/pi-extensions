@@ -490,6 +490,7 @@ const ROOT_PROFILE: RootProfile = {
     "./packages/engineering/prompts",
     "./packages/productivity/prompts",
     "./packages/frontend-developer/prompts/design.md",
+    "./packages/frontend-developer/prompts/improve-ui.md",
     "./packages/frontend-developer/prompts/generate-image.md",
     "./packages/trailer-production/prompts/trailer.md",
     "./node_modules/pi-subagents/prompts",

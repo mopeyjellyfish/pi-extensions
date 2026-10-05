@@ -18,6 +18,12 @@ Package-level Apache attribution for adapted guidance is retained in `NOTICE.md`
 
 ## Natural-language operation router
 
+For competitor research alone, load `interface-research`. For an explicit
+current-app inspection, competitor comparison, visual selection, and improvement
+plan, follow [`/improve-ui`](../../prompts/improve-ui.md). Supply read-only critique
+and audit evidence there. Defer polish and live source-edit iteration until a
+separate implementation request. Ordinary focused craft requests stay here.
+
 This is a first-class natural-language router, not a compatibility alias. Route
 the request to the narrowest applicable reference: **design** for a focused
 direction change within an established web product and surface; **extract** for
