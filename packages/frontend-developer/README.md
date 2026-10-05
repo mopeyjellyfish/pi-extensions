@@ -154,7 +154,11 @@ close idempotently then.
 `image_generation` uses GPT Image 2 through a separately billed OpenAI Platform
 API key resolved by Pi. It does not accept ChatGPT or Codex subscription OAuth.
 Configure a compatible registry model in trusted `.pi/image-generation.json` or
-`~/.pi/agent/image-generation.json` as `{ "provider": "…", "model": "…" }`.
+`~/.pi/agent/image-generation.json` as `{ "provider": "…", "model": "…", "imageModel": "gpt-image-2" }`.
+`model` selects the registry entry used for authentication; optional `imageModel`
+selects a compatible GPT Image API model and defaults to `gpt-image-2`. Use a
+verified `gpt-image-` model ID available to your account, not a predicted model.
+Both generation and editing send this ID unchanged.
 Project configuration takes precedence; an explicit invalid configuration fails
 without a request. Input images and masks are uploaded to the provider, so
 consider privacy and cost before use. Missing credentials leave the other
@@ -167,3 +171,8 @@ explicit file. For missing API-key authentication, configure separately billed
 OpenAI Platform access or continue with a supplied mock-up. The tool refuses
 paths outside the project and existing output files; choose a new explicit path
 instead of overwriting evidence.
+
+The internal image runtime retains the custom OpenAI transport. Pi 1's current
+image API does not provide equivalent masks, exact sizes, and output formats.
+The public tool still supports reference images, alpha PNG masks, the three
+listed exact sizes, PNG/JPEG/WebP output, cancellation, and bounded errors.
