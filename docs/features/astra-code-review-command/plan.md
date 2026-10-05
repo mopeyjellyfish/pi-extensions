@@ -6,7 +6,7 @@ status: accepted
 
 This plan implements the accepted pitch in one delivery unit. It keeps the
 Engineering package independently installable while the complete root profile
-adds the approved Astra, Sol, Luna, Reviewer, Utility, Worker, GitHub, and
+adds the approved Astra parent, GPT-6.1 Sol children, Reviewer, Utility, Worker, GitHub, and
 Worktrunk routing.
 
 ## Review evidence
@@ -23,6 +23,10 @@ Worktrunk routing.
 - **Invalidation:** A change to the solution, boundaries, Authority, acceptance
   criteria, Go routing, delivery topology, or slice contracts requires a
   replacement review. Wording-only edits do not.
+
+The user's later rebase authority aligns child routing and bridge/security context
+with current main. The recorded review remains historical fixed-document evidence,
+not a claim that this reconciled document received a new specification review.
 
 ## Execution mode
 
@@ -48,8 +52,8 @@ supporting documentation are one inseparable public behavior.
 
 ## Critical path, dependencies, and lanes
 
-All implementation is serial in the current task worktree. One non-frontend
-Worker uses Sol medium and owns all writes until handoff. No parallel writer is
+All implementation is serial in the current task worktree. One configured
+Worker uses GPT-6.1 Sol high and owns all writes until handoff. No parallel writer is
 safe because the slices overlap `packages/engineering/skills/code-review/SKILL.md`,
 the prompt command, root profile guidance, and package metadata. The parent owns
 product and architecture decisions, accepted-source interpretation, final diff
@@ -67,7 +71,7 @@ Critical path:
 
 Forecast: one active writer lane, one delivery unit, one pull request, and no
 integration branch. Expensive gates are packed smoke inside `npm run check`, the
-security check, manual provider-backed review probes, and the final Astra review.
+security check, manual provider-backed review probes, and the final configured Sol-medium review.
 The expected CI fan-out is one required workflow. Cascade cost is low because no
 stack exists. A need for executable extension code, a second package, default
 remote mutation, Fable, a different model topology, or automatic publication is a
@@ -90,17 +94,18 @@ Invalidation map:
   review. A bounded repair invalidates only the affected focused evidence and
   final required gates.
 
-Setup evidence is available in this worktree. Node is `v24.18.0`, npm is
-`11.16.0`, and Go is `go1.26.5`. The setup fingerprint inputs are:
+Historical implementation setup used Node `v24.18.0`, npm `11.16.0`, and Go
+`go1.26.5`. Its recorded setup fingerprint inputs were:
 
 - `.nvmrc`: `8f9258d5e9da5443c42966a661aee09292b49d1c64e718dcc5f72976500bac48`;
 - `.gvmrc`: `9e67f169fcd4a39b64c44ec9f237b5697a15665bcabd9c4704c43db2fa8d3566`;
 - `package-lock.json` before implementation:
   `d7f67c0ff1f966a8a8d91f4ea43eff0385607e9e77c14c53d51e28dfbaff144d`.
 
-`npm ci --ignore-scripts` completed. It reported the repository's current eight
-npm audit findings. This setup output is not security-check evidence. The lockfile
-fingerprint becomes stale when slice 001 synchronizes package metadata.
+The historical setup completed `npm ci --ignore-scripts`. That setup and lockfile
+fingerprint are stale after rebasing onto current main. Preserve main's dependency
+and security fixes; rerun setup and the security check against the reconciled tree
+rather than carrying forward an old audit result.
 
 ## [ ] 001 — License and discover the `/code-review` entry point
 
@@ -143,7 +148,7 @@ slice.
 
 ### Execution lane and ownership
 
-`serial`. The current task worktree and one Sol-medium Worker own all listed
+`serial`. The current task worktree and one configured GPT-6.1 Sol-high Worker own all listed
 files. The parent verifies source identity and license completeness.
 
 ### Red proof
@@ -196,7 +201,7 @@ the manifest without dependency changes, and source discovery exposes only
 
 A default `/code-review` invocation pins one stable diff, gathers eligibility and
 intent, runs five disjoint Sol-medium read-only lenses in parallel, consolidates
-and scores candidates with one Luna-medium Utility run, and lets the Astra-high
+and scores candidates with one configured GPT-6.1 Sol-low Utility run, and lets the Astra-high
 parent report only verified findings at confidence 80 or higher. This slice traces
 AC-002 through AC-009, AC-013, and the default-review part of AC-015.
 
@@ -210,7 +215,7 @@ AC-002 through AC-009, AC-013, and the default-review part of AC-015.
   omitted and `fixed-diff code` modes as full integrated reviews;
 - `AGENTS.md`, `README.md`, `docs/architecture.md`, and
   `packages/engineering/README.md` document the approved `/code-review`
-  model-and-role exception and independent-package fallback.
+  model-and-role contracts and independent-package fallback.
 
 The skill must define one complete handoff contract shared by all five lanes:
 review base and head, exact diff command or recorded uncommitted patch, immutable
@@ -271,7 +276,7 @@ bounded temporary target repository, perform these manual route probes and retai
 session/run IDs as evidence:
 
 1. default local fixed diff: exactly five fresh read-only Sol-medium lens runs,
-   followed by one Luna-medium Utility scorer; no child writes or fans out;
+   followed by one configured GPT-6.1 Sol-low Utility scorer; no child writes or fans out;
 2. stable-boundary refusal: invalid, empty, and changed boundaries stop without a
    finding report;
 3. eligibility: closed, draft, automated, trivial, and same-head prior-review
@@ -413,9 +418,9 @@ The repair handoff includes Business reason, reviewed base/head/tree, recorded
 uncommitted patch when applicable, retained findings and evidence, accepted
 correction bounds, target checks, applicable methods, explicit local-only
 Authority, and prohibited publication actions. The repair worktree must reproduce
-the exact reviewed tree before the Worker starts. Frontend or mixed repairs use
-Astra medium; non-frontend repairs use Sol medium. One Worker has sole write
-ownership.
+the exact reviewed tree before the Worker starts. All repairs use configured
+Worker on GPT-6.1 Sol at high effort, with xhigh preapproved only for difficult
+work under current policy. One Worker has sole write ownership.
 
 ### Dependencies
 
@@ -439,13 +444,13 @@ a Markdown-content test.
 In bounded temporary target repositories:
 
 1. committed non-frontend defect: reconstruct the pinned tree, launch one
-   Sol-medium Worker, make the smallest repair, run the focused and required
+   configured GPT-6.1 Sol-high Worker, make the smallest repair, run the focused and required
    checks, record the repair-tree identifier, and verify no commit or push;
 2. reviewed uncommitted defect: preserve status and patch, reproduce them in the
    repair worktree before writing, then prove the original reviewed tree and new
    repair tree are distinct and correctly recorded;
-3. frontend or mixed defect: verify the same Worker is launched with the required
-   Astra-medium override;
+3. frontend or mixed defect: verify the same configured Worker is launched on
+   GPT-6.1 Sol at high effort, without a frontend-specific override;
 4. unresolved or failed repair: report remaining findings and failed evidence
    without a blind retry, alternate model, publication, or scope expansion;
 5. scope or architecture variance: stop and return to planning or a new full
@@ -472,7 +477,7 @@ history and remotes unchanged, and defers combined-mode comments.
 
 All public documentation, package metadata, attribution, runtime guidance, and
 accepted behavior agree. The final tree passes required checks, one fresh formal
-Astra review, and publication hygiene. This slice traces all acceptance criteria.
+configured Sol-medium review, and publication hygiene. This slice traces all acceptance criteria.
 
 ### Seam and files
 
@@ -491,9 +496,10 @@ Complete approved path set:
 - `test/tooling/packages.test.ts`;
 - `package-lock.json`.
 
-Historical accepted feature documents can retain `/review-change` and old model
-contracts as history. Active instructions, architecture, package docs, prompts,
-and skills must not.
+Historical accepted feature documents elsewhere can retain `/review-change` and
+old model contracts as history. This feature's accepted pitch and plan are
+reconciled to current routing, as are active instructions, architecture, package
+docs, prompts, and skills.
 
 ### Dependencies
 
@@ -542,7 +548,7 @@ documents as defects.
 
 6. Record base `HEAD`, approved path set, command definitions, updated setup
    fingerprint, and a verified-tree identifier from a temporary index.
-7. Freeze that tree and run one fresh Astra-high Reviewer in
+7. Freeze that tree and run one fresh configured GPT-6.1 Sol-medium Reviewer in
    `Review mode: fixed-diff code`. Supply the accepted pitch, accepted plan, base
    ref, commit list, complete diff, verified-tree identifier, focused and manual
    evidence, unavailable remote acceptance, and required gate results. The

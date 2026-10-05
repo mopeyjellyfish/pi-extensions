@@ -26,8 +26,8 @@ Before command orchestration, require the parent conversation to use `openai-cod
 
 The complete root-profile route requires:
 
-- five fresh Reviewer-contract runs with `openai-codex/gpt-5.6-sol` at medium effort;
-- one fresh Utility run with `openai-codex/gpt-5.6-luna` at medium effort;
+- five fresh configured Reviewer runs with `openai-codex/gpt-6.1-sol` at medium effort;
+- one fresh configured Utility run with `openai-codex/gpt-6.1-sol` at low effort;
 - the configured child-launch capability;
 - the installed GitHub method for `--comment`; and
 - an isolated-worktree method plus one configured Worker for `--fix`.
@@ -79,7 +79,7 @@ Record each unavailable companion. Use a bounded direct-parent target-repository
 
 ## 4. Launch five fixed-diff lenses
 
-The parent launches all five runs in parallel, with fresh context. Each run uses the Reviewer contract with the approved Sol-medium override and states `Review mode: fixed-diff lens`. Assign exactly one lens:
+The parent launches all five runs in parallel, with fresh context. Each run uses the configured Reviewer contract on `openai-codex/gpt-6.1-sol` at medium effort and states `Review mode: fixed-diff lens`. Assign exactly one lens:
 
 1. **Intent and Standards** — accepted intent, target-repository instructions, and applicable Go or TypeScript standards.
 2. **Correctness and risk** — changed-line correctness, security, performance, and edge cases.
@@ -117,7 +117,7 @@ Review runs do not build, test, lint, type-check, run coverage, run smoke checks
 
 After all five runs return, the Astra parent joins the complete results. Deduplicate candidates that have the same cause and consequence. Preserve the strongest evidence and all relevant axes. Exclude pre-existing issues, unchanged-line concerns, speculative risks, tool-reported issues, general improvements, and style preferences that no repository rule requires.
 
-Send the complete deduplicated candidate set and fixed evidence to one fresh Luna-medium Utility scorer. The scorer is read-only, cannot fan out, and returns one score per candidate. Use this rubric:
+Send the complete deduplicated candidate set and fixed evidence to one fresh configured Utility scorer on `openai-codex/gpt-6.1-sol` at low effort. The scorer is read-only, cannot fan out, and returns one score per candidate. Use this rubric:
 
 - **0** — false positive, pre-existing, outside the diff, or no evidence.
 - **25** — mostly speculative. Key facts or a practical consequence are missing.
@@ -200,7 +200,7 @@ Send one retained-finding packet to one configured Worker with sole write owners
 - invalidated focused tests and target-required checks; and
 - explicit local-only Authority with commit, push, publication, remote mutation, and cleanup prohibited.
 
-Use `openai-codex/gpt-6-astra` at medium effort for frontend or mixed repairs. Use `openai-codex/gpt-5.6-sol` at medium effort for non-frontend repairs. Do not substitute another model. The Worker makes only the smallest repairs for retained findings and adds or updates behavioral proof when needed.
+Use configured Worker on `openai-codex/gpt-6.1-sol` at high effort for all repairs, including frontend, non-frontend, and mixed work. `xhigh` is preapproved only for difficult work under current policy. Do not substitute another model. The Worker makes only the smallest repairs for retained findings and adds or updates behavioral proof when needed.
 
 The Worker runs invalidated focused checks. Run target-required checks that the repair invalidates. Diagnose a failure before rerunning it. The parent verifies each finding in the separate repair tree and records the resulting tree identifier, changed paths, checks, unresolved findings, and remaining gaps. Do not commit, push, publish, or remove the worktree.
 

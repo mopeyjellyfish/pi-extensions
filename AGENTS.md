@@ -196,9 +196,9 @@ direct-parent target-repository TypeScript standards without claiming it loaded.
 
 `/code-review [target] [--comment] [--fix]` replaces the old review prompt. The
 default route requires an Astra-high parent. The parent pins one diff and runs
-five fresh read-only Reviewer-contract lenses in parallel with the explicitly
-approved Sol-medium override. It joins and deduplicates candidates, then sends
-them to one fresh Luna-medium Utility scorer. The scorer uses the
+five fresh read-only configured Reviewer lenses in parallel on GPT-6.1 Sol
+at medium effort. It joins and deduplicates candidates, then sends them to one
+fresh configured Utility scorer on GPT-6.1 Sol at low effort. The scorer uses the
 0/25/50/75/100 rubric. Astra validates the evidence and reports only findings at
 80 or higher. Lens and scorer children cannot fan out, write, or run QA gates.
 An omitted or `fixed-diff code` Reviewer mode remains one full integrated
@@ -210,8 +210,8 @@ mutation for an eligible open pull request after a final unchanged-head check.
 Use one `COMMENT` review with changed-line inline comments, or one short
 no-issues conversation comment. Refetch and report the canonical URL. `--fix`
 reconstructs the exact reviewed tree in an isolated worktree and uses one Worker
-for retained findings. Frontend or mixed repairs use Astra medium. Non-frontend
-repairs use Sol medium. Do not commit, push, or publish repairs. Combined flags
+for retained findings. All repairs use configured Worker on GPT-6.1 Sol at high
+effort; xhigh is preapproved for difficult work. Do not commit, push, or publish repairs. Combined flags
 fix locally and defer all comments. Prompt text cannot technically enforce
 models, tools, read-only behavior, or mutation limits. Report unavailable
 capabilities and do not silently substitute another route.

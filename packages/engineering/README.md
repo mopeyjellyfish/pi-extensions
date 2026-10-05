@@ -75,7 +75,8 @@ reported unavailable-capability fallback remain direct-parent exceptions.
 `/code-review [target] [--comment] [--fix]` replaces `/review-change`. Its
 default route pins one diff and reports only high-confidence findings in Pi. In
 the complete root profile, an Astra-high parent joins five fresh, parallel,
-read-only Sol-medium Reviewer lenses. One fresh Luna-medium Utility scorer uses
+read-only configured Reviewer lenses on GPT-6.1 Sol at medium effort. One fresh
+configured Utility scorer on GPT-6.1 Sol at low effort uses
 the 0/25/50/75/100 confidence rubric, and the parent reports only validated
 findings scored at least 80. Children cannot write, run QA gates, or fan out.
 
@@ -83,8 +84,8 @@ findings scored at least 80. Children cannot write, run QA gates, or fan out.
 request after a final unchanged-head check. Findings produce one `COMMENT`
 review with changed-line inline comments. A zero-finding result produces one
 short conversation comment. `--fix` reconstructs the exact reviewed tree in an
-isolated worktree and gives retained findings to one Worker. Frontend or mixed
-repairs use Astra medium. Non-frontend repairs use Sol medium. The command does
+isolated worktree and gives retained findings to one configured Worker on GPT-6.1
+Sol at high effort for all repairs, with xhigh preapproved for difficult work. The command does
 not commit, push, or publish repairs. Combined flags fix locally and defer every
 comment until a published head receives a new review.
 
