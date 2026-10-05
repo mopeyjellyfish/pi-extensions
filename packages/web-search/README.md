@@ -144,3 +144,7 @@ The tests mock only the provider network boundary and cover current-model and
 configured-model selection, OpenAI Responses and Codex, Anthropic API-key and
 OAuth authentication, Gemini grounding, citations, invalid configuration, and
 output truncation.
+
+Successful Pi 1 results include schema-described `structuredContent` with the
+bounded `answer`, normalized visible `sources` (title and URL), and `truncated`.
+Readable text and existing result details remain available.

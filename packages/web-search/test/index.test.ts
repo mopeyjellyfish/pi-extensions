@@ -2,13 +2,17 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { Compile } from "typebox/compile";
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 import webSearchExtension from "../src/index.ts";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { TSchema } from "typebox";
 
 interface RegisteredTool {
+  readonly outputSchema: TSchema;
+  readonly annotations: Record<string, boolean>;
   readonly description: string;
   readonly name: string;
   readonly parameters: {
@@ -30,6 +34,7 @@ interface RegisteredTool {
       | undefined,
     context: ExtensionContext,
   ): Promise<{
+    readonly structuredContent?: unknown;
     readonly content: { readonly text: string; readonly type: "text" }[];
     readonly details: {
       readonly api: string;
@@ -85,7 +90,14 @@ function registerTool(
       return thinkingLevel;
     },
     registerTool(definition: RegisteredTool) {
-      tool = definition;
+      tool = {
+        ...definition,
+        async execute(...args) {
+          const result = await definition.execute(...args);
+          expect(Compile(definition.outputSchema).Check(result.structuredContent)).toBe(true);
+          return result;
+        },
+      };
     },
   } as unknown as ExtensionAPI);
   if (tool === undefined) {
@@ -172,6 +184,7 @@ describe("pi-web-search extension", () => {
     expect.hasAssertions();
     const tool = registerTool();
     expect(tool.name).toBe("web_search");
+    expect(tool.annotations).toMatchObject({ readOnlyHint: true, openWorldHint: true });
 
     await expect(
       tool.execute(
@@ -249,6 +262,8 @@ describe("pi-web-search extension", () => {
       ctx,
     );
 
+    expect(Compile(registerTool().outputSchema).Check(result.structuredContent)).toBe(true);
+    expect(result.structuredContent).toMatchObject({ answer: "Pi 0.80.6 is current." });
     expect(fetch).toHaveBeenCalledOnce();
     expect(updates[0]).toBe("Searching the web with openai/gpt-5.6…");
     expect(result.content[0]?.text).toContain("Pi 0.80.6 is current.");
