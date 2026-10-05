@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,6 +8,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import frontendDeveloperExtension from "../src/index.ts";
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, open: vi.fn(actual.open) };
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -451,7 +457,7 @@ describe("image_generation", () => {
     await mkdir(join(root, ".pi"));
     await writeFile(
       join(root, ".pi/image-generation.json"),
-      '{"provider":"openai","model":"configured"}',
+      '{"provider":"openai","model":"configured","imageModel":"gpt-image-1"}',
     );
     const selected = {
       api: "openai-responses",
@@ -472,9 +478,66 @@ describe("image_generation", () => {
       ),
     ).rejects.toThrow(/no usable image data/);
     expect(find).toHaveBeenCalledWith("openai", "configured");
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected JSON image request");
+    expect(JSON.parse(body)).toMatchObject({ model: "gpt-image-1" });
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/images/generations");
     await expect(readFile(join(root, "art/out.png"))).rejects.toThrow();
     fetchMock.mockRestore();
+  });
+
+  it("removes a partial artifact when the filesystem write fails", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-write-failure-"));
+    const realOpen = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
+      .open;
+    vi.mocked(fs.open).mockImplementationOnce(async (...args) => {
+      const handle = await realOpen(...args);
+      vi.spyOn(handle, "writeFile").mockRejectedValue(new Error("Disk full"));
+      return handle;
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ data: [{ b64_json: png().toString("base64") }] }),
+    );
+    try {
+      await expect(
+        tool().execute(
+          "write-failure",
+          { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+          undefined,
+          undefined,
+          context(root),
+        ),
+      ).rejects.toThrow("Disk full");
+      await expect(readFile(join(root, "out.png"))).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes cancellation to the image runtime and leaves no artifact", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-cancel-"));
+    const controller = new AbortController();
+    vi.spyOn(globalThis, "fetch").mockImplementation((_url, init) => {
+      expect(init?.signal).toBe(controller.signal);
+      controller.abort();
+      return Promise.reject(new DOMException("Cancelled", "AbortError"));
+    });
+    try {
+      await expect(
+        tool().execute(
+          "cancel",
+          { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+          controller.signal,
+          undefined,
+          context(root),
+        ),
+      ).rejects.toThrow("Cancelled");
+      await expect(readFile(join(root, "out.png"))).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("refuses overwrite and reports bounded provider errors", async () => {
@@ -677,6 +740,11 @@ describe("image_generation", () => {
   it("accepts multiple supported edit images and a PNG mask", async () => {
     expect.hasAssertions();
     const root = await mkdtemp(join(tmpdir(), "image-formats-"));
+    await mkdir(join(root, ".pi"));
+    await writeFile(
+      join(root, ".pi/image-generation.json"),
+      JSON.stringify({ provider: "openai", model: "configured", imageModel: "gpt-image-1" }),
+    );
     await writeFile(join(root, "source.jpg"), jpeg(1, 1));
     await writeFile(join(root, "source.webp"), webp(1, 1));
     await writeFile(join(root, "mask.png"), png(1024, 1024, true));
@@ -698,10 +766,19 @@ describe("image_generation", () => {
       },
       undefined,
       undefined,
-      context(root),
+      context(root, {
+        trusted: true,
+        find: vi.fn(() => ({
+          api: "openai-responses",
+          baseUrl: "https://api.openai.com/v1",
+          id: "configured",
+          provider: "openai",
+        })),
+      }),
     );
     const form = fetchMock.mock.calls[0]?.[1]?.body as FormData;
     expect(form.getAll("image[]")).toHaveLength(2);
+    expect(form.get("model")).toBe("gpt-image-1");
     expect(form.get("mask")).toBeInstanceOf(File);
     expect(form.get("output_format")).toBe("png");
     expect(form.get("size")).toBe("1024x1536");

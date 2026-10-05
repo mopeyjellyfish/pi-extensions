@@ -7,6 +7,7 @@ import { CONFIG_DIR_NAME, type ExtensionContext } from "@earendil-works/pi-codin
 import type { Api, Model } from "@earendil-works/pi-ai";
 
 interface ImageConfig {
+  readonly imageModel: string;
   readonly model: string;
   readonly provider: string;
 }
@@ -18,14 +19,17 @@ function parseConfig(raw: string, path: string): ImageConfig {
   } catch {
     throw new Error(`Image generation configuration is invalid: ${path}.`);
   }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Image generation configuration is invalid: ${path}.`);
+  }
   const record = value as Record<string, unknown>;
+  const imageModel = record["imageModel"] === undefined ? "gpt-image-2" : record["imageModel"];
   const provider = record["provider"];
   const model = record["model"];
   if (
-    !value ||
-    typeof value !== "object" ||
-    Array.isArray(value) ||
-    Object.keys(value).length !== 2 ||
+    Object.keys(value).some((key) => !["provider", "model", "imageModel"].includes(key)) ||
+    typeof imageModel !== "string" ||
+    !/^gpt-image-[A-Za-z0-9][\w.-]*$/u.test(imageModel) ||
     typeof provider !== "string" ||
     typeof model !== "string" ||
     !provider.trim() ||
@@ -33,7 +37,7 @@ function parseConfig(raw: string, path: string): ImageConfig {
   ) {
     throw new Error(`Image generation configuration is invalid: ${path}.`);
   }
-  return { model: model.trim(), provider: provider.trim() };
+  return { model: model.trim(), provider: provider.trim(), imageModel };
 }
 
 async function configAt(path: string): Promise<ImageConfig | undefined> {
@@ -45,7 +49,9 @@ async function configAt(path: string): Promise<ImageConfig | undefined> {
   }
 }
 
-export async function selectImageModel(ctx: ExtensionContext): Promise<Model<Api>> {
+export async function selectImageModel(
+  ctx: ExtensionContext,
+): Promise<{ model: Model<Api>; imageModel: string }> {
   const projectPath = join(ctx.cwd, CONFIG_DIR_NAME, "image-generation.json");
   const project = ctx.isProjectTrusted() ? await configAt(projectPath) : undefined;
   const user = project
@@ -68,5 +74,5 @@ export async function selectImageModel(ctx: ExtensionContext): Promise<Model<Api
       "Image generation requires an official OpenAI Platform Responses model; Codex subscription OAuth and compatible third-party providers are not supported.",
     );
   }
-  return selected;
+  return { model: selected as Model<Api>, imageModel: configured?.imageModel ?? "gpt-image-2" };
 }

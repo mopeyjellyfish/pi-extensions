@@ -2,8 +2,9 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 
 import { DesignBoardService, type DesignBoardInput } from "./design-board.ts";
-import { generateImage, type ImageInput } from "./image-generation.ts";
+import { generateImage } from "./image-generation.ts";
 
+import type { ImageInput } from "./image-runtime.ts";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const ImageParameters = Type.Object(
@@ -70,7 +71,7 @@ export default function frontendDeveloperExtension(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "image_generation",
     label: "Image Generation",
-    description: "Generate or edit a GPT Image 2 artifact at an explicit project path.",
+    description: "Generate or edit a GPT Image artifact at an explicit project path.",
     promptSnippet: "Generate an inspectable frontend mock-up image",
     promptGuidelines: [
       "Use image_generation only when an explicit image artifact will improve the frontend workflow.",
