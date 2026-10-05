@@ -7,8 +7,9 @@ services or project files.
 ## Why a Pi extension
 
 Pi's extension API supports stateful tools, session-branch replay, commands,
-and TUI widgets directly. Todo state is stored as versioned snapshots in the
-`todo` tool's result details, so it follows the active conversation branch
+and TUI widgets directly. Successful mutations append versioned custom session
+entries, including when called inside codemode. Legacy `todo` tool-result
+snapshots remain readable. The latest valid snapshot in branch order follows the active conversation branch
 through reload, resume, compaction, fork, and tree navigation without creating
 a separate database.
 
@@ -96,7 +97,8 @@ fallback when that status line is not installed.
 
 Todo state belongs to the current Pi session branch:
 
-- reload and resume restore the latest valid snapshot;
+- reload and resume restore the latest valid custom-entry or legacy tool-result snapshot;
+- list, no-op, cancelled, and rejected mutations append no state entries;
 - fork and `/tree` restore the state visible at that branch point;
 - compaction does not require a separate state file;
 - a new session starts with an empty list;

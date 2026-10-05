@@ -8,6 +8,7 @@ const MAX_ITEMS = 100;
 const MAX_TEXT_LENGTH = 300;
 const SNAPSHOT_VERSION = 1;
 const TODO_TOOL_NAME = "todo";
+const TODO_SNAPSHOT_ENTRY = "mopeyjellyfish:pi-todo:snapshot:v1";
 const TODO_UI_KEY = "mopeyjellyfish-pi-todo";
 export const TODO_SUMMARY_EVENT = "mopeyjellyfish:pi-todo:summary:v1";
 
@@ -183,6 +184,10 @@ function cloneSnapshot(snapshot: TodoSnapshot): TodoSnapshot {
 export function snapshotFromBranch(ctx: ExtensionContext): TodoSnapshot {
   let latest = EMPTY_SNAPSHOT;
   for (const entry of ctx.sessionManager.getBranch()) {
+    if (entry.type === "custom" && entry.customType === TODO_SNAPSHOT_ENTRY) {
+      if (isTodoSnapshot(entry.data)) latest = entry.data;
+      continue;
+    }
     if (entry.type !== "message" || entry.message.role !== "toolResult") continue;
     if (entry.message.toolName !== TODO_TOOL_NAME) continue;
     if (!isRecord(entry.message.details)) continue;
@@ -561,6 +566,9 @@ export default function todoExtension(pi: ExtensionAPI): void {
       await Promise.resolve();
       signal?.throwIfAborted();
       const applied = applyTodoAction(snapshot, input);
+      if (applied.changedIds.length > 0) {
+        pi.appendEntry(TODO_SNAPSHOT_ENTRY, cloneSnapshot(applied.snapshot));
+      }
       snapshot = applied.snapshot;
       updateUi(pi, ctx, snapshot);
       return {

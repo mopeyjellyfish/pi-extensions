@@ -65,6 +65,8 @@ interface RegisteredCommand {
 }
 
 interface Entry {
+  readonly customType?: string;
+  readonly data?: unknown;
   readonly message?: {
     readonly details?: unknown;
     readonly role: string;
@@ -105,6 +107,9 @@ function createHarness(): Harness {
   const widgets: unknown[] = [];
   let tool: RegisteredTool | undefined;
   const pi = {
+    appendEntry(customType: string, data: unknown) {
+      entries.push({ type: "custom", customType, data });
+    },
     events: {
       emit(channel: string, data: unknown) {
         if (channel === "mopeyjellyfish:pi-todo:summary:v1") publishedSummaries.push(data);
@@ -201,6 +206,55 @@ function record(harness: Harness, result: ToolResult): void {
 }
 
 describe("pi-todo extension", () => {
+  it("persists nested mutations without direct tool results and replays branch order", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>, signal?: AbortSignal) =>
+      harness.tool.execute("nested", input, signal, undefined, ctx);
+    const added = await run({ action: "add", items: ["Nested work"] });
+    expect(harness.entries).toEqual([
+      expect.objectContaining({ type: "custom", data: added.details.snapshot }),
+    ]);
+    const saved = [...harness.entries];
+    for (const event of ["session_start", "session_tree", "session_compact"]) {
+      await emit(harness, event, ctx);
+      expect((await run({ action: "list" })).details.snapshot).toEqual(added.details.snapshot);
+    }
+    await run({ action: "update", updates: [{ id: 1, status: "pending" }] });
+    await run({ action: "clear" });
+    await expect(
+      run({
+        action: "update",
+        updates: [
+          { id: 1, text: "Partial" },
+          { id: 9, text: "Bad" },
+        ],
+      }),
+    ).rejects.toThrow(/not found/);
+    const controller = new AbortController();
+    controller.abort();
+    await expect(run({ action: "add", items: ["Cancelled"] }, controller.signal)).rejects.toThrow();
+    expect(harness.entries).toHaveLength(1);
+    harness.entries.length = 0;
+    await emit(harness, "session_tree", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toMatchObject({ items: [] });
+    record(harness, added);
+    harness.entries.push(...saved);
+    await emit(harness, "session_start", ctx);
+    const updated = await run({ action: "update", updates: [{ id: 1, text: "Latest custom" }] });
+    harness.entries.push({
+      type: "custom",
+      customType: saved[0]?.customType ?? "",
+      data: { version: 99 },
+    });
+    await emit(harness, "session_compact", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual(updated.details.snapshot);
+    record(harness, added);
+    await emit(harness, "session_tree", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual(added.details.snapshot);
+  });
+
   it("registers a compact sequential todo tool and user command", () => {
     expect.hasAssertions();
     const harness = createHarness();
