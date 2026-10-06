@@ -31,6 +31,7 @@ type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorCom
 
 const WORKTREE_ROUTE_EVENT = "mopeyjellyfish:pi-worktrunk:route:v1";
 const TODO_SUMMARY_EVENT = "mopeyjellyfish:pi-todo:summary:v1";
+const TODO_SUMMARY_EVENT_V2 = "mopeyjellyfish:pi-todo:summary:v2";
 const WORKTREE_STATUS_KEY = "mopeyjellyfish-pi-worktrunk";
 const TODO_STATUS_KEY = "mopeyjellyfish-pi-todo";
 const SUBAGENT_STATUS_KEYS = new Set(["subagent-slash", "subagent-slash-text"]);
@@ -65,6 +66,24 @@ interface TodoSummaryEventV1 {
   };
   readonly total: number;
   readonly version: 1;
+}
+
+interface TodoProgress {
+  readonly completed: number;
+  readonly cancelled: number;
+  readonly total: number;
+}
+
+interface TodoPathNode {
+  readonly title: string;
+  readonly displayStatus: "pending" | "in_progress" | "completed" | "cancelled";
+  readonly childProgress?: TodoProgress;
+}
+
+interface TodoSummaryEventV2 {
+  readonly version: 2;
+  readonly rootProgress: TodoProgress;
+  readonly currentPath?: readonly TodoPathNode[];
 }
 
 interface SubagentRpcReplyV1 {
@@ -139,6 +158,78 @@ function todoSummary(value: unknown): TodoSummaryEventV1 | undefined {
   };
 }
 
+function todoProgress(value: unknown): TodoProgress | undefined {
+  if (!isRecord(value)) return undefined;
+  const completed = value["completed"];
+  const cancelled = value["cancelled"];
+  const total = value["total"];
+  if (
+    typeof completed !== "number" ||
+    typeof cancelled !== "number" ||
+    typeof total !== "number" ||
+    !Number.isSafeInteger(completed) ||
+    !Number.isSafeInteger(cancelled) ||
+    !Number.isSafeInteger(total) ||
+    completed < 0 ||
+    cancelled < 0 ||
+    total <= 0 ||
+    total > 100 ||
+    completed + cancelled > total
+  )
+    return undefined;
+  return { completed, cancelled, total };
+}
+
+function todoPathNode(value: unknown): TodoPathNode | undefined {
+  if (
+    !isRecord(value) ||
+    typeof value["title"] !== "string" ||
+    value["title"].trim() === "" ||
+    value["title"].length > 300
+  )
+    return undefined;
+  const displayStatus = value["displayStatus"];
+  if (
+    displayStatus !== "pending" &&
+    displayStatus !== "in_progress" &&
+    displayStatus !== "completed" &&
+    displayStatus !== "cancelled"
+  )
+    return undefined;
+  const childProgress = todoProgress(value["childProgress"]);
+  if (value["childProgress"] !== undefined && childProgress === undefined) return undefined;
+  return {
+    title: value["title"],
+    displayStatus,
+    ...(childProgress === undefined ? {} : { childProgress }),
+  };
+}
+
+function todoSummaryV2(value: unknown): TodoSummaryEventV2 | undefined {
+  if (!isRecord(value) || value["version"] !== 2) return undefined;
+  const rootProgress = todoProgress(value["rootProgress"]);
+  if (rootProgress === undefined) return undefined;
+  const pathValue = value["currentPath"];
+  const allClosed = rootProgress.completed + rootProgress.cancelled === rootProgress.total;
+  if (allClosed !== (pathValue === undefined)) return undefined;
+  if (pathValue === undefined) return { version: 2, rootProgress };
+  if (!Array.isArray(pathValue) || pathValue.length === 0 || pathValue.length > 3) return undefined;
+  const currentPath: TodoPathNode[] = [];
+  for (const node of pathValue) {
+    const parsed = todoPathNode(node);
+    if (
+      parsed === undefined ||
+      (parsed.displayStatus !== "pending" && parsed.displayStatus !== "in_progress")
+    )
+      return undefined;
+    currentPath.push(parsed);
+  }
+  if (currentPath.some((node) => node.displayStatus !== currentPath.at(-1)?.displayStatus))
+    return undefined;
+  if (currentPath.slice(0, -1).some((node) => node.childProgress === undefined)) return undefined;
+  return { version: 2, rootProgress, currentPath };
+}
+
 function subagentRpcReply(value: unknown, requestId: string): SubagentRpcReplyV1 | undefined {
   if (
     !isRecord(value) ||
@@ -198,7 +289,24 @@ function extensionStatusValues(
 
 function todoStatusLineView(
   summary: TodoSummaryEventV1 | undefined,
+  hierarchical: TodoSummaryEventV2 | undefined,
 ): TodoStatusLineView | undefined {
+  if (hierarchical !== undefined) {
+    const path = hierarchical.currentPath ?? [];
+    const counts = path.reduce(
+      (progress, node) => node.childProgress ?? progress,
+      hierarchical.rootProgress,
+    );
+    const current = path.at(-1)?.title;
+    const context = path.at(-2)?.title;
+    return {
+      closed: counts.completed + counts.cancelled,
+      cancelled: counts.cancelled,
+      total: counts.total,
+      ...(current === undefined ? {} : { current }),
+      ...(context === undefined ? {} : { context }),
+    };
+  }
   if (summary === undefined) return undefined;
   return {
     closed: summary.closed,
@@ -613,6 +721,7 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
   let route: WorktreeRouteEventV1 | undefined;
   let subagents: SubagentStatusLineView | undefined;
   let todo: TodoSummaryEventV1 | undefined;
+  let todoV2: TodoSummaryEventV2 | undefined;
   let ctx: ExtensionContext | undefined;
   let footerData: ReadonlyFooterDataProvider | undefined;
   let git: GitSnapshot | undefined;
@@ -769,6 +878,17 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     requestRender?.();
   });
 
+  const unsubscribeTodoV2 = pi.events.on(TODO_SUMMARY_EVENT_V2, (value) => {
+    if (value === undefined) {
+      todoV2 = undefined;
+    } else {
+      const next = todoSummaryV2(value);
+      if (next === undefined) return;
+      todoV2 = next;
+    }
+    requestRender?.();
+  });
+
   const unsubscribeSubagentReady = pi.events.on(SUBAGENT_RPC_READY_EVENT, (value) => {
     if (!isRecord(value) || value["version"] !== 1) return;
     requestSubagentStatus();
@@ -791,10 +911,10 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     const extensionStatuses = extensionStatusValues(
       statuses,
       route !== undefined,
-      todo !== undefined,
+      todo !== undefined || todoV2 !== undefined,
       subagents !== undefined,
     );
-    const todoView = todoStatusLineView(todo);
+    const todoView = todoStatusLineView(todo, todoV2);
     const currentGit = git?.cwd === gitCwd ? git : undefined;
     const branch = branchLabel(currentGit, route, footerData?.getGitBranch());
     const context = contextStatus(currentContext);
@@ -926,6 +1046,9 @@ export default function statusLineExtension(pi: ExtensionAPI): void {
     for (const cleanup of subagentRequestCleanups) cleanup();
     unsubscribeRoute();
     unsubscribeTodo();
+    unsubscribeTodoV2();
+    todo = undefined;
+    todoV2 = undefined;
     unsubscribeSubagentReady();
     unsubscribeSubagentStarted();
     unsubscribeSubagentComplete();

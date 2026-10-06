@@ -19,6 +19,8 @@ export interface ContextStatusLineView {
 
 export interface TodoStatusLineView {
   readonly closed: number;
+  readonly cancelled?: number;
+  readonly context?: string;
   readonly current?: string;
   readonly total: number;
 }
@@ -197,7 +199,16 @@ function contextText(context: ContextStatusLineView): string {
 
 function todoText(todo: TodoStatusLineView, maximum: number): string {
   const current = todo.current === undefined ? "all closed" : sanitize(todo.current);
-  return compact(` ${String(todo.closed)}/${String(todo.total)} · ${current}`, maximum);
+  const counts = ` ${String(todo.closed)}/${String(todo.total)}`;
+  const cancelled = (todo.cancelled ?? 0) === 0 ? "" : ` (${String(todo.cancelled)} cancelled)`;
+  const context = todo.context === undefined ? "" : ` · ${sanitize(todo.context)}`;
+  const full = `${counts}${cancelled} · ${current}${context}`;
+  if (visibleWidth(full) <= maximum) return full;
+  if (todo.context === undefined && todo.cancelled === undefined) return compact(full, maximum);
+  const prefix = `${counts} · `;
+  return visibleWidth(prefix) + Math.min(8, visibleWidth(current)) <= maximum
+    ? `${prefix}${compact(current, maximum - visibleWidth(prefix))}`
+    : compact(` ${current}`, maximum);
 }
 
 function countSuffix(symbol: string, count: number | undefined): string | undefined {

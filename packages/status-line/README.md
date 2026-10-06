@@ -110,20 +110,30 @@ JSON modes, `/context` fails rather than writing report data to standard output.
 
 ## First-party integrations
 
-The package consumes two optional, versioned Pi event-bus channels:
+The package consumes optional, versioned Pi event-bus channels:
 
 - `mopeyjellyfish:pi-worktrunk:route:v1` supplies the routed worktree path and
   branch. The project-directory segment remains stable while Git status and the
   branch segment follow the active worktree instead of showing `main` or a
   duplicate Worktrunk status.
-- `mopeyjellyfish:pi-todo:summary:v1` supplies closed/total progress and the
-  active or next item title. It renders as
+- `mopeyjellyfish:pi-todo:summary:v2` supplies root progress and a current path
+  of at most three nodes. The status line prefers valid version 2, uses the
+  deepest available group's immediate-child counts, and shows the actionable
+  title with nearest slice context: ` 2/3 (1 cancelled) · Implement replay · Slice 4`.
+  Root counts are the fallback. At narrower widths it drops ancestor context
+  before truncating the active title; the existing whole-footer policy still
+  omits Todo when higher-priority segments need the space.
+- `mopeyjellyfish:pi-todo:summary:v1` supplies compatible closed/total progress
+  and the active or next item title when version 2 is absent. It renders as
   ` 2/5 · Implement status integration`.
 
 Both producer packages remain independently useful without this package. They
 retain their standard `setStatus()` fallback, and `pi-todo` retains its bounded
 widget. The status line filters those fallback keys only while the matching
 structured integration state is present.
+
+Malformed summaries do not replace valid state. Empty-state events clear the
+matching version; shutdown clears both versions and removes both subscriptions.
 
 When `pi-subagents` is installed, the status line uses its stable v1 status RPC
 to restore the current session's active async-run count. Async lifecycle and

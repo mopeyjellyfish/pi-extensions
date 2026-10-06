@@ -147,6 +147,61 @@ describe("Powerlevel10k status rendering", () => {
     expect(low).not.toContain("!1   1 !");
   });
 
+  it("preserves the complete active title when slice context does not fit", () => {
+    expect.hasAssertions();
+    const line = renderStatusLine(
+      {
+        cwd: "/repo",
+        extensionStatuses: [],
+        gitState: "clean",
+        todo: {
+          closed: 1,
+          total: 3,
+          current: "Verify branch replay after compaction",
+          context: "Slice 4",
+        },
+      },
+      120,
+    );
+
+    expect(stripAnsi(line)).toContain(" 1/3 · Verify branch replay after compaction");
+    expect(stripAnsi(line)).not.toContain("Slice 4");
+    expect(visibleWidth(line)).toBeLessThanOrEqual(120);
+  });
+
+  it("drops ancestors before the active title and bounds nested Unicode progress", () => {
+    expect.hasAssertions();
+    const view: StatusLineView = {
+      cwd: "/repo",
+      extensionStatuses: [],
+      gitState: "clean",
+      todo: { closed: 2, cancelled: 1, total: 3, current: "Implement replay", context: "Slice 4" },
+    };
+    expect(stripAnsi(renderStatusLine(view, 120))).toContain(
+      " 2/3 (1 cancelled) · Implement replay · Slice 4",
+    );
+    const narrow = stripAnsi(renderStatusLine(view, 40));
+    expect(narrow).toContain("Implement");
+    expect(narrow).not.toContain("Slice 4");
+    const unicode: StatusLineView = {
+      ...view,
+      todo: {
+        closed: 0,
+        cancelled: 0,
+        total: 2,
+        current: "修复 👨‍👩‍👧‍👦 e\u{301}\n\t\u{1B}[31mcurrent\u{1B}[0m".repeat(8),
+        context: "Long slice ".repeat(20),
+      },
+    };
+    for (const width of [32, 48, 120]) {
+      const line = renderStatusLine(unicode, width);
+      expect(visibleWidth(line)).toBeLessThanOrEqual(width);
+      expect(stripAnsi(line)).toContain("修复");
+      expect(stripAnsi(line)).not.toMatch(/[\n\t]/u);
+    }
+    expect(stripAnsi(renderStatusLine(unicode, 120))).not.toContain("Long slice");
+  });
+
   it("sanitizes external text and reports an all-closed list", () => {
     expect.hasAssertions();
     const line = renderStatusLine(
