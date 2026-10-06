@@ -1,5 +1,5 @@
 ---
-description: Inspect an app surface, research competitors, iterate on a design board, and hand the selected direction to planning.
+description: Inspect an app surface, research competitors, iterate on a design board, and choose Shape and plan or direct planning.
 argument-hint: "<app surface and user task> [constraints or references]"
 ---
 
@@ -30,17 +30,31 @@ Load the named installed skills and follow their contracts in this order:
    images, update and verify the board, and request feedback again. Continue until
    the user explicitly selects a direction or stops. Silence or cancellation is
    not selection.
-6. **Hand off to planning.** After explicit visual selection, pass the accepted
-   direction, evidence, feedback, constraints, and unmet proof to
-   `planning-changes`. That skill owns the complete implementation plan and its
-   approval. Visual selection and this prompt do not authorize implementation.
+6. **Choose the delivery route.** After explicit visual selection, use `question`
+   in the terminal to offer **Shape and plan** or **Plan directly**. Cancellation
+   or silence starts neither route. Create one self-contained handoff with the
+   accepted direction, inspected image evidence, user notes, current-state and
+   research evidence, constraints, accessibility and responsive requirements,
+   unmet proof, and selected operation context.
+   - **Shape and plan** resolves `shape` by its installed name and passes that
+     handoff without repeating visual selection. Shape synthesizes the pitch and
+     seeks approval, then invokes `planning-changes` with accepted intent.
+   - **Plan directly** passes the same handoff to `planning-changes` for
+     already-settled intent. That skill owns the complete delivery plan and its
+     separate approval.
+
+Visual selection and route choice do not approve a pitch or plan or authorize
+implementation. Browser and design-board controls never authorize Shape,
+planning, implementation, tracker mutation, or publication.
 
 Use only available capabilities. Report unavailable skills, tools, and visual
 proof honestly, without claiming they ran or installing replacements. If
 `question` is unavailable, ask directly in conversation and state the limitation.
 Without inspectable images or a verified board, keep the visual gate incomplete.
-If `planning-changes` is unavailable, return the selected design context and the
-unmet planning handoff, not a substitute plan.
+If the chosen `shape` or `planning-changes` capability is unavailable, return the
+complete selected design handoff and name that unmet capability. Do not claim
+that the transition ran or substitute another route. If planning is unavailable
+after pitch approval, include the accepted pitch in the returned handoff.
 
 Requested surface and task:
 
