@@ -13,7 +13,7 @@ coverage and acceptable impact. It is not `codebase-design` **Depth**, a model
 thinking level, or implementation authority.
 
 Discovery and report generation remain read-only. Only an explicit terminal
-Action can start a named delivery workflow, and that workflow retains its own
+Action or Shape choice can start its named delivery workflow, and that workflow retains its own
 Shape, plan, review, and publication approvals. Browser controls never start
 implementation, agent writes, or issue creation.
 
@@ -109,7 +109,7 @@ including a bare `go.mod`. The installed constraints remain before generic
 guidance.
 
 The parent resolves applicable constraints before any handoff and includes them
-in every lane, second opinion, and Action brief. Each capable lane loads the
+in every lane, second opinion, and Action or Shape brief. Each capable lane loads the
 applicable methods. A lane that cannot load an applicable language skill returns
 evidence only and makes no language-specific claim. Record an unmet method and
 use bounded target-repository Go standards; if neither supports a candidate, omit
@@ -135,7 +135,7 @@ Target-repository rules, public contracts, and established commands remain first
 Resolve only methods supported by changed-source, public-seam, or task evidence,
 not unrelated toolchain files. Apply the constraints before generic architecture
 advice and carry them into each capable evidence lane, second-opinion input, and
-Action brief. A lane unable to load an applicable TypeScript method returns
+Action or Shape brief. A lane unable to load an applicable TypeScript method returns
 evidence only and makes no TypeScript-specific recommendation. If a companion is
 unavailable, record the unmet method and use bounded target-repository TypeScript
 standards without claiming it loaded. Reject generic or second-opinion advice that
@@ -277,9 +277,10 @@ in report order or in the named subset. Never reprocess a decided candidate.
 When at least two await a decision, offer this authoritative batch entry:
 
 1. **Action all**
-2. **Track all**
-3. **Select candidates**
-4. **Review individually**
+2. **Shape all**
+3. **Track all**
+4. **Select candidates**
+5. **Review individually**
 
 All means every awaiting candidate in the active report or named subset. For
 **Select candidates**, use one count-unbounded multi-select Question. Give each
@@ -292,9 +293,10 @@ individual or conversational stable-ID fallback.
 For a non-empty selection, offer exactly:
 
 1. **Action selected**
-2. **Track selected**
-3. **Won't do selected**
-4. **Review selected individually**
+2. **Shape selected**
+3. **Track selected**
+4. **Won't do selected**
+5. **Review selected individually**
 
 Review individually and Review selected individually use the existing
 per-candidate question with these options:
@@ -304,6 +306,9 @@ per-candidate question with these options:
   planning. Include the complete candidate evidence and resolved language
   constraints. Use a Herdr-or-equivalent pane only when available; otherwise
   keep the handoff in the current-session. The route retains its own approvals.
+- **Shape** — explicitly choose the pitch lifecycle instead of inferred Action
+  routing. Pass the self-contained reviewed-candidate handoff below to `shape`.
+  This starts no implementation writer and grants no pitch or plan approval.
 - **Track** — prepare one classified issue draft through `ticket-workflow`, then
   request its required exact-set confirmation before remote creation. If no
   tracker is available, return a copyable draft and stop.
@@ -316,9 +321,10 @@ per-candidate question with these options:
   a new explicit depth request instead of silently widening.
 
 Use the Question tool's built-in custom response for a user-authored direction.
-Do not add separate Other or Chat options. If Question is unavailable for an
-individual review, present the same four options and accept a free-form custom
-direction in conversation.
+Do not add separate Other or Chat options. If Question is unavailable for
+batch, selected, or individual review, present the same options in conversation
+and accept stable candidate IDs and a free-form custom direction. Cancellation
+or silence makes no decision.
 
 For Action, use evidence, impact, reversibility, dependencies, and uncertainty.
 One clear bounded candidate routes to `implement`. Multiple independent clear
@@ -333,6 +339,26 @@ those route rules. Bulk Action never starts a writer and never proves parallel
 readiness. Every writer still requires an isolated worktree. Multiple writers can
 start only after the parent or planning proves independence, non-overlapping
 ownership, and named integration points. Coordinated candidates share one plan.
+
+For Shape, create one self-contained handoff for the exact chosen candidate set,
+whether individual, selected, or all. Include:
+
+- stable candidate IDs and the user's selected set and explicit Shape decision;
+- improvement depth, reviewed scope, coverage, exclusions, and current friction;
+- reviewed repository evidence, proposed outcomes, and before-and-after visuals;
+- target-repository constraints, applicable methods, and unmet capabilities;
+- dependencies, overlap, integration points, impact, and reversibility; and
+- uncertainty, evidence gaps, recommended routes and reasons, and proof needs.
+
+Preserve observations separately from proposals. Do not pass only a temporary
+report path. Resolve `shape` by its installed name. If unavailable, return the
+complete handoff to the direct parent and name `shape` as the unmet capability.
+Do not claim that Shape ran or substitute planning or implementation. Shape
+owns pitch synthesis and approval, then invokes `planning-changes` after pitch
+approval. Planning separately seeks complete-plan approval before implementation.
+If planning is unavailable, preserve the accepted pitch and handoff and name the
+unmet `planning-changes` capability. Explicit Shape remains available even when
+Action recommends a faster route. Grouped Shape never proves parallel readiness.
 
 Track always remains available. Load and follow `ticket-workflow`; do not
 duplicate tracker policy here. Detect target instructions, tracker metadata, and
@@ -366,8 +392,9 @@ create issues.
 
 Discovery and report generation never create a branch, edit target production
 code, commit, publish, mutate a tracker, or treat a browser control as mutation
-authority. Only a terminal Action and the separate exact-set tracker confirmation
-can authorize their bounded next steps.
+authority. Only terminal Action or Shape choices and the separate exact-set tracker
+confirmation can authorize their respective bounded next steps. Browser controls
+never authorize Shape, planning, implementation, tracker mutation, or publication.
 
 ## Test-analysis evidence
 
