@@ -61,6 +61,29 @@ improve change locality. Do not add an integration service or generic tree engin
 The forecast is a scope and coordination guide, not a tool, token, turn, or line
 budget. Report material growth and return control before expanding scope.
 
+### Authorized execution recovery
+
+After slice 001, the host reported no retained Worker available for resumption.
+The parent paused and the user explicitly authorized a replacement Sol-high
+Worker. For this delivery only, prefer retained continuation but permit a fresh
+Worker for a named remaining slice when retention is unavailable. Verify the
+prior writer has ended, preserve its work and evidence, and keep one writer at
+a time. This later decision supersedes this plan's retained-writer assumptions
+for execution, without changing slice scope, review, branch, or PR boundaries.
+
+The shipped Engineering guidance must still pause for unavailable continuation
+and request explicit recovery authority. This execution recovery does not grant
+automatic replacement-writer authority to future tasks.
+
+The final fixed-diff review found R1: Status Line retained slice context by
+truncating an active title that fit alone. The user explicitly approved one
+replacement Sol-high Worker for that bounded repair and its renderer regression.
+The user also accepted the documented AC-009 proof gap for this PR: two actual
+retained slice handoffs remain unverified. Only that live acceptance test is
+waived. Live tracking, reload, and safe-pause simulation evidence remain separate.
+The shipped unavailable-continuation pause rule is unchanged. Do not report the
+waived retained-handoff test as passed.
+
 ### Setup and applicable methods
 
 Setup succeeded with Node `v24.18.0`, Go `go1.26.5`, and
@@ -224,7 +247,7 @@ slice identity and red/green evidence. The parent updates its own tree. Independ
 Engineering installs use available Todo hierarchy or report an honest flat/text
 fallback without assuming this private profile.
 
-## [ ] 001 — Create and restore a safe three-level Todo tree
+## [x] 001 — Create and restore a safe three-level Todo tree
 
 ### Outcome and requirement trace
 
@@ -277,7 +300,7 @@ Delivery unit 1, existing branch, base `main`, standalone PR.
 The public tool and persisted state satisfy the accepted tree contract. Focused
 proof passes, and the parent verifies evidence before continuing the same Worker.
 
-## [ ] 002 — Show the active path on every progress surface
+## [x] 002 — Show the active path on every progress surface
 
 ### Outcome and requirement trace
 
@@ -335,7 +358,7 @@ consumer: `feat(pi-todo): show active nested progress` and
 The compact widget cannot hide the active path, complete views remain readable,
 and new and legacy summary consumers have passing focused evidence.
 
-## [ ] 003 — Remind models of current tracking without extra runs
+## [x] 003 — Remind models of current tracking without extra runs
 
 ### Outcome and requirement trace
 
@@ -385,7 +408,7 @@ Delivery unit 1, same standalone PR.
 Bounded reminder behavior passes through the registered hook and requires no
 background process, timer, cross-session service, or automatic model run.
 
-## [ ] 004 — Track named slices through delegated delivery
+## [x] 004 — Track named slices through delegated delivery
 
 ### Outcome and requirement trace
 
