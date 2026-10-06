@@ -353,6 +353,31 @@ pi update --extension git:github.com/mopeyjellyfish/pi-extensions
 pi remove git:github.com/mopeyjellyfish/pi-extensions
 ```
 
+## Improvement review to delivery
+
+`/improve` keeps architecture discovery read-only and offers explicit **Shape
+all**, **Shape selected**, and individual **Shape** alongside appetite-aware
+Action, Track, selection, Won't do, and Deepen. Action retains its inferred
+implementation, direct planning, or Shape route. Explicit Shape chooses the
+pitch lifecycle even when a faster route is available.
+
+After explicit visual selection, `/improve-ui` offers **Shape and plan** or
+**Plan directly**. Focused `interface-craft` critique and audit stay read-only
+and offer that choice only when follow-on delivery is requested. Browser and
+design-board controls never authorize Shape, planning, implementation, tracker
+mutation, or publication. Terminal choices use conversation when `question` is
+unavailable.
+
+Each route carries self-contained reviewed evidence, the selected set or accepted
+visual direction, constraints, dependencies, uncertainty, and proof needs. Shape
+preserves settled decisions instead of repeating discovery or visual selection.
+Review evidence and route choice are not approval. Shape seeks pitch approval,
+then planning seeks separate complete-plan approval before implementation. A
+missing `shape` or `planning-changes` capability returns the handoff and any
+accepted pitch, names the unmet capability, and never claims the transition ran.
+Independent packages do not automatically install these companions. Fixed-diff
+`/code-review` remains defect-focused, with unchanged behavior and authority.
+
 ## Why the profile is complete
 
 This is David's personal profile, so it deliberately loads every compatible

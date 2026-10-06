@@ -19,6 +19,27 @@ Shape work and ask the human to provide an isolated worktree. Never work in the
 main-branch checkout. Keep the same worktree through planning and serial
 implementation; parallel writers need separate worktrees.
 
+## Receive upstream improvement-review evidence
+
+A feature brief can be a self-contained handoff from architecture improvement
+review, accepted UI review, or focused critique or audit. After worktree setup,
+read that handoff as evidence, not as pitch or plan approval. Preserve the user's
+chosen candidate set and stable IDs, scope, reviewed evidence, constraints,
+applicable methods, dependencies, overlap, integration points, uncertainty,
+recommended routes and reasons, and proof needs. For UI work, also preserve the
+accepted direction, inspected image evidence, user notes, current-state and
+research evidence, accessibility and responsive requirements, unmet proof, and
+operation context. Keep observations separate from proposals.
+
+Do not repeat review discovery or settled visual selection. Inspect only gaps
+that can change the pitch. Carry settled decisions into the pitch and planning
+handoff. If a material ambiguity or conflict invalidates a prior decision, name
+it and ask only for the affected decision. Missing evidence remains unmet proof.
+An upstream Shape choice starts this lifecycle only. Shape still synthesizes
+and seeks approval for the pitch, then planning separately seeks complete-plan
+approval before implementation. Browser and design-board controls grant no
+workflow or publication authority.
+
 ## Decide enough to pitch
 
 Read repository instructions and the nearest relevant sources after worktree
@@ -29,8 +50,10 @@ restate repository truth. Keep only decision-changing research; omit empty or
 non-decision research.
 
 For material user interface scope, load and follow `frontend-design` before pitch
-approval when that installed capability is available. For a greenfield web
-application or materially new application surface, use its generation-first
+approval when that installed capability is available. Supply accepted upstream
+review evidence to satisfy settled direction decisions, not to restart its visual
+selection loop. For a greenfield web application or materially new application
+surface without accepted upstream visual evidence, use its generation-first
 initial design pass before pitch approval. It may select `interface-craft`,
 `interface-design`, or `design-documentation` as the accepted method. Shape keeps
 product intent, unresolved-direction decisions, and approval ownership. When
@@ -80,7 +103,10 @@ conversation and ask the same question. Do not infer approval from silence.
 Only **Approve and plan** is explicit human approval. It authorizes the named
 pitch branch's bounded commit and later pull-request publication. Mark the pitch
 `status: accepted`, invoke `commit`, then invoke `planning-changes` with the
-accepted pitch. Invoke `open-pr` at this stage only when the pitch is its own
+accepted pitch and preserved upstream evidence. If `planning-changes` is
+unavailable, return a self-contained handoff with the accepted pitch, evidence,
+and unmet planning capability. Do not claim that planning ran or substitute
+implementation. Invoke `open-pr` at this stage only when the pitch is its own
 delivery unit with independent review or merge value; otherwise defer it to the
 stable implementation delivery unit's single publication boundary.
 
