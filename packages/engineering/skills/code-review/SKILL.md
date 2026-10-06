@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review one fixed diff with five independent evidence lenses and a confidence gate. Use for local changes, branches, commits, ranges, or pull requests, with optional bounded GitHub comments or local repairs.
+description: Review one fixed diff with an integrated confidence-gated pass, or explicit --deep evidence lenses. Use for local changes, branches, commits, ranges, or pull requests, with optional bounded GitHub comments or local repairs.
 ---
 
 # Code review
@@ -20,25 +20,31 @@ Only the parent agent orchestrates. A lens, scorer, Reviewer, Utility, Worker, a
 
 ## 1. Parse authority and verify capabilities
 
-The command surface is `/code-review [target] [--comment] [--fix]`. Treat an omitted target as the current local change. Do not infer a mutation flag.
+The command surface is `/code-review [target] [--deep] [--comment] [--fix]`. Treat an omitted target as the current local change. Do not infer a mutation flag.
 
-Before command orchestration, require the parent conversation to use `openai-codex/gpt-6-astra` at high thinking effort. If it does not, stop and ask the human to select that profile. Do not launch a substitute model.
+The ordinary route is one fresh integrated fixed-diff Reviewer pass using the
+available configured reviewer and parent contracts. It does not require an
+Astra-only command stop. If no reviewer is available, use and report a bounded
+direct-parent integrated fallback. Never claim independent evidence from it.
+Risk selects whether review is needed, not automatic deep orchestration.
 
-The complete root-profile route requires:
+Only explicit `--deep` selects five lenses plus a scorer. For that route require
+an `openai-codex/gpt-6-astra` parent at high effort, five fresh configured
+`openai-codex/gpt-6.1-sol` medium Reviewer runs, and one fresh configured Sol-low
+Utility scorer. If those capabilities are unavailable, report the unmet route.
+Do not silently substitute or escalate to deep after difficulty or a finding.
 
-- five fresh configured Reviewer runs with `openai-codex/gpt-6.1-sol` at medium effort;
-- one fresh configured Utility run with `openai-codex/gpt-6.1-sol` at low effort;
-- the configured child-launch capability;
-- the installed GitHub method for `--comment`; and
-- an isolated-worktree method plus one configured Worker for `--fix`.
-
-Check only the capabilities needed by the selected route. If a required profile, model, tool, agent, or method is unavailable, name the unmet capability and stop that route. Do not silently use another model, role, API, direct write, or remote action. An independently installed Engineering package can perform the integrated direct-parent review. It must not claim that the five-lens route or a missing companion ran.
+Check only capabilities needed by the selected route. `--comment` needs the
+installed GitHub method. `--fix` needs isolated-worktree support and one configured
+writer. Honor available configured profiles for ordinary review and repair.
+Independent packages must not assume private roles or model names are installed.
 
 Prompt guidance cannot technically enforce model choice, tool permissions, read-only behavior, or the mutation limit. Treat these rules as explicit handoff contracts. Report any host limitation that prevents the contract from being verified.
 
 Authority by flags:
 
-- No flags: read and report only. Do not edit, run QA gates, commit, push, or post.
+- `--deep`: select deeper read-only orchestration only. Grant no mutation.
+- No mutation flags: read and report only. Do not edit, run QA gates, commit, push, or post.
 - `--comment`: authorize one eligible GitHub review mutation or one no-issues conversation comment after preview. It authorizes no other local or remote mutation.
 - `--fix`: authorize isolated local repairs and their required verification only. It does not authorize commit, push, publication, cleanup, or a remote action.
 - `--comment --fix`: repair locally and post nothing. Defer all comments until a repaired head is published and reviewed again.
@@ -77,7 +83,14 @@ Select language and framework methods from the fixed diff, not from unrelated to
 
 Record each unavailable companion. Use a bounded direct-parent target-repository standards fallback without claiming that the missing method loaded. Do not duplicate a current compiler, linter, test, security tool, or other tool finding.
 
-## 4. Launch five fixed-diff lenses
+## 4. Select integrated review or deep lenses
+
+Without `--deep`, send one fresh Reviewer `Review mode: fixed-diff code` with the
+same frozen boundary, intent, methods, read-only authority, and candidate schema.
+Apply section 6, then the confidence rubric and parent validation in section 5
+inline. Do not launch lenses or a scorer.
+
+### Deep route only: launch five fixed-diff lenses
 
 The parent launches all five runs in parallel, with fresh context. Each run uses the configured Reviewer contract on `openai-codex/gpt-6.1-sol` at medium effort and states `Review mode: fixed-diff lens`. Assign exactly one lens:
 
@@ -115,9 +128,9 @@ Review runs do not build, test, lint, type-check, run coverage, run smoke checks
 
 ## 5. Join and score candidates
 
-After all five runs return, the Astra parent joins the complete results. Deduplicate candidates that have the same cause and consequence. Preserve the strongest evidence and all relevant axes. Exclude pre-existing issues, unchanged-line concerns, speculative risks, tool-reported issues, general improvements, and style preferences that no repository rule requires.
+For `--deep`, after all five runs return, the Astra parent joins the complete results. Deduplicate candidates that have the same cause and consequence. Preserve the strongest evidence and all relevant axes. Exclude pre-existing issues, unchanged-line concerns, speculative risks, tool-reported issues, general improvements, and style preferences that no repository rule requires.
 
-Send the complete deduplicated candidate set and fixed evidence to one fresh configured Utility scorer on `openai-codex/gpt-6.1-sol` at low effort. The scorer is read-only, cannot fan out, and returns one score per candidate. Use this rubric:
+For `--deep`, send the complete deduplicated candidate set and fixed evidence to one fresh configured Utility scorer on `openai-codex/gpt-6.1-sol` at low effort. The scorer is read-only, cannot fan out, and returns one score per candidate. Use this rubric:
 
 - **0** — false positive, pre-existing, outside the diff, or no evidence.
 - **25** — mostly speculative. Key facts or a practical consequence are missing.
@@ -127,7 +140,7 @@ Send the complete deduplicated candidate set and fixed evidence to one fresh con
 
 Interpolate only when the evidence falls between anchors. Reject every score below 80.
 
-The Astra-high parent then validates each retained candidate against the fixed diff, cited intent or instruction, practical consequence, and rubric. The parent can reject a scored candidate but cannot raise an unsupported score to preserve it. Keep only findings with final confidence of at least 80.
+The parent then validates each retained candidate against the fixed diff, cited intent or instruction, practical consequence, and rubric. The parent can reject a scored candidate but cannot raise an unsupported score to preserve it. Keep only findings with final confidence of at least 80.
 
 ## 6. Apply integrated review rules
 
@@ -200,10 +213,17 @@ Send one retained-finding packet to one configured Worker with sole write owners
 - invalidated focused tests and target-required checks; and
 - explicit local-only Authority with commit, push, publication, remote mutation, and cleanup prohibited.
 
-Use configured Worker on `openai-codex/gpt-6.1-sol` at high effort for all repairs, including frontend, non-frontend, and mixed work. `xhigh` is preapproved only for difficult work under current policy. Do not substitute another model. The Worker makes only the smallest repairs for retained findings and adds or updates behavioral proof when needed.
+Use the available configured writer contract. The private root profile uses
+Sol high, with xhigh preapproved for difficult repairs. Other hosts honor their
+approved profile rather than assuming the private root contract. The Worker makes only the smallest repairs for retained findings and adds or updates behavioral proof when needed.
 
 The Worker runs invalidated focused checks. Run target-required checks that the repair invalidates. Diagnose a failure before rerunning it. The parent verifies each finding in the separate repair tree and records the resulting tree identifier, changed paths, checks, unresolved findings, and remaining gaps. Do not commit, push, publish, or remove the worktree.
 
-If a repair requires a product, scope, or architecture change, stop and return to planning or a new full-review boundary. Do not broaden the repair. If repair or verification fails, report the remaining finding and evidence without a blind retry or alternate model.
+If a repair requires a product, scope, or architecture change, stop and return to planning or a new full-review boundary. Do not broaden the repair. Routine in-scope diagnosis and repair are authorized. Prefer the retained writer.
+A replacement needs confirmed shutdown and current diff/evidence ownership
+transfer, never concurrent writers. If shutdown is uncertain, report that blocker.
+Continue only with new evidence or measurable progress, not unchanged retries.
+The parent validates bounded repairs without another full review unless the
+architecture, scope, or reviewed contract was invalidated.
 
 With both flags, complete this local flow and post nothing. State that comments are deferred until the repairs are published to a new remote head and that the new head receives a new review.

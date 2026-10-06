@@ -7,7 +7,7 @@ description: >-
 
 # Implement
 
-Accept one approved slice, bounded request, or confirmed bug outcome. Load the
+Accept one coherent delivery unit, bounded request, or confirmed bug outcome. Load the
 inherited target-project context and every named pitch, plan, request, and later
 user decision from durable Intent sources before editing.
 Read repository instructions, Git state, and public contracts, then nearest tests.
@@ -15,6 +15,13 @@ Preserve unrelated changes and identify the required completion checks. The
 Business reason must be inferable from this evidence; if unclear, the parent must
 ask the human to confirm it and, once confirmed with the user, record it in the
 implementation spec and Worker task.
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
 
 ## Ticket-backed intent
 
@@ -47,10 +54,8 @@ Accept-all is authority only when whole-plan approval confirms accept-all
 authority for the named accepted plan; otherwise treat an accept-all preference
 as checkpointed. An accept-all plan runs every named delivery unit through tests,
 required gates, risk-selected assurance, commit, and authorized publication in
-dependency order without routine questions. Accept-all plans pause for setup,
-test, check, commit, or publication failure and return control to the human;
-they also pause for material review findings, material forecast variance, or any
-change to accepted scope, delivery boundaries, dependencies, or authority.
+dependency order without routine questions. Routine failures enter the in-scope
+diagnosis and repair loop below, not a mandatory human approval stop.
 
 An explicit opt-out narrows this authority. `local-only`, `no push`, or `no PR`
 permits a local commit but prevents `open-pr` and every remote mutation. `no
@@ -101,23 +106,31 @@ step title. If no tracker is available, show the named slice and active step in
 text before work or a handoff. Report the visibility limit. Independent installs
 must not assume Todo, private profiles, or shared child-session tracking.
 
-Before launching a delegated slice, the parent activates its named delegated
-step, such as “Implement and verify slice 004”. This label does not claim live
-knowledge of child edits or tests. Give the writer only that slice's outcome,
-allowed paths, focused proof, and stop conditions. Require a return after the
-slice, with its exact identity and evidence. The parent inspects the diff and
-focused proof before closing verified steps and explicitly closing the slice.
-Child success alone does not prove completion.
+Delegate the whole coherent serial delivery unit to one writer. Include all
+accepted internal slice IDs/titles, outcomes, boundaries, dependencies, and proof
+needs. The writer executes them in order and reports progress and focused
+slice evidence without a mandatory return/resume handshake per tracker item.
+Require a return at the delivery-unit boundary or a real integration/decision
+boundary. The parent verifies evidence before closing named slices. Tracker
+labels do not claim live knowledge of child edits or tests.
 
-For the next accepted slice in the same serial delivery unit, resume the same
-retained writer in the same worktree. Before each continuation, verify that the
-host reports the latest run as resumable. Update the named active step before
-resuming. Planned slice continuation is not defect repair and does not consume
-repair allowances. It does not add a branch, review boundary, or pull request.
-All existing authority, repair limits, and pause conditions still apply.
-If supported continuation is unavailable, report the limit and pause for
-explicit recovery authority. Do not launch a replacement writer or silently
-combine the remaining slices.
+## In-scope repair and writer recovery
+
+Accepted delivery intent authorizes routine in-scope diagnosis, test/check
+repair, review repair, and safe writer recovery. Prefer the retained writer.
+If continuation fails, use the host's status/result view for the latest run ID.
+Record its session/run ID, worktree, exit or live state, supported recovery action,
+current diff, failed command, and evidence. Resume only a confirmed resumable run.
+If an owned writer is still live, use the host's supported cancellation and wait
+for confirmed shutdown before transferring ownership. If status or cancellation
+is unavailable, report the missing capability and keep another writer blocked. A replacement is allowed after the old writer is definitively stopped and
+current diff/evidence ownership is transferred. Never run concurrent writers in
+one worktree. If shutdown cannot be confirmed, report that blocker rather than
+guess or launch another writer. A timeout alone is not a new permission gate.
+Stop for a real scope, architecture, dependency-boundary, or authority change,
+repeated failure without new evidence or measurable progress, or a destructive,
+spending, credential, or unsafe publication decision. Do not retry an unchanged
+failed command without diagnosis and new evidence.
 
 Reconcile tracking after results, repairs, scope changes, and resume. Complete
 steps only with verified evidence. Complete groups explicitly after descendants
@@ -126,9 +139,8 @@ Before final completion, reconcile only finished work within current authority.
 Never cancel unfinished work to end a turn or close future checkpointed units.
 
 When the configured `worker` capability is available, it is the only configured
-implementation child. Launch one fresh foreground `worker` for the initial named
-slice or bounded single-slice request. Later slices use retained continuation,
-not fresh launches. When Pi's `subagent` tool supplies the capability, send this
+implementation child. Launch one fresh foreground `worker` for the coherent
+delivery unit. Keep it for progressing repairs and continuations when available. When Pi's `subagent` tool supplies the capability, send this
 argument object directly rather than putting it in `workflowScript`:
 
 ```text
@@ -140,8 +152,8 @@ async: false
 
 For a planned ready parallel lane set, start one fixed-role Worker per independent
 delivery unit concurrently. Give each Worker its exact isolated worktree as
-`cwd`, its first named slice, and non-overlapping ownership. Use the same tracking
-and retained-continuation contract within each lane. Never give two active
+`cwd`, its accepted internal slices, and non-overlapping ownership. Use the same
+tracking and sole-writer recovery contract within each lane. Never give two active
 writers the same worktree. If the host cannot keep those worktrees and writers
 separate, serialize execution without changing the accepted pull-request
 topology.
@@ -176,14 +188,19 @@ Output:
 
 `Authority` states the permitted actions and all user opt-outs for this attempt.
 `Applicable methods` names only evidence-selected methods and unavailable
-companions. These fields carry existing limits and do not grant the writer
+companions. Resolve installed names before launch. Supply portable resolved
+`SKILL.md` paths when a fresh child does not inherit the catalog, or select those
+methods through the host's invocation `skill` and agent-local `skillPath`. Do not
+select every language or framework for the default catalog. Configured skills
+expose metadata and paths. Read full `SKILL.md` instructions only on demand. Never
+assume monorepo paths in a target repository. These fields carry existing limits and do not grant the writer
 publication authority.
 
 Give exact pitch and plan paths, complete bounded request, later user decisions,
 worktree, setup, and focused checks in those fields. `Goal` names the delivery
-unit, exact slice ID/title, and observable outcome. `Output` requires that same
-identity, focused red/green evidence or an explicit test exception, and a return
-after this slice. Calibrate business
+unit, internal slice IDs/titles, and observable outcome. `Output` requires that
+identity, per-slice focused red/green evidence or an explicit test exception, and
+a return after the whole unit or a named integration/decision boundary. Calibrate business
 fit to business impact, plausible failure cost, expected lifetime and scale,
 reversibility, and repository conventions. Balance delivery speed, reliability,
 maintainability, and operational risk. Choose the smallest solution robust for
@@ -195,15 +212,10 @@ changed-surface verification. Avoid overengineering: speculative abstractions,
 configuration, layers, generality, safeguards, process, or verification depth
 without proportionate concrete need or risk reduction. Do not append every
 possible edge case or final repository gates.
-Treat Worker results as `completed`, `blocked`, `variance`, or `partial`. A
-blocked or variance result pauses for the parent. A partial result must not
-trigger an automatic retry or a larger "finish everything" task. After a
-completed initial attempt, a first selected QA or joined assurance failure
-packet may start one repair. After later selected QA failures, continue repair
-resumes of the latest retained Worker only while verifier evidence shows
-measurable progress. If that Worker is not resumable or any repair returns `blocked`,
-`variance`, or `partial`, return control for direct parent ownership or
-replanning; do not launch a replacement Worker.
+Treat Worker results as `completed`, `blocked`, `variance`, or `partial`.
+The parent diagnoses incomplete results rather than silently broadening the task.
+Continue bounded repair while new evidence or measurable progress supports it.
+Use the recovery contract above when the retained writer cannot continue.
 
 Do not impose hard turn, tool, token, or cost budgets on a mutation-capable
 Worker. There is no fixed iteration, turn, tool, token, or cost limit. Such
@@ -219,15 +231,20 @@ the parent retains routing, synthesis, and approval. Do not silently select a
 higher-capability role. A high-capability run requires an explicit approval
 stating evidence, expected benefit, and bounded task. State a delegation's
 critical-path, parent-context, or independent evidence benefit; do not delegate
-without one. During checkpointed execution, if observed coordination materially
-exceeds the accepted forecast, pause before more delivery steps; report the
-variance and seek fresh approval only when changed delivery boundaries or
-authority require it. During accepted accept-all execution, every material
-forecast variance pauses and returns control to the human, even when delivery
-boundaries and authority do not change. Fresh approval is required only when
-those boundaries or authority change. When no accepted forecast exists, report
-material coordination growth against the bounded request instead of creating
-planning overhead.
+without one. Report material coordination growth against an accepted multi-unit
+forecast, or against the bounded request when no forecast exists. Simplify within
+accepted boundaries. Seek fresh approval only for a real scope, architecture,
+delivery-boundary, dependency, or authority change. Single-unit delivery needs no
+forecast or topology ceremony.
+
+## Reliable tool use
+
+After worktree routing, use the absolute active-worktree path when a tool's
+relative-path context is uncertain. Check `cwd` before writes. Hashline edits
+need the latest read/search anchors and snapshot tag. After an edit or stale-tag
+error, read again instead of replaying the old patch. Diagnose path and protocol
+errors before a retry. Use only the session-owned browser and close it when done.
+These controls do not repair upstream child timeout or resume defects.
 
 ## Select assurance by risk
 
@@ -312,8 +329,8 @@ Run the exact complete gate once against the final frozen diff after invalidated
 checks pass.
 
 Stop the loop when the same failure recurs without new evidence, the defect set
-does not shrink or materially change after an accepted repair, the Worker does
-not return `completed`, or repair requires scope or architecture outside the
+does not shrink or materially change after an in-scope repair, or repair requires
+scope or architecture outside the
 accepted intent. This is a progress boundary, not an iteration limit. Coverage
 is a late diagnostic: rerun it only after relevant production or test changes,
 and never create separate workers per file or failure group.
@@ -383,15 +400,13 @@ available focused evidence. When QA is also selected, use the concurrent
 workflow above; do not wait for QA to finish before starting review. If the
 reviewer is unavailable, the direct parent loads and follows `code-review`.
 
-Return material findings in the joined prioritized packet. After approval to
-repair, permit one review repair resume of the same retained Worker. If it is not
-resumable, the parent owns the repair directly rather than launching a
-replacement. The writer reruns focused invalidated evidence, then the parent or
-selected QA runs the invalidated required gates. The parent verifies repaired
-review findings without starting a second full review; pause if repair changes
-architecture or accepted scope. For an accepted accept-all plan, pause and
-return control to the human before resolving any material finding. Publication
-requires every selected gate green and every material review finding resolved.
+Return material findings in one joined prioritized packet. Accepted delivery
+intent already authorizes bounded repair. Prefer the retained writer and use the
+safe recovery contract if it cannot continue. The writer reruns focused
+invalidated evidence, then the parent or selected QA runs invalidated required
+gates. The parent validates repaired findings without a second full review unless
+architecture, scope, or the reviewed contracts were invalidated. Publication
+requires every selected gate green and every material finding resolved.
 For formal review, send `Review mode: fixed-diff code` with the handoff.
 
 ## Publication
@@ -448,7 +463,8 @@ conversation, wait, and do not start the next unit.
 For an accepted accept-all plan with another ready delivery unit, continue in
 accepted dependency order without a routine question after the prior unit's
 successful tests, required gates, risk-selected assurance, commit, and
-authorized publication. Pause instead for every accept-all pause condition.
+authorized publication. Stop only at a real decision or no-progress boundary
+from the repair and recovery contract.
 
 **Continue** launches the next ready delivery unit or planned ready lane set in
 accepted dependency order without replanning. **Review next unit** pauses

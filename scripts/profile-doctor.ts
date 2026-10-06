@@ -11,6 +11,7 @@ if (arguments_.length > 2) {
   const diagnostics = await diagnoseProfile(
     arguments_[0] ?? join(agentDir, "settings.json"),
     arguments_[1] ?? join(agentDir, "extensions", "subagent", "config.json"),
+    process.cwd(),
   );
   process.stdout.write(
     `${JSON.stringify({ diagnostics, ok: diagnostics.every((item) => item.severity !== "error") }, null, 2)}\n`,

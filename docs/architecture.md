@@ -46,7 +46,8 @@ irreversible work has proportionate independent evidence. Deterministic green
 commands do not select QA. QA and Reviewer are distinct and run concurrently
 only on one frozen boundary when both are selected. QA owns executable gates,
 and Reviewer does not rerun them. The parent joins their repair packet before the
-retained Worker repairs it without a replacement. Git delivery uses installed
+retained Worker repairs it when available. Replacement requires confirmed
+shutdown and current diff/evidence ownership transfer, never concurrent writers. Git delivery uses installed
 methods and is not an implementation substitute.
 QA uses Sol medium for bounded verification and repeatable browser checks against
 explicit criteria. Difficult diagnosis, subjective visual judgment, or unclear
@@ -73,19 +74,19 @@ advice. Parent settings and adviser selection remain user settings, so
 installation never overwrites Pi authentication, preferences, or bridge
 configuration.
 
-Shape and planning use an evidence-based Go gate: proposed Go source, modules,
-CLIs, or Go-specific guidance or routing require one fixed-document Go
-specification review before approval; unrelated `go.mod` or toolchain evidence
-does not. Templates retain Review evidence for every document, with `not
-applicable` for non-Go work. Reviewer has separate fixed-document specification
-and fixed-diff code modes, while standalone packages resolve companions by name
-and honestly use a bounded direct-parent target-repository standards fallback
-when unavailable.
+Go-targeted work requires one substantive specification review at the
+implementation-ready plan boundary. Review a pitch early only when consequential
+Go design decisions must be committed before planning. Reuse unchanged evidence.
+Go source, modules, CLIs, or Go-specific guidance/routing activate the rule, not
+unrelated toolchain evidence. Templates record applicability and review evidence,
+including a deferred pitch pass. Independent packages resolve installed names and
+honestly report bounded target-repository standards fallback when unavailable.
 
 Engineering direct entries use the same evidence-based routing for Go source,
 modules, Go CLIs, and Go-specific work: resolve `go`, and resolve `cobra-viper`
 only for commands, flags, or CLI configuration. Toolchain evidence alone does
-not activate either. Worker preloads both skills despite its fresh profile.
+not activate either. Fresh Workers receive applicable installed names or portable resolved skill
+references, not every language and framework.
 Fixed-diff Go review applies target-repository instructions and module contracts,
 installed Go and applicable Cobra/Viper standards, then `references/go.md`;
 findings need practical consequences and must not duplicate current tool output.
@@ -97,21 +98,20 @@ public types, dependency-type exposure, or compatibility promises;
 `typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
 test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
 for legacy cleanup or migration. Target-repository rules remain first, and
-unrelated toolchain evidence alone does not activate a method. Worker preloads
-implementation methods, while Reviewer preloads all five. An unavailable companion
+unrelated toolchain evidence alone does not activate a method. Worker and Reviewer keep minimal common selections. Their `skillPath` lists
+remain discovery candidates, and handoffs supply evidence-selected names or
+portable resolved references for fresh children. An unavailable companion
 is recorded and uses bounded direct-parent target-repository TypeScript standards
 without claiming it loaded.
 
-The `/code-review [target] [--comment] [--fix]` prompt is a thin entry to the
-maintained Engineering review method. In the root profile, an Astra-high parent
-pins the boundary and starts five parallel fresh configured Reviewer runs on
-GPT-6.1 Sol at medium effort. The lenses cover intent and Standards,
-correctness and risk, tests and failure behavior, focused history, and contracts
-and design. The parent joins their candidates. One fresh configured Utility run
-on GPT-6.1 Sol at low effort scores them with fixed 0/25/50/75/100 meanings. Astra reports only validated
-findings scored at least 80. The children are read-only, run no QA gates, and
-cannot fan out. Ordinary omitted or fixed-diff code Reviewer mode remains one
-integrated review.
+The `/code-review [target] [--deep] [--comment] [--fix]` prompt is a thin entry
+to the Engineering method. Ordinary review uses one integrated fixed-diff pass
+and honors available configured reviewer/parent contracts. It does not require
+an Astra-only command stop. Only explicit `--deep` selects the Astra-high parent,
+five parallel fresh Sol-medium Reviewer lenses, and one fresh Sol-low Utility
+scorer. Both routes retain confidence 80 or higher after parent validation using
+the 0/25/50/75/100 rubric. Children are read-only, run no QA gates, and cannot
+fan out. Risk selection never automatically escalates to deep.
 
 The default command makes no mutation. `--comment` permits one previewed,
 head-pinned GitHub `COMMENT` review with changed-line inline comments, or one
@@ -134,6 +134,26 @@ development-only resources are present. Independent packages do not
 automatically provide companion extensions or agents.
 
 A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.
+
+## Outcome and coherent delivery
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
+
+One writer executes the accepted serial delivery unit's named internal slices
+without a mandatory per-slice return/resume handshake. The parent verifies
+progress evidence, final checks, and one risk-selected stable-boundary review.
+Single-unit plans accept the whole outcome, boundaries, and dependencies without
+forecast or topology ceremony. Detail the next behavior as evidence warrants.
+Routine in-scope diagnosis, check/review repair, and safe writer recovery are
+authorized. Prefer retained writers. Replacement needs confirmed shutdown and
+current diff/evidence ownership transfer. Unknown shutdown blocks another writer.
+Human stops remain for scope, architecture, authority, repeated no-progress,
+destructive, spending, credential, or unsafe publication decisions.
 
 ## Improvement review to delivery
 

@@ -101,13 +101,19 @@ evidence. Close groups explicitly after descendants close and the group outcome
 is verified. Paused and future work stays open. A checkpointed turn does not
 complete future delivery units.
 
-For delegated work, the parent owns the visible tree. Before launch, activate a
-step such as “Implement and verify slice 004” under that named slice. The label
-does not claim live knowledge of child edits or tests. Receive one slice's
-identity and focused evidence, verify the return, then update the parent tree.
-Use supported retained-writer continuation for the next slice in the same unit.
-If continuation is unavailable, report the visibility limit and pause for
-explicit recovery authority. Do not automatically launch a replacement writer.
+For delegated work, the parent owns the visible tree. Delegate one coherent
+serial delivery unit to one writer with named internal slices, boundaries,
+dependencies, and focused proof needs. Activate an actionable step before launch.
+The label does not claim live knowledge of child edits or tests. The writer
+reports progress and focused evidence by slice without a mandatory per-slice
+return/resume handshake. The parent verifies evidence before updating the tree.
+
+Accepted delivery intent authorizes routine in-scope repair and safe writer
+recovery. Prefer the retained writer. If continuation is unavailable, inspect
+child state and preserve the current diff, evidence, and next action. A replacement
+requires confirmed shutdown and transfer of diff/evidence ownership. Never run
+concurrent writers in one worktree. If shutdown cannot be confirmed, report that
+blocker rather than guess. A timeout alone does not require new permission.
 Todo does not require a delegated-run package or share trees between sessions.
 
 ## User interface

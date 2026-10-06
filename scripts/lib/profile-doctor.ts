@@ -49,10 +49,74 @@ async function load(
   }
 }
 
-/** Inspect only the private profile contract; never rewrite settings or restrict extra agents. */
+interface EffectiveAgent {
+  readonly name: string;
+  readonly source: string;
+  readonly filePath: string;
+  readonly model?: string;
+  readonly thinking?: string | false;
+  readonly override?: { readonly path: string };
+}
+
+// Private adapter to the pinned pi-subagents 0.50.0 implementation. Reuse its
+// filesystem discovery, defaults, overrides, and precedence instead of copying them.
+async function diagnoseEffectiveRoles(cwd: string): Promise<Diagnostic[]> {
+  const discoveryUrl = new URL("src/agents/agents.ts", import.meta.resolve("pi-subagents"));
+  const { discoverAgents } = (await import(discoveryUrl.href)) as {
+    discoverAgents: (cwd: string, scope: "both") => { agents: EffectiveAgent[] };
+  };
+  const modelInfoUrl = new URL("src/shared/model-info.ts", import.meta.resolve("pi-subagents"));
+  const { resolveEffectiveThinking, splitKnownThinkingSuffix } = (await import(
+    modelInfoUrl.href
+  )) as {
+    resolveEffectiveThinking: (
+      model: string | undefined,
+      thinking: string | false | undefined,
+    ) => string | undefined;
+    splitKnownThinkingSuffix: (model: string) => { baseModel: string };
+  };
+  const { agents } = discoverAgents(cwd, "both");
+  const diagnostics: Diagnostic[] = [];
+  const model = "openai-codex/gpt-6.1-sol";
+  const roles = {
+    worker: "high",
+    researcher: "low",
+    utility: "low",
+    qa: "medium",
+    reviewer: "medium",
+    git: "medium",
+  };
+  for (const [role, thinking] of Object.entries(roles)) {
+    const agent = agents.find((candidate) => candidate.name === role);
+    if (agent === undefined) {
+      diagnostics.push({
+        file: cwd,
+        path: `$.effectiveAgents.${role}`,
+        severity: "error",
+        message: `Missing effective ${role}. Load the private aggregate and remove a disabling override. Expected ${model} at ${thinking}.`,
+      });
+      continue;
+    }
+    const actualModel =
+      agent.model === undefined ? undefined : splitKnownThinkingSuffix(agent.model).baseModel;
+    const actualThinking = resolveEffectiveThinking(agent.model, agent.thinking);
+    const drift = actualModel !== model || actualThinking !== thinking;
+    if (!drift && agent.source === "package") continue;
+    diagnostics.push({
+      file: agent.filePath,
+      path: `$.effectiveAgents.${role}`,
+      severity: drift ? "error" : "recommendation",
+      message: `Effective ${role}: source=${agent.source}, file=${agent.filePath}, model=${actualModel ?? "inherited"}, thinking=${actualThinking ?? "inherited"}. Expected packaged ${model} at ${thinking}. Rename or update the shadowing definition, or inspect user/project agentOverrides${agent.override === undefined ? "" : ` at ${agent.override.path}`}. Reload or restart Pi after an intentional correction. Keep non-conflicting additional user agents.`,
+    });
+  }
+  return diagnostics;
+}
+
+/** Inspect configuration and, with a cwd, on-disk effective discovery. Never rewrite user files. */
 export async function diagnoseProfile(
   settingsPath: string,
   configPath: string,
+  discoveryCwd?: string,
 ): Promise<Diagnostic[]> {
   const diagnostics: Diagnostic[] = [];
   const settings = await load(settingsPath, diagnostics);
@@ -91,7 +155,7 @@ export async function diagnoseProfile(
         path: `$.subagents.agentOverrides.${role}`,
         severity: "recommendation",
         message:
-          "Verify effective agent discovery for this name. pi-subagents applies a built-in override before disableBuiltins, so this path can leave a built-in enabled. The doctor cannot verify effective agent discovery or whether a permitted custom agent shadows this built-in; keep user agents enabled.",
+          "Verify effective agent discovery for this name. pi-subagents applies a built-in override before disableBuiltins, so this path can leave a built-in enabled. The effective-role check covers only the six private roles, not whether an additional custom agent shadows this built-in; keep user agents enabled.",
       });
     }
   }
@@ -144,6 +208,19 @@ export async function diagnoseProfile(
       record(config["scheduledRuns"])["enabled"] === false,
       "Set false to disable scheduled runs.",
     );
+  }
+  if (discoveryCwd !== undefined) {
+    try {
+      diagnostics.push(...(await diagnoseEffectiveRoles(discoveryCwd)));
+    } catch {
+      diagnostics.push({
+        file: discoveryCwd,
+        path: "$.effectiveAgents",
+        severity: "error",
+        message:
+          "Effective discovery failed. Check readable agent definitions and user/project subagent settings against pinned pi-subagents. No files were changed.",
+      });
+    }
   }
   return diagnostics;
 }

@@ -7,6 +7,13 @@ description: >-
 
 # Developing changes
 
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
+
 Classify the request by intent uncertainty, whether it is reversible, risk,
 affected boundaries, and coordination cost. Do not use file count alone. Choose one
 route:
@@ -19,8 +26,9 @@ route:
 3. **Diagnose first** — a reported broken, failing, or slow behavior with an
    unresolved cause. Use `diagnosing-bugs`, then route its confirmed bug outcome
    to `implement`.
-4. **Plan first** — clear accepted intent spanning multiple outcomes, packages,
-   commits, pull requests, or coordinated boundaries. Use `planning-changes`.
+4. **Plan first** — clear accepted intent with real dependency, integration, or
+   delivery decisions to settle. File, slice, or commit count alone does not
+   require planning. A direct accepted delivery unit can use `implement`. Use `planning-changes`.
 5. **Shape then plan** — unresolved product intent, material solution tradeoffs,
    major or hard-to-reverse behavior, or security, privacy, or migration risk.
    Use `shape`, then `planning-changes` after acceptance.

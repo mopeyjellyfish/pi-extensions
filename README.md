@@ -60,17 +60,17 @@ It loads:
   recommendation-first routing through the public Pi package suite, followed by
   source-backed usage help in a transparent David-flavoured voice.
 
-For Go-targeted Shape pitches and plans, the parent requires one fixed-document
-Go specification review before approval. The evidence-based trigger covers Go
-source, modules, CLIs, and Go-specific guidance or routing, not an unrelated
-`go.mod` or toolchain gate; non-Go documents record `not applicable` review
-evidence. The configured Reviewer keeps separate fixed-document Go
+Go-targeted work requires one substantive specification review at the
+implementation-ready plan boundary. Review a pitch early only when consequential
+Go design decisions must be committed before planning. Do not repeat unchanged
+evidence. Go source, modules, CLIs, or Go-specific guidance/routing activate this
+rule, not unrelated toolchain evidence. Reviewer keeps distinct fixed-document
 specification and fixed-diff code modes.
 
 Engineering routes Go source, modules, Go CLIs, and Go-specific work through
 installed `go`, adding `cobra-viper` only for commands, flags, or CLI
-configuration; toolchain evidence alone does not activate either. Worker
-preloads both skills. Fixed-diff Go review applies target-repository instructions
+configuration; toolchain evidence alone does not activate either. Worker loads only evidence-selected methods from installed names or portable
+supplied skill references. Fixed-diff Go review applies target-repository instructions
 and module contracts before installed Go standards and `references/go.md`, and
 reports only practical findings that do not duplicate current tool output.
 
@@ -80,19 +80,20 @@ TypeScript or TSX through the installed `typescript` method. They add
 public types, dependency-type exposure, or compatibility promises;
 `typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
 test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
-for legacy cleanup or migration. Target-repository rules remain first. Worker
-preloads the implementation methods and Reviewer preloads all five. Independent
+for legacy cleanup or migration. Target-repository rules remain first. Worker and Reviewer keep minimal common selections. Their `skillPath` lists
+remain discovery candidates, and handoffs supply evidence-selected names or
+portable resolved references for fresh children. Independent
 installations record an unavailable companion and use bounded direct-parent
 target-repository TypeScript standards without claiming it loaded.
 
-`/code-review [target] [--comment] [--fix]` pins one local or pull-request diff.
-An Astra-high parent runs five parallel fresh read-only configured Reviewer lenses
-on GPT-6.1 Sol at medium effort. It joins their candidates, then one fresh
-configured Utility scorer on GPT-6.1 Sol at low effort applies the 0/25/50/75/100 confidence rubric. The
-parent validates and reports only findings scored at least 80. Lens and scorer
-children cannot write, run QA gates, or fan out. An independent Engineering
-install reports missing orchestration capabilities and uses a bounded integrated
-direct-parent review without silently substituting models or methods.
+`/code-review [target] [--deep] [--comment] [--fix]` pins one local or
+pull-request diff. The ordinary route is one integrated fresh fixed-diff review
+under available configured reviewer/parent contracts, without an Astra-only
+command stop. Only explicit `--deep` selects an Astra-high parent, five parallel
+fresh Sol-medium Reviewer lenses, and one fresh Sol-low Utility scorer. Both
+routes retain validated findings at confidence 80 or higher using the
+0/25/50/75/100 rubric. Children cannot write, run QA gates, or fan out. Independent
+installs report unavailable capabilities and honest bounded fallback evidence.
 
 By default, the result stays in Pi. `--comment` previews and authorizes one
 eligible, head-pinned GitHub `COMMENT` review with changed-line inline comments,
@@ -118,14 +119,21 @@ unavailable, the direct parent may implement and reports that fallback. Clear
 standalone work implements now. Coordinated clear work plans first. Uncertain,
 hard-to-reverse, or risky work Shapes then plans.
 
+Delivery starts with the primary user journey, observable result, and shortest
+runnable proof. Necessary supporting work follows that outcome, not speculative
+compatibility for unused greenfield code. Scope updates replace or defer earlier
+scope explicitly. One writer executes a serial delivery unit's named slices
+without per-slice handshakes. Routine in-scope diagnosis, repair, and safe recovery
+need no new permission. Single-unit work needs no forecast or topology ceremony.
+
 The private mapping is Worker = implementation writer capability; Researcher =
 factual research capability; Utility = mechanical support capability; QA = QA
 capability; Reviewer = review capability; and Git = Git delivery capability.
 Support returns evidence only. `/just-do-it`, one obvious trivial correction,
 and an unavailable-implementation-writer fallback are direct-parent exceptions.
 
-Shape and planning set up or verify an isolated linked task worktree before
-repository reads, discovery, research, or questions. Complete accepted plans
+Shape and planning permit read-only discovery in the initial checkout. They
+require an isolated linked task worktree before the first write. Complete accepted plans
 execute in dependency order. Independent read-only lanes need named disjoint
 evidence gaps plus a critical-path or parent-context benefit and are joined
 before decisions. Ordinary children do not fan out. Accepted `parallel-ready`
@@ -134,12 +142,12 @@ with one Worker and sole write ownership per worktree, non-overlapping ownership
 complete dependencies, and a named integration point. Otherwise, serialize
 them. A coherent delivery unit normally keeps its atomic commits in one branch
 and pull request; a stack needs independent value and check viability at each
-position. No lifecycle stage works in the main-branch checkout.
+position. No lifecycle stage writes in the main-branch checkout.
 
 Deterministic green commands do not select QA. QA and Reviewer are distinct and
 run concurrently only on one frozen boundary when both are selected; the parent
-joins their repair packet before the retained Worker repairs it without a
-replacement. Git delivery uses installed methods and is not an implementation
+joins their repair packet before the retained Worker repairs it when available. Replacement requires confirmed
+shutdown and current diff/evidence ownership transfer, never concurrent writers. Git delivery uses installed methods and is not an implementation
 substitute.
 
 For a direct bounded implementation request or accepted plan, `/implement`
@@ -208,10 +216,10 @@ subjective visual judgment, and unclear criteria return to the parent for
 assessment or an explicitly approved model override, not an automatic model
 change.
 
-Every child starts with fresh context and has no model fallback. Shape and
+Every initial child starts with fresh context and has no model fallback. Shape and
 planning remain the selected parent's responsibility for product and
 architecture judgment, approval, slice design, and synthesis. They may use at
-most one bounded Researcher handoff after worktree setup. Worker uses Sol high
+most one bounded Researcher handoff for a named evidence gap. Worker uses Sol high
 for every implementation task, with xhigh preapproved for difficult tasks. Other
 model or effort overrides require a justified `question` and explicit human
 approval; difficulty or a failed command never selects an unapproved escalation
@@ -311,11 +319,19 @@ npm run profile:doctor
 npm run profile:doctor -- examples/pi-1/settings.json examples/pi-1/subagent-config.json
 ```
 
-Two optional paths select settings and subagent configuration. Defaults honor
-`PI_CODING_AGENT_DIR`. JSON diagnostics include the file and JSON path. Errors
-exit with status 1; optional recommendations do not fail the check. The doctor
-checks configuration, not effective agent discovery, authentication, project
-overrides, or environment overrides. It never writes settings or credentials.
+Two optional paths select configuration files to inspect. Defaults honor
+`PI_CODING_AGENT_DIR`. On-disk effective role discovery uses the current directory
+and configured user/project sources from pinned pi-subagents, not those optional
+configuration examples. It reports stale role model/thinking and source shadowing
+with the actual source, file, model, effort, and remediation. A stale
+`~/.agents/worker.md` can shadow the packaged Worker. Rename or update that file
+intentionally, then reload or restart Pi. Non-conflicting additional user agents
+remain allowed. JSON diagnostics include the file and diagnostic path. Errors
+exit 1. Source-only shadowing is a recommendation. The doctor is read-only: it
+never rewrites user files or sets the parent model. It does not attest to
+authentication, launch-time overrides, model availability, or the already-running
+session's loaded resources. The private adapter uses pinned internal discovery
+code and must be checked when pi-subagents changes.
 
 We evaluated
 [`pi-subagents-lite`](https://github.com/AlexParamonov/pi-subagents-lite) for

@@ -60,8 +60,8 @@ tool allowlists.
 
 Deterministic green commands do not select QA. QA and Reviewer are distinct and
 run concurrently only on one frozen boundary when both are selected; the parent
-joins their repair packet before the retained Worker repairs it without a
-replacement. Git delivery uses installed methods and is not an implementation
+joins their repair packet before the retained Worker repairs it when available. Replacement requires confirmed
+shutdown and current diff/evidence ownership transfer, never concurrent writers. Git delivery uses installed methods and is not an implementation
 substitute.
 
 The private profile may use `AskClaude` only from a non-`claude-bridge` parent,
@@ -86,12 +86,10 @@ advice was not obtained.
 ## Start with repository truth
 
 Before any repository mutation, inspect the current branch, worktree, and dirty
-files. Read-only discovery may happen in the initial checkout except during
-Shape and planning: those workflows must make task-worktree setup their first
-action before repository reads, discovery, research, or questions. All writes,
-including pitches, plans, documentation, tests, code, generated metadata, and
-formatting, must happen in an isolated linked worktree on a non-main task
-branch. Never make changes in the main-branch checkout.
+files. Read-only discovery may happen in the initial checkout, including Shape
+and planning. All writes, including pitches, plans, documentation, tests, code,
+generated metadata, and formatting, require an isolated linked worktree on a
+non-main task branch. Never write in the main-branch checkout.
 
 If the session is already rooted in, or Pi is already routed to, the correct
 linked worktree, keep using it. Otherwise, use the Worktrunk tool to create or
@@ -167,18 +165,19 @@ concurrently on one frozen diff and return one joined repair packet. The bundled
 subagent orchestration skill is intentionally excluded. Pi reevaluates the root
 manifest during `/reload`.
 
-Shape and planning require one evidence-based fixed-document Go specification
-review before approving a Go-targeted pitch or plan. The trigger is proposed Go
-source, module, CLI, or Go-specific guidance or routing, not unrelated `go.mod`
-or toolchain evidence. The Reviewer's fixed-document specification mode is
-separate from its fixed-diff code-review mode; independently installed packages
-attempt named skill resolution and record an honest bounded direct-parent
-target-repository standards fallback when a companion is unavailable.
+Go-targeted work requires one substantive fixed-document specification review at
+the implementation-ready plan boundary. Review a pitch early only when
+consequential Go design decisions must be committed before planning. Do not
+repeat unchanged evidence. Go source, modules, CLIs, or Go-specific guidance and
+routing activate this rule, not unrelated toolchain evidence. Independent
+packages attempt installed-name resolution and report a bounded direct-parent
+target-repository standards fallback when companions are unavailable.
 
 Engineering direct-entry methods resolve installed `go` for Go source, modules,
 Go CLIs, and Go-specific work, resolving `cobra-viper` only for commands, flags,
 or CLI configuration; unrelated toolchain evidence alone does not activate them.
-Worker preloads both skills. Fixed-diff Go review follows target-repository
+Worker loads only evidence-selected methods from installed names or supplied
+portable skill references. Fixed-diff Go review follows target-repository
 instructions and module contracts, applicable installed Go and Cobra/Viper
 standards, then `code-review`'s `references/go.md`, and reports only practical
 non-tool-duplicate findings.
@@ -190,20 +189,22 @@ public types, dependency-type exposure, or compatibility promises;
 `typescript-testing` for TypeScript runtime, boundary, type-level, or asynchronous
 test work; `typescript-review` for fixed-diff review; and `typescript-modernize`
 for legacy cleanup or migration. Unrelated toolchain evidence alone does not
-activate a method. Worker preloads implementation methods and Reviewer preloads all
-five. Independent installation records an unavailable companion and uses bounded
+activate a method. Worker and Reviewer select only methods supported by task evidence. Their
+common skill selections are small. Agent-local `skillPath` keeps candidates
+available without adding them to the default catalog. Selected skills expose
+metadata and paths, not full instructions. Read `SKILL.md` on demand. Handoffs
+supply selected portable paths. Independent installation records an unavailable companion and uses bounded
 direct-parent target-repository TypeScript standards without claiming it loaded.
 
-`/code-review [target] [--comment] [--fix]` replaces the old review prompt. The
-default route requires an Astra-high parent. The parent pins one diff and runs
-five fresh read-only configured Reviewer lenses in parallel on GPT-6.1 Sol
-at medium effort. It joins and deduplicates candidates, then sends them to one
-fresh configured Utility scorer on GPT-6.1 Sol at low effort. The scorer uses the
-0/25/50/75/100 rubric. Astra validates the evidence and reports only findings at
-80 or higher. Lens and scorer children cannot fan out, write, or run QA gates.
-An omitted or `fixed-diff code` Reviewer mode remains one full integrated
-Pitch-and-plan plus Standards review. Only an explicit `fixed-diff lens` handoff
-uses one named lens.
+`/code-review [target] [--deep] [--comment] [--fix]` uses one integrated
+fixed-diff review by default. Ordinary review honors available configured
+reviewer and parent contracts, without an Astra-only command stop. Risk selects
+review, not automatic deep orchestration. Only explicit `--deep` requires the
+Astra-high parent, five fresh read-only Sol-medium Reviewer lenses, and one
+fresh Sol-low Utility scorer. The 0/25/50/75/100 rubric and parent validation
+retain only findings at confidence 80 or higher. Children cannot fan out, write,
+or run QA gates. Omitted or `fixed-diff code` mode is integrated. Only explicit
+`fixed-diff lens` mode uses a named lens.
 
 The default result stays in Pi. `--comment` authorizes one previewed GitHub
 mutation for an eligible open pull request after a final unchanged-head check.
@@ -271,6 +272,38 @@ The generic source smoke proves loadability and lifecycle safety in a fresh Pi
 process; the manual `/reload` loop is the acceptance proof that the active
 development session picked up the edited worktree. Never commit Pi sessions,
 package caches, trust state, or other runtime artifacts.
+
+## Outcome and delivery boundaries
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
+
+Delegate a coherent serial delivery unit to one writer with named internal
+slices and progress/evidence, not a mandatory return/resume handshake per slice.
+Accept the whole outcome, boundaries, and dependencies up front. Detail the next
+executable behavior as evidence warrants. One-unit work needs no forecast or
+topology ceremony. The parent owns final evidence, review, and publication.
+
+Accepted delivery intent authorizes routine in-scope diagnosis, test/check
+repair, review repair, and safe writer recovery. Prefer the retained writer.
+If continuation fails, inspect the latest child state and preserve the current
+diff, failed command, evidence, and next action. Resume only a confirmed resumable
+run. A replacement is allowed after the old writer is definitively stopped and
+current diff/evidence ownership is transferred. Never run concurrent writers in
+one worktree. If shutdown cannot be confirmed, report that blocker rather than
+guess or launch another writer. A timeout alone is not a new permission gate.
+Stop for a real scope, architecture, dependency-boundary, or authority change,
+repeated failure without new evidence or measurable progress, or a destructive,
+spending, credential, or unsafe publication decision. Do not retry an unchanged
+failed command without diagnosis and new evidence.
+
+Use absolute routed paths when tool context is uncertain. Refresh Hashline
+anchors after edits or stale-tag failures. Preserve owned-browser cleanup.
+These instructions do not repair upstream runtime timeout or resume defects.
 
 ## Feature workflow
 

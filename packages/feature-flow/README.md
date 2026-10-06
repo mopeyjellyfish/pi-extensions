@@ -4,7 +4,7 @@
 and compact pitch and plan templates. It has no runtime dependency.
 
 ```text
-feature brief -> isolated task worktree -> accepted pitch -> complete delivery plan -> implement
+feature brief -> read-only discovery -> isolated writes -> accepted pitch -> delivery plan -> implement
 ```
 
 With no command arguments, `/shape` and `/plan` reuse unambiguous intent from the
@@ -26,8 +26,9 @@ publication authority. If `planning-changes` is unavailable, return the accepted
 pitch and self-contained evidence handoff and name the unmet capability without
 claiming the transition ran.
 
-The direct parent creates or selects an isolated linked worktree before Shape or
-planning discovery. The same worktree continues through planning and serial
+The direct parent can inspect read-only evidence in the initial checkout. It
+creates or selects an isolated linked worktree before the first Shape or planning
+write, including documents and generated artifacts. The same worktree continues through planning and serial
 implementation. Parallel work requires a separate worktree, a sole writer, and
 non-overlapping ownership. The skills stop rather than use the main checkout or
 unsafe worktree tooling.
@@ -80,16 +81,21 @@ Mechanical edits remain direct. Named capability resolution uses an honest
 direct-parent fallback, so the package stays independently installable, makes no
 unauthorized request, and records unmet evidence rather than blocking Shape.
 
-For a Go-targeted pitch or plan—Go source, module, CLI, or Go-specific guidance
-or routing—the parent resolves installed `go` guidance and `cobra-viper` only
-for CLI scope, then requires one fixed-document Go specification review before
-approval. An unrelated `go.mod` or toolchain gate is not Go-targeted. That pass
-uses the one independent-review budget, while other standards stay inline;
-material solution, boundary, authority, or acceptance-criterion changes replace
-its evidence. Templates always record Review evidence and use `not applicable`
-for non-Go documents. Independent installations attempt named resolution; if a
-companion is absent, the parent records the unmet method and completes a bounded
-target-repository Go standards review without claiming it loaded.
+Go-targeted work needs one substantive specification review at the
+implementation-ready plan boundary. Review a pitch early only when consequential
+Go decisions must be committed before planning. Do not repeat unchanged evidence.
+Go source, modules, CLIs, and Go-specific guidance/routing activate this rule, not
+unrelated toolchain evidence. Resolve installed `go` and CLI-applicable
+`cobra-viper`. Independent installs record unavailable companions and bounded
+standards fallback honestly. Review evidence records a deferred pitch pass when
+appropriate.
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
 
 Planning identifies vertical slices first. A vertical slice is one end-to-end
 behavior with a narrow deterministic red/green proof. It then groups dependent
@@ -107,18 +113,23 @@ separate worktrees, sole writers, non-overlapping ownership, and named integrati
 points.
 Plans record common or adjacent bases, checks, ownership, CI fan-out, and cascade
 cost. Multiple slices or commits inside one delivery unit do not select another
-branch or pull request. Plans forecast the critical path, lanes, integration,
-expensive gates, and coordination cost; they predeclare evidence invalidation and
-pause to report material forecast variance.
+branch or pull request. Only multi-unit plans need a critical-path/coordination
+forecast. Single-unit plans accept the whole outcome, boundaries, and dependencies
+without topology ceremony, and detail the next behavior as evidence warrants.
+Report variance. Seek fresh approval only for a real changed decision boundary.
 
 Each slice has a stable ID, descriptive title, outcome, and focused proof for
 execution handoffs. Final verification, review, and authorized publication stay
 named separately. The accepted plan owns intent. The execution parent mirrors
-its slices in available progress tracking and verifies each delegated return
-before continuing the same retained writer in the same serial unit and worktree.
-Unavailable continuation pauses for explicit recovery authority, not an
-automatic replacement. Planning does not require Todo or add publication
-boundaries for slice handoffs.
+its slices in available progress tracking and verifies evidence before closing
+progress. Delegate a coherent serial unit to one writer with named internal
+slices and progress/evidence, not a return/resume handshake per slice. Accepted
+intent authorizes routine in-scope diagnosis, check/review repair, and safe writer
+recovery. Prefer the retained writer. Replacement requires confirmed shutdown
+and diff/evidence ownership transfer, never concurrent writers. Report uncertain
+shutdown as a blocker. Human stops remain for scope, architecture, authority,
+no-progress, destructive, spending, credential, or unsafe publication decisions.
+Planning does not require Todo or add publication boundaries per slice.
 
 Explicit acceptance bundles bounded commit and later publication authority. An
 accepted pitch uses `commit` before planning, and an accepted plan uses `commit`

@@ -10,20 +10,16 @@ description: >-
 The selected parent is the direct parent and default executor. It owns product
 and architecture judgment, pitch synthesis, approval, and verification.
 
-After receiving a feature brief, make the first action creating or selecting an
-isolated linked worktree before discovery, research, repository reads, or
-shaping questions. Inspect only the Git and worktree state needed to route the
-task. Continue when already in the task worktree; otherwise use the available
-worktree lifecycle tool. If no safe tool is available, stop before any other
-Shape work and ask the human to provide an isolated worktree. Never work in the
-main-branch checkout. Keep the same worktree through planning and serial
-implementation; parallel writers need separate worktrees.
+Read-only discovery can start in the initial checkout. Before the first write,
+including a pitch or generated artifact, select or create an isolated linked
+worktree. Reuse it through planning and serial implementation. Never write in
+the main checkout. If safe worktree tooling is unavailable, stop before writing
+and ask for an isolated worktree. Parallel writers need separate worktrees.
 
 ## Receive upstream improvement-review evidence
 
 A feature brief can be a self-contained handoff from architecture improvement
-review, accepted UI review, or focused critique or audit. After worktree setup,
-read that handoff as evidence, not as pitch or plan approval. Preserve the user's
+review, accepted UI review, or focused critique or audit. Read that handoff as evidence, not as pitch or plan approval. Preserve the user's
 chosen candidate set and stable IDs, scope, reviewed evidence, constraints,
 applicable methods, dependencies, overlap, integration points, uncertainty,
 recommended routes and reasons, and proof needs. For UI work, also preserve the
@@ -42,12 +38,18 @@ workflow or publication authority.
 
 ## Decide enough to pitch
 
-Read repository instructions and the nearest relevant sources after worktree
-setup. Use the `question` tool only for a human decision; otherwise inspect the
+Read repository instructions and the nearest relevant sources. Use the `question` tool only for a human decision; otherwise inspect the
 repository. Resolve the problem and evidence, smallest outcome, boundaries and
 no-gos, material risks, authority, and observable acceptance criteria. Do not
 restate repository truth. Keep only decision-changing research; omit empty or
 non-decision research.
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
 
 For material user interface scope, load and follow `frontend-design` before pitch
 approval when that installed capability is available. Supply accepted upstream
@@ -125,32 +127,44 @@ Treat a pitch as Go-targeted only when its proposed outcome changes Go source, a
 Go module, a Go CLI, or Go-specific guidance or routing for future Go work. An
 unrelated `go.mod` or toolchain gate alone is not Go-targeted. For a Go-targeted
 pitch, resolve the installed `go` skill by name and resolve `cobra-viper` only
-when CLI scope applies. Before approval, require one `go-spec-reviewer` pass
-with `Review mode: fixed-document Go specification`, the fixed pitch path, and
+when CLI scope applies. Require an early pitch `go-spec-reviewer` pass only
+when consequential Go design decisions must be committed before planning.
+Otherwise defer the substantive review to the implementation-ready plan. An
+early pass uses `Review mode: fixed-document Go specification`, the fixed pitch path, and
 the caller-resolved `go` and applicable `cobra-viper` references; those caller
 references supersede illustrative skill paths. The pass reviews a guidance-only
 pitch only for Go routing-contract accuracy, consistency, applicability, and
 implementation readiness; skip absent code, package, concurrency, and CLI
 design checks.
 
-This mandatory pass consumes the one independent-review budget; the parent
+When needed, this early pass consumes the one independent-review budget. The parent
 keeps other standards inline. Resolve blocking issues and material questions
 before the approval question. Record applicability, fixed document, status, and
 invalidation in the template's unconditional `Review evidence`; record `not
-applicable` for non-Go pitches. A proposed-solution, boundary, authority, or
+applicable` for non-Go pitches and `deferred to implementation-ready plan`
+when no consequential Go decision needs early commitment. A proposed-solution, boundary, authority, or
 acceptance-criterion change invalidates the pass and requires one replacement;
 wording-only edits do not. The parent owns that classification. If Independent
 review is selected without a document change, show the existing evidence rather
 than running another pass.
 
-For independent installation, attempt installed skill resolution by name. If a
-companion skill is unavailable, record the unmet method and complete a bounded
-direct-parent review against target-repository Go standards before approval;
-do not claim that the skill loaded or block only for its absence.
+For independent installation, attempt installed skill resolution by name. If an early pass is needed and a companion skill is unavailable, record the
+unmet method and complete a bounded direct-parent review against target-repository
+Go standards before approval.
+Do not claim that the skill loaded or block only for its absence.
+
+## In-scope continuation
+
+Accepted intent authorizes routine diagnosis and bounded check/review repairs,
+not another approval for each failure. Stop for scope, architecture, authority,
+no-progress, destructive, spending, credential, or unsafe publication decisions.
+Prefer a retained writer. A replacement requires confirmed shutdown and transfer
+of the current diff and evidence, never concurrent writers. Report uncertain
+shutdown as a blocker. Read-only discovery does not require worktree setup.
 
 ## Bounded support
 
-After worktree setup, use a factual research capability only for one named
+Use a factual research capability only for one named
 repository or primary-source evidence gap. Use a mechanical support capability
 only for one named bounded inventory or transformation evidence gap when no
 specialist capability owns it. A QA capability may provide test-surface evidence,
