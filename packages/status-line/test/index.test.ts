@@ -292,6 +292,103 @@ function expectNoTruncatedScrollBorders(component: EditorComponent | undefined):
 }
 
 describe("pi-status-line extension", () => {
+  it("prefers hierarchical Todo summaries and the deepest local progress", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    await emitLifecycle(harness, "session_start", ctx);
+    harness.footerFactory?.(
+      { requestRender: harness.renders },
+      testTheme,
+      footerData(new Map([["mopeyjellyfish-pi-todo", "standalone todo"]])),
+    );
+    const component = editor(harness);
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v1", {
+      version: 1,
+      closed: 0,
+      total: 1,
+      current: { status: "pending", text: "Legacy title" },
+    });
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v2", {
+      version: 2,
+      rootProgress: { completed: 0, cancelled: 0, total: 1 },
+      currentPath: [
+        {
+          title: "Delivery",
+          displayStatus: "in_progress",
+          childProgress: { completed: 3, cancelled: 0, total: 7 },
+        },
+        {
+          title: "Slice 4",
+          displayStatus: "in_progress",
+          childProgress: { completed: 1, cancelled: 1, total: 3 },
+        },
+        { title: "Implement replay", displayStatus: "in_progress" },
+      ],
+    });
+    const rendered = component?.render(240)[0];
+    expect(rendered).toContain(" 2/3 (1 cancelled) · Implement replay · Slice 4");
+    expect(rendered).not.toContain("Legacy title");
+    expect(rendered).not.toContain("standalone todo");
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v1", {
+      version: 1,
+      closed: 0,
+      total: 1,
+      current: { status: "pending", text: "Later legacy title" },
+    });
+    expect(component?.render(240)[0]).toContain("Implement replay · Slice 4");
+    for (const malformed of [
+      { version: 2, rootProgress: { completed: 1, cancelled: 1, total: 1 } },
+      { version: 2, rootProgress: { completed: 0, cancelled: 0, total: 1 } },
+      {
+        version: 2,
+        rootProgress: { completed: 0, cancelled: 0, total: 1 },
+        currentPath: [{ title: "Wrong", displayStatus: "unknown" }],
+      },
+      {
+        version: 2,
+        rootProgress: { completed: 0, cancelled: 0, total: 1 },
+        currentPath: Array.from({ length: 4 }, () => ({
+          title: "Too deep",
+          displayStatus: "pending",
+        })),
+      },
+      {
+        version: 2,
+        rootProgress: { completed: 0, cancelled: 0, total: 1 },
+        currentPath: [
+          {
+            title: "Bad counts",
+            displayStatus: "pending",
+            childProgress: { completed: -1, cancelled: 0, total: 1 },
+          },
+        ],
+      },
+    ]) {
+      emitBus(harness, "mopeyjellyfish:pi-todo:summary:v2", malformed);
+      expect(component?.render(240)[0]).toContain("Implement replay · Slice 4");
+    }
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v2", undefined);
+    expect(component?.render(240)[0]).toContain("Later legacy title");
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v2", {
+      version: 2,
+      rootProgress: { completed: 1, cancelled: 1, total: 2 },
+    });
+    expect(component?.render(240)[0]).toContain(" 2/2 (1 cancelled) · all closed");
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v1", undefined);
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v2", undefined);
+    expect(component?.render(240)[0]).toContain("standalone todo");
+    await emitLifecycle(harness, "session_shutdown", ctx);
+    expect(harness.bus.get("mopeyjellyfish:pi-todo:summary:v1")?.size).toBe(0);
+    expect(harness.bus.get("mopeyjellyfish:pi-todo:summary:v2")?.size).toBe(0);
+    emitBus(harness, "mopeyjellyfish:pi-todo:summary:v2", {
+      version: 2,
+      rootProgress: { completed: 0, cancelled: 0, total: 1 },
+      currentPath: [{ title: "Stale", displayStatus: "pending" }],
+    });
+    expect(component?.render(240)[0]).not.toContain("Stale");
+  });
+
   it("renders one integrated prompt and restores the previous editor", async () => {
     expect.hasAssertions();
     const harness = createHarness();
