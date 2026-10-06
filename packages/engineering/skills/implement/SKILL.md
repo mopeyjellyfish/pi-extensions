@@ -85,10 +85,50 @@ evidence only. The parent owns routing, synthesis, product and architecture
 decisions, approval, final diff inspection, verification, and publication
 decisions. Ordinary children must not fan out or make those decisions.
 
+## Track named slices in the parent session
+
+Before execution, the parent creates delivery → slice → step in an available
+hierarchical tracker. Name every accepted slice under its delivery root and add
+concrete steps for the active slice. Expand future steps when known. Name final
+verification, review, and authorized publication as separate work. Do not hide
+multiple slices behind one vague “deliver all slices” leaf. The accepted plan
+remains authoritative for intent, dependencies, and delivery boundaries.
+Tracking is session progress, not a second plan or a repository artifact.
+Preserve unrelated tracking trees.
+
+If the tracker supports only flat items, use delivery and slice names in each
+step title. If no tracker is available, show the named slice and active step in
+text before work or a handoff. Report the visibility limit. Independent installs
+must not assume Todo, private profiles, or shared child-session tracking.
+
+Before launching a delegated slice, the parent activates its named delegated
+step, such as “Implement and verify slice 004”. This label does not claim live
+knowledge of child edits or tests. Give the writer only that slice's outcome,
+allowed paths, focused proof, and stop conditions. Require a return after the
+slice, with its exact identity and evidence. The parent inspects the diff and
+focused proof before closing verified steps and explicitly closing the slice.
+Child success alone does not prove completion.
+
+For the next accepted slice in the same serial delivery unit, resume the same
+retained writer in the same worktree. Before each continuation, verify that the
+host reports the latest run as resumable. Update the named active step before
+resuming. Planned slice continuation is not defect repair and does not consume
+repair allowances. It does not add a branch, review boundary, or pull request.
+All existing authority, repair limits, and pause conditions still apply.
+If supported continuation is unavailable, report the limit and pause for
+explicit recovery authority. Do not launch a replacement writer or silently
+combine the remaining slices.
+
+Reconcile tracking after results, repairs, scope changes, and resume. Complete
+steps only with verified evidence. Complete groups explicitly after descendants
+close and their outcome is verified. Keep paused and future work open.
+Before final completion, reconcile only finished work within current authority.
+Never cancel unfinished work to end a turn or close future checkpointed units.
+
 When the configured `worker` capability is available, it is the only configured
-implementation child. Launch one fresh foreground `worker` for one worker
-attempt on standard work, plan-less bounded requests, confirmed bugs, and
-accepted hard work. When Pi's `subagent` tool supplies the capability, send this
+implementation child. Launch one fresh foreground `worker` for the initial named
+slice or bounded single-slice request. Later slices use retained continuation,
+not fresh launches. When Pi's `subagent` tool supplies the capability, send this
 argument object directly rather than putting it in `workflowScript`:
 
 ```text
@@ -100,7 +140,8 @@ async: false
 
 For a planned ready parallel lane set, start one fixed-role Worker per independent
 delivery unit concurrently. Give each Worker its exact isolated worktree as
-`cwd`, one bounded task, and non-overlapping ownership. Never give two active
+`cwd`, its first named slice, and non-overlapping ownership. Use the same tracking
+and retained-continuation contract within each lane. Never give two active
 writers the same worktree. If the host cannot keep those worktrees and writers
 separate, serialize execution without changing the accepted pull-request
 topology.
@@ -139,7 +180,10 @@ companions. These fields carry existing limits and do not grant the writer
 publication authority.
 
 Give exact pitch and plan paths, complete bounded request, later user decisions,
-slice, worktree, setup, and focused checks in those fields. Calibrate business
+worktree, setup, and focused checks in those fields. `Goal` names the delivery
+unit, exact slice ID/title, and observable outcome. `Output` requires that same
+identity, focused red/green evidence or an explicit test exception, and a return
+after this slice. Calibrate business
 fit to business impact, plausible failure cost, expected lifetime and scale,
 reversibility, and repository conventions. Balance delivery speed, reliability,
 maintainability, and operational risk. Choose the smallest solution robust for
@@ -275,7 +319,8 @@ is a late diagnostic: rerun it only after relevant production or test changes,
 and never create separate workers per file or failure group.
 
 Before selected assurance, require a frozen diff, clean diff check, focused
-proof, the exact command definitions, no known task TODOs, and no active writer.
+proof, the exact command definitions, no known implementation defects or unfinished
+slice work, and no active writer. Final gates stay open in tracking until verified.
 Required completion gates and formal review may run concurrently because both
 are read-only; publication waits for their joined result. The parent inspects
 the final diff for scope, package, release, dependency, and artifact hygiene,
@@ -339,7 +384,7 @@ workflow above; do not wait for QA to finish before starting review. If the
 reviewer is unavailable, the direct parent loads and follows `code-review`.
 
 Return material findings in the joined prioritized packet. After approval to
-repair, permit one review repair resume of the same retained Worker; if it is not
+repair, permit one review repair resume of the same retained Worker. If it is not
 resumable, the parent owns the repair directly rather than launching a
 replacement. The writer reruns focused invalidated evidence, then the parent or
 selected QA runs the invalidated required gates. The parent verifies repaired
