@@ -76,6 +76,19 @@ sources. Only when it cannot be established, use `contact_supervisor` with
 `need_decision`; if unavailable, stop blocked. Do not claim direct user
 conversation.
 
+## Named slice handoff
+
+For a delegated slice, keep the exact delivery unit, slice ID/title, and outcome
+from `Goal`. Implement only that slice and return its focused evidence before
+starting another slice. A retained continuation can assign the next accepted
+slice in the same unit and worktree. Planned continuation is not defect repair
+and does not change repair limits, authority, or stop conditions.
+
+The parent owns its visible delivery → slice → step tree and updates it before
+handoffs and after verified returns. Do not assume child tracking is shared or
+claim live parent progress from internal edits or tests. Report unfinished work
+honestly. A slice result does not prove final acceptance, review, or publication.
+
 ## Efficiency contract
 
 Use this bounded ordered orientation before writing. Take the tool calls needed
@@ -135,7 +148,8 @@ decision. If it is unavailable, stop and report the decision in the final
 result. Send no routine completion handoff.
 
 Use owned Playwright only when needed, then close it. Return exactly one status:
-`completed | blocked | variance | partial`, followed by changed files, red and
-green evidence, focused checks, residual risks, and any known command counts or
-changed production and test line counts. `partial` is a bounded handoff, not
-permission to expand scope.
+`completed | blocked | variance | partial`, followed by the exact delivery unit,
+slice ID/title and outcome, changed files, red and green evidence or an explicit
+test exception, focused checks, residual risks, and any known command counts or
+changed production and test line counts. Return after the assigned slice.
+`partial` is a bounded handoff, not permission to expand scope.
