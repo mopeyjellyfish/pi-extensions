@@ -126,6 +126,18 @@ and a sole writer for every parallel lane. Reject overlapping parallel writers,
 shared mutable boundaries, and unresolved dependencies; serialize them instead.
 Planning defines but does not start parallel work.
 
+Give every slice a stable ID and descriptive title for execution handoffs.
+Carry its delivery unit, exact identity, observable outcome, focused proof, and
+done conditions into `implement`. Keep final verification, review, and authorized
+publication named separately. The accepted plan remains the intent authority.
+The execution parent mirrors named slices in available delivery → slice → step
+tracking, activates a concrete step before work or delegation, and verifies each
+return before updating progress. Serial delegated slices return between handoffs
+and continue the same retained writer and worktree. If supported continuation is
+unavailable, execution pauses for explicit recovery authority. Do not plan an
+automatic replacement writer or a new branch or pull request for each slice.
+Planning does not require Todo or start execution tracking.
+
 When the accepted pitch contains material UI scope, trace its accepted interface
 criteria and any selected evidence or image-to-interface contract into vertical
 slices. Each relevant interface slice names `frontend-development`, the accepted
