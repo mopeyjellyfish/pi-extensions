@@ -262,7 +262,7 @@ only opens the report and stops automatic triage.
 
 The accepted depths are `low`, `medium`, `high`, and `max`. Scope can name a
 module, package, vertical feature slice, architecture pattern, test surface,
-pain point, or history area. Low keeps independent reversible quick wins. One
+pain point, or history area. Low keeps independent reversible quick wins. For Action, one
 clear candidate routes to `implement`; independent or coordinated groups route
 to `planning-changes`; unresolved or risky work routes to Shape then planning.
 
@@ -277,7 +277,7 @@ readable without them. Mermaid is reserved for graph-shaped evidence. HTML,
 CSS, and inline SVG show architecture-specific module Depth, mass, and
 cross-sections.
 
-The report is a reading surface, not an authority surface. Action, Track, Won't
+The report is a reading surface, not an authority surface. Action, Shape, Track, Won't
 do, Deepen, and custom decisions occur in the terminal. A later request can
 resume by candidate ID. Track queues a complete draft only. One exact displayed
 draft set needs a separate batch confirmation before remote creation. Action
@@ -286,14 +286,26 @@ fallback stays in the current session. Parallel writers require independent
 isolated worktrees.
 
 When two or more `/improve` candidates await a decision, terminal triage offers
-**Action all**, **Track all**, **Select candidates**, then **Review individually**.
+**Action all**, **Shape all**, **Track all**, **Select candidates**, then **Review individually**.
 All applies only to awaiting candidates in the active report or named subset.
 Select candidates uses one count-unbounded Question multi-select with stable IDs,
 titles, and routes; cancellation, an empty selection, unavailable Question, or an
 aggregate rejection makes no decision or report revision and falls back to
 individual or conversational stable-ID triage. A selected group offers **Action
-selected**, **Track selected**, **Won't do selected**, then **Review selected
+selected**, **Shape selected**, **Track selected**, **Won't do selected**, then **Review selected
 individually**. Deepen remains an individual choice.
+
+Explicit Shape chooses the pitch lifecycle for one candidate, a selected subset,
+or all awaiting candidates, even when Action recommends a faster route. One
+self-contained handoff preserves stable IDs, the chosen set, scope, reviewed
+evidence, constraints, applicable methods, dependencies, overlap, integration
+points, uncertainty, route reasons, and proof needs. It does not rely on the
+temporary report path or start a writer. Shape seeks pitch approval, then hands
+accepted intent to planning for separate complete-plan approval. If `shape` or
+`planning-changes` is unavailable, return the handoff and any accepted pitch,
+name the unmet capability, and do not claim the transition ran. When Question is
+unavailable, the same choices use conversational stable-ID triage. Fixed-diff
+`/code-review` stays defect-focused and outside this improvement-discovery handoff.
 
 Grouped Action records dependencies, overlap, integration points, uncertainty,
 and route reasons in one handoff; bulk Action never starts a writer or proves
