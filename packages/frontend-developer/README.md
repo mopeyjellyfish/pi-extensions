@@ -21,13 +21,28 @@ decisions without copying products or treating popularity as usability proof.
 The prompt composes read-only `interface-craft` critique/audit,
 `frontend-design`, material `interface-design`, `visual-validation`, and applicable
 React specialists. It presents original image-backed directions through a verified
-`design_board`, obtains explicit human selection and notes, then returns prioritized
-implementation slices with acceptance criteria and validation targets. Missing
+`design_board`, obtains explicit human selection and notes, then offers a terminal
+**Shape and plan** or **Plan directly** choice. Shape seeks pitch approval before
+planning. Direct planning preserves the route for already-settled intent. Planning
+owns the complete delivery plan and its separate approval. Neither visual selection
+nor route choice authorizes implementation. Missing
 optional capabilities remain unmet proof. Without inspectable images or a verified
 board, the visual gate remains incomplete. No app implementation or `DESIGN.md`
 rewrite is authorized. `/design` routes explicit research-only requests to
 `interface-research` and research-and-plan requests to `/improve-ui`. Ordinary
-focused improvements still use `interface-craft`.
+focused improvements still use `interface-craft`. Critique and audit remain
+read-only and offer the same delivery choice only when follow-on delivery is
+requested.
+
+Both routes carry a self-contained handoff: selected direction or improvements,
+inspected image evidence, user notes, current-state and research evidence,
+constraints, accessibility and responsive requirements, unmet proof, and operation
+context. Shape preserves accepted visual selection rather than repeating it.
+If `shape` or `planning-changes` is unavailable, return that handoff and any
+accepted pitch, name the unmet capability, and do not claim the transition ran.
+When `question` is unavailable, ask in conversation. Browser and design-board
+controls never authorize Shape, planning, implementation, tracker mutation, or
+publication.
 
 `/generate-image` is a separate explicit command because it can expose input
 to a provider, consume subscription quota, require credentials, and needs

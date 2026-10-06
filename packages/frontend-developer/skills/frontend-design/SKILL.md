@@ -16,12 +16,15 @@ take precedence over DESIGN.md. Its absence does not block work.
   For current-app inspection, research, a visual choice, and an improvement plan,
   follow [`/improve-ui`](../../prompts/improve-ui.md). Classify impact here,
   then return to that workflow without implementation or another routing loop.
+  After explicit visual selection, it offers **Shape and plan** or **Plan
+  directly**. Preserve the selected evidence through either route.
 - For a bounded mechanical visual edit, make the direct repository-conforming
   change and run its relevant check. Do not add a design ceremony.
 - For a focused request to evaluate, refine, enhance, fix, extract, or iterate
   on product UI, load `interface-craft` and select one operation. Route design
   documentation to `design-documentation`. Audits and critiques remain
-  evaluation-only unless a follow-on is requested.
+  evaluation-only. When follow-on delivery is requested, use interface-craft's
+  explicit **Shape and plan** or **Plan directly** choice.
 - For a greenfield web application or materially new application surface, load
   `interface-design` before implementation. When an installed `image-generation`
   capability, explicit consent, and credentials permit it, use one bounded,

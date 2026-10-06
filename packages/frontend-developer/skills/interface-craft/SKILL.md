@@ -53,3 +53,32 @@ Every operation states observed evidence, requested scope, unmet proof, and a
 completion result. Use only target-owned commands and already installed browser,
 board, and image capabilities. Do not add runtime helpers, hidden state, or
 command ownership to supply unavailable machinery.
+
+## Deliver requested critique or audit improvements
+
+Critique and audit stay read-only. Report evidence and proposed follow-on
+operations without starting delivery. Only when the user requests delivery of
+those improvements, confirm the chosen scope and offer **Shape and plan** or
+**Plan directly** through terminal `question`. If unavailable, ask in
+conversation and state the limitation. Silence or cancellation starts neither
+route. Within `/improve-ui`, return evidence to that workflow's visual selection
+and delivery choice instead of asking a second delivery question here.
+
+Create a self-contained handoff with the selected improvements and operation
+context, observed current-state and research evidence, constraints, accessibility
+and responsive requirements, and unmet proof. Include any accepted direction,
+inspected image evidence, and user notes. Preserve settled visual decisions. If
+material visual direction remains unresolved, record the gap for the chosen
+workflow rather than claim selection.
+
+- **Shape and plan** resolves installed `shape` and passes the handoff as input,
+  not approval. Shape seeks pitch approval, then invokes `planning-changes`.
+- **Plan directly** resolves installed `planning-changes` and passes the same
+  evidence for already-settled intent. Planning seeks complete-plan approval.
+
+Neither choice authorizes implementation. Browser and design-board controls
+never authorize Shape, planning, implementation, tracker mutation, or publication.
+If the chosen companion is unavailable, return the complete handoff and name the
+unmet `shape` or `planning-changes` capability. Do not substitute another route
+or claim it ran. If planning is unavailable after pitch approval, include the
+accepted pitch in the handoff.
