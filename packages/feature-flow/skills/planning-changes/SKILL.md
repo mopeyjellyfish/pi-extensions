@@ -9,14 +9,12 @@ description: >-
 
 Accept explicit accepted intent or an accepted Shape pitch. The selected parent
 owns product and architecture judgment, slice design, approval, synthesis, and
-verification. Make the first action selecting or creating an isolated linked
-worktree. Do not read instructions, contracts, tests, or planning context before
-the task has that worktree. Reuse the Shape worktree or create one with the
-available lifecycle tool. If no safe tool is available, stop before any other
-planning work and ask the human to provide an isolated worktree. Never use the
-main-branch checkout.
-
-After routing, read the relevant instructions, public contracts, and tests.
+verification. Read-only discovery may start in the initial checkout. Before the
+first write, including a plan or generated artifact, reuse the Shape worktree
+or create an isolated linked worktree with safe lifecycle tooling. Never write
+in the main checkout. If that tooling is unavailable, stop before writing and
+ask for an isolated worktree. Read relevant instructions, public contracts,
+and tests before choosing the plan.
 For accepted intent without a pitch, use checkpointed implementation unless the
 human explicitly selected accept-all. Create or update
 `docs/features/<slug>/plan.md` from `../shape/templates/plan.md` with
@@ -25,7 +23,7 @@ location.
 
 ## Optional planning adviser
 
-After worktree setup, use one optional read-only adviser capability at most when
+Use one optional read-only adviser capability at most when
 it adds useful planning evidence and source disclosure is permitted. That
 capability may receive at most one planning-perspective question and, when the
 independent-review budget permits, one distinct rigorous-challenge question. It
@@ -44,16 +42,20 @@ advice was not obtained, and do not claim that the capability ran.
 Treat a plan as Go-targeted only when its proposed outcome changes Go source, a
 Go module, a Go CLI, or Go-specific guidance or routing for future Go work. An
 unrelated `go.mod` or toolchain gate alone is not Go-targeted. For a Go-targeted
-plan, resolve the installed `go` skill by name and resolve `cobra-viper` only
-when CLI scope applies. Before approval, require one `go-spec-reviewer` pass
-with `Review mode: fixed-document Go specification`, the fixed plan path, and
+implementation-ready plan, resolve the installed `go` skill by name and resolve `cobra-viper` only
+when CLI scope applies. Before approval, require review evidence covering the
+implementation-ready Go contracts. For new or changed decisions, use one
+`go-spec-reviewer` pass with `Review mode: fixed-document Go specification`, the fixed plan path, and
 the caller-resolved `go` and applicable `cobra-viper` references; those caller
 references supersede illustrative skill paths. The pass reviews a guidance-only
 plan only for Go routing-contract accuracy, consistency, applicability, and
 implementation readiness; skip absent code, package, concurrency, and CLI
 design checks.
 
-This mandatory pass consumes the one independent-review budget; the parent
+Do not repeat unchanged pitch review evidence. Reuse an early Go pass for the
+contracts it covers, and review only material new implementation-ready decisions.
+One substantive Go specification review is required at this boundary, not an
+unconditional pitch-plus-plan pair. This pass consumes the independent-review budget; the parent
 keeps other standards inline. Resolve blocking issues and material questions
 before the approval question. Record applicability, fixed document, status, and
 invalidation in the template's unconditional `Review evidence`; record `not
@@ -70,12 +72,21 @@ do not claim that the skill loaded or block only for its absence.
 
 ## Plan complete delivery
 
-Write one complete delivery plan before implementation begins. Cover all
-accepted scope, not only the first slice. Do not alternate plan / work / plan /
-work. Identify vertical slices first: each is an observable end-to-end behavior
-with a narrow deterministic red/green signal. Group dependent slices into the
-fewest coherent delivery units. A delivery unit is one review, validation, and
-publication boundary; atomic commits remain coherent-change boundaries within it.
+Accept the whole outcome, boundaries, and dependencies before implementation.
+Name internal slices and their observable results. Detail the next executable
+behavior as evidence warrants, without expanding scope. A single-unit plan needs
+no forecast or topology ceremony. For multiple delivery units, record the whole
+scope and dependency order up front so local detail does not change delivery
+boundaries. Identify vertical slices as observable end-to-end behaviors with
+focused red/green proof, and group dependent slices into the fewest coherent
+review, validation, and publication boundaries.
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
 
 One delivery unit, one branch, and one standalone pull request is the default.
 Planning documents share the implementation delivery unit's publication unless
@@ -99,26 +110,26 @@ before plan approval. Multiple slices or commits inside one delivery unit do not
 create branches, pull requests, or stack positions. Every pull request uses
 `open-pr`; only a planned sequential chain uses `gh stack`.
 
-Record the critical path and independent lanes in a critical-path forecast:
+For multiple delivery units only, record the critical path and independent lanes:
 active lanes, delivery-unit and pull-request count, integration points, expensive
 gates, and likely cascade cost. Predeclare
 an invalidation map: focused slice proof, affected-boundary checks, integration
 proof, and required stable-unit gates. Reuse evidence only while its covered
 surface is unchanged. For checkpointed plans, if observed coordination
-materially exceeds the forecast, pause before further publication, show the
-variance, simplify the remaining topology, and seek fresh approval only when
-delivery boundaries or authority change.
+materially exceeds that forecast, report the variance and simplify within
+accepted boundaries. Seek fresh approval only for changed scope, architecture,
+delivery boundaries, dependencies, or authority.
 
 Repeat the pitch's selected execution mode in the complete plan: checkpointed
 implementation remains the default, and accept-all remains a preference until
 whole-plan approval confirms accept-all authority. State that accept-all
 authority applies only to the named accepted plan and never authorizes merge,
-release, deployment, destructive cleanup, or unrelated work. For an accepted
-accept-all plan, every material forecast variance returns control to the human,
-even when delivery boundaries and authority do not change. Fresh approval is
-required only when delivery boundaries or authority change.
+release, deployment, destructive cleanup, or unrelated work. Routine in-scope diagnosis, check/review repair, and safe writer recovery are
+authorized. Stop only for a real scope, architecture, authority, no-progress,
+destructive, spending, credential, or unsafe publication decision.
 
-For every slice record its observable outcome and requirement trace, public seam
+For each named slice, detail the next executable behavior when evidence supports
+it. Record its observable outcome and requirement trace, public seam
 and files, dependencies, execution lane/worktree ownership, red proof, green
 proof and checks, atomic commit, delivery-unit topology, pull-request base, stack
 position when applicable, and done conditions. Use separate isolated worktrees
@@ -130,13 +141,14 @@ Give every slice a stable ID and descriptive title for execution handoffs.
 Carry its delivery unit, exact identity, observable outcome, focused proof, and
 done conditions into `implement`. Keep final verification, review, and authorized
 publication named separately. The accepted plan remains the intent authority.
-The execution parent mirrors named slices in available delivery → slice → step
-tracking, activates a concrete step before work or delegation, and verifies each
-return before updating progress. Serial delegated slices return between handoffs
-and continue the same retained writer and worktree. If supported continuation is
-unavailable, execution pauses for explicit recovery authority. Do not plan an
-automatic replacement writer or a new branch or pull request for each slice.
-Planning does not require Todo or start execution tracking.
+The execution parent mirrors named slices in available progress tracking and
+verifies evidence before closing them. Delegate a coherent serial delivery unit
+to one writer with all accepted internal slices. Do not require a return/resume
+handshake per tracker item. Prefer the retained writer for repair. If it cannot
+continue, inspect child state and preserve the diff, evidence, and next action.
+A replacement requires confirmed shutdown and ownership transfer. Never run
+concurrent writers in one worktree or guess shutdown. Planning does not require
+Todo, start execution tracking, or add publication boundaries per slice.
 
 When the accepted pitch contains material UI scope, trace its accepted interface
 criteria and any selected evidence or image-to-interface contract into vertical
@@ -199,7 +211,7 @@ unrelated remote changes.
 
 ## Bounded support
 
-After worktree setup, use a factual research capability only for one named
+Use a factual research capability only for one named
 repository or primary-source evidence gap. Use a mechanical support capability
 only for one named bounded inventory or transformation evidence gap when no
 specialist capability owns it. A QA capability may provide test-surface evidence,

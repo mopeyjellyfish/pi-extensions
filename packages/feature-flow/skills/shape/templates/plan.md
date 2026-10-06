@@ -4,9 +4,10 @@ status: draft
 
 # Plan: {{feature}}
 
-Complete this delivery plan before implementation. It covers every accepted
-vertical slice, the critical path, dependencies, delivery units, and independent
-lanes.
+Accept the whole user outcome, boundaries, dependencies, and named slices before
+implementation. Detail the next executable behavior as evidence warrants without
+expanding scope. For one serial delivery unit, omit topology and forecast tables.
+Name one writer, worktree, proof, checks, and publication boundary instead.
 
 ## Review evidence
 
@@ -17,6 +18,13 @@ lanes.
 - **Invalidation:** State why the review remains valid or was replaced, or
   `not applicable`.
 
+## Outcome and shortest proof
+
+Name the primary user journey, observable result, and early runnable end-to-end
+proof. Include only supporting work necessary for that outcome or concrete risk.
+Compatibility and migrations need actual users, data, contracts, or explicit
+requested policy. State which prior scope a scope update replaces or defers.
+
 ## Execution mode
 
 Repeat the selected execution mode: checkpointed implementation (default) or
@@ -24,7 +32,7 @@ accept-all implementation. Only whole-plan approval confirms accept-all
 authority for the named accepted plan; it never authorizes merge, release,
 deployment, destructive cleanup, or unrelated work.
 
-## Delivery topology
+## Delivery topology (multiple units only)
 
 | Delivery unit | Topology                 | Stack position      | Branch     | Pull request base   | Dependencies | Checks              | Ownership               | Integration point  | CI fan-out | Cascade cost |
 | ------------- | ------------------------ | ------------------- | ---------- | ------------------- | ------------ | ------------------- | ----------------------- | ------------------ | ---------- | ------------ |
@@ -55,15 +63,17 @@ sequential chain uses `gh stack`. `gh stack link` verifies a Worktrunk-managed
 chain but creates no local tracked view; use `gh stack view --json` only for
 locally tracked stacks.
 
-## Critical path, dependencies, and lanes
+## Critical path, dependencies, and lanes (multiple units only)
 
 List dependency order and each genuinely independent lane. Record a
 critical-path forecast: active lanes, delivery-unit and pull-request count,
 integration points, expensive gates, and likely cascade cost. Parallel lanes
 need separate worktrees, sole writers, and non-overlapping files. Predeclare an
 invalidation map for focused proof, affected-boundary checks, integration proof,
-and final required gates. Pause and report variance when observed coordination
-materially exceeds the forecast.
+and final required gates. Report material coordination variance. Routine in-scope
+diagnosis, repair, and safe writer recovery need no new approval. Stop only for
+real scope, architecture, authority, no-progress, destructive, spending, credential,
+or unsafe publication decisions.
 
 ## [ ] 001 — Observable vertical outcome
 
@@ -80,6 +90,11 @@ Name the public seam and likely files.
 List prior slices, contracts, or `none`.
 
 ### Execution lane and ownership
+
+Delegate the coherent serial unit to one writer with all named slices and
+progress/evidence. No mandatory return/resume handshake per tracker item. Prefer
+the retained writer. Replacement requires confirmed shutdown and diff/evidence
+ownership transfer, never concurrent writers.
 
 Use `serial` or `parallel-ready`. For `parallel-ready`, name the lane, isolated
 worktree, sole writer, non-overlapping files, and integration dependency.

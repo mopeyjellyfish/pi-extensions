@@ -6,12 +6,14 @@ status: draft
 
 ## Problem and evidence
 
-State the pain, desired outcome, and only the evidence that changes this
-proposal.
+Name the primary user journey, observable outcome, and shortest end-to-end
+proof. State only pain and evidence that changes the proposal.
 
 ## Proposed solution
 
-State the smallest useful behavior and material failure or compatibility needs.
+State the smallest useful behavior and concrete failure risks. Compatibility
+and migrations need actual users, data, contracts, or explicitly requested policy.
+Order early runnable proof before necessary supporting machinery.
 For delivery work, distinguish vertical slices (testable end-to-end behaviors),
 delivery units (review, validation, and publication boundaries), atomic commits,
 branches, and pull requests. State whether planning documents need independent
@@ -32,6 +34,7 @@ work.
 ## Boundaries and no-gos
 
 Name scope limits, acceptable cuts, prohibited workarounds, and reshape triggers.
+State which prior scope a later decision replaces or defers.
 
 ## Decision-changing research and risks
 
@@ -42,8 +45,10 @@ Omit this section's entries when none do.
 
 - **Applicability:** `not applicable` for non-Go work; otherwise state the
   Go-targeted evidence.
-- **Fixed document:** State the reviewed pitch revision or `not applicable`.
-- **Status:** State the Go specification review result or `not applicable`.
+- **Fixed document:** State the reviewed pitch revision, or `deferred to implementation-ready plan`
+  when no consequential Go design decision needs early commitment, or `not applicable`.
+- **Status:** State the early Go review result, `deferred`, or `not applicable`. Do not
+  require both pitch and plan passes for unchanged decisions.
 - **Invalidation:** State why the review remains valid or was replaced, or
   `not applicable`.
 

@@ -8,15 +8,6 @@ inheritProjectContext: true
 inheritSkills: false
 skills:
   - code-review
-  - codebase-design
-  - go-spec-reviewer
-  - go
-  - cobra-viper
-  - typescript
-  - typescript-library
-  - typescript-testing
-  - typescript-review
-  - typescript-modernize
 skillPath:
   - ../packages/engineering/skills/code-review
   - ../packages/engineering/skills/codebase-design
@@ -53,6 +44,10 @@ diff or recorded patch, intent and instruction paths, applicable methods,
 unavailable evidence, read-only Authority, and candidate schema.
 
 In either fixed-diff mode, load only applicable language or framework references.
+Resolve installed names or read caller-supplied portable `SKILL.md` references.
+The agent-local `skillPath` entries are candidates, not eager selections. For
+fixed-document Go work, load the supplied `go-spec-reviewer` reference as well as
+applicable Go standards. Record unavailable methods honestly.
 Do not spawn subagents, edit, mutate a repository, or run QA gates. Both integrated
 and explicit `/code-review` fixed-diff lens modes use the configured
 `openai-codex/gpt-6.1-sol` model at medium effort.

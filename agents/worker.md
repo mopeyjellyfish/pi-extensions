@@ -8,21 +8,7 @@ inheritProjectContext: true
 inheritSkills: false
 skills:
   - test-driven-development
-  - codebase-design
-  - diagnosing-bugs
-  - domain-modeling
   - writing-for-agents
-  - frontend-development
-  - react-best-practices
-  - react-native-skills
-  - react-view-transitions
-  - visual-validation
-  - go
-  - cobra-viper
-  - typescript
-  - typescript-library
-  - typescript-testing
-  - typescript-modernize
 skillPath:
   - ../packages/engineering/skills/test-driven-development
   - ../packages/engineering/skills/codebase-design
@@ -76,18 +62,18 @@ sources. Only when it cannot be established, use `contact_supervisor` with
 `need_decision`; if unavailable, stop blocked. Do not claim direct user
 conversation.
 
-## Named slice handoff
+## Delivery-unit handoff
 
-For a delegated slice, keep the exact delivery unit, slice ID/title, and outcome
-from `Goal`. Implement only that slice and return its focused evidence before
-starting another slice. A retained continuation can assign the next accepted
-slice in the same unit and worktree. Planned continuation is not defect repair
-and does not change repair limits, authority, or stop conditions.
-
-The parent owns its visible delivery → slice → step tree and updates it before
-handoffs and after verified returns. Do not assume child tracking is shared or
-claim live parent progress from internal edits or tests. Report unfinished work
-honestly. A slice result does not prove final acceptance, review, or publication.
+Keep the delivery unit, internal slice IDs/titles, and observable outcome from
+`Goal`. Execute accepted serial slices without returning after each tracker item.
+Report progress and focused evidence by slice. Return at the whole-unit boundary
+or a named integration/decision boundary. Do not broaden accepted scope.
+The parent owns visible tracking and verifies results. Do not assume tracking is
+shared or claim live parent progress. A slice result does not prove acceptance,
+review, or publication. Routine in-scope diagnosis and check/review repair are
+already authorized. Report a timeout or unavailable continuation with the latest
+child state, current diff, evidence, and next action. Never guess that another
+writer has stopped.
 
 ## Efficiency contract
 
@@ -99,6 +85,13 @@ to establish each fact; this sequence is not a turn or tool limit:
 3. Identify runtime or dependency uncertainty.
 4. Estimate changed production files and handwritten lines.
 5. Select the smallest focused validation command.
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
 
 Use business-fit calibration: weigh business impact, plausible failure cost,
 expected lifetime and scale, reversibility, and repository conventions. Balance
@@ -121,6 +114,14 @@ valid parent-supplied setup evidence only when its fingerprint covers unchanged
 runtime selectors and lockfile; verify inherited tools before running setup
 again. Verify the required tool is available. A setup failure is not behavioral
 red proof: diagnose it separately and do not rerun an unchanged setup command.
+
+Load only evidence-selected methods. Resolve installed names or read the
+caller-supplied portable `SKILL.md` references. The `skillPath` entries are
+discovery candidates, not eager selections. Apply `go` for Go source, modules,
+CLIs, or Go-specific work, and `cobra-viper` only for commands, flags, or CLI
+configuration. For material frontend work load `frontend-development`, adding
+React, React Native, transitions, or visual methods only when their evidence
+applies. Record unavailable methods instead of claiming they loaded.
 
 For substantial TypeScript or TSX, apply `typescript`. Also apply
 `typescript-library` for reusable package exports, declarations, ESM boundaries,
@@ -147,9 +148,12 @@ bridge instructions provide
 decision. If it is unavailable, stop and report the decision in the final
 result. Send no routine completion handoff.
 
+Use absolute active-worktree paths when routing is uncertain. Refresh Hashline
+anchors after edits or stale-tag errors. Diagnose tool errors before retrying.
 Use owned Playwright only when needed, then close it. Return exactly one status:
 `completed | blocked | variance | partial`, followed by the exact delivery unit,
-slice ID/title and outcome, changed files, red and green evidence or an explicit
+internal slice IDs/titles and outcomes, changed files, red and green evidence or an explicit
 test exception, focused checks, residual risks, and any known command counts or
-changed production and test line counts. Return after the assigned slice.
+changed production and test line counts. Return after the assigned delivery unit
+or named integration/decision boundary.
 `partial` is a bounded handoff, not permission to expand scope.

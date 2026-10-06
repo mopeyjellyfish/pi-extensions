@@ -20,8 +20,8 @@ migration work, dependency changes, irreversible actions, or expanding scope.
 
 ## Intake and worktree
 
-With or without arguments, **worktree setup is first**. Reuse the current task worktree and
-branch when they are safe for this request. Otherwise, create or activate an
+Read-only inspection can start in the initial checkout. Before the first write,
+reuse the current task worktree and branch when they are safe for this request. Otherwise, create or activate an
 isolated task worktree. Never write in the main checkout. If safe worktree
 tooling is unavailable and the current checkout is unsafe, stop before writing
 and ask the user to provide a task worktree.
@@ -82,8 +82,11 @@ changes in the commit. Use the installed `commit` skill when available. After
 verification, commit the change and push the current named branch. Do not ask
 for a separate commit or push approval.
 
-If verification, commit, or push fails, stop with the local evidence and the
-exact recovery action. Do not claim delivery succeeded.
+If verification, commit, or push fails, diagnose it before any retry. Routine
+in-scope repair is authorized while new evidence or measurable progress supports
+it. Stop for an unsafe publication decision, scope change, or repeated no-progress
+failure. Preserve local evidence and the exact recovery action. Do not claim
+delivery succeeded.
 
 Do not open or update a pull request unless the user asks for it. This authority
 does not authorize merge, deployment, release, plain force push, worktree

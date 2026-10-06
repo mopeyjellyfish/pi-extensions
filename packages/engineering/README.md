@@ -23,7 +23,7 @@ worktree and focused-intake methods, and reports any unmet method:
 parent -> bounded implementation writer -> frozen diff -> [deterministic gates or QA capability || review capability]
 ```
 
-The bounded implementation writer owns one vertical change, focused behavioral
+The bounded implementation writer owns one coherent delivery unit, focused behavioral
 proof, and local static checks. Parent finalization owns the named repository
 gates and assurance selection. Exact green-path commands run deterministically
 without a QA model. When a QA capability and review capability are both
@@ -33,7 +33,8 @@ repair packet. Progressing repairs rerun only invalidated evidence and do not
 repeat unchanged review.
 
 Initial configured child handoffs start with fresh context. Planned slices in
-one serial delivery unit continue the same retained implementation writer.
+one serial delivery unit run inside that writer with progress/evidence, without
+mandatory per-slice return/resume handshakes.
 Fixed implementation-writer launches are foreground launches that omit per-run mode,
 model, and thinking fields so the capability profile remains authoritative. When
 a host supplies a compatible child-launch method, the skills provide the direct
@@ -51,7 +52,7 @@ before the first test unless valid parent-supplied setup evidence covers the
 unchanged runtime selectors and dependency inputs.
 
 The parent supplies durable Intent sources: target-project context, every named
-pitch, plan, request, and later user decisions, plus the exact slice, not a
+pitch, plan, request, and later user decisions, plus the coherent unit and its named internal slices, not a
 conversation transcript. It confirms the Business reason from evidence or asks
 the human to confirm it, then records it in the implementation spec and
 implementation-writer handoff. The parent owns routing, synthesis, product and
@@ -73,13 +74,13 @@ authorized delivery mechanics and is not an implementation substitute. Ordinary
 children cannot fan out. `/just-do-it`, one obvious trivial correction, and a
 reported unavailable-capability fallback remain direct-parent exceptions.
 
-`/code-review [target] [--comment] [--fix]` replaces `/review-change`. Its
-default route pins one diff and reports only high-confidence findings in Pi. In
-the complete root profile, an Astra-high parent joins five fresh, parallel,
-read-only configured Reviewer lenses on GPT-6.1 Sol at medium effort. One fresh
-configured Utility scorer on GPT-6.1 Sol at low effort uses
-the 0/25/50/75/100 confidence rubric, and the parent reports only validated
-findings scored at least 80. Children cannot write, run QA gates, or fan out.
+`/code-review [target] [--deep] [--comment] [--fix]` uses one integrated fresh
+fixed-diff review by default under available configured reviewer/parent
+contracts. It has no mandatory Astra-only stop. Only explicit `--deep` selects
+the Astra-high parent, five parallel fresh Sol-medium Reviewer lenses, and one
+fresh Sol-low Utility scorer. Both routes apply the 0/25/50/75/100 rubric and
+report only parent-validated findings at confidence 80 or higher. Children cannot
+write, run QA gates, or fan out. Risk selection does not automatically choose deep.
 
 `--comment` authorizes one previewed GitHub mutation for an eligible open pull
 request after a final unchanged-head check. Findings produce one `COMMENT`
@@ -132,7 +133,8 @@ installed frontend methods continue into `implement`. Bounded mechanical UI work
 remains direct.
 
 `/just-do-it <request>` reuses the current safe task worktree and branch, or sets
-up an isolated task worktree before repository reads. The direct parent fixes
+up an isolated task worktree before the first write. Read-only inspection can
+start in the initial checkout. The direct parent fixes
 the bounded problem immediately and uses one fresh implementation writer only
 when broad repetition saves critical-path time or parent context. The route
 permits one bounded inspection pass for obvious local breakage. It stops for
@@ -161,14 +163,14 @@ gate run against the final frozen diff.
 The parent tracks delivery → slice → step before execution. It names every
 accepted slice, adds concrete steps for the active slice, and keeps final
 verification, review, and authorized publication visible as separate work.
-Before each handoff, it activates the named delegated step. The writer returns
-that slice's identity, outcome, and focused evidence. The parent verifies the
-return and updates tracking before resuming the latest supported retained run
-for the next slice in the same worktree. Planned continuation does not consume
-repair allowances or create new review or publication boundaries. Unavailable
-continuation pauses for explicit recovery authority, not an automatic replacement
-writer. Independent installs use available hierarchy, honest flat named items,
-or a text fallback without assuming Todo or shared child tracking.
+The parent delegates one coherent serial unit with all accepted internal slices,
+boundaries, dependencies, and proof needs. The writer reports slice progress and
+evidence without a mandatory per-slice return/resume handshake. The parent
+verifies evidence before closing tracking and owns final checks and publication.
+Prefer the retained writer for repair. Replacement requires confirmed shutdown
+and current diff/evidence ownership transfer. Unknown shutdown blocks another
+writer, not an invented timeout permission. Independent installs use honest
+hierarchical, flat named, or text progress without assuming shared child tracking.
 Tracking mirrors accepted intent and preserves unrelated tasks. Steps close only
 with verified evidence. Groups close explicitly after descendants close and the
 group outcome is verified. Paused work and future checkpointed units stay open.
@@ -181,6 +183,13 @@ QA or review. When both are needed, the host uses fresh read-only QA and review
 capabilities on the same frozen-tree identifier, concurrently when available.
 QA does not broaden the named commands, and review does not run them. Hosts
 without concurrent children preserve the capability split sequentially.
+
+Start with the primary user journey, observable result, and shortest end-to-end
+proof. Put an early runnable proof before supporting machinery. Green test counts
+do not replace acceptance evidence. Add supporting work only when the outcome
+or a concrete risk needs it. Compatibility and migrations need actual users,
+data, contracts, or an explicitly requested policy. Do not invent them for
+unused greenfield code. A scope update explicitly replaces or defers prior scope.
 
 Behavioral `implement` work loads `test-driven-development`; an unresolved
 failure loads `diagnosing-bugs` before implementation. Missing methods use the
@@ -210,8 +219,9 @@ while runtime selectors and dependency inputs remain unchanged. Matching final
 evidence records the exact tested tree, command definitions, setup fingerprint,
 base `HEAD`, and approved path set for publication reuse.
 
-Accept-all pauses for setup, test, check, commit, publication, material review,
-or forecast variance. It never authorizes merge, release, deployment,
+Accepted intent authorizes routine in-scope diagnosis, check/review repair, and
+safe writer recovery. Stop only for scope, architecture, authority, repeated
+no-progress, destructive, spending, credential, or unsafe publication decisions. It never authorizes merge, release, deployment,
 destructive cleanup, or unrelated work. Delegation must provide a critical-path,
 parent-context, or independent-evidence benefit. Bounded one-unit routes do not
 gain forecast overhead.
@@ -379,7 +389,8 @@ target-repository Go standards instead of claiming it loaded. Formal reviewers
 use target-repository instructions and module contracts first, installed Go and
 applicable Cobra/Viper standards second, and `references/go.md` questions last;
 only practical, non-tool-duplicate findings are reported. The implementation
-writer capability preloads both Go skills, and fixed-diff handoffs explicitly
+writer capability loads only evidence-selected installed names or portable
+supplied references, and fixed-diff handoffs explicitly
 send `Review mode: fixed-diff code`. `codebase-design` includes the complete
 adapted deep-module method, its dependency-deepening and alternative-interface
 references, and explicit testability guidance. For Go work, its precedence is
