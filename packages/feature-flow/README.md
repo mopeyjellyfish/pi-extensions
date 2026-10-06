@@ -12,6 +12,20 @@ current conversation and ask only for missing or ambiguous information. `/plan`
 still requires explicitly accepted intent or an accepted pitch. Reusing context
 does not imply approval.
 
+Shape also accepts self-contained improvement-review evidence from `/improve`,
+`/improve-ui`, or a requested critique or audit follow-on. It preserves selected
+candidate IDs, evidence, constraints, dependencies, overlap, integration points,
+uncertainty, recommended routes, applicable methods, and proof needs. For UI
+reviews, it preserves accepted directions, inspected images, notes, research,
+responsive and accessibility requirements, and operation context. Shape does not
+repeat discovery or settled visual selection unless a material ambiguity
+invalidates a decision. Review evidence and route choice are input, not approval.
+Shape seeks pitch approval, then planning seeks separate complete-plan approval
+before implementation. Browser and design-board controls grant no workflow or
+publication authority. If `planning-changes` is unavailable, return the accepted
+pitch and self-contained evidence handoff and name the unmet capability without
+claiming the transition ran.
+
 The direct parent creates or selects an isolated linked worktree before Shape or
 planning discovery. The same worktree continues through planning and serial
 implementation. Parallel work requires a separate worktree, a sole writer, and

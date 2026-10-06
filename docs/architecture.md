@@ -135,6 +135,31 @@ automatically provide companion extensions or agents.
 
 A package must not depend on undeclared modules or on another workspace by accident. Pi-provided packages belong in `peerDependencies` when imported; third-party modules needed while a package resource runs belong in `dependencies`; development-only tools belong in `devDependencies`. Markdown-only skill packages need no Pi runtime peer. Root tooling does not become available when Pi installs a package with production dependencies only.
 
+## Improvement review to delivery
+
+`/improve` keeps architecture discovery read-only and offers explicit **Shape
+all**, **Shape selected**, and individual **Shape** alongside appetite-aware
+Action, Track, selection, Won't do, and Deepen. Action retains its inferred
+implementation, direct planning, or Shape route. Explicit Shape chooses the
+pitch lifecycle even when a faster route is available.
+
+After explicit visual selection, `/improve-ui` offers **Shape and plan** or
+**Plan directly**. Focused `interface-craft` critique and audit stay read-only
+and offer that choice only when follow-on delivery is requested. Browser and
+design-board controls never authorize Shape, planning, implementation, tracker
+mutation, or publication. Terminal choices use conversation when `question` is
+unavailable.
+
+Each route carries self-contained reviewed evidence, the selected set or accepted
+visual direction, constraints, dependencies, uncertainty, and proof needs. Shape
+preserves settled decisions instead of repeating discovery or visual selection.
+Review evidence and route choice are not approval. Shape seeks pitch approval,
+then planning seeks separate complete-plan approval before implementation. A
+missing `shape` or `planning-changes` capability returns the handoff and any
+accepted pitch, names the unmet capability, and never claims the transition ran.
+Independent packages do not automatically install these companions. Fixed-diff
+`/code-review` remains defect-focused, with unchanged behavior and authority.
+
 ## Runtime model
 
 Pi loads extension TypeScript, Agent Skills, and prompt templates directly.
