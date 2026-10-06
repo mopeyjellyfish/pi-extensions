@@ -1,3 +1,5 @@
+import { convertToLlm } from "@earendil-works/pi-coding-agent";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import { Compile } from "typebox/compile";
 import { describe, expect, it } from "vitest";
 
@@ -8,7 +10,12 @@ import todoExtension, {
   snapshotFromBranch,
 } from "../src/index.ts";
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ContextEvent,
+  ContextEventResult,
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import type { TSchema } from "typebox";
 
 interface ToolResult {
@@ -76,6 +83,7 @@ interface Entry {
 }
 
 interface Harness {
+  readonly activeTools: string[];
   readonly commands: Map<string, RegisteredCommand>;
   readonly entries: Entry[];
   readonly events: Map<
@@ -84,6 +92,8 @@ interface Harness {
   >;
   readonly notifications: string[];
   readonly publishedSummaries: unknown[];
+  readonly hierarchicalSummaries: unknown[];
+  readonly queuedMessages: unknown[];
   readonly statuses: (string | undefined)[];
   readonly tool: RegisteredTool;
   readonly widgets: unknown[];
@@ -103,16 +113,23 @@ function createHarness(): Harness {
   >();
   const notifications: string[] = [];
   const publishedSummaries: unknown[] = [];
+  const hierarchicalSummaries: unknown[] = [];
   const statuses: (string | undefined)[] = [];
   const widgets: unknown[] = [];
+  const activeTools = ["todo", "bash", "read", "edit"];
+  const queuedMessages: unknown[] = [];
   let tool: RegisteredTool | undefined;
   const pi = {
+    getActiveTools: () => activeTools,
     appendEntry(customType: string, data: unknown) {
       entries.push({ type: "custom", customType, data });
     },
+    sendMessage: (message: unknown) => queuedMessages.push(message),
+    sendUserMessage: (message: unknown) => queuedMessages.push(message),
     events: {
       emit(channel: string, data: unknown) {
         if (channel === "mopeyjellyfish:pi-todo:summary:v1") publishedSummaries.push(data);
+        if (channel === "mopeyjellyfish:pi-todo:summary:v2") hierarchicalSummaries.push(data);
       },
       on: () => {
         throw new Error("Unexpected event-bus subscription.");
@@ -138,11 +155,14 @@ function createHarness(): Harness {
   todoExtension(pi);
   if (tool === undefined) throw new Error("todo tool was not registered");
   return {
+    activeTools,
     commands,
     entries,
     events,
     notifications,
     publishedSummaries,
+    hierarchicalSummaries,
+    queuedMessages,
     statuses,
     tool,
     widgets,
@@ -166,6 +186,26 @@ function context(harness: Harness, mode: "print" | "rpc" | "tui" = "tui"): Exten
 
 async function emit(harness: Harness, name: string, ctx: ExtensionContext): Promise<void> {
   await Promise.all((harness.events.get(name) ?? []).map((handler) => handler({}, ctx)));
+}
+
+async function modelContext(
+  harness: Harness,
+  ctx: ExtensionContext,
+  messages: ContextEvent["messages"] = [],
+): Promise<ContextEvent["messages"]> {
+  const handler = harness.events.get("context")?.[0];
+  if (handler === undefined) throw new Error("Missing context hook.");
+  const result = (await handler({ type: "context", messages }, ctx)) as
+    ContextEventResult | undefined;
+  return result?.messages ?? messages;
+}
+
+function reminderText(messages: ContextEvent["messages"]): string {
+  const message = messages.at(-1);
+  if (message?.role !== "custom" || typeof message.content !== "string") {
+    throw new Error("Expected a text reminder.");
+  }
+  return message.content;
 }
 
 function widgetComponent(value: unknown, theme: TestTheme = testTheme): TestComponent {
@@ -206,6 +246,775 @@ function record(harness: Harness, result: ToolResult): void {
 }
 
 describe("pi-todo extension", () => {
+  it("reminds the model of the current path and immediate-child progress without UI", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness, "print");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("reminder", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery"] });
+    await run({ action: "add", parentId: 1, items: ["Slice", "Future slice"] });
+    await run({ action: "add", parentId: 2, items: ["Implement", "Verified", "Unused"] });
+    await run({
+      action: "update",
+      updates: [
+        { id: 4, status: "in_progress" },
+        { id: 5, status: "completed" },
+        { id: 6, status: "cancelled" },
+      ],
+    });
+    const entries = [...harness.entries];
+    const messages = await modelContext(harness, ctx);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({ role: "custom", display: false });
+    const converted = convertToLlm(messages).at(-1);
+    expect(converted?.role).toBe("user");
+    expect(converted).toHaveProperty("content.0.type", "text");
+    expect(converted).toHaveProperty("content.0.text", reminderText(messages));
+    const text = reminderText(messages);
+    expect(text).toContain(
+      "Active path:\n#1 Delivery — 0/2 closed → #2 Slice — 2/3 closed (1 cancelled) → #4 Implement",
+    );
+    expect(text).toMatch(/before.*step/u);
+    expect(text).toContain("verified evidence");
+    expect(text).not.toContain("no explicitly active");
+    expect(harness.entries).toEqual(entries);
+    expect(harness.queuedMessages).toEqual([]);
+    expect(harness.widgets).toEqual([]);
+  });
+
+  it("replaces only its reminder while preserving tool exchanges and current mutations", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("refresh", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["First step", "Next step"] });
+    await run({ action: "update", updates: [{ id: 1, status: "in_progress" }] });
+    const transcript: ContextEvent["messages"] = [
+      { role: "user", content: "Pause if necessary", timestamp: 1 },
+      {
+        role: "custom",
+        customType: "other-extension:reminder",
+        display: false,
+        content: "Keep this reminder",
+        timestamp: 2,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "read-1", name: "read", arguments: { path: "file.ts" } }],
+        api: "openai-responses",
+        provider: "openai",
+        model: "test",
+        stopReason: "toolUse",
+        usage: {
+          input: 1,
+          output: 1,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 2,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+        timestamp: 3,
+      },
+      {
+        role: "toolResult",
+        toolCallId: "read-1",
+        toolName: "read",
+        content: [{ type: "text", text: "File contents" }],
+        details: { path: "file.ts" },
+        isError: false,
+        timestamp: 4,
+      },
+    ];
+    const first = await modelContext(harness, ctx, transcript);
+    expect(first).toHaveLength(5);
+    expect(transcript).toHaveLength(4);
+    expect(reminderText(first)).toContain("Active path:\n#1 First step");
+    await run({
+      action: "update",
+      updates: [{ id: 2, status: "in_progress", text: "Verify result" }],
+    });
+    const entries = [...harness.entries];
+    const second = await modelContext(harness, ctx, first);
+    const third = await modelContext(harness, ctx, second);
+    expect(second).toHaveLength(5);
+    expect(third).toHaveLength(5);
+    expect(first).toHaveLength(5);
+    expect(reminderText(third)).toContain("Active path:\n#2 Verify result");
+    expect(reminderText(third)).not.toContain("First step");
+    expect(third.slice(0, -1)).toEqual(transcript);
+    for (const [index, message] of transcript.entries()) expect(third[index]).toBe(message);
+    expect(harness.entries).toEqual(entries);
+    expect(harness.queuedMessages).toEqual([]);
+  });
+
+  it("warns about missing actionable activity but allows ordinary tools and paused open work", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness, "rpc");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("paused", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery"] });
+    await run({ action: "add", parentId: 1, items: ["Verify"] });
+    let messages = await modelContext(harness, ctx);
+    expect(reminderText(messages)).toContain("no explicitly active actionable item");
+    expect(reminderText(messages)).toContain("#1 Delivery — 0/1 closed → #2 Verify");
+    await run({ action: "update", updates: [{ id: 2, status: "completed" }] });
+    messages = await modelContext(harness, ctx, messages);
+    expect(reminderText(messages)).toContain("no explicitly active actionable item");
+    expect(reminderText(messages)).toContain("#1 Delivery — 1/1 closed");
+    expect(reminderText(messages)).not.toContain("#2 Verify");
+    const entries = [...harness.entries];
+    for (const [name, event] of [
+      ["tool_call", { type: "tool_call", toolName: "bash", input: { command: "pwd" } }],
+      ["agent_end", { type: "agent_end", messages: [{ role: "assistant", content: "Paused" }] }],
+      ["agent_before_settle", { type: "agent_before_settle" }],
+    ] as const) {
+      for (const handler of harness.events.get(name) ?? []) {
+        expect(await handler(event, ctx)).toBeUndefined();
+      }
+    }
+    expect((await run({ action: "list" })).details.snapshot).toMatchObject({
+      items: [
+        { id: 1, status: "pending" },
+        { id: 2, status: "completed" },
+      ],
+    });
+    expect(harness.entries).toEqual(entries);
+    expect(harness.queuedMessages).toEqual([]);
+    expect(harness.activeTools).toEqual(["todo", "bash", "read", "edit"]);
+  });
+
+  it("refreshes reminders from restored branch state after navigation, compaction, and restart", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness, "print");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("branch-reminder", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Original branch"] });
+    await run({ action: "update", updates: [{ id: 1, status: "in_progress" }] });
+    const original = [...harness.entries];
+    let messages = await modelContext(harness, ctx);
+    await run({ action: "update", updates: [{ id: 1, text: "New branch" }] });
+    const latest = [...harness.entries];
+    messages = await modelContext(harness, ctx, messages);
+    expect(reminderText(messages)).toContain("#1 New branch");
+    harness.entries.splice(0, harness.entries.length, ...original);
+    await emit(harness, "session_tree", ctx);
+    messages = await modelContext(harness, ctx, messages);
+    expect(reminderText(messages)).toContain("#1 Original branch");
+    expect(reminderText(messages)).not.toContain("New branch");
+    harness.entries.splice(0, harness.entries.length, ...latest);
+    await emit(harness, "session_compact", ctx);
+    expect(reminderText(await modelContext(harness, ctx, messages))).toContain("#1 New branch");
+    const reloaded = createHarness();
+    reloaded.entries.push(...original);
+    const reloadedCtx = context(reloaded, "print");
+    await emit(reloaded, "session_start", reloadedCtx);
+    expect(reminderText(await modelContext(reloaded, reloadedCtx, messages))).toContain(
+      "#1 Original branch",
+    );
+    expect(reloaded.entries).toEqual(original);
+    expect(reloaded.queuedMessages).toEqual([]);
+  });
+
+  it("suppresses and removes stale reminders for empty, closed, or disabled tracking", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness, "print");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("suppress-reminder", input, undefined, undefined, ctx);
+    const transcript: ContextEvent["messages"] = [
+      { role: "user", content: "Work without tracking when appropriate", timestamp: 1 },
+    ];
+    expect(await modelContext(harness, ctx, transcript)).toEqual(transcript);
+    await run({ action: "add", items: ["Completed work", "Unneeded work"] });
+    const tracked = await modelContext(harness, ctx, transcript);
+    expect(tracked).toHaveLength(2);
+    harness.activeTools.splice(0, 1);
+    expect(await modelContext(harness, ctx, tracked)).toEqual(transcript);
+    harness.activeTools.push("todo");
+    expect(await modelContext(harness, ctx, tracked)).toHaveLength(2);
+    await run({
+      action: "update",
+      updates: [
+        { id: 1, status: "completed" },
+        { id: 2, status: "cancelled" },
+      ],
+    });
+    expect(await modelContext(harness, ctx, tracked)).toEqual(transcript);
+    harness.entries.length = 0;
+    await emit(harness, "session_tree", ctx);
+    expect(await modelContext(harness, ctx, tracked)).toEqual(transcript);
+    expect(harness.entries).toEqual([]);
+    expect(harness.queuedMessages).toEqual([]);
+  });
+
+  it("bounds reminders to 1024 characters without including the full tree", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness, "print");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("bounded-reminder", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery".padEnd(300, "d")] });
+    await run({ action: "add", parentId: 1, items: ["Slice".padEnd(300, "s")] });
+    await run({ action: "add", parentId: 2, items: ["Step".padEnd(300, "x")] });
+    await run({
+      action: "add",
+      items: Array.from({ length: 97 }, (_, i) => `Unrelated ${String(i)}`),
+    });
+    await run({ action: "update", updates: [{ id: 3, status: "in_progress" }] });
+    const text = reminderText(await modelContext(harness, ctx));
+    expect(text.length).toBeLessThanOrEqual(1024);
+    expect(text).toContain("#1 Delivery");
+    expect(text).toContain("#2 Slice");
+    expect(text).toContain("#3 Step");
+    expect(text).not.toContain("Unrelated");
+    expect(text).toContain("verified evidence");
+    expect(text).toContain("keep paused work open");
+    await run({ action: "update", updates: [{ id: 3, status: "pending" }] });
+    const missingActive = reminderText(await modelContext(harness, ctx));
+    expect(missingActive.length).toBeLessThanOrEqual(1024);
+    expect(missingActive).toContain("no explicitly active actionable item");
+    expect(missingActive).toContain("#3 Step");
+  });
+
+  it("reserves the active ancestor path beyond eight rows without orphaning neighbors", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("visible", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery"] });
+    await run({
+      action: "add",
+      parentId: 1,
+      items: Array.from({ length: 9 }, (_, index) => `Slice ${String(index + 1)}`),
+    });
+    await run({
+      action: "add",
+      parentId: 10,
+      items: ["Implement branch replay", "Verify", "Unused"],
+    });
+    const result = await run({
+      action: "update",
+      updates: [
+        { id: 11, status: "in_progress" },
+        { id: 12, status: "completed" },
+        { id: 13, status: "cancelled" },
+      ],
+    });
+    const widget = renderWidget(harness.widgets.at(-1));
+    expect(widget.slice(0, 3)).toEqual([
+      "<warning>◉</warning> Delivery — 0/9 closed",
+      "  <warning>◉</warning> Slice 9 — 2/3 closed (1 cancelled)",
+      "    <warning>◉</warning> Implement branch replay",
+    ]);
+    expect(widget).toHaveLength(9);
+    expect(widget.at(-1)).toBe("<dim>… 5 more</dim>");
+    expect(renderToolResult(harness, result)).toContain(
+      "    <warning>◉</warning> Implement branch replay",
+    );
+    const expanded = renderToolResult(harness, result, { expanded: true });
+    expect(expanded).toContain(
+      "    <success>✓</success> Verify\n    <error>×</error> Unused\n  <dim>○</dim> Slice 1",
+    );
+    expect(expanded).not.toMatch(/#\d+/u);
+    await harness.commands.get("todos")?.handler("", ctx);
+    expect(harness.notifications.at(-1)).toBe(expanded);
+    expect(harness.hierarchicalSummaries.at(-1)).toEqual({
+      version: 2,
+      rootProgress: { completed: 0, cancelled: 0, total: 1 },
+      currentPath: [
+        {
+          title: "Delivery",
+          displayStatus: "in_progress",
+          childProgress: { completed: 0, cancelled: 0, total: 9 },
+        },
+        {
+          title: "Slice 9",
+          displayStatus: "in_progress",
+          childProgress: { completed: 1, cancelled: 1, total: 3 },
+        },
+        { title: "Implement branch replay", displayStatus: "in_progress" },
+      ],
+    });
+    expect(harness.publishedSummaries.at(-1)).toEqual({
+      version: 1,
+      closed: 0,
+      total: 1,
+      current: { status: "in_progress", text: "Implement branch replay · Slice 9 · Delivery" },
+    });
+    expect(harness.statuses.at(-1)).toBe("todo 0/1 · Implement branch replay · Slice 9 · Delivery");
+  });
+
+  it("selects actionable pending work and preserves explicit closure in both summaries", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const rpc = context(harness, "rpc");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("pending", input, undefined, undefined, rpc);
+    await run({ action: "add", items: ["Delivery", "Cancelled root"] });
+    await run({ action: "add", parentId: 1, items: ["Slice"] });
+    await run({ action: "add", parentId: 3, items: ["Implement", "Unused"] });
+    await run({
+      action: "update",
+      updates: [
+        { id: 2, status: "cancelled" },
+        { id: 5, status: "cancelled" },
+      ],
+    });
+    expect(harness.hierarchicalSummaries.at(-1)).toMatchObject({
+      rootProgress: { completed: 0, cancelled: 1, total: 2 },
+      currentPath: [
+        { title: "Delivery", displayStatus: "pending" },
+        {
+          title: "Slice",
+          displayStatus: "pending",
+          childProgress: { completed: 0, cancelled: 1, total: 2 },
+        },
+        { title: "Implement", displayStatus: "pending" },
+      ],
+    });
+    expect(harness.publishedSummaries.at(-1)).toMatchObject({
+      closed: 1,
+      total: 2,
+      current: { text: "Implement · Slice · Delivery" },
+    });
+    await harness.commands.get("todos")?.handler("", rpc);
+    expect(harness.notifications.at(-1)).toBe(
+      "○ Delivery — 0/1 closed\n  ○ Slice — 1/2 closed (1 cancelled)\n    ○ Implement\n    × Unused\n× Cancelled root",
+    );
+    const listed = await run({ action: "list" });
+    expect(listed.content[0]?.text).toContain(
+      "  [pending] #3 Slice (parent: #1) — 1/2 closed (1 cancelled)\n    [pending] #4 Implement (parent: #3)",
+    );
+    expect(listed.structuredContent).toHaveProperty(
+      "items",
+      expect.arrayContaining([{ id: 4, parentId: 3, status: "pending", text: "Implement" }]),
+    );
+    await run({ action: "update", updates: [{ id: 4, status: "completed" }] });
+    expect(harness.hierarchicalSummaries.at(-1)).toMatchObject({
+      currentPath: [
+        { title: "Delivery" },
+        { title: "Slice", childProgress: { completed: 1, cancelled: 1, total: 2 } },
+      ],
+    });
+    await run({
+      action: "update",
+      updates: [
+        { id: 1, status: "completed" },
+        { id: 3, status: "completed" },
+      ],
+    });
+    expect(harness.hierarchicalSummaries.at(-1)).toEqual({
+      version: 2,
+      rootProgress: { completed: 1, cancelled: 1, total: 2 },
+    });
+    expect(harness.publishedSummaries.at(-1)).toEqual({ version: 1, closed: 2, total: 2 });
+    expect(harness.widgets).toEqual([]);
+    harness.entries.length = 0;
+    await emit(harness, "session_tree", rpc);
+    expect(harness.hierarchicalSummaries.at(-1)).toBeUndefined();
+    expect(harness.publishedSummaries.at(-1)).toBeUndefined();
+    await run({ action: "add", items: ["Restored work"] });
+    await emit(harness, "session_shutdown", rpc);
+    expect(harness.hierarchicalSummaries.at(-1)).toBeUndefined();
+    expect(harness.publishedSummaries.at(-1)).toBeUndefined();
+  });
+
+  it("bounds Unicode and control-text rows without wrapping away the active path", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("width", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery ".repeat(25).trim()] });
+    await run({ action: "add", parentId: 1, items: ["Slice 界".repeat(25)] });
+    await run({
+      action: "add",
+      parentId: 2,
+      items: ["修复 👨‍👩‍👧‍👦 e\u{301}\n\t\u{1B}[31mcurrent\u{1B}[0m ".repeat(5).trim()],
+    });
+    const result = await run({ action: "update", updates: [{ id: 3, status: "in_progress" }] });
+    const plainTheme: TestTheme = { bold: (text) => text, fg: (_color, text) => text };
+    const component = widgetComponent(harness.widgets.at(-1), plainTheme);
+    const rows = component.render(24);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatch(/^◉ Delivery/u);
+    expect(rows[1]?.startsWith("  ◉ Slice 界")).toBe(true);
+    expect(rows[2]?.startsWith("    ◉ 修复 👨‍👩‍👧‍👦 e\u{301} current")).toBe(true);
+    for (const row of rows) {
+      expect(visibleWidth(row)).toBeLessThanOrEqual(24);
+      expect(stripTerminalSequences(row)).not.toMatch(/[\n\t]/u);
+      expect(row).not.toContain("\u{1B}[31m");
+    }
+    const rendered = harness.tool.renderResult?.(
+      result,
+      { expanded: true, isPartial: false },
+      plainTheme,
+      { isError: false },
+    );
+    expect(rendered?.render(24)).toEqual(rows);
+    expect(component.render(8)).toHaveLength(3);
+    expect(harness.publishedSummaries.at(-1)).toHaveProperty(
+      "current.text",
+      expect.not.stringContaining("\u{1B}"),
+    );
+    await run({ action: "update", updates: [{ id: 1, text: "\u{1B}[0m" }] });
+    expect(renderWidget(harness.widgets.at(-1))[0]).toContain("(untitled)");
+    expect(harness.hierarchicalSummaries.at(-1)).toHaveProperty(
+      "currentPath.0.title",
+      "(untitled)",
+    );
+  });
+
+  it("creates a delivery with seven slices and concrete steps through the tool", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness, "print");
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("tree", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Deliver feature"] });
+    await run({
+      action: "add",
+      parentId: 1,
+      items: ["Slice 1", "Slice 2", "Slice 3", "Slice 4", "Slice 5", "Slice 6", "Slice 7"],
+    });
+    const result = await run({
+      action: "add",
+      parentId: 2,
+      items: ["Implement", "Run focused tests"],
+    });
+    expect(result.structuredContent).toMatchObject({
+      changedIds: [9, 10],
+      items: [
+        { id: 1, text: "Deliver feature" },
+        { id: 2, parentId: 1 },
+        { id: 3, parentId: 1 },
+        { id: 4, parentId: 1 },
+        { id: 5, parentId: 1 },
+        { id: 6, parentId: 1 },
+        { id: 7, parentId: 1 },
+        { id: 8, parentId: 1 },
+        { id: 9, parentId: 2, text: "Implement" },
+        { id: 10, parentId: 2, text: "Run focused tests" },
+      ],
+    });
+    expect((await run({ action: "list" })).content[0]?.text).toContain("#9 Implement (parent: #2)");
+    expect(Compile(TodoParameters).Check({ action: "add", parentId: 2, items: ["Check"] })).toBe(
+      true,
+    );
+  });
+
+  it("bounds additions and sibling names without saving invalid mutations", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>, signal?: AbortSignal) =>
+      harness.tool.execute("bounded", input, signal, undefined, ctx);
+    await run({ action: "add", items: ["Delivery"] });
+    await run({ action: "add", parentId: 1, items: ["First slice", "Second slice"] });
+    await run({ action: "add", parentId: 2, items: ["Run focused tests"] });
+    const before = await run({ action: "add", parentId: 3, items: ["Run focused tests"] });
+    const entryCount = harness.entries.length;
+    for (const input of [
+      { action: "add", parentId: 99, items: ["Missing parent"] },
+      { action: "add", parentId: 4, items: ["Too deep"] },
+      { action: "add", parentId: 2, items: ["Fresh", " run focused TESTS "] },
+      { action: "update", updates: [{ id: 3, text: "First slice" }] },
+      { action: "update", updates: [{ id: 4, parentId: 3, text: "Moved" }] },
+    ]) {
+      await expect(run(input)).rejects.toThrow();
+      expect((await run({ action: "list" })).details.snapshot).toEqual(before.details.snapshot);
+    }
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      run({ action: "add", parentId: 2, items: ["Aborted"] }, controller.signal),
+    ).rejects.toThrow();
+    await run({ action: "clear" });
+    await run({ action: "update", updates: [{ id: 4, status: "pending" }] });
+    expect(harness.entries).toHaveLength(entryCount);
+    await run({ action: "update", updates: [{ id: 5, status: "in_progress" }] });
+    await expect(run({ action: "add", parentId: 5, items: ["Hidden work"] })).rejects.toThrow();
+    await run({ action: "update", updates: [{ id: 5, status: "completed" }] });
+    await expect(run({ action: "add", parentId: 5, items: ["Reopened work"] })).rejects.toThrow();
+  });
+
+  it("requires actionable activity and explicit verified group closure", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("activity", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery", "Final review"] });
+    await run({ action: "add", parentId: 1, items: ["Slice"] });
+    await run({ action: "add", parentId: 3, items: ["Implement", "Verify"] });
+    const before = (await run({ action: "list" })).details.snapshot;
+    const count = harness.entries.length;
+    for (const status of ["in_progress", "completed"]) {
+      await expect(run({ action: "update", updates: [{ id: 1, status }] })).rejects.toThrow(/open/);
+      expect((await run({ action: "list" })).details.snapshot).toEqual(before);
+    }
+    expect(harness.entries).toHaveLength(count);
+    await run({ action: "update", updates: [{ id: 4, status: "in_progress" }] });
+    const switched = await run({ action: "update", updates: [{ id: 5, status: "in_progress" }] });
+    expect(switched.details.snapshot).toMatchObject({
+      items: [
+        { id: 1, status: "pending" },
+        { id: 2, status: "pending" },
+        { id: 3, status: "pending" },
+        { id: 4, status: "pending" },
+        { id: 5, status: "in_progress" },
+      ],
+    });
+    await run({
+      action: "update",
+      updates: [
+        { id: 4, status: "completed" },
+        { id: 5, status: "completed" },
+      ],
+    });
+    const verified = await run({ action: "update", updates: [{ id: 3, status: "in_progress" }] });
+    expect(verified.details.snapshot).toMatchObject({
+      items: [
+        { status: "pending" },
+        { status: "pending" },
+        { status: "in_progress" },
+        { status: "completed" },
+        { status: "completed" },
+      ],
+    });
+    await expect(run({ action: "add", parentId: 3, items: ["Another check"] })).rejects.toThrow(
+      /pending/,
+    );
+    await run({ action: "update", updates: [{ id: 3, status: "completed" }] });
+    const final = await run({ action: "list" });
+    expect(final.details.snapshot).toMatchObject({
+      items: [
+        { id: 1, status: "pending" },
+        { id: 2, status: "pending" },
+        { id: 3, status: "completed" },
+        { status: "completed" },
+        { status: "completed" },
+      ],
+    });
+    await run({ action: "update", updates: [{ id: 1, status: "completed" }] });
+  });
+
+  it("cancels open descendants explicitly and reopens closed ancestors atomically", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("closure", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery"] });
+    await run({ action: "add", parentId: 1, items: ["Slice"] });
+    await run({ action: "add", parentId: 2, items: ["Done", "Unused", "Open", "Active"] });
+    await run({
+      action: "update",
+      updates: [
+        { id: 3, status: "completed" },
+        { id: 4, status: "cancelled" },
+        { id: 6, status: "in_progress" },
+      ],
+    });
+    const cancelled = await run({ action: "update", updates: [{ id: 1, status: "cancelled" }] });
+    expect(cancelled.details.changedIds).toEqual([1, 2, 5, 6]);
+    expect(cancelled.details.snapshot).toMatchObject({
+      items: [
+        { status: "cancelled" },
+        { status: "cancelled" },
+        { status: "completed" },
+        { status: "cancelled" },
+        { status: "cancelled" },
+        { status: "cancelled" },
+      ],
+    });
+    const count = harness.entries.length;
+    await expect(
+      run({ action: "update", updates: [{ id: 5, status: "pending" }] }),
+    ).rejects.toThrow(/closed/);
+    await expect(run({ action: "add", parentId: 2, items: ["New step"] })).rejects.toThrow(
+      /pending/,
+    );
+    expect(harness.entries).toHaveLength(count);
+    const reopened = await run({
+      action: "update",
+      updates: [
+        { id: 5, status: "in_progress" },
+        { id: 2, status: "pending" },
+        { id: 1, status: "pending" },
+      ],
+    });
+    expect(reopened.details.snapshot).toMatchObject({
+      items: [
+        { status: "pending" },
+        { status: "pending" },
+        { status: "completed" },
+        { status: "cancelled" },
+        { status: "in_progress" },
+        { status: "cancelled" },
+      ],
+    });
+    const closed = await run({
+      action: "update",
+      updates: [
+        { id: 1, status: "completed" },
+        { id: 2, status: "completed" },
+        { id: 5, status: "completed" },
+      ],
+    });
+    expect(closed.details.changedIds).toEqual([1, 2, 5]);
+  });
+
+  it("keeps cancellation no-ops from demoting unrelated active work", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("cancel-noop", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Cancelled group", "Current work"] });
+    await run({ action: "add", parentId: 1, items: ["Cancelled child"] });
+    const before = await run({
+      action: "update",
+      updates: [
+        { id: 1, status: "cancelled" },
+        { id: 2, status: "in_progress" },
+      ],
+    });
+    const count = harness.entries.length;
+    const result = await run({
+      action: "update",
+      updates: [
+        { id: 1, status: "cancelled" },
+        { id: 3, status: "in_progress" },
+      ],
+    });
+    expect(result.details.snapshot).toEqual(before.details.snapshot);
+    expect(result.details.changedIds).toEqual([]);
+    expect(harness.entries).toHaveLength(count);
+  });
+
+  it("removes whole named subtrees and clears only closed root subtrees", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("remove", input, undefined, undefined, ctx);
+    await run({ action: "add", items: ["Delivery", "Closed root"] });
+    await run({ action: "add", parentId: 1, items: ["Slice"] });
+    await run({ action: "add", parentId: 3, items: ["Closed step", "Open step"] });
+    await run({ action: "add", parentId: 2, items: ["Closed child"] });
+    const before = await run({
+      action: "update",
+      updates: [
+        { id: 4, status: "completed" },
+        { id: 2, status: "cancelled" },
+      ],
+    });
+    const count = harness.entries.length;
+    await expect(run({ action: "remove", ids: [1, 3, 4] })).rejects.toThrow(/subtree/);
+    expect((await run({ action: "list" })).details.snapshot).toEqual(before.details.snapshot);
+    expect(harness.entries).toHaveLength(count);
+    const cleared = await run({ action: "clear" });
+    expect(cleared.details.changedIds).toEqual([2, 6]);
+    expect(cleared.details.snapshot).toMatchObject({
+      items: [{ id: 1 }, { id: 3 }, { id: 4, status: "completed" }, { id: 5 }],
+      nextId: 7,
+    });
+    const savedCount = harness.entries.length;
+    await run({ action: "clear" });
+    expect(harness.entries).toHaveLength(savedCount);
+    const removed = await run({ action: "remove", ids: [3, 4, 5] });
+    expect(removed.details.snapshot).toMatchObject({ items: [{ id: 1 }], nextId: 7 });
+    await run({ action: "add", parentId: 1, items: ["Replacement slice"] });
+    await run({ action: "clear", all: true });
+    const added = await run({ action: "add", items: ["Next delivery"] });
+    expect(added.details.snapshot).toMatchObject({ items: [{ id: 8 }], nextId: 9 });
+  });
+
+  it("replays mixed snapshot versions in branch order and renders historical results", async () => {
+    expect.hasAssertions();
+    const harness = createHarness();
+    const ctx = context(harness);
+    const run = (input: Record<string, unknown>) =>
+      harness.tool.execute("replay", input, undefined, undefined, ctx);
+    const legacy = {
+      items: [{ id: 4, text: "Old task", status: "in_progress" }],
+      nextId: 7,
+      revision: 9,
+      version: 1,
+    };
+    const nested = {
+      items: [
+        { id: 7, text: "Delivery", status: "pending" },
+        { id: 8, parentId: 7, text: "Slice", status: "pending" },
+        { id: 9, parentId: 8, text: "Step", status: "in_progress" },
+      ],
+      nextId: 12,
+      revision: 3,
+      version: 2,
+    };
+    const v1 = { type: "custom", customType: "mopeyjellyfish:pi-todo:snapshot:v1", data: legacy };
+    const v2 = { type: "custom", customType: "mopeyjellyfish:pi-todo:snapshot:v2", data: nested };
+    harness.entries.push(v1, v2);
+    await emit(harness, "session_start", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual(nested);
+    for (const invalid of [
+      { ...nested, items: [{ id: 1, parentId: 99, text: "Orphan", status: "pending" }] },
+      {
+        ...nested,
+        items: [
+          { id: 1, parentId: 2, text: "A", status: "pending" },
+          { id: 2, parentId: 1, text: "B", status: "pending" },
+        ],
+      },
+      {
+        ...nested,
+        items: [...nested.items, { id: 10, parentId: 9, text: "Too deep", status: "completed" }],
+      },
+      { ...nested, items: [{ id: 0, text: "Bad ID", status: "pending" }] },
+      { ...nested, items: [{ id: 1, parentId: "7", text: "Bad parent ID", status: "pending" }] },
+      {
+        ...nested,
+        items: [{ id: 7, text: "Closed", status: "completed" }, nested.items[1], nested.items[2]],
+      },
+      {
+        ...nested,
+        items: [{ id: 7, text: "Broad active", status: "in_progress" }, nested.items[1]],
+      },
+    ]) {
+      harness.entries.push({ ...v2, data: invalid });
+    }
+    await emit(harness, "session_compact", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual(nested);
+    const added = await run({ action: "add", parentId: 8, items: ["Next step"] });
+    expect(added.details.snapshot).toMatchObject({ nextId: 13, revision: 4, version: 2 });
+    expect(harness.entries.at(-1)?.customType).toBe("mopeyjellyfish:pi-todo:snapshot:v2");
+    harness.entries.push(v1);
+    await emit(harness, "session_tree", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual({ ...legacy, version: 2 });
+    const historical: ToolResult = {
+      content: [{ type: "text", text: "Old tool result" }],
+      details: { action: "list", changedIds: [], snapshot: legacy },
+    };
+    expect(renderToolResult(harness, historical)).toContain("<warning>◉</warning> Old task");
+    harness.entries.push(v2);
+    record(harness, historical);
+    await emit(harness, "session_start", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual({ ...legacy, version: 2 });
+    harness.entries.splice(0, harness.entries.length, v1, v2);
+    await emit(harness, "session_tree", ctx);
+    expect((await run({ action: "list" })).details.snapshot).toEqual(nested);
+    await emit(harness, "session_shutdown", ctx);
+    expect(harness.widgets.at(-1)).toBeUndefined();
+    expect(harness.statuses.at(-1)).toBeUndefined();
+    expect(harness.publishedSummaries.at(-1)).toBeUndefined();
+  });
+
   it("persists nested mutations without direct tool results and replays branch order", async () => {
     expect.hasAssertions();
     const harness = createHarness();
@@ -286,7 +1095,7 @@ describe("pi-todo extension", () => {
     );
 
     expect(added.content[0]?.text).toContain("Added #1, #2, #3");
-    expect(added.details.snapshot).toMatchObject({ nextId: 4, revision: 1, version: 1 });
+    expect(added.details.snapshot).toMatchObject({ nextId: 4, revision: 1, version: 2 });
     expect(harness.publishedSummaries.at(-1)).toEqual({
       closed: 0,
       current: { status: "pending", text: "Inspect code" },
@@ -467,7 +1276,7 @@ describe("pi-todo extension", () => {
 
     expect(isTodoSnapshot(valid)).toBe(true);
     expect(isTodoSnapshot(invalid)).toBe(false);
-    expect(snapshotFromBranch(context(harness))).toEqual(valid);
+    expect(snapshotFromBranch(context(harness))).toEqual({ ...valid, version: 2 });
 
     const ctx = context(harness);
     await emit(harness, "session_start", ctx);
@@ -583,7 +1392,7 @@ describe("pi-todo extension", () => {
     expect(isTodoSnapshot(valid)).toBe(true);
     for (const invalid of [
       null,
-      { ...valid, version: 2 },
+      { ...valid, version: 99 },
       { ...valid, nextId: 0 },
       { ...valid, revision: -1 },
       { ...valid, items: "nope" },
