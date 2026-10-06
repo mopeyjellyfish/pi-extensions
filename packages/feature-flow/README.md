@@ -111,6 +111,15 @@ branch or pull request. Plans forecast the critical path, lanes, integration,
 expensive gates, and coordination cost; they predeclare evidence invalidation and
 pause to report material forecast variance.
 
+Each slice has a stable ID, descriptive title, outcome, and focused proof for
+execution handoffs. Final verification, review, and authorized publication stay
+named separately. The accepted plan owns intent. The execution parent mirrors
+its slices in available progress tracking and verifies each delegated return
+before continuing the same retained writer in the same serial unit and worktree.
+Unavailable continuation pauses for explicit recovery authority, not an
+automatic replacement. Planning does not require Todo or add publication
+boundaries for slice handoffs.
+
 Explicit acceptance bundles bounded commit and later publication authority. An
 accepted pitch uses `commit` before planning, and an accepted plan uses `commit`
 before implementation. `open-pr` runs at those stages only when the planning
