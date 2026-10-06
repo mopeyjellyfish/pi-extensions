@@ -84,6 +84,26 @@ waived. Live tracking, reload, and safe-pause simulation evidence remain separat
 The shipped unavailable-continuation pause rule is unchanged. Do not report the
 waived retained-handoff test as passed.
 
+### Authorized upstream integration
+
+Before publication, `main` advanced by six commits to
+`1de45b524df2ea4e8691fb1e06a324771c4a49bc`, including overlapping README
+additions and a lockfile security fix. The parent paused before staging or push.
+The user explicitly authorized the approved commits, fetch and rebase onto
+verified current `main`, preservation of both intents, and fresh affected checks.
+Any non-mechanical conflict or failed gate still requires a pause.
+
+All seven task patches replayed without conflicts. The Todo and Status Line
+source, tests, and tracking guidance remained unchanged. Both README additions
+were preserved. No branch was pushed before integration verification.
+Upstream updated the development dependency `source-map-js` from 1.2.1 to 1.2.2.
+The refreshed lockfile SHA-256 is
+`2b6fb93ba3f614e03867bc70d18801abd68602beaa77df22ef6a0f9a621178f2`.
+Node and Go selectors did not change. The parent reran `npm ci --ignore-scripts`
+and verified declared tools. The original setup below is historical evidence;
+post-integration commands must use the refreshed lockfile. Old verification is
+not final proof for the rebased tree.
+
 ### Setup and applicable methods
 
 Setup succeeded with Node `v24.18.0`, Go `go1.26.5`, and

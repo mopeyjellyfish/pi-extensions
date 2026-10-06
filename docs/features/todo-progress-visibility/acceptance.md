@@ -7,10 +7,32 @@ The accepted pitch and plan cover four serial slices in one delivery unit on
 Accept-all authority covers bounded implementation and publication, not merge,
 release, deployment, or cleanup.
 
-The implementation base is `c96df91fc2e0926946e6fa6f2f35237e13272ade`.
+Implementation began at `c96df91fc2e0926946e6fa6f2f35237e13272ade`.
 The parent inspected the complete implementation diff and each slice's evidence.
-No dependency, runtime selector, package version, release metadata, or generated
-changelog changed. No Markdown-content tests were added.
+This delivery adds no dependency, runtime-selector, package-version, release
+metadata, or generated-changelog changes relative to its verified `main` base.
+No Markdown-content tests were added.
+
+## Authorized upstream integration
+
+Publication preflight found six new `main` commits. The user explicitly approved
+integration before the first push, rather than waiving base integration.
+The approved scoped commits and accepted documents were rebased onto
+`1de45b524df2ea4e8691fb1e06a324771c4a49bc` without conflicts. Range-diff showed
+all seven task patches unchanged. Both overlapping READMEs retained the upstream
+Shape additions and the task's tracking contract. The parent checked this result.
+
+The inherited lockfile updates `source-map-js` 1.2.1 to 1.2.2. The parent refreshed
+setup with declared Node 24.18.0, Go 1.26.5, and `npm ci --ignore-scripts`.
+The new lockfile SHA-256 is
+`2b6fb93ba3f614e03867bc70d18801abd68602beaa77df22ef6a0f9a621178f2`.
+Runtime selectors, root command definitions, Todo/Status Line source and tests,
+and named tracking guidance are unchanged. Prior live acceptance remains
+evidence for those unchanged surfaces, not an additional claim of a new live
+provider run after integration. Source/packed smoke and final gates run afresh.
+
+The final publication handoff records the rebased, tested tree. The earlier
+review and pre-integration tree identifiers remain historical evidence only.
 
 ## Focused executable proof
 
@@ -121,7 +143,9 @@ safe pause and explicit recovery when continuation is unavailable. No automatic
 replacement or shared child Todo behavior is claimed.
 
 Reminders and guidance cannot guarantee that every model tracks honestly.
-Existing dependency audit vulnerabilities, including one high, remain unchanged.
+The original setup reported one high audit vulnerability. The inherited upstream
+security fix removed that high finding. Refreshed setup reports six existing
+findings: three low and three moderate. This delivery adds no dependency changes.
 
 ## Verification efficiency
 
@@ -133,5 +157,8 @@ an automatic retry.
 The initial combined source-smoke/root-check command hit its 120-second tool
 limit after successful source smoke. No check process remained active. The
 parent ran only the root check separately with a sufficient time limit, and it
-passed. The repaired tree invalidates that earlier root evidence, so final gates
-must run again after the complete report and source freeze.
+passed. Repair and then upstream integration each invalidated earlier tree proof.
+The parent reruns final gates after the complete report and rebased source freeze.
+Git preparation paused on unexpected remote history before making mutations;
+the human integration decision granted the later bounded rebase. No blind
+publication retry or advanced-base waiver occurred.
