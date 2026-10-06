@@ -32,8 +32,9 @@ and review owns intent and Standards. The parent joins their results into one
 repair packet. Progressing repairs rerun only invalidated evidence and do not
 repeat unchanged review.
 
-All configured child handoffs start with fresh context. Fixed
-implementation-writer launches are foreground launches that omit per-run mode,
+Initial configured child handoffs start with fresh context. Planned slices in
+one serial delivery unit continue the same retained implementation writer.
+Fixed implementation-writer launches are foreground launches that omit per-run mode,
 model, and thinking fields so the capability profile remains authoritative. When
 a host supplies a compatible child-launch method, the skills provide the direct
 argument contract without making the independent package depend on that method.
@@ -156,6 +157,21 @@ defaults to checkpointed implementation. A serial delivery unit reuses one
 writer and worktree. Its validation ladder is focused slice proof,
 affected-boundary checks, integration proof, and one stable-boundary required
 gate run against the final frozen diff.
+
+The parent tracks delivery → slice → step before execution. It names every
+accepted slice, adds concrete steps for the active slice, and keeps final
+verification, review, and authorized publication visible as separate work.
+Before each handoff, it activates the named delegated step. The writer returns
+that slice's identity, outcome, and focused evidence. The parent verifies the
+return and updates tracking before resuming the latest supported retained run
+for the next slice in the same worktree. Planned continuation does not consume
+repair allowances or create new review or publication boundaries. Unavailable
+continuation pauses for explicit recovery authority, not an automatic replacement
+writer. Independent installs use available hierarchy, honest flat named items,
+or a text fallback without assuming Todo or shared child tracking.
+Tracking mirrors accepted intent and preserves unrelated tasks. Steps close only
+with verified evidence. Groups close explicitly after descendants close and the
+group outcome is verified. Paused work and future checkpointed units stay open.
 
 Implementation selects assurance from concrete risk. Mechanical,
 documentation, and reversible metadata work uses direct focused evidence.
