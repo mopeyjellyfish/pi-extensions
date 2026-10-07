@@ -17,10 +17,9 @@ const ImageParameters = Type.Object(
     inputPaths: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { maxItems: 4 })),
     outputFormat: Type.Optional(StringEnum(["png"])),
     size: Type.Optional(
-      Type.String({
-        pattern: "^(auto|[1-9][0-9]{0,3}x[1-9][0-9]{0,3})$",
+      StringEnum(["auto"], {
         description:
-          "auto (default) or WIDTHxHEIGHT: edges divisible by 16, at most 3840, ratio at most 3:1, 655360–8294400 pixels. Backend custom-size acceptance is unverified.",
+          "auto (default): Codex chooses dimensions; actual width and height are reported. Custom dimensions are not supported.",
       }),
     ),
   },

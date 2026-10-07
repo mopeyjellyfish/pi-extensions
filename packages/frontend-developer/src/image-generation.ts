@@ -10,8 +10,10 @@ export interface ImageResult {
   readonly content: { readonly text: string; readonly type: "text" }[];
   readonly details: {
     readonly bytes: number;
+    readonly height: number;
     readonly operation: "generate" | "edit";
     readonly path: string;
+    readonly width: number;
   };
 }
 
@@ -58,12 +60,17 @@ export async function generateImage(
     } catch (error) {
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
     }
-    const bytes = await codexImageRuntime.generate(input, signal, ctx);
+    const { bytes, width, height } = await codexImageRuntime.generate(input, signal, ctx);
     signal?.throwIfAborted();
     await writeNew(outputPath, bytes, signal);
     return {
-      content: [{ text: `Saved generated image: ${outputPath}`, type: "text" }],
-      details: { bytes: bytes.length, operation: input.operation, path: outputPath },
+      content: [
+        {
+          text: `Saved generated image: ${outputPath} (${String(width)}x${String(height)} pixels)`,
+          type: "text",
+        },
+      ],
+      details: { bytes: bytes.length, width, height, operation: input.operation, path: outputPath },
     };
   });
 }

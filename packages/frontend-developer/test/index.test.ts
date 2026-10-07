@@ -509,7 +509,6 @@ describe("image_generation", () => {
     const root = await mkdtemp(join(tmpdir(), "image-artifact-validation-"));
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(Response.json({ data: [{ b64_json: png().toString("base64") }] }))
       .mockResolvedValueOnce(
         Response.json({ data: [{ b64_json: png().subarray(0, -1).toString("base64") }] }),
       );
@@ -542,22 +541,7 @@ describe("image_generation", () => {
         context(root),
       ),
     ).rejects.toThrow(/PNG only/);
-    await expect(
-      tool().execute(
-        "dimensions",
-        {
-          operation: "generate",
-          outputPath: "wide.png",
-          prompt: "mock-up",
-          size: "1536x1024",
-        },
-        undefined,
-        undefined,
-        context(root),
-      ),
-    ).rejects.toThrow(/1536x1024/);
     await expect(readFile(join(root, "out.jpg"))).rejects.toThrow();
-    await expect(readFile(join(root, "wide.png"))).rejects.toThrow();
     await expect(
       tool().execute(
         "truncated",
@@ -634,8 +618,8 @@ describe("image_generation", () => {
     await writeFile(join(root, "input/source.png"), png());
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(Response.json({ data: [{ b64_json: png().toString("base64") }] }));
-    await tool().execute(
+      .mockResolvedValue(Response.json({ data: [{ b64_json: png(512, 256).toString("base64") }] }));
+    const result = await tool().execute(
       "call-edit",
       {
         inputPaths: ["input/source.png"],
@@ -658,7 +642,15 @@ describe("image_generation", () => {
       images: [{ image_url: `data:image/png;base64,${png().toString("base64")}` }],
     });
     expect((request?.headers as Headers).get("content-type")).toBe("application/json");
-    expect(await readFile(join(root, "art/edited.png"))).toEqual(png());
+    expect(await readFile(join(root, "art/edited.png"))).toEqual(png(512, 256));
+    expect(result.details).toEqual({
+      bytes: png(512, 256).length,
+      width: 512,
+      height: 256,
+      operation: "edit",
+      path: join(root, "art/edited.png"),
+    });
+    expect(result.content[0]?.text).toContain("512x256");
     fetchMock.mockRestore();
   });
 
@@ -972,23 +964,51 @@ describe("image_generation", () => {
     await expect(readFile(join(root, "error.png"))).rejects.toThrow();
   });
 
-  it("forwards custom dimensions unchanged and isolates native image headers", async () => {
+  it("rejects explicit dimensions before authentication or reference upload", async () => {
     expect.hasAssertions();
-    const root = await mkdtemp(join(tmpdir(), "image-custom-size-"));
+    const root = await mkdtemp(join(tmpdir(), "image-explicit-size-"));
+    const imageTool = tool();
+    const ctx = context(root);
+    const authMock = vi.spyOn(ctx.modelRegistry, "getApiKeyAndHeaders");
+    const readMock = vi.spyOn(fs, "readFile");
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ data: [{ b64_json: png().toString("base64") }] }));
+    for (const operation of ["generate", "edit"] as const) {
+      const input = {
+        operation,
+        outputPath: `${operation}.png`,
+        prompt: "mock-up",
+        size: "1920x1280",
+        ...(operation === "edit" ? { inputPaths: ["private-reference.png"] } : {}),
+      };
+      await expect(imageTool.execute("explicit", input, undefined, undefined, ctx)).rejects.toThrow(
+        /size.*auto.*custom dimensions.*not supported/i,
+      );
+      expect(Compile(imageTool.parameters).Check(input)).toBe(false);
+    }
+    expect(authMock).not.toHaveBeenCalled();
+    expect(readMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("saves measured native auto output and isolates native image headers", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-auto-size-"));
     const input = {
       operation: "generate" as const,
       outputPath: "out.png",
       prompt: "mock-up",
-      size: "1600x1024",
+      size: "auto",
     };
     expect(Compile(tool().parameters).Check(input)).toBe(true);
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        Response.json({ data: [{ b64_json: png(1600, 1024).toString("base64") }] }),
-      );
-    await tool().execute(
-      "custom",
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        data: [{ b64_json: png(1600, 1024).toString("base64"), width: 1920, height: 1280 }],
+      }),
+    );
+    const result = await tool().execute(
+      "auto",
       input,
       undefined,
       undefined,
@@ -1017,7 +1037,7 @@ describe("image_generation", () => {
       prompt: "mock-up",
       background: "opaque",
       quality: "auto",
-      size: "1600x1024",
+      size: "auto",
     });
     const headers = request?.headers as Headers;
     expect(headers.get("chatgpt-account-id")).toBe("resolved-account");
@@ -1030,6 +1050,14 @@ describe("image_generation", () => {
     expect(headers.get("user-agent")).toContain("pi-frontend-developer");
     expect(headers.get("x-codex-image-turn-id")).toBeTruthy();
     expect(await readFile(join(root, "out.png"))).toEqual(png(1600, 1024));
+    expect(result.details).toEqual({
+      bytes: png(1600, 1024).length,
+      width: 1600,
+      height: 1024,
+      operation: "generate",
+      path: join(root, "out.png"),
+    });
+    expect(result.content[0]?.text).toContain("1600x1024");
   });
 
   it("rejects invalid sizes and unsupported controls before authentication", async () => {
@@ -1183,7 +1211,7 @@ describe("image_generation", () => {
         outputFormat: "png",
         outputPath: "out.png",
         prompt: "mock-up",
-        size: "1024x1536",
+        size: "auto",
       },
       undefined,
       undefined,
@@ -1206,7 +1234,7 @@ describe("image_generation", () => {
       prompt: "mock-up",
       background: "opaque",
       quality: "auto",
-      size: "1024x1536",
+      size: "auto",
       images: [
         { image_url: `data:image/jpeg;base64,${jpeg(1, 1).toString("base64")}` },
         { image_url: `data:image/webp;base64,${webp(1, 1).toString("base64")}` },

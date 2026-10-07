@@ -29,7 +29,7 @@ interface ImageRuntime {
     input: ImageInput,
     signal: AbortSignal | undefined,
     ctx: ExtensionContext,
-  ): Promise<Buffer>;
+  ): Promise<{ bytes: Buffer; width: number; height: number }>;
 }
 
 function mediaType(bytes: Buffer): "image/jpeg" | "image/png" | "image/webp" | undefined {
@@ -117,23 +117,9 @@ function validateInput(input: ImageInput): void {
   if (input.outputFormat !== undefined && input.outputFormat !== "png") {
     throw new Error("Codex image generation supports PNG only.");
   }
-  const size = input.size ?? "auto";
-  if (size === "auto") return;
-  const match = /^([1-9]\d{0,3})x([1-9]\d{0,3})$/u.exec(size);
-  const width = Number(match?.[1]);
-  const height = Number(match?.[2]);
-  const pixels = width * height;
-  if (
-    !match ||
-    width % 16 !== 0 ||
-    height % 16 !== 0 ||
-    Math.max(width, height) > 3840 ||
-    Math.max(width, height) / Math.min(width, height) > 3 ||
-    pixels < 655_360 ||
-    pixels > 8_294_400
-  ) {
+  if (input.size !== undefined && input.size !== "auto") {
     throw new Error(
-      "Invalid image size: use auto or WIDTHxHEIGHT with edges divisible by 16, at most 3840, ratio at most 3:1, and 655360–8294400 pixels.",
+      "Image size must be auto (or omitted); custom dimensions are not supported by Codex image generation.",
     );
   }
 }
@@ -149,7 +135,7 @@ async function requestBody(
     prompt: input.prompt,
     background: "opaque",
     quality: "auto",
-    size: input.size ?? "auto",
+    size: "auto",
   };
   if (input.operation === "generate") {
     if ((input.inputPaths?.length ?? 0) > 0)
@@ -221,14 +207,12 @@ function pngDimensions(bytes: Buffer): readonly [number, number] | undefined {
   return undefined;
 }
 
-function validateOutput(bytes: Buffer, input: ImageInput): void {
+function validateOutput(bytes: Buffer): readonly [number, number] {
   const dimensions = pngDimensions(bytes);
   if (dimensions === undefined) {
     throw new Error("Provider returned an invalid PNG image artifact.");
   }
-  if (input.size !== undefined && input.size !== "auto" && dimensions.join("x") !== input.size) {
-    throw new Error(`Provider image dimensions must match requested size ${input.size}.`);
-  }
+  return dimensions;
 }
 
 async function cancelResponse(stream: { cancel(): Promise<unknown> } | null): Promise<void> {
@@ -350,15 +334,15 @@ export const codexImageRuntime: ImageRuntime = {
       // Never echo provider bodies: they can contain tokens or private reference data.
       await cancelResponse(response.body);
       throw new Error(
-        `Image generation failed (${String(response.status)}). Check Codex subscription access and requested size; custom-size backend acceptance is unverified.`,
+        `Image generation failed (${String(response.status)}). Check Codex subscription access.`,
       );
     }
     const payload = await responsePayload(response, signal);
     const data = isRecord(payload) ? payload["data"] : undefined;
     const first: unknown = Array.isArray(data) ? data[0] : undefined;
     const bytes = decodeImage(isRecord(first) ? first["b64_json"] : undefined);
-    validateOutput(bytes, input);
+    const [width, height] = validateOutput(bytes);
     signal?.throwIfAborted();
-    return bytes;
+    return { bytes, width, height };
   },
 };
