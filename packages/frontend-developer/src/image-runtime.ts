@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 
-import { selectImageModel } from "./config.ts";
+import { selectImageModels } from "./config.ts";
 import { pathFrom } from "./image-path.ts";
 
 import type { Api, Model } from "@earendil-works/pi-ai";
@@ -12,7 +12,7 @@ const MAX_INPUT_BYTES = 50 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
 const CODEX_IMAGE_BASE = "https://chatgpt.com/backend-api/codex";
 const LOGIN_GUIDANCE =
-  "Image generation requires openai-codex subscription OAuth. Use Pi /login for openai-codex, then select or configure an openai-codex model.";
+  "Image generation requires usable openai-codex subscription OAuth. Use Pi /login for openai-codex. Ensure Pi has an openai-codex provider model using openai-codex-responses. No conversation model switch is required.";
 
 export interface ImageInput {
   readonly inputPaths?: readonly string[];
@@ -251,15 +251,31 @@ async function readChunk(
   }
 }
 
-async function authenticatedHeaders(ctx: ExtensionContext, model: Model<Api>): Promise<Headers> {
-  try {
-    if (!ctx.modelRegistry.isUsingOAuth(model)) throw new Error(LOGIN_GUIDANCE);
-    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-    if (!auth.ok || !auth.apiKey) throw new Error(LOGIN_GUIDANCE);
-    return mergeHeaders(model.headers, auth.headers, auth.apiKey);
-  } catch {
-    throw new Error(LOGIN_GUIDANCE);
+async function authenticatedHeaders(
+  ctx: ExtensionContext,
+  models: readonly Model<Api>[],
+  configurationPath: string | undefined,
+  signal: AbortSignal | undefined,
+): Promise<Headers> {
+  for (const model of models) {
+    signal?.throwIfAborted();
+    let headers: Headers | undefined;
+    try {
+      if (ctx.modelRegistry.isUsingOAuth(model)) {
+        const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+        if (auth.ok && auth.apiKey)
+          headers = mergeHeaders(model.headers, auth.headers, auth.apiKey);
+      }
+    } catch {
+      // Try the next automatic candidate without exposing auth errors or resolving it twice.
+    }
+    signal?.throwIfAborted();
+    if (headers) return headers;
   }
+  const guidance = configurationPath
+    ? ` Check ${configurationPath}. Set provider to openai-codex and model to an existing openai-codex-responses registry model ID, or remove the file to use automatic selection.`
+    : " To select authentication explicitly, use trusted .pi/image-generation.json or ~/.pi/agent/image-generation.json with provider openai-codex and a compatible registry model ID.";
+  throw new Error(LOGIN_GUIDANCE + guidance);
 }
 
 async function responsePayload(
@@ -308,8 +324,8 @@ async function responsePayload(
 export const codexImageRuntime: ImageRuntime = {
   async generate(input, signal, ctx) {
     validateInput(input);
-    const { model, imageModel } = await selectImageModel(ctx);
-    const headers = await authenticatedHeaders(ctx, model);
+    const { models, imageModel, configurationPath } = await selectImageModels(ctx);
+    const headers = await authenticatedHeaders(ctx, models, configurationPath, signal);
     const body = await requestBody(input, ctx.cwd, imageModel, signal);
     signal?.throwIfAborted();
     let response: Response;

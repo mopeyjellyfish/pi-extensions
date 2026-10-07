@@ -1,13 +1,15 @@
 import * as fs from "node:fs/promises";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import * as os from "node:os";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { Compile } from "typebox/compile";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import frontendDeveloperExtension from "../src/index.ts";
 
+import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { TSchema } from "typebox";
 
@@ -16,8 +18,20 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   return { ...actual, open: vi.fn(actual.open) };
 });
 
-afterEach(() => {
+vi.mock("node:os", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:os")>();
+  return { ...actual, homedir: () => join(actual.tmpdir(), "pi-image-generation-test-home") };
+});
+
+let testHome: string;
+beforeEach(async () => {
+  testHome = await mkdtemp(join(tmpdir(), "image-test-home-"));
+  vi.spyOn(os, "homedir").mockReturnValue(testHome);
+});
+
+afterEach(async () => {
   vi.restoreAllMocks();
+  await rm(testHome, { recursive: true, force: true });
 });
 
 function crc32(bytes: Buffer): number {
@@ -163,8 +177,10 @@ function context(
     baseUrl?: string;
     find?: ReturnType<typeof vi.fn>;
     modelHeaders?: Record<string, string | null>;
+    modelId?: string;
     noModel?: boolean;
     provider?: string;
+    registryModels?: readonly Partial<Model<Api>>[];
     trusted?: boolean;
   } = {},
 ): ExtensionContext {
@@ -174,7 +190,7 @@ function context(
         api: options.api ?? "openai-codex-responses",
         baseUrl: options.baseUrl ?? "https://chatgpt.com/backend-api",
         headers: options.modelHeaders ?? { "X-Model": "model" },
-        id: "gpt-5",
+        id: options.modelId ?? "gpt-5",
         provider: options.provider ?? "openai-codex",
       };
   return {
@@ -182,6 +198,7 @@ function context(
     isProjectTrusted: () => options.trusted ?? false,
     model,
     modelRegistry: {
+      getAll: () => options.registryModels ?? (model ? [model] : []),
       isUsingOAuth: () => options.oauth ?? true,
       find: options.find ?? vi.fn(),
       getApiKeyAndHeaders: vi.fn(() =>
@@ -235,6 +252,213 @@ describe("image_generation", () => {
     expect(result.content[0]?.text).toContain("art/mockup.png");
     expect(result.content[0]?.text).not.toContain("secret");
     fetchMock.mockRestore();
+  });
+
+  it.each([
+    { api: "openai-responses", provider: "openai", modelId: "gpt-6-astra" },
+    { api: "anthropic-messages", provider: "anthropic" },
+    { noModel: true },
+  ])("discovers Codex OAuth independently of conversation selection %j", async (conversation) => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-independent-auth-"));
+    const codex = {
+      api: "openai-codex-responses" as const,
+      provider: "openai-codex",
+      id: "registry-codex",
+      headers: { "X-Image-Model": "discovered" },
+    };
+    const ctx = context(root, {
+      ...conversation,
+      registryModels: [
+        { api: "openai-responses", provider: "openai", id: "gpt-6-astra" },
+        { api: "openai-codex-responses", provider: "third-party", id: "ineligible" },
+        codex,
+      ],
+    });
+    const conversationModel = ctx.model;
+    const auth = vi.spyOn(ctx.modelRegistry, "getApiKeyAndHeaders");
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ data: [{ b64_json: png().toString("base64") }] }));
+    await tool().execute(
+      "independent",
+      { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(await readFile(join(root, "out.png"))).toEqual(png());
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+      "https://chatgpt.com/backend-api/codex/images/generations",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect((fetchMock.mock.calls[0]?.[1]?.headers as Headers).get("x-image-model")).toBe(
+      "discovered",
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      model: "gpt-image-2",
+    });
+    expect(auth).toHaveBeenCalledExactlyOnceWith(codex);
+    expect(ctx.model).toBe(conversationModel);
+  });
+
+  it("tries usable automatic candidates without repeating auth resolution or image requests", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-auth-fallback-"));
+    const candidates = ["failed-auth", "bad-account", "usable"].map((id) => ({
+      api: "openai-codex-responses" as const,
+      provider: "openai-codex",
+      id,
+    }));
+    const ctx = context(root, { registryModels: candidates });
+    const auth = vi
+      .spyOn(ctx.modelRegistry, "getApiKeyAndHeaders")
+      .mockRejectedValueOnce(new Error("private-token"))
+      .mockResolvedValueOnce({ ok: true, apiKey: "private-token", headers: {} });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ data: [{ b64_json: png().toString("base64") }] }));
+    await tool().execute(
+      "fallback",
+      { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+      undefined,
+      undefined,
+      ctx,
+    );
+    expect(await readFile(join(root, "out.png"))).toEqual(png());
+    expect(auth.mock.calls.map(([model]) => model.id)).toEqual([
+      "failed-auth",
+      "bad-account",
+      "usable",
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0]?.[1]?.headers as Headers).get("authorization")).toBe(
+      "Bearer secret",
+    );
+  });
+
+  it.each(["returned", "thrown"])(
+    "sanitizes %s auth failures with login and configuration guidance",
+    async (failure) => {
+      expect.hasAssertions();
+      const root = await mkdtemp(join(tmpdir(), "image-auth-error-"));
+      const ctx = context(root);
+      const auth = vi.spyOn(ctx.modelRegistry, "getApiKeyAndHeaders");
+      if (failure === "returned") auth.mockResolvedValue({ ok: false, error: "private-token" });
+      else auth.mockRejectedValue(new Error("private-token"));
+      const fetchMock = vi.spyOn(globalThis, "fetch");
+      const result = tool().execute(
+        "auth-error",
+        { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+        undefined,
+        undefined,
+        ctx,
+      );
+      await expect(result).rejects.toThrow(/\/login for openai-codex/);
+      await expect(result).rejects.toThrow(/image-generation.json/);
+      await expect(result).rejects.not.toThrow(/private-token/);
+      expect(fetchMock).not.toHaveBeenCalled();
+      await expect(readFile(join(root, "out.png"))).rejects.toThrow();
+    },
+  );
+
+  it.each(["missing", "ineligible", "unusable"])(
+    "keeps %s explicit configuration authoritative without automatic fallback",
+    async (failure) => {
+      expect.hasAssertions();
+      const root = await mkdtemp(join(tmpdir(), "image-explicit-error-"));
+      const path = join(root, ".pi/image-generation.json");
+      await mkdir(join(root, ".pi"));
+      await writeFile(path, JSON.stringify({ provider: "openai-codex", model: "explicit" }));
+      const ctx = context(root, {
+        trusted: true,
+        find: vi.fn(() =>
+          failure === "missing"
+            ? undefined
+            : {
+                api: failure === "ineligible" ? "openai-responses" : "openai-codex-responses",
+                provider: "openai-codex",
+                id: "explicit",
+              },
+        ),
+      });
+      const getAll = vi.spyOn(ctx.modelRegistry, "getAll");
+      vi.spyOn(ctx.modelRegistry, "getApiKeyAndHeaders").mockResolvedValue({
+        ok: false,
+        error: "private-token",
+      });
+      const fetchMock = vi.spyOn(globalThis, "fetch");
+      const result = tool().execute(
+        "explicit-error",
+        { operation: "generate", outputPath: "out.png", prompt: "mock-up" },
+        undefined,
+        undefined,
+        ctx,
+      );
+      await expect(result).rejects.toThrow(path);
+      await expect(result).rejects.toThrow(/existing openai-codex-responses registry model ID/);
+      await expect(result).rejects.not.toThrow(/private-token/);
+      expect(getAll).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      await expect(readFile(join(root, "out.png"))).rejects.toThrow();
+    },
+  );
+
+  it("uses user configuration for untrusted projects and trusted project configuration first", async () => {
+    expect.hasAssertions();
+    const root = await mkdtemp(join(tmpdir(), "image-config-precedence-"));
+    vi.spyOn(os, "homedir").mockReturnValue(root);
+    await mkdir(join(root, ".pi/agent"), { recursive: true });
+    await writeFile(
+      join(root, ".pi/agent/image-generation.json"),
+      JSON.stringify({ provider: "openai-codex", model: "user" }),
+    );
+    await writeFile(join(root, ".pi/image-generation.json"), "{");
+    const find = vi.fn((_provider: string, id: string) => ({
+      api: "openai-codex-responses",
+      provider: "openai-codex",
+      id,
+      headers: { "X-Selection": id },
+    }));
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(() =>
+        Promise.resolve(Response.json({ data: [{ b64_json: png().toString("base64") }] })),
+      );
+    await tool().execute(
+      "user",
+      { operation: "generate", outputPath: "user.png", prompt: "mock-up" },
+      undefined,
+      undefined,
+      context(root, { find }),
+    );
+    expect(await readFile(join(root, "user.png"))).toEqual(png());
+    expect((fetchMock.mock.calls[0]?.[1]?.headers as Headers).get("x-selection")).toBe("user");
+    await writeFile(
+      join(root, ".pi/image-generation.json"),
+      JSON.stringify({ provider: "openai-codex", model: "project" }),
+    );
+    await writeFile(join(root, ".pi/agent/image-generation.json"), "{");
+    await tool().execute(
+      "project",
+      { operation: "generate", outputPath: "project.png", prompt: "mock-up" },
+      undefined,
+      undefined,
+      context(root, { find, trusted: true }),
+    );
+    expect(await readFile(join(root, "project.png"))).toEqual(png());
+    expect((fetchMock.mock.calls[1]?.[1]?.headers as Headers).get("x-selection")).toBe("project");
+    await expect(
+      tool().execute(
+        "invalid-user",
+        { operation: "generate", outputPath: "invalid.png", prompt: "mock-up" },
+        undefined,
+        undefined,
+        context(root, { find }),
+      ),
+    ).rejects.toThrow(join(root, ".pi/agent/image-generation.json"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await expect(readFile(join(root, "invalid.png"))).rejects.toThrow();
   });
 
   it("accepts bounded multi-megabyte PNG artifacts", async () => {

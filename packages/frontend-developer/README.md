@@ -166,10 +166,11 @@ close idempotently then.
 ## Image generation
 
 `image_generation` uses GPT Image 2 with Pi's existing `openai-codex`
-subscription OAuth. Use Pi `/login` for `openai-codex`, then select an
-`openai-codex-responses` model. Platform API keys are not accepted and there is
-no Platform fallback. No Codex auth files, app-server, or delegated model turn
-are used.
+subscription OAuth. Use Pi `/login` for `openai-codex`. The tool automatically
+finds an `openai-codex-responses` registry model with usable OAuth, independently
+of the conversation model. No model switch or image configuration is required.
+Platform API keys are not accepted and there is no Platform fallback. No Codex
+auth files, app-server, or delegated model turn are used.
 
 To select a different registry entry for the same subscription, configure trusted
 `.pi/image-generation.json` or `~/.pi/agent/image-generation.json`:
@@ -180,8 +181,11 @@ To select a different registry entry for the same subscription, configure truste
 
 `model` selects authentication, not the image model. Optional `imageModel`
 defaults to `gpt-image-2`; only that verified ID is accepted. Project configuration
-takes precedence and is read only when trusted. Invalid explicit configuration
-fails without a request. Never put credentials in this file.
+takes precedence and is read only when trusted. Explicit selection is authoritative:
+invalid configuration, missing or unsupported models, and unusable OAuth fail
+without automatic selection or a provider request. Errors identify the configuration
+path and corrective action without exposing auth errors. Fix or remove the file
+to restore automatic selection. Never put credentials in this file.
 
 The versioned native JSON transport follows OpenAI Codex
 [`rust-v0.160.0` image request types](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/codex-api/src/images.rs)

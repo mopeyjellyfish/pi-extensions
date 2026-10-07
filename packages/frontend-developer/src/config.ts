@@ -12,15 +12,21 @@ interface ImageConfig {
   readonly provider: string;
 }
 
+function invalidConfig(path: string): Error {
+  return new Error(
+    `Image generation configuration is invalid: ${path}. Set provider to openai-codex, model to an existing openai-codex-responses registry model ID, and optional imageModel to gpt-image-2. Never put credentials in this file.`,
+  );
+}
+
 function parseConfig(raw: string, path: string): ImageConfig {
   let value: unknown;
   try {
     value = JSON.parse(raw);
   } catch {
-    throw new Error(`Image generation configuration is invalid: ${path}.`);
+    throw invalidConfig(path);
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Image generation configuration is invalid: ${path}.`);
+    throw invalidConfig(path);
   }
   const record = value as Record<string, unknown>;
   const imageModel = record["imageModel"] === undefined ? "gpt-image-2" : record["imageModel"];
@@ -35,42 +41,52 @@ function parseConfig(raw: string, path: string): ImageConfig {
     !provider.trim() ||
     !model.trim()
   ) {
-    throw new Error(`Image generation configuration is invalid: ${path}.`);
+    throw invalidConfig(path);
   }
   return { model: model.trim(), provider: provider.trim(), imageModel };
 }
 
 async function configAt(path: string): Promise<ImageConfig | undefined> {
+  let raw: string | undefined;
   try {
-    return parseConfig(await readFile(path, "utf8"), path);
+    raw = await readFile(path, "utf8");
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return undefined;
-    throw error;
+    // Do not expose filesystem error details in tool output.
   }
+  if (raw === undefined) {
+    throw new Error(`Cannot read image generation configuration: ${path}. Check file access.`);
+  }
+  return parseConfig(raw, path);
 }
 
-export async function selectImageModel(
-  ctx: ExtensionContext,
-): Promise<{ model: Model<Api>; imageModel: string }> {
+export async function selectImageModels(ctx: ExtensionContext): Promise<{
+  models: readonly Model<Api>[];
+  imageModel: string;
+  configurationPath: string | undefined;
+}> {
   const projectPath = join(ctx.cwd, CONFIG_DIR_NAME, "image-generation.json");
+  const userPath = join(homedir(), ".pi", "agent", "image-generation.json");
   const project = ctx.isProjectTrusted() ? await configAt(projectPath) : undefined;
-  const user = project
-    ? undefined
-    : await configAt(join(homedir(), ".pi", "agent", "image-generation.json"));
+  const user = project ? undefined : await configAt(userPath);
   const configured = project ?? user;
-  const selected = configured
-    ? ctx.modelRegistry.find(configured.provider, configured.model)
-    : ctx.model;
-  if (selected === undefined) {
-    const requested = configured ? ` ${configured.provider}/${configured.model}` : "";
-    throw new Error(
-      `Image generation requires an openai-codex subscription model; use Pi /login for openai-codex${requested}.`,
-    );
+  if (configured) {
+    const configurationPath = project ? projectPath : userPath;
+    const selected = ctx.modelRegistry.find(configured.provider, configured.model);
+    if (selected === undefined || !isCodexModel(selected)) {
+      throw new Error(
+        `Image generation configuration selects a missing or unsupported model: ${configurationPath}. Set provider to openai-codex and model to an existing openai-codex-responses registry model ID. Use Pi /login for openai-codex.`,
+      );
+    }
+    return { models: [selected], imageModel: configured.imageModel, configurationPath };
   }
-  if (selected.api !== "openai-codex-responses" || selected.provider !== "openai-codex") {
-    throw new Error(
-      "Image generation requires an openai-codex subscription model with OAuth; Platform API keys and third-party providers are not supported.",
-    );
-  }
-  return { model: selected as Model<Api>, imageModel: configured?.imageModel ?? "gpt-image-2" };
+  return {
+    models: ctx.modelRegistry.getAll().filter(isCodexModel),
+    imageModel: "gpt-image-2",
+    configurationPath: undefined,
+  };
+}
+
+function isCodexModel(model: Model<Api>): boolean {
+  return model.api === "openai-codex-responses" && model.provider === "openai-codex";
 }
