@@ -202,14 +202,14 @@ before upload. Obtain consent for input privacy exposure and subscription quota
 use before each bounded pass. Cancellation does not guarantee that upstream
 quota use is reversed. Requests are never retried automatically.
 
-`size` defaults to `auto`. An optional `WIDTHxHEIGHT` is forwarded unchanged:
-both edges must be divisible by 16, neither may exceed 3840, the aspect ratio
-must be at most 3:1, and total pixels must be 655360–8294400. Exact-size results
-are checked before saving; the tool never resizes or substitutes a preset.
-**Custom-size backend acceptance remains unverified.** The model's
-[dimension guide](https://developers.openai.com/cookbook/examples/multimodal/image-gen-models-prompting-guide)
-also notes experimental large sizes and a possible strict `<3840` backend edge
-limit. Backend rejection is still possible after local validation.
+`size` may be omitted or set to `auto`. Generation and edits always send `auto`,
+matching the [Codex native tool's sizing contract](https://github.com/openai/codex/blob/8f21b7fffbefe77529325fc86c95289371841c6c/codex-rs/ext/image-generation/src/tool.rs).
+Codex chooses the dimensions. The tool saves valid PNG output unchanged and
+reports actual `width` and `height` from the decoded PNG in result details and
+readable text. It does not resize, crop, or require a requested dimension match.
+Explicit dimensions such as `1920x1280` are rejected before authentication or
+reference upload; use `auto` instead. Public Platform custom sizes use a different
+API, authentication, and billing path and are not supported by this tool.
 
 Responses and errors are bounded; provider error bodies are not echoed. The tool
 validates PNG artifacts, propagates cancellation, refuses paths outside the

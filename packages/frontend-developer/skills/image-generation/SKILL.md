@@ -23,7 +23,7 @@ refinement, requires a new bound and consent.
 If compatible OAuth is unavailable or explicit configuration fails, make no request:
 report the tool's login or configuration guidance and continue with normal UI design, supplied
 mock-ups, or other design evidence without claiming generated evidence. Inspect
-the saved artifact's format and requested dimensions before using it in
+the saved artifact's format and reported actual width and height before using it in
 `frontend-design`; pixels remain evidence, not product behavior.
 
 For material design review, each generated artifact is image-backed direction
@@ -33,6 +33,12 @@ generated evidence.
 
 The versioned Codex native transport produces PNG only. Reference edits accept
 PNG, JPEG, and WebP inputs; masks and other output formats are unsupported.
-Size defaults to `auto`; valid exact dimensions are forwarded unchanged and
-checked before saving, but live custom-size backend acceptance is unverified.
-There is no Platform fallback or automatic request retry.
+Size may be omitted or set to `auto`: generation and edits always let Codex choose
+dimensions. Valid PNG output is saved unchanged, with actual width and height
+measured from the PNG and reported in details and readable text. The tool does not
+resize or crop. Explicit dimensions are rejected before authentication or reference
+upload, not silently ignored. Public Platform custom sizes use a different API,
+authentication, and billing path and are not supported here.
+The subscription backend contract is undocumented and version-sensitive; live
+subscription entitlement remains unverified. There is no Platform fallback or
+automatic request retry.
