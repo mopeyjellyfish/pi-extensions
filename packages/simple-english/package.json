@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-simple-english",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A Pi extension and skill for clear human-facing text based on pragmatic ASD-STE100 rules.",
   "license": "MIT",
   "type": "module",

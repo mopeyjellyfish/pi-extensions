@@ -2,6 +2,25 @@
 
 All notable changes to this package are documented in this file.
 
+## [1.1.0](https://github.com/mopeyjellyfish/pi-extensions/compare/pi-web-search-v1.0.0...pi-web-search-v1.1.0) (2026-10-08)
+
+
+### Features
+
+* **pi-web-search:** add structured tool results ([57aa511](https://github.com/mopeyjellyfish/pi-extensions/commit/57aa5116510b5b8c18f3d9b721cb2fbbdff4ce61))
+
+
+### Bug Fixes
+
+* avoid duplicate Pi host peer installs ([4bdb39f](https://github.com/mopeyjellyfish/pi-extensions/commit/4bdb39f7d3848fbf6ca79ff7da2ef7f5a9fa2f8e))
+* **deps:** resolve dependency audit vulnerabilities ([faa3dc1](https://github.com/mopeyjellyfish/pi-extensions/commit/faa3dc1619cd18db8908bb94a88230281c317a9f))
+* **web-search:** support Pi 0.84 authentication ([d5bc539](https://github.com/mopeyjellyfish/pi-extensions/commit/d5bc539cf35ef0a42792490c25b5664be9abf883))
+
+
+### Maintenance
+
+* remove text-only resource tests ([9800d52](https://github.com/mopeyjellyfish/pi-extensions/commit/9800d52ab45c689b2579c5188badb8c42f7cc299))
+
 ## 1.0.0 (2026-07-12)
 
 
