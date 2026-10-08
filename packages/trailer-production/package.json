@@ -1,6 +1,6 @@
 {
   "name": "@mopeyjellyfish/pi-trailer-production",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A reusable Pi skill and prompt for planning and producing original product trailers.",
   "license": "MIT",
   "type": "module",
