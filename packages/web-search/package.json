@@ -21,7 +21,7 @@
     "anthropic"
   ],
   "devDependencies": {
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
